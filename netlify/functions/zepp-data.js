@@ -1,4 +1,5 @@
-import { getStore } from '@netlify/blobs';
+// Lagrer helsedata fra iPhone-snarvei direkte i Supabase health_data-tabellen.
+// Bruker Supabase REST API via fetch — ingen SDK-avhengighet.
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -9,21 +10,30 @@ const CORS = {
 
 const VALID_FIELDS = ['sleepHours', 'sleepScore', 'rhr', 'hrv', 'steps', 'bodyBattery', 'mood'];
 
-const EMPTY = {
-  sleep: { hours: null, score: null, deepMin: null, remMin: null },
-  rhr: null, hrv: null, steps: null, battery: null, mood: null,
-  timestamp: null,
-};
-
 export const handler = async (event) => {
   // Preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS, body: '' };
   }
 
-  const store = getStore('health');
+  const SUPABASE_URL     = process.env.SUPABASE_URL;
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-  // ── POST: receive data from iPhone Shortcut ─────────────────────────────
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return {
+      statusCode: 503,
+      headers: CORS,
+      body: JSON.stringify({ error: 'Mangler SUPABASE_URL eller SUPABASE_ANON_KEY' }),
+    };
+  }
+
+  const sbHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  };
+
+  // ── POST: motta data fra iPhone-snarvei og lagre i Supabase ─────────────
   if (event.httpMethod === 'POST') {
     let body;
     try {
@@ -32,7 +42,7 @@ export const handler = async (event) => {
       return {
         statusCode: 400,
         headers: CORS,
-        body: JSON.stringify({ error: 'Invalid JSON' }),
+        body: JSON.stringify({ error: 'Ugyldig JSON' }),
       };
     }
 
@@ -41,56 +51,71 @@ export const handler = async (event) => {
         statusCode: 400,
         headers: CORS,
         body: JSON.stringify({
-          error: `Body must be an object with at least one of: ${VALID_FIELDS.join(', ')}`,
+          error: `Body må inneholde minst ett av: ${VALID_FIELDS.join(', ')}`,
         }),
       };
     }
 
-    const payload = {
-      sleep: {
-        hours:   body.sleepHours  ?? null,
-        score:   body.sleepScore  ?? null,
-        deepMin: null,
-        remMin:  null,
-      },
-      rhr:     body.rhr         ?? null,
-      hrv:     body.hrv         ?? null,
-      steps:   body.steps       ?? null,
-      battery: body.bodyBattery ?? null,
-      mood:    body.mood        ?? null,
-      timestamp: new Date().toISOString(),
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const row = {
+      date:         body.date        || today,
+      sleep_hours:  body.sleepHours  ?? null,
+      sleep_score:  body.sleepScore  ?? null,
+      hrv:          body.hrv         ?? null,
+      rhr:          body.rhr         ?? null,
+      steps:        body.steps       ?? null,
+      body_battery: body.bodyBattery ?? null,
+      mood:         body.mood        ?? null,
     };
 
-    await store.setJSON('health-today', payload);
+    // Upsert: oppdater hvis dato allerede finnes, ellers insert
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/health_data`, {
+      method: 'POST',
+      headers: {
+        ...sbHeaders,
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify(row),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return {
+        statusCode: 500,
+        headers: CORS,
+        body: JSON.stringify({ error: errText }),
+      };
+    }
 
     return {
       statusCode: 200,
       headers: CORS,
-      body: JSON.stringify({ ok: true, timestamp: payload.timestamp }),
+      body: JSON.stringify({ ok: true, date: row.date }),
     };
   }
 
-  // ── GET: return last stored data ────────────────────────────────────────
+  // ── GET: returner siste lagrede rad (for testing) ────────────────────────
   if (event.httpMethod === 'GET') {
-    try {
-      const data = await store.get('health-today', { type: 'json' });
-      return {
-        statusCode: 200,
-        headers: CORS,
-        body: JSON.stringify(data ?? EMPTY),
-      };
-    } catch (err) {
-      return {
-        statusCode: 500,
-        headers: CORS,
-        body: JSON.stringify({ error: err.message }),
-      };
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/health_data?order=date.desc&limit=1`,
+      { headers: sbHeaders }
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: errText }) };
     }
+    const data = await res.json();
+    return {
+      statusCode: 200,
+      headers: CORS,
+      body: JSON.stringify(data[0] || null),
+    };
   }
 
   return {
     statusCode: 405,
     headers: CORS,
-    body: JSON.stringify({ error: 'Method not allowed' }),
+    body: JSON.stringify({ error: 'Metode ikke tillatt' }),
   };
 };
