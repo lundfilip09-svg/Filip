@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint — Rekorder & logg</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .log-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 10px; }
+    .knee-log-row { display: flex; flex-direction: column; gap: 6px; }
+    .knee-row-item { display: flex; align-items: center; gap: 10px; }
+    .knee-row-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
+    .history-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 8px;
+      margin-bottom: 4px; font-size: 12px; font-family: var(--font-mono);
+    }
+    .history-dist { color: var(--accent-blue); width: 50px; flex-shrink: 0; }
+    .history-time { color: var(--text-primary); font-weight: 700; flex: 1; }
+    .history-type { color: var(--text-tertiary); font-size: 10px; }
+    .history-date { color: var(--text-tertiary); font-size: 10px; flex-shrink: 0; }
+    .history-del  { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity 0.15s; }
+    .history-row:hover .history-del { opacity: 1; }
+    .history-del:hover { color: var(--danger); }
+    .trend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .trend-label-sm { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
+    @media (max-width: 600px) { .log-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="main-nav">
+  <div class="nav-inner">
+    <div class="nav-tabs">
+      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <!-- PB Board -->
+  <div class="card">
+    <div class="section-title">Personlige rekorder</div>
+    <div class="grid-4" id="pbGrid"><div class="loading">Laster…</div></div>
+  </div>
+
+  <!-- Log form -->
+  <div class="card">
+    <div class="section-title">Logg økt</div>
+    <div class="log-grid">
+      <div class="form-group">
+        <label class="form-label">Dato</label>
+        <input type="date" id="logDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Distanse</label>
+        <select id="logDist">
+          <option value="60m">60m</option>
+          <option value="100m" selected>100m</option>
+          <option value="150m">150m</option>
+          <option value="200m">200m</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select id="logType">
+          <option value="Trening">Trening</option>
+          <option value="Stevne">Stevne</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tid (sek)</label>
+        <input type="number" id="logTime" step="0.01" placeholder="11.52">
+      </div>
+      <div class="form-group">
+        <label class="form-label">RPE (1–10)</label>
+        <input type="number" id="logRpe" min="1" max="10" placeholder="7">
+      </div>
+    </div>
+
+    <!-- Knee pain for this session -->
+    <div style="margin-bottom:12px">
+      <div class="form-label" style="margin-bottom:8px">Knesmerte (0–10)</div>
+      <div class="knee-log-row">
+        <div class="knee-row-item">
+          <span class="knee-row-label">Før økt</span>
+          <div class="pain-row" id="sk-before"></div>
+        </div>
+        <div class="knee-row-item">
+          <span class="knee-row-label">Under økt</span>
+          <div class="pain-row" id="sk-during"></div>
+        </div>
+        <div class="knee-row-item">
+          <span class="knee-row-label">Etter økt</span>
+          <div class="pain-row" id="sk-after"></div>
+        </div>
+        <div class="knee-row-item">
+          <span class="knee-row-label">Dagen etter</span>
+          <div class="pain-row" id="sk-dayafter"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Notater</label>
+      <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…"></textarea>
+    </div>
+    <button class="btn btn-success" onclick="logSession()">Logg økt</button>
+  </div>
+
+  <!-- Knee trend -->
+  <div class="card">
+    <div class="section-title">Knesmerte — siste 5 økter</div>
+    <div id="kneeTrend"><div class="loading">Laster…</div></div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="section-title">Økthistorikk</div>
+    <div id="historyList"><div class="loading">Laster…</div></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+document.querySelector('[data-p="sprint"]').classList.add('active');
+
+let _tt;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(ds) {
+  if (!ds) return '';
+  const d = new Date(ds + 'T12:00:00');
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;
+}
+
+const skKnee = { before: null, during: null, after: null, dayafter: null };
+let sprintLog = [];
+
+// Date default
+document.getElementById('logDate').value = today();
+
+// ── Pain buttons ──────────────────────────────────────────────────────────
+function painClass(s) {
+  return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
+}
+function buildPainRow(phase) {
+  const el = document.getElementById(`sk-${phase}`);
+  el.innerHTML = [...Array(11)].map((_,i) =>
+    `<button class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i})">${i}</button>`
+  ).join('');
+}
+function selPain(phase, score) {
+  skKnee[phase] = score;
+  document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
+    b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
+  });
+}
+['before','during','after','dayafter'].forEach(buildPainRow);
+
+// ── PB Board ──────────────────────────────────────────────────────────────
+async function loadPBs() {
+  const { data } = await db.from('sprint_records').select('*').order('distance');
+  const el = document.getElementById('pbGrid');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">Ingen rekorder</div>'; return; }
+
+  const dOrder = ['60m','100m','150m','200m'];
+  const sorted = dOrder.map(d => data.find(r => r.distance === d)).filter(Boolean);
+
+  el.innerHTML = sorted.map(r => {
+    const days  = Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000);
+    const barClr = days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
+    return `<div class="pb-cell" id="pb-${r.distance}">
+      <div class="pb-dist">${r.distance}</div>
+      <div class="pb-time">${r.best_time?.toFixed(2) ?? '–'}</div>
+      <div class="pb-date">${fmtDate(r.date)}</div>
+      <div class="pb-bar" style="background:${barClr}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Log session ───────────────────────────────────────────────────────────
+async function logSession() {
+  const date  = document.getElementById('logDate').value || today();
+  const dist  = document.getElementById('logDist').value;
+  const type  = document.getElementById('logType').value;
+  const time  = parseFloat(document.getElementById('logTime').value);
+  const rpe   = parseInt(document.getElementById('logRpe').value) || null;
+  const notes = document.getElementById('logNotes').value.trim();
+
+  if (!dist || isNaN(time) || time <= 0) { toast('Fyll inn distanse og tid', 'err'); return; }
+
+  const [logRes, kneRes] = await Promise.all([
+    db.from('sprint_log').insert({
+      date, distance: dist, type, rpe, notes,
+      knee_before:    skKnee.before,
+      knee_during:    skKnee.during,
+      knee_after:     skKnee.after,
+      knee_day_after: skKnee.dayafter,
+    }).select().single(),
+    db.from('knee_pain').insert({
+      date, session_type: `Sprint ${dist} ${type}`,
+      before_score:    skKnee.before,
+      during_score:    skKnee.during,
+      after_score:     skKnee.after,
+      day_after_score: skKnee.dayafter,
+      notes,
+    }),
+  ]);
+
+  if (logRes.error) { toast('Feil ved lagring', 'err'); return; }
+
+  // Check / update PB
+  const { data: rec } = await db.from('sprint_records').select('best_time').eq('distance', dist).single();
+  if (!rec || time < rec.best_time) {
+    await db.from('sprint_records').upsert({ distance: dist, best_time: time, date }, { onConflict: 'distance' });
+    const cell = document.getElementById(`pb-${dist}`);
+    if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 600); }
+    toast(`Ny PB! ${dist} — ${time.toFixed(2)}s`);
+  } else {
+    toast('Økt lagret!');
+  }
+
+  // Reset
+  document.getElementById('logTime').value  = '';
+  document.getElementById('logRpe').value   = '';
+  document.getElementById('logNotes').value = '';
+  Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
+  ['before','during','after','dayafter'].forEach(p =>
+    document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn')
+  );
+
+  await Promise.all([loadPBs(), loadHistory(), loadKneeTrend()]);
+}
+
+// ── Knee trend ────────────────────────────────────────────────────────────
+async function loadKneeTrend() {
+  const { data } = await db.from('sprint_log')
+    .select('date,knee_before,knee_during,knee_after,knee_day_after,distance,type')
+    .order('date', { ascending: false }).limit(5);
+  const el = document.getElementById('kneeTrend');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
+
+  const phases = [
+    { key: 'knee_before',    label: 'Før' },
+    { key: 'knee_during',    label: 'Under' },
+    { key: 'knee_after',     label: 'Etter' },
+    { key: 'knee_day_after', label: 'Dagen etter' },
+  ];
+  const dateLabels = data.map(d => fmtDate(d.date));
+  const maxW = 100 / Math.max(data.length, 1);
+
+  function painClr(v) {
+    if (v === null || v === undefined) return 'rgba(255,255,255,0.08)';
+    if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063'; if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
+  }
+
+  el.innerHTML = `
+    <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:8px">
+      ${dateLabels.join(' · ')}
+    </div>
+    ${phases.map(ph => `
+      <div class="trend-row">
+        <span class="trend-label-sm">${ph.label}</span>
+        <div style="display:flex;gap:4px;flex:1">
+          ${data.map(d => {
+            const v = d[ph.key];
+            return `<div style="flex:1;height:28px;border-radius:4px;background:${painClr(v)};
+              display:flex;align-items:center;justify-content:center;font-size:11px;
+              font-family:var(--font-mono);color:${v!==null?'#050506':'var(--text-tertiary)'}">
+              ${v ?? '–'}</div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('')}`;
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const { data } = await db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30);
+  sprintLog = data || [];
+  const el  = document.getElementById('historyList');
+  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
+  el.innerHTML = sprintLog.map(s =>
+    `<div class="history-row">
+      <span class="history-dist">${escHtml(s.distance || '–')}</span>
+      <span class="history-time">${s.rpe ? s.rpe.toFixed(2) : '–'}s</span>
+      <span class="history-type">${escHtml(s.type || '')}</span>
+      ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
+      <span class="history-date">${fmtDate(s.date)}</span>
+      <button class="history-del" onclick="deleteSession('${s.id}')">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function deleteSession(id) {
+  if (!confirm('Slett denne økten?')) return;
+  await db.from('sprint_log').delete().eq('id', id);
+  await loadHistory();
+  toast('Økt slettet');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(async () => {
+  await Promise.all([loadPBs(), loadHistory(), loadKneeTrend()]);
+})();
+</script>
+</body>
+</html>

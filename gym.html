@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym — Styrketrening</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .add-ex-form {
+      display: none; gap: 8px; margin-top: 8px; padding: 10px;
+      background: rgba(255,255,255,0.03); border-radius: 8px;
+    }
+    .add-ex-form.open { display: flex; }
+    .add-ex-form input { flex: 1; }
+    .add-ex-form .w-sets, .add-ex-form .w-reps { width: 72px; flex: none; }
+    .knee-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+    .knee-phase-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 6px; }
+    .warmup-note { font-size: 11px; color: var(--text-tertiary); font-style: italic; margin-bottom: 10px; }
+    .choose-label { font-size: 9px; font-family: var(--font-mono); color: var(--accent-blue); letter-spacing: 0.1em; text-transform: uppercase; margin-left: 4px; }
+    @media (max-width: 600px) { .knee-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="main-nav">
+  <div class="nav-inner">
+    <div class="nav-tabs">
+      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+    </div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <!-- Day tabs -->
+  <div class="day-tabs">
+    <button class="day-tab" data-day="monday"    onclick="setDay('monday')">Mandag</button>
+    <button class="day-tab" data-day="wednesday" onclick="setDay('wednesday')">Onsdag</button>
+    <button class="day-tab" data-day="friday"    onclick="setDay('friday')">Fredag</button>
+  </div>
+
+  <!-- Warmup -->
+  <div class="card">
+    <div class="section-title">Oppvarming</div>
+    <div id="warmupContent"><div class="loading">Laster…</div></div>
+  </div>
+
+  <!-- Main workout -->
+  <div class="card">
+    <div class="section-title" id="workoutTitle">Økt</div>
+    <div id="workoutContent"><div class="loading">Laster…</div></div>
+  </div>
+
+  <!-- Knee pain log -->
+  <div class="card">
+    <div class="section-title">Knesmerte — logg</div>
+    <div class="knee-grid">
+      <div>
+        <div class="knee-phase-label">Før økt</div>
+        <div class="pain-row" id="knee-before"></div>
+      </div>
+      <div>
+        <div class="knee-phase-label">Under økt</div>
+        <div class="pain-row" id="knee-during"></div>
+      </div>
+      <div>
+        <div class="knee-phase-label">Etter økt</div>
+        <div class="pain-row" id="knee-after"></div>
+      </div>
+      <div>
+        <div class="knee-phase-label">Dagen etter</div>
+        <div class="pain-row" id="knee-day-after"></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label class="form-label">Notater</label>
+      <textarea id="sessionNotes" placeholder="Hvordan gikk økten?"></textarea>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn btn-success" onclick="saveLog()">Lagre økt</button>
+      <button class="btn btn-ghost" onclick="clearLog()">Nullstill</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+document.querySelector('[data-p="gym"]').classList.add('active');
+
+let _tt;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function today() { return new Date().toISOString().slice(0,10); }
+
+// ── State ───────────────────────────────────────────────────────────────
+let activeDay   = detectDay();
+let allExercises = {};   // day -> section -> [{id,exercise_name,sets,reps}]
+let weights      = {};   // exercise_name -> weight_kg
+const kneePain   = { before: null, during: null, after: null, 'day-after': null };
+
+function detectDay() {
+  const d = new Date().getDay();
+  if (d === 1) return 'monday';
+  if (d === 3) return 'wednesday';
+  if (d === 5) return 'friday';
+  return 'monday';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+async function init() {
+  setDay(activeDay);
+  await loadData();
+  renderAll();
+  buildPainButtons();
+}
+
+async function loadData() {
+  const [prog, wts] = await Promise.all([
+    db.from('workout_program').select('*').order('sort_order'),
+    db.from('exercise_weights').select('*'),
+  ]);
+
+  allExercises = {};
+  (prog.data || []).forEach(ex => {
+    if (!allExercises[ex.day]) allExercises[ex.day] = {};
+    if (!allExercises[ex.day][ex.section]) allExercises[ex.day][ex.section] = [];
+    allExercises[ex.day][ex.section].push(ex);
+  });
+
+  weights = {};
+  (wts.data || []).forEach(w => { weights[w.exercise_name] = w.weight_kg; });
+}
+
+// ── Day tab ──────────────────────────────────────────────────────────────
+function setDay(day) {
+  activeDay = day;
+  document.querySelectorAll('.day-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.day === day);
+  });
+  const titles = { monday: 'Styrke Kapasitet', wednesday: 'Sirkulasjon & Mobilitet', friday: 'Styrke Power' };
+  document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
+  renderAll();
+}
+
+function renderAll() {
+  renderWarmup();
+  renderWorkout();
+}
+
+// ── Warmup ───────────────────────────────────────────────────────────────
+function renderWarmup() {
+  const el  = document.getElementById('warmupContent');
+  const isFriday = activeDay === 'friday';
+  const base = allExercises['warmup'] || {};
+  const fri  = allExercises['friday_warmup'] || {};
+
+  // Sykkel line: friday version vs default
+  const sykkelSection = isFriday ? fri['Sykkel'] : base['Sykkel'];
+  const extraSection  = isFriday ? fri['Ekstra'] : null;
+  const hoftSection   = base['Hofteaktivering'] || [];
+  const knaerSection  = base['Knær'] || [];
+
+  let html = '';
+
+  if (sykkelSection) {
+    html += renderSection('Sykkel', sykkelSection, 'warmup', false);
+  }
+  if (extraSection) {
+    html += renderSection('Ekstra (kun fredag)', extraSection, 'friday_warmup', false);
+  }
+  if (hoftSection.length) {
+    html += `<div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.12em;margin:10px 0 4px">
+      Hofteaktivering <span class="choose-label">— velg 2 av 3</span></div>`;
+    html += hoftSection.map(ex => renderExRow(ex, 'warmup')).join('');
+  }
+  if (knaerSection.length) {
+    html += renderSection('Knær', knaerSection, 'warmup', false);
+  }
+
+  el.innerHTML = html || '<div class="empty">Ingen oppvarmingsdata</div>';
+}
+
+// ── Workout ───────────────────────────────────────────────────────────────
+function renderWorkout() {
+  const el  = document.getElementById('workoutContent');
+  const day = allExercises[activeDay] || {};
+  if (!Object.keys(day).length) {
+    el.innerHTML = '<div class="loading">Laster øvelser…</div>'; return;
+  }
+  el.innerHTML = Object.entries(day).map(([section, exs]) =>
+    renderSection(section, exs, activeDay, true)
+  ).join('');
+}
+
+function renderSection(label, exs, day, editable) {
+  const addId = `add-${day}-${label.replace(/\s/g,'_')}`;
+  return `<div class="exercise-section">
+    <div class="exercise-section-label">${escHtml(label)}</div>
+    ${exs.map(ex => renderExRow(ex, day)).join('')}
+    ${editable ? `
+    <div class="add-ex-form" id="${addId}">
+      <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
+      <input class="input-sm w-sets" type="number" placeholder="Sett" id="${addId}-sets" style="width:60px">
+      <input class="input-sm w-reps" placeholder="Reps" id="${addId}-reps" style="width:70px">
+      <button class="btn btn-success btn-sm" onclick="addExercise('${day}','${escHtml(label)}','${addId}')">+</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
+    </div>
+    <button class="btn btn-ghost btn-xs" style="margin-top:4px" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
+    ` : ''}
+  </div>`;
+}
+
+function renderExRow(ex, day) {
+  const w = weights[ex.exercise_name];
+  const wVal = w !== undefined && w !== null ? w : '';
+  const needsWeight = day !== 'warmup' && day !== 'friday_warmup';
+  return `<div class="exercise-row" id="exrow-${ex.id}">
+    <div class="exercise-info">
+      <div class="exercise-name">${escHtml(ex.exercise_name)}</div>
+      <div class="exercise-meta">${ex.sets} × ${ex.reps}</div>
+    </div>
+    ${needsWeight ? `
+    <input class="weight-inp" type="number" step="0.5" value="${wVal}" placeholder="—"
+      title="Vekt (kg)" onblur="saveWeight('${escHtml(ex.exercise_name)}', this.value)">
+    <span class="weight-unit">kg</span>
+    ` : ''}
+    ${day !== 'warmup' && day !== 'friday_warmup' ? `
+    <button class="btn btn-danger btn-icon btn-xs" onclick="deleteExercise('${ex.id}')" title="Slett">✕</button>
+    ` : ''}
+  </div>`;
+}
+
+// ── Weight save ───────────────────────────────────────────────────────────
+async function saveWeight(name, val) {
+  if (val === '' || val === null) return;
+  const kg = parseFloat(val);
+  if (isNaN(kg)) return;
+  weights[name] = kg;
+  const { error } = await db.from('exercise_weights').upsert(
+    { exercise_name: name, weight_kg: kg, updated_at: new Date().toISOString() },
+    { onConflict: 'exercise_name' }
+  );
+  if (!error) toast(`${name}: ${kg} kg lagret`);
+}
+
+// ── Add exercise ──────────────────────────────────────────────────────────
+async function addExercise(day, section, formId) {
+  const name = document.getElementById(`${formId}-name`).value.trim();
+  const sets = parseInt(document.getElementById(`${formId}-sets`).value) || 3;
+  const reps = document.getElementById(`${formId}-reps`).value.trim() || '8–10';
+  if (!name) return;
+
+  const maxSort = Math.max(0, ...((allExercises[day]?.[section] || []).map(e => e.sort_order)));
+  const { data, error } = await db.from('workout_program').insert({
+    day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1,
+  }).select().single();
+  if (error) { toast('Feil ved lagring', 'err'); return; }
+
+  if (!allExercises[day]) allExercises[day] = {};
+  if (!allExercises[day][section]) allExercises[day][section] = [];
+  allExercises[day][section].push(data);
+  document.getElementById(formId).classList.remove('open');
+  document.getElementById(`${formId}-name`).value = '';
+  renderAll();
+  toast(`${name} lagt til`);
+}
+
+// ── Delete exercise ───────────────────────────────────────────────────────
+async function deleteExercise(id) {
+  if (!confirm('Slett øvelse?')) return;
+  await db.from('workout_program').delete().eq('id', id);
+  // Remove from local state
+  for (const day of Object.keys(allExercises)) {
+    for (const sec of Object.keys(allExercises[day])) {
+      allExercises[day][sec] = allExercises[day][sec].filter(e => e.id !== id);
+    }
+  }
+  renderAll();
+  toast('Øvelse slettet');
+}
+
+// ── Knee pain buttons ─────────────────────────────────────────────────────
+function painClass(score) {
+  if (score <= 3) return 'sel-green';
+  if (score <= 5) return 'sel-yellow';
+  if (score <= 7) return 'sel-orange';
+  return 'sel-red';
+}
+
+function buildPainButtons() {
+  ['before','during','after','day-after'].forEach(phase => {
+    const el = document.getElementById(`knee-${phase}`);
+    el.innerHTML = [...Array(11)].map((_,i) => `
+      <button class="pain-btn" data-phase="${phase}" data-score="${i}" onclick="selectPain('${phase}',${i})">${i}</button>
+    `).join('');
+  });
+}
+
+function selectPain(phase, score) {
+  kneePain[phase] = score;
+  document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
+    b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
+  });
+}
+
+// ── Save log ──────────────────────────────────────────────────────────────
+async function saveLog() {
+  const dayLabels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+  const notes = document.getElementById('sessionNotes').value.trim();
+
+  const [kRes, gRes] = await Promise.all([
+    db.from('knee_pain').insert({
+      date: today(),
+      session_type: dayLabels[activeDay] || activeDay,
+      before_score:    kneePain['before'],
+      during_score:    kneePain['during'],
+      after_score:     kneePain['after'],
+      day_after_score: kneePain['day-after'],
+      notes,
+    }),
+    db.from('gym_log').insert({
+      date: today(),
+      session_type: dayLabels[activeDay] || activeDay,
+      session_notes: notes,
+    }),
+  ]);
+
+  if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
+  toast('Økt lagret!');
+}
+
+function clearLog() {
+  ['before','during','after','day-after'].forEach(p => {
+    kneePain[p] = null;
+    document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn');
+  });
+  document.getElementById('sessionNotes').value = '';
+}
+
+init();
+</script>
+</body>
+</html>
