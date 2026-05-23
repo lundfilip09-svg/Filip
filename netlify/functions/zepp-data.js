@@ -60,7 +60,9 @@ export const handler = async (event) => {
 
     const row = {
       date:         body.date        || today,
-      sleep_hours:  body.sleepHours  ?? null,
+      sleep_hours:  body.sleepHours != null
+        ? (body.sleepHours > 24 ? body.sleepHours / 3600 : body.sleepHours)
+        : null,
       sleep_score:  body.sleepScore  ?? null,
       hrv:          body.hrv         ?? null,
       rhr:          body.rhr         ?? null,
