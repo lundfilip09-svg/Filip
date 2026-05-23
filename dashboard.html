@@ -97,30 +97,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-let db;
-
-async function _cfg() {
-  const r = await fetch('/.netlify/functions/config');
-  if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
-  const j = await r.json();
-  if (j.error) throw new Error(j.error);
-  return j;
-}
-function _boot(run) {
-  _cfg().then(({ supabaseUrl, supabaseAnonKey }) => {
-    db = supabase.createClient(supabaseUrl, supabaseAnonKey);
-    return run();
-  }).catch(err => {
-    document.querySelector('.page').innerHTML =
-      `<div class="card" style="text-align:center;padding:40px">
-        <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
-        <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Kjør <code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px">netlify dev</code>
-          lokalt, eller deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
-        </div>
-      </div>`;
-  });
-}
+const SUPABASE_URL = 'https://cceilxfvlmpftcncksmr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZWlseGZ2bG1wZnRjbmNrc21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MTY3MzIsImV4cCI6MjA5NTA5MjczMn0.s42uc_2rglZBHnuDG0M-NO-wZ-WbOCFLghMQa0ahdWE';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Active nav
 document.querySelector('[data-p="dashboard"]').classList.add('active');
@@ -329,10 +308,10 @@ async function loadCalendar() {
 }
 
 // ── Init ────────────────────────────────────────────────────────────────
-_boot(async () => {
+(async () => {
   await autoCleanTodos();
   await Promise.all([loadSleep(), loadKnee(), loadSession(), loadTodos(), loadCalendar()]);
-});
+})();
 </script>
 </body>
 </html>
