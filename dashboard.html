@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Filip's Dashboard</title>
+  <style>
+    :root {
+      --text-primary: #FAFAFA;
+      --text-secondary: #B8B6B0;
+      --text-tertiary: #76746E;
+      --success: #6BE3A4;
+      --warning: #F2C063;
+      --danger: #FF6B6B;
+      --accent-blue: #5BA4F5;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-radius: 16px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #050506;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top, 24px) 16px 40px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 82% 14%, rgba(224,118,88,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse at 18% 90%, rgba(180,180,200,0.06) 0%, transparent 60%);
+      filter: blur(40px);
+      z-index: 0;
+      animation: wash 36s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes wash {
+      0%   { transform: translate(0,0) scale(1); }
+      50%  { transform: translate(-2%,1%) scale(1.02); }
+      100% { transform: translate(2%,-1%) scale(0.98); }
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='1' height='1' fill='white' fill-opacity='0.014'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .dash-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 24px;
+    }
+    .dash-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      padding: 20px;
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+    }
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 18px;
+      height: 1px;
+      background: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--text-tertiary), transparent);
+    }
+
+    /* Goal Ticker */
+    .goal-ticker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 10px 14px;
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      min-height: 38px;
+      overflow: hidden;
+    }
+    .ticker-led {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--success), 0 0 12px rgba(107,227,164,0.4);
+      animation: led-pulse 2s ease-in-out infinite;
+    }
+    @keyframes led-pulse {
+      0%,100% { opacity:1; box-shadow:0 0 6px var(--success),0 0 12px rgba(107,227,164,0.4); }
+      50%      { opacity:0.6; box-shadow:0 0 3px var(--success); }
+    }
+    .ticker-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
+      color: var(--text-tertiary); font-family: var(--font-mono); flex-shrink: 0;
+    }
+    .ticker-text-wrap {
+      flex: 1; overflow: hidden; height: 18px; position: relative;
+    }
+    .ticker-text {
+      position: absolute; inset: 0;
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: transform 0.35s ease, opacity 0.35s ease;
+    }
+    .ticker-text.slide-out { transform: translateY(-100%); opacity: 0; }
+    .ticker-text.slide-in-prep { transform: translateY(100%); opacity: 0; }
+    .ticker-pill {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary);
+      background: rgba(255,255,255,0.06); border-radius: 6px; padding: 2px 7px; flex-shrink: 0;
+    }
+
+    /* Day Ring + Session row */
+    .ring-session-row { display: flex; gap: 20px; align-items: stretch; }
+    .ring-card {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px; flex-shrink: 0; width: 210px;
+    }
+    .ring-svg-wrap { position: relative; width: 168px; height: 168px; }
+    .ring-clock { text-align: center; }
+    .ring-time {
+      font-size: 18px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-primary); letter-spacing: -0.02em;
+    }
+    .ring-date { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-top: 2px; }
+    .ring-phase {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;
+    }
+    .session-card { flex: 1; }
+    .session-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .session-badge {
+      display: inline-block; font-size: 13px; font-weight: 700;
+      font-family: var(--font-mono); letter-spacing: 0.06em;
+      padding: 4px 12px; border-radius: 20px; margin-top: 4px;
+    }
+    .session-badge.sprint   { background: rgba(91,164,245,0.15); color: #5BA4F5; }
+    .session-badge.styrke   { background: rgba(242,192,99,0.15);  color: #F2C063; }
+    .session-badge.rehab,
+    .session-badge.mobilitet { background: rgba(107,227,164,0.15); color: #6BE3A4; }
+    .session-badge.rest     { background: rgba(255,255,255,0.06);  color: var(--text-tertiary); }
+    .rpe-badge {
+      font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary);
+      background: rgba(255,255,255,0.06); border-radius: 8px; padding: 3px 8px;
+    }
+    .session-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+    .session-exercises { list-style: none; display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+    .session-exercises li { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .session-exercises li::before { content: '› '; color: var(--success); }
+    .session-knee-note { font-size: 10px; color: var(--warning); font-style: italic; margin-bottom: 12px; }
+    .quick-log { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; }
+    .quick-log-label { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 6px; }
+    .pain-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+    .pain-btn {
+      width: 26px; height: 26px; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px; background: rgba(255,255,255,0.04); color: var(--text-secondary);
+      font-size: 10px; font-family: var(--font-mono); cursor: pointer;
+      transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+    }
+    .pain-btn:hover { border-color: rgba(255,255,255,0.3); }
+    .pain-btn.sel-green { background:#6BE3A4; color:#050506; border-color:#6BE3A4; }
+    .pain-btn.sel-yellow { background:#F2C063; color:#050506; border-color:#F2C063; }
+    .pain-btn.sel-orange { background:rgba(242,130,60,1); color:#050506; border-color:rgba(242,130,60,1); }
+    .pain-btn.sel-red { background:#FF6B6B; color:#050506; border-color:#FF6B6B; }
+
+    /* Injury card */
+    .injury-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start; }
+    .injury-col { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+    .traffic-score { font-size: 28px; font-weight: 700; line-height: 1; }
+    .traffic-label { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+    .traffic-rule { font-size: 10px; font-style: italic; color: var(--text-tertiary); max-width: 140px; }
+    .acwr-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+    .acwr-sub { font-size: 9px; color: var(--text-tertiary); font-family: var(--font-mono); }
+    .trend-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 4px; }
+    .trend-arrow { font-size: 12px; font-family: var(--font-mono); margin-top: 4px; }
+    .week-pills {
+      display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .week-pill {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 4px 6px; border-radius: 6px; background: rgba(255,255,255,0.03);
+      border: 1px solid transparent;
+    }
+    .week-pill.today { border-color: rgba(255,255,255,0.3); }
+    .week-pill-day { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; }
+    .week-pill-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+
+    /* Recovery */
+    .recovery-cols { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; }
+    .sleep-donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .donut-container { position: relative; width: 120px; height: 120px; }
+    .donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .donut-score { font-size: 32px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+    .donut-unit { font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono); }
+    .donut-label {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-tertiary); font-family: var(--font-mono); text-align: center;
+    }
+    .metrics-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .metric-tile {
+      background: rgba(255,255,255,0.03); border-radius: 10px;
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .metric-lbl { font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); }
+    .metric-val { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); }
+    .metric-val.mdanger  { color: var(--danger); }
+    .metric-val.msuccess { color: var(--success); }
+    .metric-val.mwarning { color: var(--warning); }
+    .sleep-trend { margin-top: 10px; width: 100%; }
+    .zepp-banner { font-size: 10px; color: var(--text-tertiary); font-style: italic; text-align: center; padding: 12px; display: none; }
+
+    /* PB Board */
+    .pb-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+    .pb-cell {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 12px 16px; background: rgba(255,255,255,0.03);
+      border-radius: 10px; transition: transform 0.2s ease; position: relative; overflow: hidden;
+    }
+    .pb-cell:hover { transform: translateY(-2px); }
+    .pb-dist { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-tertiary); }
+    .pb-time { font-size: 36px; font-weight: 700; font-family: var(--font-mono); letter-spacing: -0.04em; line-height: 1.1; }
+    .pb-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+    .pb-bar { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40%; height: 4px; border-radius: 2px 2px 0 0; }
+    .pb-log-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .pb-log-row select, .pb-log-row input {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 12px; padding: 5px 8px; outline: none;
+    }
+    .pb-log-row input[type="number"] { width: 80px; }
+    .pb-log-row input[type="date"]   { width: 140px; }
+    .log-btn {
+      background: rgba(91,164,245,0.15); border: 1px solid rgba(91,164,245,0.3);
+      color: #5BA4F5; font-family: var(--font-mono); font-size: 12px;
+      padding: 5px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .log-btn:hover { background: rgba(91,164,245,0.25); }
+
+    /* Weekly Schedule */
+    .weekly-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .weekly-header .section-title { margin-bottom: 0; flex: 1; }
+    .edit-plan-btn {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .edit-plan-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+    .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; }
+    .day-col { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+    .day-name { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-tertiary); }
+    .day-name.today { color: var(--text-primary); text-decoration: underline; text-decoration-color: var(--success); text-underline-offset: 3px; }
+    .day-badge { font-size: 9px; font-family: var(--font-mono); font-weight: 700; padding: 2px 6px; border-radius: 10px; text-align: center; white-space: nowrap; }
+    .day-badge.sprint   { background: rgba(91,164,245,0.15); color: #5BA4F5; }
+    .day-badge.styrke   { background: rgba(242,192,99,0.15);  color: #F2C063; }
+    .day-badge.rehab, .day-badge.mobilitet { background: rgba(107,227,164,0.15); color: #6BE3A4; }
+    .day-badge.rest     { background: rgba(255,255,255,0.06);  color: var(--text-tertiary); }
+    .day-rpe { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .day-status { font-size: 12px; }
+    .cal-event {
+      width: 100%; font-size: 9px; background: rgba(255,255,255,0.06); border-radius: 4px;
+      padding: 2px 4px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cal-event.allday { border-left: 3px solid rgba(255,255,255,0.3); padding-left: 5px; }
+
+    /* Strength Plan */
+    .strength-cols { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    .strength-day { display: flex; flex-direction: column; gap: 8px; }
+    .strength-day-header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+    .strength-day-label { font-size: 12px; color: var(--text-secondary); }
+    .exercise-row {
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 6px 8px; background: rgba(255,255,255,0.02); border-radius: 6px;
+    }
+    .exercise-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; background: rgba(255,255,255,0.1); }
+    .exercise-dot.logged { background: var(--success); }
+    .exercise-info { flex: 1; }
+    .exercise-name { font-size: 12px; color: var(--text-primary); }
+    .exercise-meta { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .exercise-weight { color: var(--warning); }
+    .havre-details { margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; }
+    .havre-details summary { font-size: 10px; color: var(--text-tertiary); cursor: pointer; user-select: none; list-style: none; }
+    .havre-details summary::-webkit-details-marker { display: none; }
+    .havre-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .havre-item { font-size: 10px; font-style: italic; color: var(--text-tertiary); }
+    .havre-item::before { content: '✓ '; color: var(--success); }
+
+    /* To Do List */
+    .todo-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .todo-input {
+      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text-primary); font-family: var(--font-sans);
+      font-size: 13px; padding: 8px 12px; outline: none; transition: border-color 0.15s;
+    }
+    .todo-input:focus { border-color: rgba(255,255,255,0.25); }
+    .todo-add-btn {
+      background: rgba(91,164,245,0.15); border: 1px solid rgba(91,164,245,0.3);
+      color: #5BA4F5; border-radius: 8px; padding: 8px 14px; font-size: 16px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .todo-add-btn:hover { background: rgba(91,164,245,0.25); }
+    .todo-list { display: flex; flex-direction: column; gap: 4px; }
+    .todo-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      background: rgba(255,255,255,0.03); border-radius: 8px;
+      cursor: grab; transition: all 0.15s; position: relative;
+      border-left: 2px solid transparent;
+    }
+    .todo-item:hover { background: rgba(255,255,255,0.06); }
+    .todo-item.done { opacity: 0.5; }
+    .todo-item.queued { border-left-color: var(--accent-blue); }
+    .todo-item.drag-over { background: rgba(255,255,255,0.09); }
+    .todo-cb {
+      width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(255,255,255,0.2);
+      flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .todo-cb.checked { background: var(--success); border-color: var(--success); }
+    .todo-cb.checked::after { content: '✓'; font-size: 10px; color: #050506; font-weight: 700; }
+    .todo-text { flex: 1; font-size: 13px; color: var(--text-primary); }
+    .todo-text.done-text { text-decoration: line-through; color: var(--text-tertiary); }
+    .todo-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .todo-item:hover .todo-actions { opacity: 1; }
+    .todo-action-btn {
+      background: rgba(255,255,255,0.06); border: none; color: var(--text-tertiary);
+      border-radius: 4px; width: 22px; height: 22px; font-size: 11px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .todo-action-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+    .todo-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .streak-badge { font-size: 10px; font-family: var(--font-mono); color: var(--warning); }
+    .push-btn {
+      font-size: 10px; font-family: var(--font-mono); background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); color: var(--text-tertiary);
+      border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .push-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+
+    /* Animations */
+    @keyframes pb-pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.06); box-shadow: 0 0 20px rgba(107,227,164,0.4); }
+      100% { transform: scale(1); }
+    }
+    .pb-pulse { animation: pb-pulse 0.5s ease; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .strength-cols { grid-template-columns: repeat(2,1fr); }
+      .pb-grid       { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 640px) {
+      .ring-session-row { flex-direction: column; }
+      .ring-card { width: 100%; }
+      .ring-svg-wrap { width: 144px; height: 144px; }
+      .injury-cols { grid-template-columns: 1fr; }
+      .recovery-cols { grid-template-columns: 1fr; }
+      .week-grid { overflow-x: auto; scroll-snap-type: x mandatory; justify-content: start; }
+      .day-col { scroll-snap-align: start; min-width: 80px; }
+    }
+    @media (max-width: 480px) {
+      .dash-title { font-size: 22px; }
+      .strength-cols { grid-template-columns: 1fr; }
+      .metrics-grid  { grid-template-columns: repeat(2,1fr); }
+      .pain-btn { width: 22px; height: 22px; font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+<div class="dash-container">
+
+  <h1 class="dash-title">Filip's Dashboard</h1>
+
+  <!-- Goal Ticker -->
+  <div class="goal-ticker">
+    <div class="ticker-led"></div>
+    <span class="ticker-label">GOALS</span>
+    <div class="ticker-text-wrap">
+      <div class="ticker-text" id="tickerText">–</div>
+    </div>
+    <div class="ticker-pill" id="tickerPill">0/0</div>
+  </div>
+
+  <!-- Day Ring + Today's Session -->
+  <div class="ring-session-row">
+    <div class="card ring-card">
+      <div class="ring-svg-wrap">
+        <svg id="dayRingSvg" viewBox="0 0 168 168" width="168" height="168"></svg>
+      </div>
+      <div class="ring-clock">
+        <div class="ring-time" id="ringTime">--:--</div>
+        <div class="ring-date" id="ringDate">---</div>
+        <div class="ring-phase" id="ringPhase">---</div>
+      </div>
+    </div>
+    <div class="card session-card" id="sessionCard"></div>
+  </div>
+
+  <!-- Injury Status -->
+  <div class="card">
+    <div class="section-title">Patellarsene — status</div>
+    <div class="injury-cols" id="injuryCols"></div>
+    <div class="week-pills" id="weekPills"></div>
+  </div>
+
+  <!-- Recovery & Sleep -->
+  <div class="card">
+    <div class="section-title">Restitusjon & søvn</div>
+    <div id="recoveryCard"></div>
+  </div>
+
+  <!-- Sprint PB Board -->
+  <div class="card">
+    <div class="section-title">Personlige rekorder — sprint</div>
+    <div class="pb-grid" id="pbGrid"></div>
+    <div class="pb-log-row">
+      <select id="pbDist">
+        <option value="60m">60m</option>
+        <option value="80m">80m</option>
+        <option value="100m">100m</option>
+        <option value="150m">150m</option>
+        <option value="200m">200m</option>
+      </select>
+      <input type="number" id="pbTime" placeholder="Tid (sek)" step="0.01" min="0">
+      <input type="number" id="pbRpe"  placeholder="RPE 1–10" min="1" max="10" style="width:80px">
+      <input type="date"   id="pbDate">
+      <select id="pbType">
+        <option value="Trening">Trening</option>
+        <option value="Stevne">Stevne</option>
+      </select>
+      <button class="log-btn" onclick="logSprint()">Logg</button>
+    </div>
+  </div>
+
+  <!-- Weekly Schedule -->
+  <div class="card">
+    <div class="weekly-header">
+      <div class="section-title">Ukeoversikt</div>
+      <button class="edit-plan-btn" id="editPlanBtn" onclick="toggleEditPlan()">Rediger plan</button>
+    </div>
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+  <!-- Strength Plan -->
+  <div class="card">
+    <div class="section-title">Styrkeplan</div>
+    <div class="strength-cols" id="strengthCard"></div>
+    <details class="havre-details">
+      <summary>✓ Andreas Havre-godkjente øvelser</summary>
+      <div class="havre-list">
+        <div class="havre-item">Knebøy — touche bakken bak (på boks)</div>
+        <div class="havre-item">Sideknebøy — touche bakken</div>
+        <div class="havre-item">Sideknebøy — touche med andre fot</div>
+        <div class="havre-item">RDL</div>
+        <div class="havre-item">Tåhev maskin — 1.5 × kroppsvekt</div>
+      </div>
+    </details>
+  </div>
+
+  <!-- To Do List -->
+  <div class="card">
+    <div class="section-title">To Do List</div>
+    <div class="todo-input-row">
+      <input class="todo-input" id="todoInput" type="text" placeholder="Legg til mål..." autocomplete="off">
+      <button class="todo-add-btn" onclick="addTodo()">+</button>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+    <div class="todo-footer">
+      <span class="streak-badge" id="streakBadge"></span>
+      <button class="push-btn" onclick="pushRemaining()">Push gjenstående →</button>
+    </div>
+  </div>
+
+</div>
+<script>
+// ==================== CONSTANTS ====================
+const ANTHROPIC_API_KEY = '';
+
+const DEFAULT_WEEKLY_PLAN = {
+  monday:    { type:'STYRKE',   label:'Styrke kapasitet bein',  rpe:'6–7', exercises:['Hip thrust 4×5','Leg extension 1-bein 3×8','Hamstring curl 3×8','Calf raise 3×10'] },
+  tuesday:   { type:'SPRINT',   label:'Sprint-trening',          rpe:'7–8', exercises:['Oppvarming 15 min','Akselerasjoner × 4','Flying 60m × 4','Nedkjøling'] },
+  wednesday: { type:'REHAB',    label:'Sirkulasjon & mobilitet', rpe:'3–4', exercises:['Spanish squat ISO 3×25s','Tib raises 3×15','Calf raise m/vekt 2×10','Hip ABD 2×12'] },
+  thursday:  { type:'SPRINT',   label:'Sprint-trening',          rpe:'7–8', exercises:['Oppvarming 15 min','Blokk-start × 4','60m trening × 5','Nedkjøling'] },
+  friday:    { type:'STYRKE',   label:'Styrke intensitet bein',  rpe:'7–8', exercises:['Hip thrust 5×3','Leg extension 1-bein 4×5','RDL 2×5','Calf raise 5×5'] },
+  saturday:  { type:'REST',     label:'Hviledag',                rpe:'—',   exercises:['Aktiv hvile OK','Lett gange eller basseng'] },
+  sunday:    { type:'SPRINT',   label:'Sprint-trening',          rpe:'6–7', exercises:['Oppvarming 15 min','Teknikkarbeid','60m × 4','Nedkjøling'] },
+};
+
+const DEFAULT_PBS = {
+  '60m':  { time:6.87,  date:'2026-04-12' },
+  '100m': { time:11.52, date:'2026-05-09' },
+  '150m': { time:15.00, date:'2026-05-22' },
+  '200m': { time:23.11, date:'2026-05-10' },
+};
+
+const DEFAULT_STRENGTH_PLAN = {
+  monday: [
+    { name:'Hip thrust',           sets:'4 × 5',     weight:'120 kg' },
+    { name:'Leg extension 1-bein', sets:'3 × 6–8',   weight:'30 kg' },
+    { name:'Hamstring curl',       sets:'3 × 6–8',   weight:'22.5 kg' },
+    { name:'Standing calf raise',  sets:'3 × 6–8',   weight:'30 kg' },
+    { name:'Seated calf raise',    sets:'3 × 10–12', weight:'30 kg' },
+  ],
+  wednesday: [
+    { name:'Spanish squat ISO m/ strikk',    sets:'3 × 25 sek', weight:'' },
+    { name:'Tib raises',                     sets:'3 × 12–15',  weight:'' },
+    { name:'Standing calf raise m/ vekt',    sets:'2 × 10',     weight:'' },
+    { name:'Sideliggende abduksjon m/ strikk', sets:'2 × 10–12', weight:'' },
+  ],
+  friday: [
+    { name:'Hip thrust',           sets:'5 × 3',    weight:'' },
+    { name:'Leg extension 1-bein', sets:'4 × 5',    weight:'' },
+    { name:'Hamstring curl',       sets:'2 × 5–6',  weight:'' },
+    { name:'RDL',                  sets:'2 × 5–6',  weight:'' },
+    { name:'Standing calf raise',  sets:'5 × 4–6',  weight:'' },
+    { name:'Seated calf raise',    sets:'3 × 8–10', weight:'' },
+  ],
+};
+
+// ==================== HELPERS ====================
+function storeGet(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
+function storeSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function getActiveDateString() {
+  const now = new Date();
+  if (now.getHours() < 6) now.setDate(now.getDate() - 1);
+  return now.toISOString().slice(0, 10);
+}
+
+function getTodayDayName() {
+  const now = new Date();
+  if (now.getHours() < 6) now.setDate(now.getDate() - 1);
+  return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][now.getDay()];
+}
+
+function formatDate(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  const months = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return `${String(d.getDate()).padStart(2,'0')}.${months[d.getMonth()]}.${String(d.getFullYear()).slice(2)}`;
+}
+
+function daysBetween(ds) {
+  return Math.floor((Date.now() - new Date(ds + 'T12:00:00').getTime()) / 86400000);
+}
+
+function painColor(s) {
+  if (s <= 3) return '#6BE3A4';
+  if (s <= 5) return '#F2C063';
+  if (s <= 7) return 'rgba(242,130,60,1)';
+  return '#FF6B6B';
+}
+
+function typeClass(t) { return (t || '').toLowerCase(); }
+
+// ==================== RING DRAW ====================
+function drawRing(svgEl, pct, color, opts = {}) {
+  const sz = opts.size || 168;
+  const sw = opts.stroke || 11;
+  const r  = sz / 2 - sw - 2;
+  const cx = sz / 2, cy = sz / 2;
+  const circ = 2 * Math.PI * r;
+  const dash  = Math.min(pct, 100) / 100 * circ;
+  const sa = opts.startAngle !== undefined ? opts.startAngle : -90;
+  const id = opts.id || 'r';
+  svgEl.setAttribute('viewBox', `0 0 ${sz} ${sz}`);
+  svgEl.innerHTML = `
+    <defs>
+      <filter id="rg${id}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${sw}" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
+      stroke-dasharray="${dash} ${circ - dash}" transform="rotate(${sa} ${cx} ${cy})"
+      filter="url(#rg${id})" style="transition:stroke-dasharray 0.6s ease"/>
+    ${opts.center || ''}`;
+}
+
+// ==================== DAY RING ====================
+const AWAKE_START = 8, AWAKE_END = 24;
+
+function getDayPhase(h) {
+  if (h < 8)  return { label:'NATT',         color:'#5BA4F5' };
+  if (h < 12) return { label:'MORGEN',       color:'#F2C063' };
+  if (h < 15) return { label:'MIDDAG',       color:'#FF9068' };
+  if (h < 18) return { label:'ETTERMIDDAG',  color:'#FF9068' };
+  if (h < 21) return { label:'KVELD',        color:'#A87CFF' };
+  return              { label:'NATT',        color:'#5BA4F5' };
+}
+
+function updateDayRing() {
+  const now = new Date();
+  const h   = now.getHours() + now.getMinutes() / 60;
+  const phase = getDayPhase(h);
+  let pct = 0;
+  if (h >= AWAKE_START && h < AWAKE_END) pct = (h - AWAKE_START) / (AWAKE_END - AWAKE_START) * 100;
+  else if (h >= AWAKE_END) pct = 100;
+
+  const svg = document.getElementById('dayRingSvg');
+  drawRing(svg, pct, phase.color, {
+    size: 168, stroke: 11, id: 'day',
+    center: `<text x="84" y="79" text-anchor="middle" fill="white" font-size="28" font-weight="700" font-family="ui-monospace,monospace">${Math.round(pct)}%</text>
+             <text x="84" y="103" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-family="ui-monospace,monospace" letter-spacing="0.1em">${phase.label}</text>`
+  });
+
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('ringTime').textContent = `${hh}:${mm}`;
+  const days   = ['Søn','Man','Tir','Ons','Tor','Fre','Lør'];
+  const months = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  document.getElementById('ringDate').textContent  = `${days[now.getDay()]} ${now.getDate()}. ${months[now.getMonth()]}`;
+  document.getElementById('ringPhase').textContent = phase.label;
+}
+
+// ==================== TODAY'S SESSION ====================
+function renderTodaySession() {
+  const dayName = getTodayDayName();
+  const plan    = storeGet('weekly_plan') || DEFAULT_WEEKLY_PLAN;
+  const session = plan[dayName] || { type:'REST', label:'Hviledag', rpe:'—', exercises:[] };
+  const injLog  = storeGet('injury_log') || {};
+  const today   = getActiveDateString();
+  const score   = injLog[today] !== undefined ? injLog[today].score : null;
+  const tc = typeClass(session.type);
+  const isIntense = ['sprint','styrke'].includes(tc);
+
+  const exHtml = (session.exercises || []).slice(0, 4).map(e => `<li>${e}</li>`).join('');
+  const kneHtml = isIntense ? `<div class="session-knee-note">⚠ Log kne-smerte i SPRINT-LOG etter økt</div>` : '';
+
+  let btns = '';
+  for (let i = 0; i <= 10; i++) {
+    let cls = '';
+    if (score === i) cls = i <= 3 ? 'sel-green' : i <= 5 ? 'sel-yellow' : i <= 7 ? 'sel-orange' : 'sel-red';
+    btns += `<button class="pain-btn ${cls}" onclick="logPain(${i})">${i}</button>`;
+  }
+
+  document.getElementById('sessionCard').innerHTML = `
+    <div class="session-header">
+      <div>
+        <div class="section-title" style="margin-bottom:6px">Today's session</div>
+        <span class="session-badge ${tc}">${session.type}</span>
+      </div>
+      <span class="rpe-badge">RPE ${session.rpe}</span>
+    </div>
+    <div class="session-desc">${session.label}</div>
+    <ul class="session-exercises">${exHtml}</ul>
+    ${kneHtml}
+    <div class="quick-log">
+      <div class="quick-log-label">Kne-smerte nå (0–10)</div>
+      <div class="pain-buttons">${btns}</div>
+    </div>`;
+}
+
+function logPain(score) {
+  const today   = getActiveDateString();
+  const dayName = getTodayDayName();
+  const plan    = storeGet('weekly_plan') || DEFAULT_WEEKLY_PLAN;
+  const session = plan[dayName] || { type:'REST' };
+  const injLog  = storeGet('injury_log') || {};
+  injLog[today] = { score, sessionType: session.type };
+  storeSet('injury_log', injLog);
+  renderTodaySession();
+  renderInjuryCard();
+  document.dispatchEvent(new CustomEvent('injury-logged'));
+}
+
+// ==================== INJURY CARD ====================
+function calcACWR() {
+  const log = storeGet('sprint_log') || [];
+  const now = new Date();
+  let acute = 0, weekly = [0,0,0,0];
+  log.forEach(e => {
+    const daysAgo = Math.floor((now - new Date(e.date)) / 86400000);
+    const rpe = e.rpe || 0;
+    if (daysAgo < 7) acute += rpe;
+    const wi = Math.floor(daysAgo / 7);
+    if (wi < 4) weekly[wi] += rpe;
+  });
+  const chronic = weekly.reduce((a,b) => a + b, 0) / 4;
+  return chronic === 0 ? null : +(acute / chronic).toFixed(2);
+}
+
+function renderInjuryCard() {
+  const injLog = storeGet('injury_log') || {};
+  const today  = getActiveDateString();
+  const score  = injLog[today] !== undefined ? injLog[today].score : null;
+
+  let tlFill, tlStroke, tlGlyph, tlLabel, tlRule, tlColor;
+  if (score === null) {
+    tlFill='rgba(255,255,255,0.08)'; tlStroke='rgba(255,255,255,0.2)';
+    tlGlyph='?'; tlLabel=''; tlRule='Ikke logget enda'; tlColor='var(--text-tertiary)';
+  } else if (score <= 3) {
+    tlFill='rgba(107,227,164,0.20)'; tlStroke='#6BE3A4';
+    tlGlyph='✓'; tlLabel='GRØNT LYS'; tlRule='Tren normalt'; tlColor='#6BE3A4';
+  } else if (score === 4) {
+    tlFill='rgba(242,192,99,0.20)'; tlStroke='#F2C063';
+    tlGlyph='!'; tlLabel='GULT LYS'; tlRule='Reduser volum neste økt 20%'; tlColor='#F2C063';
+  } else if (score <= 6) {
+    tlFill='rgba(242,130,60,0.20)'; tlStroke='rgba(242,130,60,1)';
+    tlGlyph='!!'; tlLabel='ORANSJE'; tlRule='Stopp eksplosive øvelser'; tlColor='rgba(242,130,60,1)';
+  } else {
+    tlFill='rgba(255,107,107,0.20)'; tlStroke='#FF6B6B';
+    tlGlyph='✕'; tlLabel='RØDT LYS'; tlRule='Hvil — kontakt fysioterapeut'; tlColor='#FF6B6B';
+  }
+
+  const acwr = calcACWR();
+  const acwrColor = acwr === null ? 'var(--text-tertiary)'
+    : acwr < 0.8 ? 'var(--accent-blue)' : acwr <= 1.3 ? 'var(--success)' : 'var(--danger)';
+
+  // 14-day sparkline
+  const bars = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    bars.push(injLog[ds] !== undefined ? injLog[ds].score : null);
+  }
+  const bw = 200 / 14;
+  const barsHtml = bars.map((s, i) => {
+    if (s === null) return `<rect x="${i*bw+1}" y="46" width="${bw-2}" height="3" fill="none" stroke="rgba(255,255,255,0.1)" rx="1"/>`;
+    const h = Math.max(4, s / 10 * 50);
+    return `<rect x="${i*bw+1}" y="${50-h}" width="${bw-2}" height="${h}" fill="${painColor(s)}" opacity="0.8" rx="1"/>`;
+  }).join('');
+
+  const last3 = bars.slice(-3).map(v => v || 0);
+  const prev3 = bars.slice(-6,-3).map(v => v || 0);
+  const avg = a => a.reduce((x,y) => x+y, 0) / a.length;
+  const diff = avg(last3) - avg(prev3);
+  const [trendTxt, trendClr] = diff < -0.3 ? ['↓ Bedre','var(--success)'] : diff > 0.3 ? ['↑ Verre','var(--danger)'] : ['→ Stabilt','var(--text-secondary)'];
+
+  document.getElementById('injuryCols').innerHTML = `
+    <div class="injury-col">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="${tlFill}" stroke="${tlStroke}" stroke-width="2"/>
+        <text x="40" y="47" text-anchor="middle" fill="${tlStroke}" font-size="${tlGlyph.length>1?'13':'22'}" font-weight="700">${tlGlyph}</text>
+      </svg>
+      <div class="traffic-score" style="color:${tlColor}">${score !== null ? score : '–'}</div>
+      <div class="traffic-label" style="color:${tlColor}">${tlLabel}</div>
+      <div class="traffic-rule">${tlRule}</div>
+    </div>
+    <div class="injury-col">
+      <div class="acwr-value" style="color:${acwrColor}">${acwr !== null ? acwr : '–'}</div>
+      <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-top:4px">ACWR</div>
+      <div class="acwr-sub" style="margin-top:6px">< 0.8 for lite · 0.8–1.3 optimalt · > 1.3 risiko</div>
+    </div>
+    <div class="injury-col">
+      <div class="trend-label">Smertetrend — siste 14 dager</div>
+      <svg width="200" height="50" viewBox="0 0 200 50">${barsHtml}</svg>
+      <div class="trend-arrow" style="color:${trendClr}">${trendTxt}</div>
+    </div>`;
+
+  // Week pills
+  const nowDs  = new Date().toISOString().slice(0,10);
+  const abbr   = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+  let pillsHtml = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const s  = injLog[ds] !== undefined ? injLog[ds].score : null;
+    const dc = painColor(s || 0);
+    const dotStyle = s !== null ? `background:${dc};border-color:${dc}` : '';
+    const dayI = (d.getDay() + 6) % 7;
+    pillsHtml += `<div class="week-pill ${ds===nowDs?'today':''}">
+      <span class="week-pill-day">${abbr[dayI]}</span>
+      <div class="week-pill-dot" style="${dotStyle}"></div>
+    </div>`;
+  }
+  document.getElementById('weekPills').innerHTML = pillsHtml;
+}
+
+// ==================== RECOVERY CARD ====================
+async function loadZeppData() {
+  const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  try {
+    const res = await fetch('/.netlify/functions/zepp-data');
+    if (!res.ok) {
+      if (res.status === 503) {
+        const el = document.getElementById('zeppBanner');
+        if (el) el.style.display = 'block';
+      }
+      throw new Error(res.statusText);
+    }
+    const data = await res.json();
+    if (data.error) {
+      const el = document.getElementById('zeppBanner');
+      if (el) el.style.display = 'block';
+      return;
+    }
+    storeSet(`sleep_log_${getActiveDateString()}`, data);
+    renderRecoveryCard();
+  } catch (err) {
+    if (!isLocal) console.warn('Zepp fetch failed:', err.message);
+    renderRecoveryCard();
+  }
+}
+
+function renderRecoveryCard() {
+  const today = getActiveDateString();
+  const d     = storeGet(`sleep_log_${today}`) || {};
+  const sleep = d.sleep || {};
+  const score = sleep.score !== undefined ? sleep.score : null;
+  const hours = sleep.hours !== undefined ? sleep.hours : null;
+  const rhr   = d.rhr     !== undefined ? d.rhr     : null;
+  const hrv   = d.hrv     !== undefined ? d.hrv     : null;
+  const mood  = d.mood    !== undefined ? d.mood    : null;
+  const bat   = d.battery !== undefined ? d.battery : null;
+  const steps = d.steps   !== undefined ? d.steps   : null;
+
+  const donutColor = score === null ? 'rgba(255,255,255,0.3)' : score >= 80 ? '#6BE3A4' : score >= 60 ? '#F2C063' : '#FF6B6B';
+
+  const donutSvgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  drawRing(donutSvgEl, score || 0, donutColor, { size:120, stroke:10, id:'sleep', startAngle:-90 });
+  donutSvgEl.setAttribute('width','120'); donutSvgEl.setAttribute('height','120');
+
+  const moodHtml = mood !== null
+    ? [...Array(5)].map((_,i) => `<span style="color:${i<mood?'var(--success)':'rgba(255,255,255,0.15)'}">${i<mood?'●':'●'}</span>`).join('')
+    : '–';
+
+  const batClass = bat !== null ? (bat >= 80 ? 'msuccess' : bat < 40 ? 'mdanger' : '') : '';
+
+  // 7-day sleep trend
+  const pts = [];
+  for (let i = 6; i >= 0; i--) {
+    const d2 = new Date(); d2.setDate(d2.getDate() - i);
+    const e  = storeGet(`sleep_log_${d2.toISOString().slice(0,10)}`);
+    pts.push(e && e.sleep ? e.sleep.hours : null);
+  }
+  const validH = pts.filter(v => v !== null);
+  let trendSvg = '';
+  if (validH.length >= 2) {
+    const maxH = Math.max(...validH, 8);
+    const coords = pts.map((h, i) => h !== null ? `${(i/6*100).toFixed(1)}%,${(38 - h/maxH*34).toFixed(1)}` : null);
+    const poly   = coords.filter(Boolean).join(' ');
+    const circles = pts.map((h, i) => h === null ? '' :
+      `<circle cx="${(i/6*100).toFixed(1)}%" cy="${(38 - h/maxH*34).toFixed(1)}" r="3" fill="${h>=7?'#6BE3A4':h>=6?'#F2C063':'#FF6B6B'}"/>`
+    ).join('');
+    trendSvg = `<svg width="100%" height="40" style="overflow:visible"><polyline points="${poly}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>${circles}</svg>`;
+  }
+
+  document.getElementById('recoveryCard').innerHTML = `
+    <div class="zepp-banner" id="zeppBanner">⚙ Zepp ikke koblet til — legg til API-nøkler i Netlify</div>
+    <div class="recovery-cols">
+      <div class="sleep-donut-wrap">
+        <div class="donut-container">
+          ${donutSvgEl.outerHTML}
+          <div class="donut-center">
+            <span class="donut-score" style="color:${donutColor}">${score !== null ? score : '–'}</span>
+            <span class="donut-unit">/ 100</span>
+          </div>
+        </div>
+        <div class="donut-label">Søvnscore siste natt</div>
+      </div>
+      <div>
+        <div class="metrics-grid">
+          <div class="metric-tile"><div class="metric-lbl">Søvntimer</div><div class="metric-val">${hours !== null ? hours + ' t' : '–'}</div></div>
+          <div class="metric-tile"><div class="metric-lbl">Hvilepuls</div><div class="metric-val ${rhr !== null && rhr > 65 ? 'mdanger' : ''}">${rhr !== null ? rhr + ' bpm' : '–'}</div></div>
+          <div class="metric-tile"><div class="metric-lbl">HRV</div><div class="metric-val">${hrv !== null ? hrv : '–'}</div></div>
+          <div class="metric-tile"><div class="metric-lbl">Humør</div><div class="metric-val" style="font-size:14px;line-height:1.6">${moodHtml}</div></div>
+          <div class="metric-tile"><div class="metric-lbl">Body battery</div><div class="metric-val ${batClass}">${bat !== null ? bat : '–'}</div></div>
+          <div class="metric-tile"><div class="metric-lbl">Steg</div><div class="metric-val">${steps !== null ? steps.toLocaleString('no-NO') : '–'}</div></div>
+        </div>
+        <div class="sleep-trend">${trendSvg}</div>
+      </div>
+    </div>`;
+}
+
+// ==================== PB BOARD ====================
+function renderPBBoard() {
+  const pbs   = storeGet('pbs') || DEFAULT_PBS;
+  const dists = ['60m','100m','150m','200m'];
+  document.getElementById('pbGrid').innerHTML = dists.map(dist => {
+    const pb = pbs[dist];
+    if (!pb) return `<div class="pb-cell"><div class="pb-dist">${dist}</div><div class="pb-time" style="color:var(--text-tertiary)">—</div><div class="pb-date"></div></div>`;
+    const age = daysBetween(pb.date);
+    const barColor = age < 30 ? '#6BE3A4' : age < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
+    const barGlow  = age < 30 ? `box-shadow:0 0 8px ${barColor}` : '';
+    return `<div class="pb-cell" id="pb-${dist}">
+      <div class="pb-dist">${dist}</div>
+      <div class="pb-time">${pb.time.toFixed(2)}</div>
+      <div class="pb-date">${formatDate(pb.date)}</div>
+      <div class="pb-bar" style="background:${barColor};${barGlow}"></div>
+    </div>`;
+  }).join('');
+}
+
+function logSprint() {
+  const dist = document.getElementById('pbDist').value;
+  const time = parseFloat(document.getElementById('pbTime').value);
+  const rpe  = parseInt(document.getElementById('pbRpe').value) || 0;
+  const date = document.getElementById('pbDate').value || getActiveDateString();
+  const type = document.getElementById('pbType').value;
+  if (!dist || isNaN(time) || time <= 0) return;
+
+  const log = storeGet('sprint_log') || [];
+  log.push({ date, distance: dist, time, rpe, type });
+  storeSet('sprint_log', log);
+
+  const pbs = storeGet('pbs') || { ...DEFAULT_PBS };
+  if (!pbs[dist] || time < pbs[dist].time) {
+    pbs[dist] = { time, date };
+    storeSet('pbs', pbs);
+    renderPBBoard();
+    const cell = document.getElementById(`pb-${dist}`);
+    if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 500); }
+  } else {
+    renderPBBoard();
+  }
+  renderInjuryCard();
+  document.getElementById('pbTime').value = '';
+  document.getElementById('pbRpe').value  = '';
+}
+
+// ==================== WEEKLY SCHEDULE ====================
+let editPlanActive = false;
+
+async function loadCalendarEvents() {
+  try {
+    const res = await fetch('/.netlify/functions/google-calendar');
+    if (!res.ok) throw new Error(await res.text());
+    const { events } = await res.json();
+    storeSet('calendar_events', events);
+    renderWeeklySchedule();
+  } catch (err) {
+    console.warn('Calendar fetch failed — showing local plan only:', err.message);
+  }
+  // TODO: Google Calendar API embed
+}
+
+function renderWeeklySchedule() {
+  const plan    = storeGet('weekly_plan') || DEFAULT_WEEKLY_PLAN;
+  const spLog   = storeGet('sprint_log')    || [];
+  const stLog   = storeGet('strength_log')  || [];
+  const calEvts = storeGet('calendar_events') || [];
+  const todayDs = getActiveDateString();
+
+  const dayKeys  = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  const dayAbbr  = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+  const gcColors = {'1':'#A8C8FA','2':'#6BE3A4','5':'#F2C063','6':'#FF9068','11':'#FF6B6B'};
+
+  const now   = new Date();
+  const jsDay = now.getDay();
+  const monOff = jsDay === 0 ? -6 : 1 - jsDay;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + monOff);
+  weekStart.setHours(0,0,0,0);
+
+  let html = '';
+  dayKeys.forEach((day, idx) => {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate() + idx);
+    const ds      = d.toISOString().slice(0,10);
+    const isToday = ds === todayDs;
+    const isPast  = ds < todayDs;
+    const session = plan[day] || { type:'REST', label:'Hviledag', rpe:'—' };
+    const tc = typeClass(session.type);
+
+    let statusHtml = '';
+    if (isPast) {
+      const logged = spLog.some(e => e.date === ds) || stLog.some(e => e.date === ds);
+      statusHtml = logged
+        ? `<span class="day-status" style="color:var(--success)">✓</span>`
+        : `<span class="day-status" style="color:var(--danger)">–</span>`;
+    } else {
+      statusHtml = `<div class="day-rpe">RPE ${session.rpe}</div>`;
+    }
+
+    const dayEvts = calEvts.filter(e => (e.start || '').slice(0,10) === ds);
+    const evtHtml = dayEvts.slice(0,3).map(e => {
+      const acc = gcColors[e.color] || 'rgba(255,255,255,0.3)';
+      if (e.allDay) return `<div class="cal-event allday" style="border-left-color:${acc}">${e.title}</div>`;
+      const t = e.start ? e.start.slice(11,16) : '';
+      return `<div class="cal-event">${t ? `<span style="color:var(--text-tertiary);font-size:8px">${t} </span>` : ''}${e.title}</div>`;
+    }).join('');
+
+    if (editPlanActive) {
+      html += `<div class="day-col">
+        <div class="day-name ${isToday?'today':''}">${dayAbbr[idx]}</div>
+        <select class="day-type-sel" data-day="${day}" style="font-size:9px;padding:2px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);border-radius:4px">
+          ${['SPRINT','STYRKE','REHAB','REST','MOBILITET'].map(t => `<option value="${t}" ${session.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <input class="day-label-inp" data-day="${day}" value="${session.label}" style="font-size:9px;padding:2px 4px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);border-radius:4px">
+      </div>`;
+    } else {
+      html += `<div class="day-col">
+        <div class="day-name ${isToday?'today':''}">${dayAbbr[idx]}</div>
+        <div class="day-badge ${tc}" style="${isPast?'opacity:0.5':''}">${session.type}</div>
+        ${statusHtml}
+        ${evtHtml}
+      </div>`;
+    }
+  });
+  document.getElementById('weekGrid').innerHTML = html;
+
+  if (editPlanActive) {
+    document.querySelectorAll('.day-type-sel,.day-label-inp').forEach(el => {
+      el.addEventListener('change', saveEditPlan);
+      el.addEventListener('input',  saveEditPlan);
+    });
+  }
+}
+
+function toggleEditPlan() {
+  editPlanActive = !editPlanActive;
+  document.getElementById('editPlanBtn').textContent = editPlanActive ? 'Ferdig' : 'Rediger plan';
+  renderWeeklySchedule();
+}
+
+function saveEditPlan() {
+  const plan = storeGet('weekly_plan') || structuredClone(DEFAULT_WEEKLY_PLAN);
+  document.querySelectorAll('.day-type-sel').forEach(el => {
+    const d = el.dataset.day; if (!plan[d]) plan[d] = {};
+    plan[d].type = el.value;
+  });
+  document.querySelectorAll('.day-label-inp').forEach(el => {
+    const d = el.dataset.day; if (!plan[d]) plan[d] = {};
+    plan[d].label = el.value;
+  });
+  storeSet('weekly_plan', plan);
+}
+
+// ==================== STRENGTH PLAN ====================
+function renderStrengthPlan() {
+  let plan = storeGet('strength_plan');
+  if (!plan) { plan = DEFAULT_STRENGTH_PLAN; storeSet('strength_plan', plan); }
+  const stLog = storeGet('strength_log') || [];
+  const today = getActiveDateString();
+  const todayDone = stLog.filter(e => e.date === today).map(e => (e.session||'').toLowerCase());
+
+  const cols = [
+    { key:'monday',    label:'Styrke kapasitet', type:'STYRKE', dayName:'Mandag' },
+    { key:'wednesday', label:'Rehab & mobilitet', type:'REHAB',  dayName:'Onsdag' },
+    { key:'friday',    label:'Styrke intensitet', type:'STYRKE', dayName:'Fredag' },
+  ];
+
+  document.getElementById('strengthCard').innerHTML = cols.map(col => {
+    const exs = (plan[col.key] || []);
+    const tc  = typeClass(col.type);
+    const rows = exs.map(ex => {
+      const logged = todayDone.some(s => s.includes(ex.name.toLowerCase().slice(0,8)));
+      return `<div class="exercise-row">
+        <div class="exercise-dot ${logged?'logged':''}"></div>
+        <div class="exercise-info">
+          <div class="exercise-name">${ex.name}</div>
+          <div class="exercise-meta">${ex.sets}${ex.weight ? ` <span class="exercise-weight">${ex.weight}</span>` : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="strength-day">
+      <div class="strength-day-header">
+        <span class="day-badge ${tc}">${col.dayName}</span>
+        <span class="strength-day-label">${col.label}</span>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ==================== GOAL TICKER ====================
+let tickerGoals = [], tickerIdx = 0, tickerTimer = null;
+
+function loadTickerGoals() {
+  const today = getActiveDateString();
+  const goals = storeGet(`goals:${today}`) || [];
+  tickerGoals = goals.filter(g => !g.done);
+  const done  = goals.filter(g => g.done).length;
+  document.getElementById('tickerPill').textContent = `${done}/${goals.length}`;
+  const el = document.getElementById('tickerText');
+  if (tickerGoals.length === 0) {
+    el.textContent = goals.length === 0 ? 'Ingen mål for i dag' : 'Alle mål fullført!';
+    return;
+  }
+  tickerIdx = Math.min(tickerIdx, tickerGoals.length - 1);
+  el.textContent = tickerGoals[tickerIdx].text;
+}
+
+function rotateTicker() {
+  if (!tickerGoals.length) return;
+  tickerIdx = (tickerIdx + 1) % tickerGoals.length;
+  const el = document.getElementById('tickerText');
+  el.classList.add('slide-out');
+  setTimeout(() => {
+    el.classList.remove('slide-out');
+    el.classList.add('slide-in-prep');
+    el.textContent = tickerGoals[tickerIdx].text;
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('slide-in-prep')));
+  }, 350);
+}
+
+function startTicker() {
+  clearInterval(tickerTimer);
+  loadTickerGoals();
+  tickerTimer = setInterval(rotateTicker, 5000);
+}
+
+document.addEventListener('goals-changed', startTicker);
+
+// ==================== TO DO LIST ====================
+function getGoalEmoji(text) {
+  const t = text.toLowerCase();
+  if (t.startsWith('sprint')) return '🏃 ';
+  if (t.startsWith('styrke')) return '💪 ';
+  if (t.startsWith('søvn'))   return '😴 ';
+  if (t.startsWith('kne') || t.startsWith('rehab')) return '🦵 ';
+  return '';
+}
+
+function loadTodos()      { return storeGet(`goals:${getActiveDateString()}`) || []; }
+function saveTodos(todos) {
+  storeSet(`goals:${getActiveDateString()}`, todos);
+  document.dispatchEvent(new CustomEvent('goals-changed'));
+}
+
+function renderTodoList() {
+  const todos = loadTodos();
+  const list  = document.getElementById('todoList');
+  list.innerHTML = '';
+
+  todos.forEach((todo, idx) => {
+    const item = document.createElement('div');
+    item.className = `todo-item${todo.done?' done':''}${todo.queued?' queued':''}`;
+    item.draggable = true;
+    item.dataset.idx = idx;
+    item.innerHTML = `
+      <div class="todo-cb ${todo.done?'checked':''}" onclick="toggleTodo(${idx})"></div>
+      <span class="todo-text ${todo.done?'done-text':''}">${getGoalEmoji(todo.text)}${escHtml(todo.text)}</span>
+      <div class="todo-actions">
+        <button class="todo-action-btn" title="Send til i morgen" onclick="queueTodo(${idx})">→</button>
+        <button class="todo-action-btn" title="Slett" onclick="deleteTodo(${idx})">✕</button>
+      </div>`;
+
+    item.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(idx)); item.style.opacity = '0.4'; });
+    item.addEventListener('dragend',   () => { item.style.opacity = ''; });
+    item.addEventListener('dragover',  e => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault(); item.classList.remove('drag-over');
+      const from = parseInt(e.dataTransfer.getData('text/plain'));
+      if (from === idx) return;
+      const t = loadTodos();
+      const [moved] = t.splice(from, 1);
+      t.splice(idx, 0, moved);
+      saveTodos(t); renderTodoList();
+    });
+    list.appendChild(item);
+  });
+  updateStreak();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addTodo() {
+  const inp  = document.getElementById('todoInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  const todos = loadTodos();
+  todos.push({ text, done: false });
+  saveTodos(todos); inp.value = '';
+  renderTodoList();
+}
+
+function toggleTodo(idx) {
+  const todos = loadTodos();
+  todos[idx].done = !todos[idx].done;
+  if (todos[idx].done) todos[idx].doneAt = new Date().toISOString();
+  else delete todos[idx].doneAt;
+  saveTodos(todos); renderTodoList();
+  checkStreakUpdate();
+}
+
+function deleteTodo(idx) {
+  const todos = loadTodos();
+  todos.splice(idx, 1);
+  saveTodos(todos); renderTodoList();
+}
+
+function queueTodo(idx) {
+  const todos = loadTodos();
+  todos[idx].queued = true;
+  saveTodos(todos);
+  const tom = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomDs    = tom.toISOString().slice(0,10);
+  const tomTodos = storeGet(`goals:${tomDs}`) || [];
+  if (!tomTodos.find(x => x.text === todos[idx].text)) {
+    tomTodos.push({ text: todos[idx].text, done: false, queued: true });
+    storeSet(`goals:${tomDs}`, tomTodos);
+  }
+  renderTodoList();
+}
+
+function pushRemaining() {
+  const todos     = loadTodos();
+  const remaining = todos.filter(t => !t.done);
+  if (!remaining.length) return;
+  const tom   = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomDs = tom.toISOString().slice(0,10);
+  const tomT  = storeGet(`goals:${tomDs}`) || [];
+  remaining.forEach(t => { if (!tomT.find(x => x.text === t.text)) tomT.push({ text: t.text, done: false, queued: true }); });
+  storeSet(`goals:${tomDs}`, tomT);
+  alert(`${remaining.length} mål overført til i morgen.`);
+}
+
+function checkStreakUpdate() {
+  const todos = loadTodos();
+  if (!todos.length) return;
+  const allDone = todos.every(t => t.done);
+  if (!allDone) return;
+  const today  = getActiveDateString();
+  const streak = storeGet('goal_streak_v1') || { count: 0, lastProcessedDate: null };
+  if (streak.lastProcessedDate === today) return;
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yestDs = yesterday.toISOString().slice(0,10);
+  streak.count = streak.lastProcessedDate === yestDs ? streak.count + 1 : 1;
+  streak.lastProcessedDate = today;
+  storeSet('goal_streak_v1', streak);
+  updateStreak();
+}
+
+function updateStreak() {
+  const streak = storeGet('goal_streak_v1') || { count: 0 };
+  document.getElementById('streakBadge').textContent = streak.count > 0 ? `🔥 ${streak.count} dagers streak` : '';
+}
+
+document.getElementById('todoInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+
+// ==================== INIT ====================
+function initDefaults() {
+  if (!storeGet('pbs'))           storeSet('pbs',           DEFAULT_PBS);
+  if (!storeGet('strength_plan')) storeSet('strength_plan', DEFAULT_STRENGTH_PLAN);
+  document.getElementById('pbDate').value = getActiveDateString();
+}
+
+function init() {
+  initDefaults();
+  updateDayRing();
+  setInterval(updateDayRing, 30000);
+  renderTodaySession();
+  renderInjuryCard();
+  renderRecoveryCard();
+  renderPBBoard();
+  renderWeeklySchedule();
+  renderStrengthPlan();
+  renderTodoList();
+  startTicker();
+  loadZeppData();
+  setInterval(loadZeppData,        30 * 60 * 1000);
+  loadCalendarEvents();
+  setInterval(loadCalendarEvents,  15 * 60 * 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
