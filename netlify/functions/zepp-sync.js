@@ -14,7 +14,7 @@ const CORS = {
 };
 
 // Auth-endepunkt (EU-region)
-const AUTH_URL = 'https://account.huami.com/v2/client/login';
+const AUTH_URL = 'https://account-eu2.huami.com/v2/client/login';
 // Data-endepunkt
 const DATA_URL = 'https://api-mifit-eu2.huami.com/v1/data/band_data.json';
 
@@ -27,6 +27,8 @@ async function getToken(email, password) {
     device_model: 'phone',
     grant_type:   'password',
     tz:           'Europe/Oslo',
+    third_name:   'huami_phone',
+    source:       'com.huami.midong',
     email,
     password,
   });
