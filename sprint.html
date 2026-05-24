@@ -6,10 +6,25 @@
   <title>Sprint — Rekorder & logg</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .log-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 10px; }
     .knee-log-row { display: flex; flex-direction: column; gap: 6px; }
     .knee-row-item { display: flex; align-items: center; gap: 10px; }
     .knee-row-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
+    .add-run-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+    .add-run-row .form-group { margin: 0; flex: 1; min-width: 80px; }
+    .run-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; background: rgba(255,255,255,0.03); border-radius: 8px;
+      margin-bottom: 4px; font-size: 12px; font-family: var(--font-mono);
+    }
+    .run-num  { color: var(--text-tertiary); width: 46px; flex-shrink: 0; }
+    .run-dist { color: var(--accent-blue); width: 46px; font-weight: 600; flex-shrink: 0; }
+    .run-time { color: var(--text-primary); font-weight: 700; flex: 1; }
+    .run-type { color: var(--text-tertiary); font-size: 10px; }
+    .run-del  { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity 0.15s; margin-left: auto; }
+    .run-row:hover .run-del { opacity: 1; }
+    .run-del:hover { color: var(--danger); }
+    .session-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 18px 0 14px; }
+    .eval-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
     .history-row {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 8px;
@@ -53,11 +68,16 @@
   <!-- Log form -->
   <div class="card">
     <div class="section-title">Logg økt</div>
-    <div class="log-grid">
-      <div class="form-group">
-        <label class="form-label">Dato</label>
-        <input type="date" id="logDate">
-      </div>
+
+    <!-- Dato (felles for hele økten) -->
+    <div class="form-group" style="max-width:180px;margin-bottom:18px">
+      <label class="form-label">Dato</label>
+      <input type="date" id="logDate">
+    </div>
+
+    <!-- Legg til løp -->
+    <div class="eval-label">Løp</div>
+    <div class="add-run-row">
       <div class="form-group">
         <label class="form-label">Distanse</label>
         <select id="logDist">
@@ -80,15 +100,26 @@
       </div>
       <div class="form-group">
         <label class="form-label">Tid (sek)</label>
-        <input type="number" id="logTime" step="0.01" placeholder="11.52">
+        <input type="number" id="logTime" step="0.01" placeholder="11.52"
+          onkeydown="if(event.key==='Enter')addRun()">
       </div>
-      <div class="form-group">
-        <label class="form-label">RPE (1–10)</label>
-        <input type="number" id="logRpe" min="1" max="10" placeholder="7">
+      <div style="padding-bottom:1px">
+        <button class="btn btn-ghost btn-sm" onclick="addRun()" style="white-space:nowrap">+ Legg til løp</button>
       </div>
     </div>
 
-    <!-- Knee pain for this session -->
+    <!-- Runs list -->
+    <div id="runsList"></div>
+
+    <!-- Evaluering -->
+    <hr class="session-divider">
+    <div class="eval-label">Evaluering</div>
+
+    <div class="form-group" style="max-width:180px;margin-bottom:14px">
+      <label class="form-label">RPE (1–10)</label>
+      <input type="number" id="logRpe" min="1" max="10" placeholder="7">
+    </div>
+
     <div style="margin-bottom:12px">
       <div class="form-label" style="margin-bottom:8px">Knesmerte (0–10)</div>
       <div class="knee-log-row">
@@ -111,7 +142,7 @@
       </div>
     </div>
 
-    <div class="form-group" style="margin-bottom:12px">
+    <div class="form-group" style="margin-bottom:14px">
       <label class="form-label">Notater</label>
       <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…"></textarea>
     </div>
@@ -154,6 +185,7 @@ function fmtDate(ds) {
 }
 
 const skKnee = { before: null, during: null, after: null, dayafter: null };
+let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
 
 // Date default
@@ -176,6 +208,39 @@ function selPain(phase, score) {
   });
 }
 ['before','during','after','dayafter'].forEach(buildPainRow);
+
+// ── Runs list ─────────────────────────────────────────────────────────────
+function addRun() {
+  const dist = document.getElementById('logDist').value;
+  const type = document.getElementById('logType').value;
+  const time = parseFloat(document.getElementById('logTime').value);
+  if (!dist || isNaN(time) || time <= 0) { toast('Fyll inn distanse og tid', 'err'); return; }
+  runs.push({ distance: dist, type, time });
+  document.getElementById('logTime').value = '';
+  document.getElementById('logTime').focus();
+  renderRuns();
+}
+
+function removeRun(i) {
+  runs.splice(i, 1);
+  renderRuns();
+}
+
+function renderRuns() {
+  const el = document.getElementById('runsList');
+  if (!runs.length) {
+    el.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);padding:6px 2px 10px">Ingen løp lagt til ennå</div>';
+    return;
+  }
+  el.innerHTML = runs.map((r, i) => `
+    <div class="run-row">
+      <span class="run-num">Løp ${i + 1}</span>
+      <span class="run-dist">${escHtml(r.distance)}</span>
+      <span class="run-time">${r.time.toFixed(2)}s</span>
+      <span class="run-type">${escHtml(r.type)}</span>
+      <button class="run-del" onclick="removeRun(${i})" title="Fjern">✕</button>
+    </div>`).join('');
+}
 
 // ── PB Board ──────────────────────────────────────────────────────────────
 async function loadPBs() {
@@ -200,25 +265,26 @@ async function loadPBs() {
 
 // ── Log session ───────────────────────────────────────────────────────────
 async function logSession() {
+  if (!runs.length) { toast('Legg til minst ett løp før du lagrer', 'err'); return; }
+
   const date  = document.getElementById('logDate').value || today();
-  const dist  = document.getElementById('logDist').value;
-  const type  = document.getElementById('logType').value;
-  const time  = parseFloat(document.getElementById('logTime').value);
   const rpe   = parseInt(document.getElementById('logRpe').value) || null;
   const notes = document.getElementById('logNotes').value.trim();
 
-  if (!dist || isNaN(time) || time <= 0) { toast('Fyll inn distanse og tid', 'err'); return; }
+  const inserts = runs.map(r => ({
+    date, distance: r.distance, type: r.type, time_seconds: r.time,
+    rpe, notes,
+    knee_before:    skKnee.before,
+    knee_during:    skKnee.during,
+    knee_after:     skKnee.after,
+    knee_day_after: skKnee.dayafter,
+  }));
 
-  const [logRes, kneRes] = await Promise.all([
-    db.from('sprint_log').insert({
-      date, distance: dist, type, rpe, notes,
-      knee_before:    skKnee.before,
-      knee_during:    skKnee.during,
-      knee_after:     skKnee.after,
-      knee_day_after: skKnee.dayafter,
-    }).select().single(),
+  const distList = [...new Set(runs.map(r => r.distance))].join('/');
+  const [logRes] = await Promise.all([
+    db.from('sprint_log').insert(inserts).select(),
     db.from('knee_pain').insert({
-      date, session_type: `Sprint ${dist} ${type}`,
+      date, session_type: `Sprint ${distList} ${runs[0].type}`,
       before_score:    skKnee.before,
       during_score:    skKnee.during,
       after_score:     skKnee.after,
@@ -229,19 +295,27 @@ async function logSession() {
 
   if (logRes.error) { toast('Feil ved lagring', 'err'); return; }
 
-  // Check / update PB
-  const { data: rec } = await db.from('sprint_records').select('best_time').eq('distance', dist).single();
-  if (!rec || time < rec.best_time) {
-    await db.from('sprint_records').upsert({ distance: dist, best_time: time, date }, { onConflict: 'distance' });
-    const cell = document.getElementById(`pb-${dist}`);
-    if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 600); }
-    toast(`Ny PB! ${dist} — ${time.toFixed(2)}s`);
-  } else {
-    toast('Økt lagret!');
+  // Check / update PB for each unique distance
+  const newPBs = [];
+  for (const r of runs) {
+    const { data: rec } = await db.from('sprint_records')
+      .select('best_time').eq('distance', r.distance).single();
+    if (!rec || r.time < rec.best_time) {
+      await db.from('sprint_records').upsert(
+        { distance: r.distance, best_time: r.time, date },
+        { onConflict: 'distance' }
+      );
+      newPBs.push(`${r.distance} ${r.time.toFixed(2)}s`);
+      const cell = document.getElementById(`pb-${r.distance}`);
+      if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 600); }
+    }
   }
 
+  toast(newPBs.length ? `Ny PB! ${newPBs.join(', ')}` : `${runs.length} løp lagret!`);
+
   // Reset
-  document.getElementById('logTime').value  = '';
+  runs = [];
+  renderRuns();
   document.getElementById('logRpe').value   = '';
   document.getElementById('logNotes').value = '';
   Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
@@ -303,7 +377,7 @@ async function loadHistory() {
   el.innerHTML = sprintLog.map(s =>
     `<div class="history-row">
       <span class="history-dist">${escHtml(s.distance || '–')}</span>
-      <span class="history-time">${s.rpe ? s.rpe.toFixed(2) : '–'}s</span>
+      <span class="history-time">${s.time_seconds != null ? s.time_seconds.toFixed(2) + 's' : '–'}</span>
       <span class="history-type">${escHtml(s.type || '')}</span>
       ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
       <span class="history-date">${fmtDate(s.date)}</span>
