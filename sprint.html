@@ -398,7 +398,7 @@ async function logSession() {
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 }
 
-// ── History + knee trend (single query feeds both) ────────────────────────
+// ── History ───────────────────────────────────────────────────────────────
 async function loadHistory() {
   const { data } = await db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30);
   sprintLog = data || [];
@@ -418,25 +418,28 @@ async function loadHistory() {
     ).join('');
   }
 
-  renderKneeTrend();
+  await loadKneeTrend();
 }
 
-function renderKneeTrend() {
-  // One row per unique session date (sprintLog has one row per run)
-  const seen = new Set();
-  const sessions = [];
-  for (const s of sprintLog) {
-    if (!seen.has(s.date)) { seen.add(s.date); sessions.push(s); if (sessions.length === 5) break; }
-  }
-  const data = sessions;
-  const el   = document.getElementById('kneeTrend');
+// ── Knee trend — reads from knee_pain (before_score/during_score/...) ─────
+async function loadKneeTrend() {
+  const { data } = await db.from('knee_pain')
+    .select('date,before_score,during_score,after_score,day_after_score')
+    .ilike('session_type', 'Sprint%')
+    .order('date', { ascending: false })
+    .limit(5);
+  renderKneeTrend(data || []);
+}
+
+function renderKneeTrend(data) {
+  const el = document.getElementById('kneeTrend');
   if (!data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
 
   const phases = [
-    { key: 'knee_before',    label: 'Før' },
-    { key: 'knee_during',    label: 'Under' },
-    { key: 'knee_after',     label: 'Etter' },
-    { key: 'knee_day_after', label: 'Dagen etter' },
+    { key: 'before_score',    label: 'Før' },
+    { key: 'during_score',    label: 'Under' },
+    { key: 'after_score',     label: 'Etter' },
+    { key: 'day_after_score', label: 'Dagen etter' },
   ];
 
   function painClr(v) {
