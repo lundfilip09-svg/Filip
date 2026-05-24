@@ -16,18 +16,29 @@
     .knee-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
     .knee-phase-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 6px; }
     .warmup-note { font-size: 11px; color: var(--text-tertiary); font-style: italic; margin-bottom: 10px; }
-    .choose-label { font-size: 9px; font-family: var(--font-mono); color: var(--accent-blue); letter-spacing: 0.1em; text-transform: uppercase; margin-left: 4px; }
     @media (max-width: 600px) { .knee-grid { grid-template-columns: 1fr; } }
+    .sort-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 3px; line-height: 1; }
+    .sort-btn:hover { color: var(--text-secondary); }
+    .edit-ex-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 3px; line-height: 1; }
+    .edit-ex-btn:hover { color: var(--accent-blue); }
+    .edit-ex-form { display: none; gap: 6px; align-items: center; padding: 6px 10px 8px; background: rgba(255,255,255,0.02); border-radius: 6px; margin: 2px 0 4px; }
+    .edit-ex-form.open { display: flex; }
+    .gym-hist-wrap { margin-bottom: 4px; }
     .gym-hist-row {
       display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-      background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 4px;
+      background: rgba(255,255,255,0.02); border-radius: 8px;
       font-size: 12px; font-family: var(--font-mono);
     }
     .gym-hist-date { color: var(--text-tertiary); width: 100px; flex-shrink: 0; }
     .gym-hist-type { color: var(--text-primary); flex: 1; }
     .gym-hist-note { color: var(--text-tertiary); font-size: 10px; }
-    .sort-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 3px; line-height: 1; }
-    .sort-btn:hover { color: var(--text-secondary); }
+    .gym-hist-knee { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); padding: 2px 10px 4px; }
+    .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; }
+    .edit-knee-btn:hover { color: var(--accent-blue); }
+    .knee-edit-panel { display: none; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 2px; }
+    .knee-edit-panel.open { display: block; }
+    .knee-edit-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .knee-edit-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
   </style>
 </head>
 <body>
@@ -195,28 +206,16 @@ function renderWarmup() {
   const base = allExercises['warmup'] || {};
   const fri  = allExercises['friday_warmup'] || {};
 
-  // Sykkel line: friday version vs default
   const sykkelSection = isFriday ? fri['Sykkel'] : base['Sykkel'];
   const extraSection  = isFriday ? fri['Ekstra'] : null;
   const hoftSection   = base['Hofteaktivering'] || [];
   const knaerSection  = base['Knær'] || [];
 
   let html = '';
-
-  if (sykkelSection) {
-    html += renderSection('Sykkel', sykkelSection, 'warmup', false);
-  }
-  if (extraSection) {
-    html += renderSection('Ekstra (kun fredag)', extraSection, 'friday_warmup', false);
-  }
-  if (hoftSection.length) {
-    html += `<div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.12em;margin:10px 0 4px">
-      Hofteaktivering <span class="choose-label">— velg 2 av 3</span></div>`;
-    html += hoftSection.map(ex => renderExRow(ex, 'warmup')).join('');
-  }
-  if (knaerSection.length) {
-    html += renderSection('Knær', knaerSection, 'warmup', false);
-  }
+  if (sykkelSection) html += renderSection('Sykkel', sykkelSection, isFriday ? 'friday_warmup' : 'warmup', true);
+  if (extraSection)  html += renderSection('Ekstra', extraSection, 'friday_warmup', true);
+  if (hoftSection.length) html += renderSection('Hofteaktivering', hoftSection, 'warmup', true);
+  if (knaerSection.length) html += renderSection('Knær', knaerSection, 'warmup', true);
 
   el.innerHTML = html || '<div class="empty">Ingen oppvarmingsdata</div>';
 }
@@ -254,20 +253,30 @@ function renderSection(label, exs, day, editable) {
 function renderExRow(ex, day) {
   const w = weights[ex.exercise_name];
   const wVal = w !== undefined && w !== null ? w : '';
-  const needsWeight = day !== 'warmup' && day !== 'friday_warmup';
-  return `<div class="exercise-row" id="exrow-${ex.id}">
-    <div class="exercise-info">
-      <div class="exercise-name">${escHtml(ex.exercise_name)}</div>
-      <div class="exercise-meta">${ex.sets} × ${ex.reps}</div>
+  const isWarmup = day === 'warmup' || day === 'friday_warmup';
+  return `<div id="exrow-wrap-${ex.id}">
+    <div class="exercise-row" id="exrow-${ex.id}">
+      <div class="exercise-info">
+        <div class="exercise-name">${escHtml(ex.exercise_name)}</div>
+        <div class="exercise-meta">${ex.sets} × ${ex.reps}</div>
+      </div>
+      ${!isWarmup ? `
+      <input class="weight-inp" type="number" step="0.5" value="${wVal}" placeholder="—"
+        title="Vekt (kg)" onblur="saveWeight('${escHtml(ex.exercise_name)}', this.value)">
+      <span class="weight-unit">kg</span>
+      ` : ''}
+      <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',-1)" title="Flytt opp">↑</button>
+      <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',1)" title="Flytt ned">↓</button>
+      <button class="edit-ex-btn" onclick="toggleEditEx('${ex.id}')" title="Rediger sett/reps">✎</button>
+      <button class="btn btn-danger btn-icon btn-xs" onclick="deleteExercise('${ex.id}')" title="Slett">✕</button>
     </div>
-    ${needsWeight ? `
-    <input class="weight-inp" type="number" step="0.5" value="${wVal}" placeholder="—"
-      title="Vekt (kg)" onblur="saveWeight('${escHtml(ex.exercise_name)}', this.value)">
-    <span class="weight-unit">kg</span>
-    <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',-1)" title="Flytt opp">↑</button>
-    <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',1)" title="Flytt ned">↓</button>
-    <button class="btn btn-danger btn-icon btn-xs" onclick="deleteExercise('${ex.id}')" title="Slett">✕</button>
-    ` : ''}
+    <div class="edit-ex-form" id="edit-form-${ex.id}">
+      <input class="input-sm" type="number" id="edit-sets-${ex.id}" value="${ex.sets}" style="width:52px" placeholder="Sett">
+      <span style="color:var(--text-tertiary);font-size:11px;font-family:var(--font-mono)">×</span>
+      <input class="input-sm" id="edit-reps-${ex.id}" value="${escHtml(ex.reps)}" style="width:80px" placeholder="Reps">
+      <button class="btn btn-success btn-sm" onclick="saveExMeta('${ex.id}')">✓</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleEditEx('${ex.id}')">✕</button>
+    </div>
   </div>`;
 }
 
@@ -340,6 +349,26 @@ async function deleteExercise(id) {
   toast('Øvelse slettet');
 }
 
+// ── Exercise inline edit ──────────────────────────────────────────────────
+function toggleEditEx(id) {
+  document.getElementById(`edit-form-${id}`).classList.toggle('open');
+}
+
+async function saveExMeta(id) {
+  const sets = parseInt(document.getElementById(`edit-sets-${id}`).value);
+  const reps = document.getElementById(`edit-reps-${id}`).value.trim();
+  if (!sets || !reps) { toast('Fyll inn sett og reps', 'err'); return; }
+  await db.from('workout_program').update({ sets, reps }).eq('id', id);
+  for (const d of Object.keys(allExercises)) {
+    for (const sec of Object.keys(allExercises[d])) {
+      const ex = allExercises[d][sec].find(e => e.id === id);
+      if (ex) { ex.sets = sets; ex.reps = reps; }
+    }
+  }
+  renderAll();
+  toast('Oppdatert');
+}
+
 // ── Knee pain buttons ─────────────────────────────────────────────────────
 function painClass(score) {
   if (score <= 3) return 'sel-green';
@@ -403,19 +432,76 @@ function clearLog() {
 
 // ── Gym history ───────────────────────────────────────────────────────────
 async function loadGymHistory() {
-  const { data } = await db.from('gym_log')
+  const { data: gymData } = await db.from('gym_log')
     .select('*').order('date', { ascending: false }).limit(20);
   const el = document.getElementById('gymHistory');
-  if (!data?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
-  el.innerHTML = data.map(g => {
+  if (!gymData?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
+
+  const dates = [...new Set(gymData.map(g => g.date))];
+  const { data: kneeData } = await db.from('knee_pain').select('*').in('date', dates);
+  const kneeMap = {};
+  (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
+
+  const kn = v => (v !== null && v !== undefined) ? v : '—';
+
+  el.innerHTML = gymData.map(g => {
+    const knee = kneeMap[g.date + '|' + (g.session_type || '')] || null;
     const d = new Date(g.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('no-NO', { weekday:'short', day:'numeric', month:'short' });
-    return `<div class="gym-hist-row">
-      <span class="gym-hist-date">${dateStr}</span>
-      <span class="gym-hist-type">${escHtml(g.session_type || '')}</span>
-      ${g.session_notes ? `<span class="gym-hist-note">${escHtml(g.session_notes.slice(0,40))}</span>` : ''}
+    const kneeStr = knee
+      ? `Før: ${kn(knee.before_score)} · Under: ${kn(knee.during_score)} · Etter: ${kn(knee.after_score)} · Dagen etter: ${kn(knee.day_after_score)}`
+      : '';
+    const kneeId = knee?.id || '';
+    return `<div class="gym-hist-wrap" id="hist-wrap-${g.id}">
+      <div class="gym-hist-row">
+        <span class="gym-hist-date">${dateStr}</span>
+        <span class="gym-hist-type">${escHtml(g.session_type || '')}</span>
+        ${g.session_notes ? `<span class="gym-hist-note">${escHtml(g.session_notes.slice(0,40))}</span>` : ''}
+        <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')" title="Rediger knesmerte">✎</button>
+      </div>
+      ${kneeStr ? `<div class="gym-hist-knee">${kneeStr}</div>` : ''}
+      <div class="knee-edit-panel" id="knee-edit-${g.id}">
+        <div class="knee-edit-row">
+          <span class="knee-edit-label">Før</span>
+          <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}" value="${knee?.before_score ?? ''}" style="width:52px">
+          <span class="knee-edit-label">Under</span>
+          <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}" value="${knee?.during_score ?? ''}" style="width:52px">
+          <span class="knee-edit-label">Etter</span>
+          <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}" value="${knee?.after_score ?? ''}" style="width:52px">
+          <span class="knee-edit-label">Dagen etter</span>
+          <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}" value="${knee?.day_after_score ?? ''}" style="width:52px">
+        </div>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" onclick="saveKneeEdit('${g.id}','${kneeId}','${g.date}','${escHtml(g.session_type || '')}')">Lagre</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">Avbryt</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleKneeEdit(gymId) {
+  document.getElementById(`knee-edit-${gymId}`).classList.toggle('open');
+}
+
+async function saveKneeEdit(gymId, kneeId, date, sessionType) {
+  const before   = parseInt(document.getElementById(`ke-before-${gymId}`).value);
+  const during   = parseInt(document.getElementById(`ke-during-${gymId}`).value);
+  const after    = parseInt(document.getElementById(`ke-after-${gymId}`).value);
+  const dayAfter = parseInt(document.getElementById(`ke-dayafter-${gymId}`).value);
+  const payload  = {
+    before_score:    isNaN(before)   ? null : before,
+    during_score:    isNaN(during)   ? null : during,
+    after_score:     isNaN(after)    ? null : after,
+    day_after_score: isNaN(dayAfter) ? null : dayAfter,
+  };
+  if (kneeId) {
+    await db.from('knee_pain').update(payload).eq('id', kneeId);
+  } else {
+    await db.from('knee_pain').insert({ date, session_type: sessionType, ...payload });
+  }
+  toast('Knesmerte oppdatert');
+  await loadGymHistory();
 }
 
 (async () => {
