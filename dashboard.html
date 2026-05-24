@@ -167,11 +167,6 @@ async function loadSleep() {
         <div class="metric-unit">t</div>
       </div>
       <div class="metric-tile">
-        <div class="metric-lbl">HRV</div>
-        <div class="metric-val">${d.hrv ?? '–'}</div>
-        <div class="metric-unit">ms</div>
-      </div>
-      <div class="metric-tile">
         <div class="metric-lbl">Hvilepuls</div>
         <div class="metric-val ${d.rhr > 65 ? 'danger' : ''}">${d.rhr ?? '–'}</div>
         <div class="metric-unit">bpm</div>

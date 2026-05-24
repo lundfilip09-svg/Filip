@@ -64,7 +64,6 @@
       <div class="section-title" style="margin-bottom:0">Siste 14 dager</div>
       <div style="display:flex;gap:12px">
         <div class="legend-row"><div class="legend-dot" style="background:#6BE3A4"></div>Søvn (t)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#5BA4F5"></div>HRV</div>
         <div class="legend-row"><div class="legend-dot" style="background:#F2C063"></div>Hvilepuls</div>
         <div class="legend-row"><div class="legend-dot" style="background:rgba(255,107,107,0.7)"></div>Humør</div>
       </div>
@@ -125,7 +124,6 @@ function renderStats(d) {
   const stats = [
     { lbl:'Søvnscore',   val: sc ?? '–',   unit:'/ 100', cls: scColor },
     { lbl:'Søvntimer',   val: d.sleep_hours ?? '–', unit:'t' },
-    { lbl:'HRV',         val: d.hrv ?? '–', unit:'ms' },
     { lbl:'Innsovning',  val: d.sleep_onset_minutes ?? '–', unit:'min' },
     { lbl:'Hvilepuls',   val: d.rhr ?? '–', unit:'bpm', cls: d.rhr > 65 ? 'danger' : '' },
   ];
@@ -166,7 +164,7 @@ async function loadChart() {
   const cutoffStr = cutoff.toISOString().slice(0,10);
 
   const { data } = await db.from('health_data')
-    .select('date,sleep_hours,sleep_score,hrv,rhr,mood')
+    .select('date,sleep_hours,sleep_score,rhr,mood')
     .gte('date', cutoffStr).order('date');
 
   const labels = [];
@@ -199,13 +197,6 @@ async function loadChart() {
           borderColor: '#6BE3A4', backgroundColor: 'rgba(107,227,164,0.08)',
           yAxisID: 'y', tension: 0.3, pointRadius: 4,
           pointBackgroundColor: '#6BE3A4', spanGaps: true,
-        },
-        {
-          label: 'HRV (ms)',
-          data: getVals('hrv'),
-          borderColor: '#5BA4F5', backgroundColor: 'rgba(91,164,245,0.05)',
-          yAxisID: 'y1', tension: 0.3, pointRadius: 4,
-          pointBackgroundColor: '#5BA4F5', spanGaps: true,
         },
         {
           label: 'Hvilepuls',
