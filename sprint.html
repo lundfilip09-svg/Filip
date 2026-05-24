@@ -422,7 +422,13 @@ async function loadHistory() {
 }
 
 function renderKneeTrend() {
-  const data = sprintLog.slice(0, 5);
+  // One row per unique session date (sprintLog has one row per run)
+  const seen = new Set();
+  const sessions = [];
+  for (const s of sprintLog) {
+    if (!seen.has(s.date)) { seen.add(s.date); sessions.push(s); if (sessions.length === 5) break; }
+  }
+  const data = sessions;
   const el   = document.getElementById('kneeTrend');
   if (!data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
 
