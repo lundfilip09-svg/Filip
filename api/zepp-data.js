@@ -6,7 +6,7 @@
 //   SUPABASE_URL      — f.eks. https://xxxx.supabase.co
 //   SUPABASE_ANON_KEY — Supabase anon key
 
-const VALID_FIELDS = ['sleepHours', 'sleepScore', 'rhr', 'hrv', 'steps', 'bodyBattery', 'mood'];
+const VALID_FIELDS = ['sleepHours', 'sleepStart', 'sleepEnd', 'sleepScore', 'rhr', 'hrv', 'steps', 'bodyBattery', 'mood'];
 
 export default async function handler(req, res) {
   // Preflight
@@ -43,9 +43,20 @@ export default async function handler(req, res) {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    // Beregn sleepHours fra råe tidsstempler hvis de er sendt
+    let sleepHours = body.sleepHours ?? null;
+    if (body.sleepStart && body.sleepEnd) {
+      const start = new Date(body.sleepStart);
+      const end   = new Date(body.sleepEnd);
+      const diff  = (end - start) / (1000 * 60 * 60);
+      if (!isNaN(diff) && diff > 0 && diff < 24) {
+        sleepHours = Math.round(diff * 100) / 100; // rund til 2 desimaler
+      }
+    }
+
     const row = {
       date:         body.date        || today,
-      sleep_hours:  body.sleepHours  ?? null,
+      sleep_hours:  sleepHours,
       sleep_score:  body.sleepScore  ?? null,
       hrv:          body.hrv         ?? null,
       rhr:          body.rhr         ?? null,
