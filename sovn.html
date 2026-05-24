@@ -31,6 +31,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
     </div>
   </div>
 </nav>
@@ -62,10 +63,9 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="section-title" style="margin-bottom:0">Siste 14 dager</div>
-      <div style="display:flex;gap:12px">
-        <div class="legend-row"><div class="legend-dot" style="background:#6BE3A4"></div>Søvn (t)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#F2C063"></div>Hvilepuls</div>
-        <div class="legend-row"><div class="legend-dot" style="background:rgba(255,107,107,0.7)"></div>Humør</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="legend-row"><div class="legend-dot" style="background:#6BE3A4"></div>Søvntimer</div>
+        <div class="legend-row"><div style="width:18px;height:2px;background:rgba(255,255,255,0.25);border-top:2px dashed rgba(255,255,255,0.25);flex-shrink:0"></div>8t mål</div>
       </div>
     </div>
     <div class="chart-wrap">
@@ -164,66 +164,63 @@ async function loadChart() {
   const cutoffStr = cutoff.toISOString().slice(0,10);
 
   const { data } = await db.from('health_data')
-    .select('date,sleep_hours,sleep_score,rhr,mood')
+    .select('date,sleep_hours')
     .gte('date', cutoffStr).order('date');
 
-  const labels = [];
+  const dayNames = ['søn','man','tir','ons','tor','fre','lør'];
+  const labels = [], dates = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    labels.push(d.toLocaleDateString('no-NO', { day:'numeric', month:'short' }));
-  }
-  const dates = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
+    labels.push(`${dayNames[d.getDay()]} ${d.getDate()}`);
     dates.push(d.toISOString().slice(0,10));
   }
 
-  function getVals(key) {
-    return dates.map(ds => {
-      const e = (data || []).find(r => r.date === ds);
-      return e ? (e[key] ?? null) : null;
-    });
-  }
+  const sleepVals = dates.map(ds => {
+    const e = (data || []).find(r => r.date === ds);
+    return e && e.sleep_hours > 0 ? e.sleep_hours : null;
+  });
 
   const ctx = document.getElementById('sleepChart').getContext('2d');
   new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels,
       datasets: [
         {
           label: 'Søvntimer',
-          data: getVals('sleep_hours'),
-          borderColor: '#6BE3A4', backgroundColor: 'rgba(107,227,164,0.08)',
-          yAxisID: 'y', tension: 0.3, pointRadius: 4,
-          pointBackgroundColor: '#6BE3A4', spanGaps: true,
+          data: sleepVals,
+          backgroundColor: 'rgba(107,227,164,0.45)',
+          borderColor: '#6BE3A4',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 1,
         },
         {
-          label: 'Hvilepuls',
-          data: getVals('rhr'),
-          borderColor: '#F2C063', backgroundColor: 'rgba(242,192,99,0.05)',
-          yAxisID: 'y1', tension: 0.3, pointRadius: 4,
-          pointBackgroundColor: '#F2C063', spanGaps: true, borderDash: [4,3],
-        },
-        {
-          label: 'Humør (1–5)',
-          data: getVals('mood'),
-          borderColor: 'rgba(255,107,107,0.7)', backgroundColor: 'rgba(255,107,107,0.05)',
-          yAxisID: 'y2', tension: 0.3, pointRadius: 5, pointStyle: 'rectRot',
-          pointBackgroundColor: 'rgba(255,107,107,0.7)', spanGaps: true,
+          label: '8t mål',
+          data: Array(14).fill(8),
+          type: 'line',
+          borderColor: 'rgba(255,255,255,0.25)',
+          borderDash: [5, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          order: 0,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: 'rgba(15,15,18,0.95)',
           titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
           borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+          callbacks: {
+            label: ctx => ctx.dataset.label === '8t mål' ? null : `${ctx.parsed.y}t søvn`,
+          },
+          filter: item => item.dataset.label !== '8t mål',
         },
       },
       scales: {
@@ -232,22 +229,10 @@ async function loadChart() {
           ticks: { color: '#76746E', font: { family: 'ui-monospace', size: 10 }, maxRotation: 45 },
         },
         y: {
-          position: 'left', title: { display: true, text: 't', color: '#6BE3A4', font: { size: 10 } },
+          min: 0, max: 12,
           grid: { color: 'rgba(255,255,255,0.04)' },
           ticks: { color: '#76746E', font: { family: 'ui-monospace', size: 10 } },
-          min: 0, max: 12,
-        },
-        y1: {
-          position: 'right', title: { display: true, text: 'bpm / ms', color: '#5BA4F5', font: { size: 10 } },
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#76746E', font: { family: 'ui-monospace', size: 10 } },
-          min: 0,
-        },
-        y2: {
-          position: 'right', title: { display: false },
-          grid: { drawOnChartArea: false },
-          ticks: { display: false },
-          min: 0, max: 5,
+          title: { display: true, text: 'timer', color: '#6BE3A4', font: { size: 10 } },
         },
       },
     },

@@ -18,6 +18,16 @@
     .warmup-note { font-size: 11px; color: var(--text-tertiary); font-style: italic; margin-bottom: 10px; }
     .choose-label { font-size: 9px; font-family: var(--font-mono); color: var(--accent-blue); letter-spacing: 0.1em; text-transform: uppercase; margin-left: 4px; }
     @media (max-width: 600px) { .knee-grid { grid-template-columns: 1fr; } }
+    .gym-hist-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+      background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 4px;
+      font-size: 12px; font-family: var(--font-mono);
+    }
+    .gym-hist-date { color: var(--text-tertiary); width: 100px; flex-shrink: 0; }
+    .gym-hist-type { color: var(--text-primary); flex: 1; }
+    .gym-hist-note { color: var(--text-tertiary); font-size: 10px; }
+    .sort-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 3px; line-height: 1; }
+    .sort-btn:hover { color: var(--text-secondary); }
   </style>
 </head>
 <body>
@@ -30,6 +40,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
     </div>
   </div>
 </nav>
@@ -78,6 +89,10 @@
     </div>
     <div class="divider"></div>
     <div class="form-group">
+      <label class="form-label">Dato for økt</label>
+      <input type="date" id="logDate">
+    </div>
+    <div class="form-group">
       <label class="form-label">Notater</label>
       <textarea id="sessionNotes" placeholder="Hvordan gikk økten?"></textarea>
     </div>
@@ -85,6 +100,12 @@
       <button class="btn btn-success" onclick="saveLog()">Lagre økt</button>
       <button class="btn btn-ghost" onclick="clearLog()">Nullstill</button>
     </div>
+  </div>
+
+  <!-- Gym history -->
+  <div class="card">
+    <div class="section-title">Økthistorikk</div>
+    <div id="gymHistory"><div class="loading">Laster…</div></div>
   </div>
 
 </main>
@@ -121,10 +142,12 @@ function detectDay() {
 
 // ── Init ─────────────────────────────────────────────────────────────────
 async function init() {
+  document.getElementById('logDate').value = today();
   setDay(activeDay);
   await loadData();
   renderAll();
   buildPainButtons();
+  await loadGymHistory();
 }
 
 async function loadData() {
@@ -236,8 +259,8 @@ function renderExRow(ex, day) {
     <input class="weight-inp" type="number" step="0.5" value="${wVal}" placeholder="—"
       title="Vekt (kg)" onblur="saveWeight('${escHtml(ex.exercise_name)}', this.value)">
     <span class="weight-unit">kg</span>
-    ` : ''}
-    ${day !== 'warmup' && day !== 'friday_warmup' ? `
+    <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',-1)" title="Flytt opp">↑</button>
+    <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',1)" title="Flytt ned">↓</button>
     <button class="btn btn-danger btn-icon btn-xs" onclick="deleteExercise('${ex.id}')" title="Slett">✕</button>
     ` : ''}
   </div>`;
@@ -276,6 +299,26 @@ async function addExercise(day, section, formId) {
   document.getElementById(`${formId}-name`).value = '';
   renderAll();
   toast(`${name} lagt til`);
+}
+
+// ── Move exercise (sort order) ────────────────────────────────────────────
+async function moveExercise(id, day, section, dir) {
+  const list = allExercises[day]?.[section] || [];
+  const idx = list.findIndex(e => e.id === id);
+  const newIdx = idx + dir;
+  if (idx < 0 || newIdx < 0 || newIdx >= list.length) return;
+
+  const a = list[idx], b = list[newIdx];
+  const sortA = a.sort_order, sortB = b.sort_order;
+
+  await Promise.all([
+    db.from('workout_program').update({ sort_order: sortB }).eq('id', a.id),
+    db.from('workout_program').update({ sort_order: sortA }).eq('id', b.id),
+  ]);
+
+  a.sort_order = sortB; b.sort_order = sortA;
+  list[idx] = b; list[newIdx] = a;
+  renderAll();
 }
 
 // ── Delete exercise ───────────────────────────────────────────────────────
@@ -320,10 +363,11 @@ function selectPain(phase, score) {
 async function saveLog() {
   const dayLabels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
   const notes = document.getElementById('sessionNotes').value.trim();
+  const date  = document.getElementById('logDate').value || today();
 
   const [kRes, gRes] = await Promise.all([
     db.from('knee_pain').insert({
-      date: today(),
+      date,
       session_type: dayLabels[activeDay] || activeDay,
       before_score:    kneePain['before'],
       during_score:    kneePain['during'],
@@ -332,7 +376,7 @@ async function saveLog() {
       notes,
     }),
     db.from('gym_log').insert({
-      date: today(),
+      date,
       session_type: dayLabels[activeDay] || activeDay,
       session_notes: notes,
     }),
@@ -340,6 +384,7 @@ async function saveLog() {
 
   if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
   toast('Økt lagret!');
+  await loadGymHistory();
 }
 
 function clearLog() {
@@ -348,6 +393,24 @@ function clearLog() {
     document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn');
   });
   document.getElementById('sessionNotes').value = '';
+  document.getElementById('logDate').value = today();
+}
+
+// ── Gym history ───────────────────────────────────────────────────────────
+async function loadGymHistory() {
+  const { data } = await db.from('gym_log')
+    .select('*').order('date', { ascending: false }).limit(20);
+  const el = document.getElementById('gymHistory');
+  if (!data?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
+  el.innerHTML = data.map(g => {
+    const d = new Date(g.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('no-NO', { weekday:'short', day:'numeric', month:'short' });
+    return `<div class="gym-hist-row">
+      <span class="gym-hist-date">${dateStr}</span>
+      <span class="gym-hist-type">${escHtml(g.session_type || '')}</span>
+      ${g.session_notes ? `<span class="gym-hist-note">${escHtml(g.session_notes.slice(0,40))}</span>` : ''}
+    </div>`;
+  }).join('');
 }
 
 (async () => {

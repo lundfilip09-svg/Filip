@@ -55,6 +55,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
     </div>
   </div>
 </nav>
@@ -170,22 +171,23 @@ async function loadSleep() {
     el.innerHTML = `<div class="empty">Ingen data — send via iPhone-snarvei</div>`; return;
   }
   const d = data[0];
-  const scoreColor = d.sleep_score >= 80 ? 'var(--success)' : d.sleep_score >= 60 ? 'var(--warning)' : 'var(--danger)';
+  const sc = d.sleep_score > 0 ? d.sleep_score : null;
+  const scoreColor = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
   el.innerHTML = `
     <div class="grid-2">
       <div class="metric-tile">
         <div class="metric-lbl">Score</div>
-        <div class="metric-val" style="color:${scoreColor}">${d.sleep_score ?? '–'}</div>
+        <div class="metric-val" style="color:${scoreColor}">${sc ?? '–'}</div>
         <div class="metric-unit">/ 100</div>
       </div>
       <div class="metric-tile">
         <div class="metric-lbl">Timer</div>
-        <div class="metric-val">${d.sleep_hours ?? '–'}</div>
+        <div class="metric-val">${d.sleep_hours > 0 ? d.sleep_hours : '–'}</div>
         <div class="metric-unit">t</div>
       </div>
       <div class="metric-tile">
         <div class="metric-lbl">Hvilepuls</div>
-        <div class="metric-val ${d.rhr > 65 ? 'danger' : ''}">${d.rhr ?? '–'}</div>
+        <div class="metric-val ${d.rhr > 65 ? 'danger' : ''}">${d.rhr > 0 ? d.rhr : '–'}</div>
         <div class="metric-unit">bpm</div>
       </div>
     </div>
