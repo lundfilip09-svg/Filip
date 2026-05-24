@@ -14,7 +14,7 @@ const CORS = {
 };
 
 // Auth-endepunkt (EU-region)
-const AUTH_URL = 'https://account.huami.com/v2/client/login';
+const AUTH_URL = 'https://account-eu.huami.com/v2/client/login';
 // Data-endepunkt
 const DATA_URL = 'https://api-mifit-eu2.huami.com/v1/data/band_data.json';
 
