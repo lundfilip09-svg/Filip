@@ -13,14 +13,16 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
 };
 
-// Auth-endepunkt (EU-region)
-const AUTH_URL = 'https://account-eu.huami.com/v2/client/login';
-// Data-endepunkt
+const AUTH_URL = 'https://account.huami.com/v2/client/login';
 const DATA_URL = 'https://api-mifit-eu2.huami.com/v1/data/band_data.json';
 
 // ── Autentiser med Zepp/Huami ────────────────────────────────────────────────
 async function getToken(email, password) {
-  // Generate a random UUID for device_id (required by Huami API)
+  const crypto = await import('node:crypto');
+
+  // Noen versjoner av Huami-APIet krever MD5-hashet passord
+  const hashedPassword = crypto.createHash('md5').update(password).digest('hex');
+
   const deviceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0;
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
@@ -35,7 +37,7 @@ async function getToken(email, password) {
     grant_type:   'password',
     third_name:   'huami_phone',
     email,
-    password,
+    password: hashedPassword,
   });
 
   const res = await fetch(AUTH_URL, {
