@@ -144,13 +144,13 @@ export const handler = async (event) => {
   const ZEPP_EMAIL    = process.env.ZEPP_EMAIL;
   const ZEPP_PASSWORD = process.env.ZEPP_PASSWORD;
   const SUPABASE_URL  = process.env.SUPABASE_URL;
-  const SUPABASE_KEY  = process.env.SUPABASE_ANON_KEY;
+  const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!ZEPP_EMAIL || !ZEPP_PASSWORD || !SUPABASE_URL || !SUPABASE_KEY) {
     return {
       statusCode: 503,
       headers: CORS,
-      body: JSON.stringify({ error: 'Mangler env-variabler: ZEPP_EMAIL, ZEPP_PASSWORD, SUPABASE_URL, SUPABASE_ANON_KEY' }),
+      body: JSON.stringify({ error: 'Mangler env-variabler: ZEPP_EMAIL, ZEPP_PASSWORD, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY' }),
     };
   }
 

@@ -42,6 +42,7 @@
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
     </div>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
 </nav>
 
@@ -84,6 +85,10 @@ function toast(msg, type='ok') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = `toast ${type} show`;
   clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+async function signOut() {
+  if (db) await db.auth.signOut();
+  window.location.href = 'login.html';
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -202,6 +207,8 @@ function savePlan() {
     const cfg = await r.json();
     if (cfg.error) throw new Error(cfg.error);
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
   } catch (err) {
     document.querySelector('.page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">

@@ -16,21 +16,21 @@ export const handler = async (event) => {
     return { statusCode: 204, headers: CORS, body: '' };
   }
 
-  const SUPABASE_URL     = process.env.SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  const SUPABASE_URL              = process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return {
       statusCode: 503,
       headers: CORS,
-      body: JSON.stringify({ error: 'Mangler SUPABASE_URL eller SUPABASE_ANON_KEY' }),
+      body: JSON.stringify({ error: 'Mangler SUPABASE_URL eller SUPABASE_SERVICE_ROLE_KEY' }),
     };
   }
 
   const sbHeaders = {
     'Content-Type': 'application/json',
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
   };
 
   // ── POST: motta data fra iPhone-snarvei og lagre i Supabase ─────────────

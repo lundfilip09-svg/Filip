@@ -138,10 +138,10 @@ export default async function handler(req, res) {
   const ZEPP_EMAIL    = process.env.ZEPP_EMAIL;
   const ZEPP_PASSWORD = process.env.ZEPP_PASSWORD;
   const SUPABASE_URL  = process.env.SUPABASE_URL;
-  const SUPABASE_KEY  = process.env.SUPABASE_ANON_KEY;
+  const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!ZEPP_EMAIL || !ZEPP_PASSWORD || !SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(503).json({ error: 'Mangler env-variabler: ZEPP_EMAIL, ZEPP_PASSWORD, SUPABASE_URL, SUPABASE_ANON_KEY' });
+    return res.status(503).json({ error: 'Mangler env-variabler: ZEPP_EMAIL, ZEPP_PASSWORD, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY' });
   }
 
   const yesterday = new Date();
