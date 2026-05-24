@@ -27,13 +27,16 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   return data.access_token;
 }
 
-function weekBounds() {
-  const now    = new Date();
-  const day    = now.getDay();
-  const monOff = day === 0 ? -6 : 1 - day;
-  const mon    = new Date(now); mon.setDate(now.getDate() + monOff); mon.setHours(0, 0, 0, 0);
-  const sun    = new Date(mon); sun.setDate(mon.getDate() + 6);      sun.setHours(23, 59, 59, 999);
-  return { timeMin: mon.toISOString(), timeMax: sun.toISOString() };
+async function fetchEvents(token, calId, timeMin, timeMax, maxResults) {
+  const url = `${CAL_BASE}/calendars/${encodeURIComponent(calId)}/events` +
+    `?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}` +
+    `&singleEvents=true&orderBy=startTime&maxResults=${maxResults}`;
+  const calRes = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+  });
+  if (!calRes.ok) throw new Error(`Calendar fetch failed: ${await calRes.text()}`);
+  const data = await calRes.json();
+  return data.items || [];
 }
 
 export default async function handler(req, res) {
@@ -55,26 +58,19 @@ export default async function handler(req, res) {
 
   try {
     const token = await refreshAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
-    const { timeMin, timeMax } = weekBounds();
-    const calId = encodeURIComponent(GOOGLE_CALENDAR_ID);
 
-    const url = `${CAL_BASE}/calendars/${calId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=100`;
-    const calRes = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    if (!calRes.ok) throw new Error(`Calendar fetch failed: ${await calRes.text()}`);
-    const data = await calRes.json();
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    const sevenDays = new Date(now);
+    sevenDays.setDate(sevenDays.getDate() + 7);
 
-    const events = (data.items || []).map(item => ({
-      id:     item.id,
-      title:  item.summary || '(ingen tittel)',
-      start:  item.start?.dateTime || item.start?.date || '',
-      end:    item.end?.dateTime   || item.end?.date   || '',
-      allDay: Boolean(item.start?.date),
-      color:  item.colorId || null,
-    }));
+    const [today, upcoming] = await Promise.all([
+      fetchEvents(token, GOOGLE_CALENDAR_ID, now.toISOString(), endOfDay.toISOString(), 10),
+      fetchEvents(token, GOOGLE_CALENDAR_ID, now.toISOString(), sevenDays.toISOString(), 20),
+    ]);
 
-    return res.status(200).json({ events });
+    return res.status(200).json({ today, upcoming });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

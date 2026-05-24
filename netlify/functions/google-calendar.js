@@ -20,20 +20,23 @@ async function refreshAccessToken() {
     }),
   });
   if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
+  const { access_token } = await res.json();
+  return access_token;
+}
+
+async function fetchEvents(token, calId, timeMin, timeMax, maxResults) {
+  const url = `${CAL_BASE}/calendars/${encodeURIComponent(calId)}/events` +
+    `?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}` +
+    `&singleEvents=true&orderBy=startTime&maxResults=${maxResults}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Calendar fetch failed: ${await res.text()}`);
   const data = await res.json();
-  return data.access_token;
+  return data.items || [];
 }
 
-function weekBounds() {
-  const now   = new Date();
-  const day   = now.getDay();
-  const monOff = day === 0 ? -6 : 1 - day;
-  const mon   = new Date(now); mon.setDate(now.getDate() + monOff); mon.setHours(0,0,0,0);
-  const sun   = new Date(mon); sun.setDate(mon.getDate() + 6);      sun.setHours(23,59,59,999);
-  return { timeMin: mon.toISOString(), timeMax: sun.toISOString() };
-}
-
-exports.handler = async () => {
+export const handler = async () => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) {
     return {
       statusCode: 503,
@@ -44,32 +47,22 @@ exports.handler = async () => {
 
   try {
     const token = await refreshAccessToken();
-    const { timeMin, timeMax } = weekBounds();
-    const calId = encodeURIComponent(GOOGLE_CALENDAR_ID);
 
-    const url = `${CAL_BASE}/calendars/${calId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=100`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    if (!res.ok) throw new Error(`Calendar fetch failed: ${await res.text()}`);
-    const data = await res.json();
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    const sevenDays = new Date(now);
+    sevenDays.setDate(sevenDays.getDate() + 7);
 
-    const events = (data.items || []).map(item => {
-      const allDay = Boolean(item.start?.date);
-      return {
-        id:     item.id,
-        title:  item.summary || '(ingen tittel)',
-        start:  item.start?.dateTime || item.start?.date || '',
-        end:    item.end?.dateTime   || item.end?.date   || '',
-        allDay,
-        color:  item.colorId || null,
-      };
-    });
+    const [today, upcoming] = await Promise.all([
+      fetchEvents(token, GOOGLE_CALENDAR_ID, now.toISOString(), endOfDay.toISOString(), 10),
+      fetchEvents(token, GOOGLE_CALENDAR_ID, now.toISOString(), sevenDays.toISOString(), 20),
+    ]);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ events }),
+      body: JSON.stringify({ today, upcoming }),
     };
   } catch (err) {
     return {
