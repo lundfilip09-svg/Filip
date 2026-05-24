@@ -136,9 +136,6 @@ async function signOut() {
 
 // Helpers
 function today() { return new Date().toISOString().slice(0,10); }
-function dayName() {
-  return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date().getDay()];
-}
 function fmtDate(ds) {
   if (!ds) return '';
   const d = new Date(ds + 'T12:00:00');
@@ -198,6 +195,11 @@ async function loadSleep() {
         <div class="metric-val ${d.rhr > 65 ? 'danger' : ''}">${d.rhr > 0 ? d.rhr : '–'}</div>
         <div class="metric-unit">bpm</div>
       </div>
+      <div class="metric-tile">
+        <div class="metric-lbl">HRV</div>
+        <div class="metric-val">${d.hrv > 0 ? d.hrv : '–'}</div>
+        <div class="metric-unit">ms</div>
+      </div>
     </div>
     <div style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px">${fmtDate(d.date)}</div>`;
 }
@@ -231,29 +233,24 @@ async function loadKnee() {
 }
 
 // ── Today's session card ────────────────────────────────────────────────
-async function loadSession() {
+function loadSession() {
   const el = document.getElementById('sessionCard');
-  const d  = dayName();
-  const sessionMap = {
-    monday:    { label: 'Styrke Kapasitet', cls: 'styrke' },
-    wednesday: { label: 'Sirkulasjon & Mobilitet', cls: 'kondisjon' },
-    friday:    { label: 'Styrke Power', cls: 'power' },
-  };
-  const s = sessionMap[d];
-  if (!s) {
+  const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
+  const planIndex = (new Date().getDay() + 6) % 7;
+  const planText = (plan[planIndex] || '').trim();
+
+  if (!planText || /^hvile/i.test(planText)) {
     el.innerHTML = `<span class="session-badge hvile">HVILEDAG</span><div style="font-size:12px;color:var(--text-tertiary)">Ingen planlagt økt i dag.</div>`;
     return;
   }
-  const { data: exs } = await db.from('workout_program')
-    .select('exercise_name, sets, reps, section')
-    .eq('day', d).order('sort_order').limit(8);
-  const beinExs = (exs || []).filter(e => e.section === 'Bein').slice(0,4);
+
+  let cls = 'styrke';
+  if (/sprint/i.test(planText)) cls = 'power';
+  else if (/kondisjon|sirkulasjon|mobilitet/i.test(planText)) cls = 'kondisjon';
+
   el.innerHTML = `
-    <span class="session-badge ${s.cls}">${s.label.toUpperCase()}</span>
-    <div class="ex-list">
-      ${beinExs.map(e => `<div class="ex-item">${escHtml(e.exercise_name)} — ${e.sets}×${e.reps}</div>`).join('')}
-      ${beinExs.length < (exs||[]).length ? `<div class="ex-item" style="color:var(--accent-blue)">+ ${(exs||[]).length - beinExs.length} øvelser til →</div>` : ''}
-    </div>
+    <span class="session-badge ${cls}">${escHtml(planText.toUpperCase())}</span>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Fra ukeplanen</div>
     <a href="gym.html" class="btn btn-ghost btn-sm" style="margin-top:12px;text-decoration:none">Åpne Gym →</a>`;
 }
 
@@ -350,7 +347,8 @@ async function loadCalendar() {
       </div>`;
     return;
   }
-  await Promise.all([autoCleanTodos(), loadSleep(), loadKnee(), loadSession(), loadTodos(), loadCalendar()]);
+  loadSession();
+  await Promise.all([autoCleanTodos(), loadSleep(), loadKnee(), loadTodos(), loadCalendar()]);
 })();
 </script>
 </body>
