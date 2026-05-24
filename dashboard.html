@@ -160,12 +160,14 @@ const now = new Date();
 document.getElementById('dateLabel').textContent =
   now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-// ── Auto-clean completed todos from before today ────────────────────────
+// ── Auto-clean completed todos from before today (max once per day) ──────
 async function autoCleanTodos() {
-  const todayStart = today() + 'T00:00:00.000Z';
+  const key = 'ac_' + today();
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
   await db.from('todos').delete()
     .eq('completed', true)
-    .lt('completed_at', todayStart);
+    .lt('completed_at', today() + 'T00:00:00.000Z');
 }
 
 // ── Sleep card ──────────────────────────────────────────────────────────
@@ -348,8 +350,7 @@ async function loadCalendar() {
       </div>`;
     return;
   }
-  await autoCleanTodos();
-  await Promise.all([loadSleep(), loadKnee(), loadSession(), loadTodos(), loadCalendar()]);
+  await Promise.all([autoCleanTodos(), loadSleep(), loadKnee(), loadSession(), loadTodos(), loadCalendar()]);
 })();
 </script>
 </body>

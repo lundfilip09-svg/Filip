@@ -131,10 +131,12 @@ let allTodos    = [];
 let filter      = 'active';
 let newImportant = false;
 
-// ── Auto-clean ────────────────────────────────────────────────────────────
+// ── Auto-clean (max once per day) ────────────────────────────────────────
 async function autoClean() {
-  const todayStart = today() + 'T00:00:00.000Z';
-  await db.from('todos').delete().eq('completed', true).lt('completed_at', todayStart);
+  const key = 'ac_' + today();
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+  await db.from('todos').delete().eq('completed', true).lt('completed_at', today() + 'T00:00:00.000Z');
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────────
@@ -306,8 +308,7 @@ async function deleteTodo(id) {
       </div>`;
     return;
   }
-  await autoClean();
-  await Promise.all([loadLists(), loadTodos()]);
+  await Promise.all([autoClean(), loadLists(), loadTodos()]);
 })();
 </script>
 </body>

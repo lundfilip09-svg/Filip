@@ -328,16 +328,36 @@ async function logSession() {
     document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn')
   );
 
-  await Promise.all([loadPBs(), loadHistory(), loadKneeTrend()]);
+  await Promise.all([loadPBs(), loadHistory()]);
 }
 
-// ── Knee trend ────────────────────────────────────────────────────────────
-async function loadKneeTrend() {
-  const { data } = await db.from('sprint_log')
-    .select('date,knee_before,knee_during,knee_after,knee_day_after,distance,type')
-    .order('date', { ascending: false }).limit(5);
-  const el = document.getElementById('kneeTrend');
-  if (!data || !data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
+// ── History + knee trend (single query feeds both) ────────────────────────
+async function loadHistory() {
+  const { data } = await db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30);
+  sprintLog = data || [];
+
+  const el = document.getElementById('historyList');
+  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; }
+  else {
+    el.innerHTML = sprintLog.map(s =>
+      `<div class="history-row">
+        <span class="history-dist">${escHtml(s.distance || '–')}</span>
+        <span class="history-time">${s.time_seconds != null ? s.time_seconds.toFixed(2) + 's' : '–'}</span>
+        <span class="history-type">${escHtml(s.type || '')}</span>
+        ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
+        <span class="history-date">${fmtDate(s.date)}</span>
+        <button class="history-del" onclick="deleteSession('${s.id}')">✕</button>
+      </div>`
+    ).join('');
+  }
+
+  renderKneeTrend();
+}
+
+function renderKneeTrend() {
+  const data = sprintLog.slice(0, 5);
+  const el   = document.getElementById('kneeTrend');
+  if (!data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
 
   const phases = [
     { key: 'knee_before',    label: 'Før' },
@@ -345,17 +365,16 @@ async function loadKneeTrend() {
     { key: 'knee_after',     label: 'Etter' },
     { key: 'knee_day_after', label: 'Dagen etter' },
   ];
-  const dateLabels = data.map(d => fmtDate(d.date));
-  const maxW = 100 / Math.max(data.length, 1);
 
   function painClr(v) {
     if (v === null || v === undefined) return 'rgba(255,255,255,0.08)';
-    if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063'; if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
+    if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
+    if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
   }
 
   el.innerHTML = `
     <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:8px">
-      ${dateLabels.join(' · ')}
+      ${data.map(d => fmtDate(d.date)).join(' · ')}
     </div>
     ${phases.map(ph => `
       <div class="trend-row">
@@ -365,30 +384,11 @@ async function loadKneeTrend() {
             const v = d[ph.key];
             return `<div style="flex:1;height:28px;border-radius:4px;background:${painClr(v)};
               display:flex;align-items:center;justify-content:center;font-size:11px;
-              font-family:var(--font-mono);color:${v!==null?'#050506':'var(--text-tertiary)'}">
+              font-family:var(--font-mono);color:${v !== null ? '#050506' : 'var(--text-tertiary)'}">
               ${v ?? '–'}</div>`;
           }).join('')}
         </div>
-      </div>
-    `).join('')}`;
-}
-
-// ── History ───────────────────────────────────────────────────────────────
-async function loadHistory() {
-  const { data } = await db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30);
-  sprintLog = data || [];
-  const el  = document.getElementById('historyList');
-  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
-  el.innerHTML = sprintLog.map(s =>
-    `<div class="history-row">
-      <span class="history-dist">${escHtml(s.distance || '–')}</span>
-      <span class="history-time">${s.time_seconds != null ? s.time_seconds.toFixed(2) + 's' : '–'}</span>
-      <span class="history-type">${escHtml(s.type || '')}</span>
-      ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
-      <span class="history-date">${fmtDate(s.date)}</span>
-      <button class="history-del" onclick="deleteSession('${s.id}')">✕</button>
-    </div>`
-  ).join('');
+      </div>`).join('')}`;
 }
 
 async function deleteSession(id) {
@@ -418,7 +418,7 @@ async function deleteSession(id) {
       </div>`;
     return;
   }
-  await Promise.all([loadPBs(), loadHistory(), loadKneeTrend()]);
+  await Promise.all([loadPBs(), loadHistory()]);
 })();
 </script>
 </body>
