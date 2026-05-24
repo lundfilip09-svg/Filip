@@ -6,21 +6,185 @@
   <title>Treningsplan</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .week-circles { display: flex; gap: 10px; flex-wrap: wrap; }
-    .day-circle { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .circle {
-      width: 44px; height: 44px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-family: var(--font-mono); font-weight: 600;
-      border: 2px solid;
+    /* ── Hero band ──────────────────────────────────────────── */
+    .hero-band {
+      display: grid;
+      grid-template-columns: 1fr 120px 120px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
     }
-    .circle.done { background: rgba(107,227,164,0.18); border-color: #6BE3A4; color: #6BE3A4; }
-    .circle.rest { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); color: var(--text-tertiary); }
-    .circle.is-today { box-shadow: 0 0 0 2px rgba(91,164,245,0.5); }
-    .day-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
-    .day-plan-text { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); text-align: center; max-width: 52px; word-break: break-word; }
-    .plan-grid { display: grid; grid-template-columns: 90px 1fr; gap: 8px 12px; align-items: center; }
-    .plan-day-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); }
+    .hero-main {
+      padding: 22px 26px;
+      background: var(--bg-card);
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .hero-eyebrow {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px;
+    }
+    .hero-session {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.025em;
+      color: var(--text-primary); line-height: 1.15; margin-bottom: 6px;
+    }
+    .hero-session.is-rest { color: var(--text-tertiary); font-size: 18px; font-weight: 400; }
+    .hero-next {
+      font-size: 11px; font-family: var(--font-mono);
+      color: var(--text-tertiary); margin-top: 2px;
+    }
+    .hero-kpi {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 20px 12px;
+      background: var(--bg-card); text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .hero-kpi:last-child { border-right: none; }
+    .hero-kpi-val {
+      font-size: 28px; font-weight: 700; font-family: var(--font-mono);
+      line-height: 1; color: var(--text-primary);
+    }
+    .hero-kpi-label {
+      font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    /* ── Day strip ──────────────────────────────────────────── */
+    .day-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .day-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 11px 10px 10px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+      display: flex; flex-direction: column; gap: 5px;
+      min-height: 86px;
+    }
+    .day-card:hover:not(.is-selected) {
+      background: rgba(255,255,255,0.045);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .day-card.is-today    { border-color: rgba(91,164,245,0.35); }
+    .day-card.is-selected { background: rgba(91,164,245,0.08); border-color: rgba(91,164,245,0.55); }
+    .day-card.is-logged   { border-color: rgba(107,227,164,0.35); }
+    .day-card.is-logged.is-today { border-color: rgba(91,164,245,0.4); }
+    .day-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .day-card-name {
+      font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px;
+    }
+    .day-card-date {
+      font-size: 20px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-secondary); line-height: 1;
+    }
+    .day-card.is-today .day-card-date { color: #5BA4F5; }
+    .day-logged-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #6BE3A4; flex-shrink: 0; margin-top: 3px;
+    }
+    .day-card-plan {
+      font-size: 10px; font-family: var(--font-mono);
+      color: var(--text-secondary); line-height: 1.3;
+      margin-top: auto;
+    }
+    .day-card-rest {
+      font-size: 9px; font-family: var(--font-mono);
+      color: rgba(255,255,255,0.18); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-top: auto;
+    }
+
+    /* ── Main + sidebar layout ──────────────────────────────── */
+    .tp-body {
+      display: grid;
+      grid-template-columns: 1fr 272px;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .tp-body { grid-template-columns: 1fr; }
+      .hero-band { grid-template-columns: 1fr 100px 100px; }
+    }
+    @media (max-width: 600px) {
+      .hero-band { grid-template-columns: 1fr; }
+      .hero-kpi { flex-direction: row; justify-content: space-between; padding: 14px 20px; }
+      .hero-kpi:not(:first-child) { border-top: 1px solid rgba(255,255,255,0.07); border-right: none; }
+      .hero-main { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .day-strip { gap: 4px; }
+      .day-card { padding: 8px 6px; min-height: 72px; }
+      .day-card-date { font-size: 15px; }
+    }
+
+    /* ── Detail panel ───────────────────────────────────────── */
+    .detail-panel { }
+    .detail-header {
+      display: flex; align-items: baseline;
+      justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+    }
+    .detail-day-meta {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 3px;
+    }
+    .detail-day-title {
+      font-size: 18px; font-weight: 700; color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .detail-day-title.is-empty { color: var(--text-tertiary); font-weight: 400; font-size: 15px; }
+    .detail-logged-badge {
+      font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
+      letter-spacing: 0.1em; padding: 3px 9px; border-radius: 20px;
+      background: rgba(107,227,164,0.12); color: #6BE3A4;
+      border: 1px solid rgba(107,227,164,0.2); white-space: nowrap;
+    }
+    .detail-field { margin-bottom: 14px; }
+    .detail-field-label {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px;
+    }
+    .detail-input {
+      width: 100%; box-sizing: border-box;
+    }
+    .detail-actions { display: flex; gap: 8px; }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 12px; }
+    .widget-label {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;
+    }
+    .stat-quad {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .stat-block {
+      background: rgba(255,255,255,0.025); border-radius: 8px; padding: 12px;
+    }
+    .stat-block-val {
+      font-size: 22px; font-weight: 700; font-family: var(--font-mono);
+      line-height: 1; color: var(--text-primary);
+    }
+    .stat-block-lbl {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      margin-top: 3px;
+    }
+    .week-bars {
+      display: flex; gap: 5px; align-items: flex-end; height: 52px;
+    }
+    .wbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .wbar-fill { width: 100%; border-radius: 3px 3px 2px 2px; transition: height 0.35s ease; }
+    .wbar-name { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .progress-row { margin-bottom: 10px; }
+    .progress-row:last-child { margin-bottom: 0; }
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .progress-name { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); }
+    .progress-pct  { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .progress-bg { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
   </style>
 </head>
 <body>
@@ -41,20 +205,95 @@
 
 <main class="page">
 
-  <!-- Week overview -->
-  <div class="card">
-    <div class="section-title">Ukeoversikt — <span id="weekLabel" style="text-transform:none;letter-spacing:0;color:var(--text-secondary);font-weight:400"></span></div>
-    <div class="week-circles" id="weekCircles">
-      <div class="loading">Laster…</div>
+  <!-- Hero band -->
+  <div class="hero-band">
+    <div class="hero-main">
+      <div class="hero-eyebrow" id="heroEyebrow">I dag — laster…</div>
+      <div class="hero-session" id="heroSession">—</div>
+      <div class="hero-next" id="heroNext"></div>
+    </div>
+    <div class="hero-kpi">
+      <div class="hero-kpi-val" id="kpiDone">—</div>
+      <div class="hero-kpi-label">Treninger<br>denne uke</div>
+    </div>
+    <div class="hero-kpi">
+      <div class="hero-kpi-val" id="kpiLeft">—</div>
+      <div class="hero-kpi-label">Planlagte<br>igjen</div>
     </div>
   </div>
 
-  <!-- Editable weekly plan -->
-  <div class="card">
-    <div class="section-title">Ukeplan</div>
-    <div class="plan-grid" id="planGrid"></div>
-    <div style="margin-top:14px">
-      <button class="btn btn-success btn-sm" onclick="savePlan()">Lagre plan</button>
+  <!-- Day strip -->
+  <div class="day-strip" id="dayStrip"></div>
+
+  <!-- Main body -->
+  <div class="tp-body">
+
+    <!-- Detail panel -->
+    <div class="card detail-panel">
+      <div class="detail-header">
+        <div>
+          <div class="detail-day-meta" id="detailMeta">—</div>
+          <div class="detail-day-title" id="detailTitle">Velg en dag</div>
+        </div>
+        <div id="detailLoggedBadge"></div>
+      </div>
+
+      <div class="detail-field">
+        <div class="detail-field-label">Økt / Aktivitet</div>
+        <input class="input-sm detail-input" id="detailPlan" type="text"
+          placeholder="Legg inn økt…" onkeydown="if(event.key==='Enter')saveDay()">
+      </div>
+
+      <div class="detail-field">
+        <div class="detail-field-label">Notater</div>
+        <textarea class="input-sm detail-input" id="detailNotes" rows="3"
+          placeholder="Mål, teknikk, kommentarer…" style="resize:vertical"></textarea>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn btn-success btn-sm" onclick="saveDay()">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearDay()">Tøm dag</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Stats -->
+      <div class="card">
+        <div class="widget-label">Denne uken</div>
+        <div class="stat-quad">
+          <div class="stat-block">
+            <div class="stat-block-val" id="sbLogged">—</div>
+            <div class="stat-block-lbl">Fullførte</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-block-val" id="sbPlanned">—</div>
+            <div class="stat-block-lbl">Planlagte</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-block-val" id="sbPct">—</div>
+            <div class="stat-block-lbl">Konsistens</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-block-val" id="sbRest">—</div>
+            <div class="stat-block-lbl">Hviledager</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Week bar chart -->
+      <div class="card">
+        <div class="widget-label">Ukens belastning</div>
+        <div class="week-bars" id="weekBars"></div>
+      </div>
+
+      <!-- Week completion progress -->
+      <div class="card">
+        <div class="widget-label" id="weekRangeLabel">Uke —</div>
+        <div id="weekProgress"></div>
+      </div>
+
     </div>
   </div>
 
@@ -79,77 +318,259 @@ async function signOut() {
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── Week circles ───────────────────────────────────────────────────────────
-const DAY_NAMES = ['man','tir','ons','tor','fre','lør','søn'];
+// ── Constants ──────────────────────────────────────────────────────────────
+const PLAN_KEY   = 'treningsplan_v1';
+const SHORT_DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+const FULL_DAYS  = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
 
-function getWeekBounds() {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMon = day === 0 ? -6 : 1 - day;
-  const mon = new Date(now);
-  mon.setDate(now.getDate() + diffToMon);
+// ── State ──────────────────────────────────────────────────────────────────
+let plan        = {};           // { 0: 'Sprint', notes_0: '...', ... }
+let loggedDates = new Set();
+let selectedIdx = todayIdx();   // which day card is active
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function todayIdx() { return (new Date().getDay() + 6) % 7; }
+
+function getMonday() {
+  const now  = new Date();
+  const diff = (now.getDay() + 6) % 7;
+  const mon  = new Date(now);
+  mon.setDate(now.getDate() - diff);
   mon.setHours(0, 0, 0, 0);
   return mon;
 }
 
-async function loadWeekCircles() {
-  const mon = getWeekBounds();
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  const monStr = mon.toISOString().slice(0,10);
-  const sunStr = sun.toISOString().slice(0,10);
-  const todayStr = new Date().toISOString().slice(0,10);
+function planText(i)  { return (plan[i]             || '').trim(); }
+function notesText(i) { return (plan[`notes_${i}`]  || '').trim(); }
 
-  const opts = { day:'numeric', month:'short' };
-  document.getElementById('weekLabel').textContent =
-    `${mon.toLocaleDateString('no-NO', opts)} – ${sun.toLocaleDateString('no-NO', opts)}`;
+function isRest(i) {
+  const t = planText(i).toLowerCase();
+  return !t || t.startsWith('hvile') || t.startsWith('fri');
+}
 
-  const { data } = await db.from('gym_log')
-    .select('date').gte('date', monStr).lte('date', sunStr);
-  const loggedDates = new Set((data || []).map(r => r.date));
+function dayDate(i) {
+  const mon = getMonday();
+  const d   = new Date(mon);
+  d.setDate(mon.getDate() + i);
+  return d;
+}
 
-  const plan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+// ── Hero ───────────────────────────────────────────────────────────────────
+function renderHero() {
+  const ti  = todayIdx();
+  const now = new Date();
 
-  const el = document.getElementById('weekCircles');
-  el.innerHTML = DAY_NAMES.map((name, i) => {
-    const d = new Date(mon); d.setDate(mon.getDate() + i);
-    const ds = d.toISOString().slice(0,10);
-    const done = loggedDates.has(ds);
-    const isToday = ds === todayStr;
-    const planText = (plan[i] || '').trim();
-    const shortText = planText.length > 8 ? planText.slice(0, 7) + '…' : planText;
-    return `<div class="day-circle">
-      <div class="circle ${done ? 'done' : 'rest'}${isToday ? ' is-today' : ''}">${d.getDate()}</div>
-      <div class="day-label">${name}</div>
-      ${shortText ? `<div class="day-plan-text">${escHtml(shortText)}</div>` : ''}
+  document.getElementById('heroEyebrow').textContent =
+    'I dag — ' + now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
+
+  const txt = planText(ti);
+  const sessionEl = document.getElementById('heroSession');
+  if (txt && !isRest(ti)) {
+    sessionEl.textContent = txt;
+    sessionEl.className   = 'hero-session';
+  } else {
+    sessionEl.textContent = 'Hviledag';
+    sessionEl.className   = 'hero-session is-rest';
+  }
+
+  // Next planned session
+  let nextStr = '';
+  for (let d = 1; d <= 6; d++) {
+    const ni = (ti + d) % 7;
+    if (!isRest(ni)) {
+      nextStr = `Neste: ${FULL_DAYS[ni]} — ${planText(ni)}`;
+      break;
+    }
+  }
+  document.getElementById('heroNext').textContent = nextStr;
+
+  // KPIs
+  const mon = getMonday();
+  let logged = 0, planned = 0, rest = 0;
+  for (let i = 0; i < 7; i++) {
+    const ds = dayDate(i).toISOString().slice(0, 10);
+    if (loggedDates.has(ds)) logged++;
+    if (!isRest(i)) planned++; else rest++;
+  }
+  const daysLeftPlanned = (() => {
+    let c = 0;
+    for (let i = ti + 1; i < 7; i++) { if (!isRest(i)) c++; }
+    return c;
+  })();
+
+  document.getElementById('kpiDone').textContent = `${logged}`;
+  document.getElementById('kpiLeft').textContent = `${daysLeftPlanned}`;
+}
+
+// ── Day strip ──────────────────────────────────────────────────────────────
+function renderDayStrip() {
+  const ti = todayIdx();
+  const el = document.getElementById('dayStrip');
+  el.innerHTML = SHORT_DAYS.map((name, i) => {
+    const d      = dayDate(i);
+    const ds     = d.toISOString().slice(0, 10);
+    const logged = loggedDates.has(ds);
+    const today  = i === ti;
+    const sel    = i === selectedIdx;
+    const txt    = planText(i);
+    const rest   = isRest(i);
+
+    let cls = 'day-card';
+    if (today)  cls += ' is-today';
+    if (sel)    cls += ' is-selected';
+    if (logged) cls += ' is-logged';
+
+    const preview = txt.length > 12 ? txt.slice(0, 11) + '…' : txt;
+
+    return `<div class="${cls}" onclick="selectDay(${i})">
+      <div class="day-card-top">
+        <div>
+          <div class="day-card-name">${name}</div>
+          <div class="day-card-date">${d.getDate()}</div>
+        </div>
+        ${logged ? '<div class="day-logged-dot"></div>' : ''}
+      </div>
+      ${preview
+        ? `<div class="day-card-plan">${escHtml(preview)}</div>`
+        : `<div class="day-card-rest">Hvile</div>`
+      }
     </div>`;
   }).join('');
 }
 
-// ── Editable weekly plan ───────────────────────────────────────────────────
-const PLAN_DAYS = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
-const PLAN_KEY  = 'treningsplan_v1';
+// ── Detail panel ───────────────────────────────────────────────────────────
+function renderDetail() {
+  const i    = selectedIdx;
+  const d    = dayDate(i);
+  const ds   = d.toISOString().slice(0, 10);
+  const txt  = planText(i);
+  const logged = loggedDates.has(ds);
 
-function loadPlan() {
-  const saved = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
-  const el = document.getElementById('planGrid');
-  el.innerHTML = PLAN_DAYS.map((day, i) => `
-    <div class="plan-day-label">${day}</div>
-    <input class="input-sm" id="plan-${i}" type="text"
-      placeholder="Hvile / fri dag…" value="${escHtml(saved[i] || '')}">
-  `).join('');
+  const dateLabel = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
+  document.getElementById('detailMeta').textContent =
+    `${FULL_DAYS[i]} — ${dateLabel}`;
+
+  const titleEl = document.getElementById('detailTitle');
+  if (txt && !isRest(i)) {
+    titleEl.textContent = txt;
+    titleEl.className   = 'detail-day-title';
+  } else {
+    titleEl.textContent = 'Ingen plan';
+    titleEl.className   = 'detail-day-title is-empty';
+  }
+
+  document.getElementById('detailLoggedBadge').innerHTML =
+    logged ? '<span class="detail-logged-badge">✓ Fullført</span>' : '';
+
+  document.getElementById('detailPlan').value  = txt;
+  document.getElementById('detailNotes').value = notesText(i);
 }
 
-function savePlan() {
-  const plan = {};
-  PLAN_DAYS.forEach((_, i) => {
-    const val = document.getElementById(`plan-${i}`).value.trim();
-    if (val) plan[i] = val;
-  });
+function selectDay(i) {
+  selectedIdx = i;
+  renderDayStrip();
+  renderDetail();
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const mon = getMonday();
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const ti  = todayIdx();
+  let logged = 0, planned = 0, rest = 0;
+
+  for (let i = 0; i < 7; i++) {
+    const ds = dayDate(i).toISOString().slice(0, 10);
+    if (loggedDates.has(ds)) logged++;
+    if (!isRest(i)) planned++; else rest++;
+  }
+  const pct = planned > 0 ? Math.round(logged / planned * 100) : 0;
+
+  document.getElementById('sbLogged').textContent  = logged;
+  document.getElementById('sbPlanned').textContent = planned;
+  document.getElementById('sbPct').textContent     = pct + '%';
+  document.getElementById('sbRest').textContent    = rest;
+
+  // Week range label
+  const opts = { day:'numeric', month:'short' };
+  document.getElementById('weekRangeLabel').textContent =
+    `${mon.toLocaleDateString('no-NO', opts)} – ${sun.toLocaleDateString('no-NO', opts)}`;
+
+  // Bar chart
+  const barEl = document.getElementById('weekBars');
+  barEl.innerHTML = SHORT_DAYS.map((name, i) => {
+    const ds      = dayDate(i).toISOString().slice(0, 10);
+    const done    = loggedDates.has(ds);
+    const isT     = i === ti;
+    const hasPlan = !isRest(i);
+    const h = done ? 40 : hasPlan ? 18 : 6;
+    const bg = done
+      ? '#6BE3A4'
+      : hasPlan
+        ? 'rgba(91,164,245,0.35)'
+        : 'rgba(255,255,255,0.07)';
+    const ring = isT ? ';outline:1px solid rgba(91,164,245,0.6);outline-offset:2px' : '';
+    return `<div class="wbar-col">
+      <div class="wbar-fill" style="height:${h}px;background:${bg}${ring}"></div>
+      <div class="wbar-name">${name}</div>
+    </div>`;
+  }).join('');
+
+  // Week progress bars (each planned day as a row)
+  const progEl = document.getElementById('weekProgress');
+  const rows   = [];
+  for (let i = 0; i < 7; i++) {
+    if (isRest(i)) continue;
+    const ds   = dayDate(i).toISOString().slice(0, 10);
+    const done = loggedDates.has(ds);
+    const pct  = done ? 100 : i < ti ? 20 : 0;
+    const fill = done ? '#6BE3A4' : i < ti ? 'rgba(255,100,100,0.45)' : 'rgba(91,164,245,0.35)';
+    const lbl  = planText(i).length > 12 ? planText(i).slice(0, 11) + '…' : planText(i);
+    rows.push(`<div class="progress-row">
+      <div class="progress-header">
+        <span class="progress-name">${SHORT_DAYS[i]} — ${escHtml(lbl)}</span>
+        <span class="progress-pct">${done ? '✓' : i < ti ? 'Glemt' : '—'}</span>
+      </div>
+      <div class="progress-bg">
+        <div class="progress-fill" style="width:${pct}%;background:${fill}"></div>
+      </div>
+    </div>`);
+  }
+  progEl.innerHTML = rows.length ? rows.join('') : '<div class="empty">Ingen planlagte dager</div>';
+}
+
+// ── Save / clear ───────────────────────────────────────────────────────────
+function saveDay() {
+  const txt   = document.getElementById('detailPlan').value.trim();
+  const notes = document.getElementById('detailNotes').value.trim();
+
+  if (txt) plan[selectedIdx] = txt;
+  else     delete plan[selectedIdx];
+
+  const nk = `notes_${selectedIdx}`;
+  if (notes) plan[nk] = notes;
+  else       delete plan[nk];
+
   localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
-  toast('Ukeplan lagret');
+  renderHero();
+  renderDayStrip();
+  renderDetail();
+  renderSidebar();
+  toast('Lagret');
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
+function clearDay() {
+  delete plan[selectedIdx];
+  delete plan[`notes_${selectedIdx}`];
+  localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+  renderHero();
+  renderDayStrip();
+  renderDetail();
+  renderSidebar();
+  toast('Dag tømt');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/config');
@@ -163,14 +584,24 @@ function savePlan() {
     document.querySelector('.page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
-        <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Deploy til Vercel og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
-        </div>
       </div>`;
     return;
   }
-  loadPlan();
-  await loadWeekCircles();
+
+  plan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+
+  const mon = getMonday();
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const { data } = await db.from('gym_log')
+    .select('date')
+    .gte('date', mon.toISOString().slice(0, 10))
+    .lte('date', sun.toISOString().slice(0, 10));
+  loggedDates = new Set((data || []).map(r => r.date));
+
+  renderHero();
+  renderDayStrip();
+  renderDetail();
+  renderSidebar();
 })();
 </script>
 </body>
