@@ -18,14 +18,7 @@
     .circle.rest { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); color: var(--text-tertiary); }
     .circle.is-today { box-shadow: 0 0 0 2px rgba(91,164,245,0.5); }
     .day-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
-    .goal-row { margin-bottom: 18px; }
-    .goal-row:last-child { margin-bottom: 0; }
-    .goal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; flex-wrap: wrap; gap: 4px; }
-    .goal-name { font-size: 14px; font-family: var(--font-mono); color: var(--text-secondary); font-weight: 600; }
-    .goal-vals { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
-    .goal-vals span { color: var(--text-primary); }
-    .goal-bar-bg { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-    .goal-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .day-plan-text { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); text-align: center; max-width: 52px; word-break: break-word; }
     .plan-grid { display: grid; grid-template-columns: 90px 1fr; gap: 8px 12px; align-items: center; }
     .plan-day-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); }
   </style>
@@ -54,12 +47,6 @@
     <div class="week-circles" id="weekCircles">
       <div class="loading">Laster…</div>
     </div>
-  </div>
-
-  <!-- Sprint goals -->
-  <div class="card">
-    <div class="section-title">Sprintmål</div>
-    <div id="sprintGoals"><div class="loading">Laster…</div></div>
   </div>
 
   <!-- Editable weekly plan -->
@@ -120,57 +107,20 @@ async function loadWeekCircles() {
     .select('date').gte('date', monStr).lte('date', sunStr);
   const loggedDates = new Set((data || []).map(r => r.date));
 
+  const plan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+
   const el = document.getElementById('weekCircles');
   el.innerHTML = DAY_NAMES.map((name, i) => {
     const d = new Date(mon); d.setDate(mon.getDate() + i);
     const ds = d.toISOString().slice(0,10);
     const done = loggedDates.has(ds);
     const isToday = ds === todayStr;
+    const planText = (plan[i] || '').trim();
+    const shortText = planText.length > 8 ? planText.slice(0, 7) + '…' : planText;
     return `<div class="day-circle">
       <div class="circle ${done ? 'done' : 'rest'}${isToday ? ' is-today' : ''}">${d.getDate()}</div>
       <div class="day-label">${name}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Sprint goals ───────────────────────────────────────────────────────────
-const GOALS = [
-  { dist: '100m', goal: 11.10, start: 12.50, color: '#5BA4F5' },
-  { dist: '200m', goal: 22.30, start: 25.00, color: '#6BE3A4' },
-];
-
-async function loadSprintGoals() {
-  const el = document.getElementById('sprintGoals');
-
-  const { data } = await db.from('sprint_log')
-    .select('distance,time_seconds')
-    .in('distance', ['100m','200m'])
-    .order('time_seconds', { ascending: true });
-
-  const best = {};
-  (data || []).forEach(r => { if (!best[r.distance]) best[r.distance] = r.time_seconds; });
-
-  el.innerHTML = GOALS.map(g => {
-    const pb  = best[g.dist] ?? null;
-    const pct = pb === null ? 0
-      : Math.min(100, Math.max(0, (g.start - pb) / (g.start - g.goal) * 100));
-    const pbStr    = pb !== null ? `${pb.toFixed(2)}s` : '—';
-    const delta    = pb !== null ? (pb - g.goal) : null;
-    const deltaStr = delta === null ? '' : delta <= 0 ? '✓ Mål nådd!' : `${delta.toFixed(2)}s fra mål`;
-    const deltaColor = delta !== null && delta <= 0 ? 'var(--success)' : 'var(--text-tertiary)';
-
-    return `<div class="goal-row">
-      <div class="goal-header">
-        <span class="goal-name">${g.dist}</span>
-        <span class="goal-vals">
-          PB: <span>${pbStr}</span>
-          &nbsp;·&nbsp; Mål: <span>${g.goal.toFixed(2)}s</span>
-          &nbsp;·&nbsp; <span style="color:${deltaColor}">${deltaStr}</span>
-        </span>
-      </div>
-      <div class="goal-bar-bg">
-        <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${g.color}"></div>
-      </div>
+      ${shortText ? `<div class="day-plan-text">${escHtml(shortText)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -220,7 +170,7 @@ function savePlan() {
     return;
   }
   loadPlan();
-  await Promise.all([loadWeekCircles(), loadSprintGoals()]);
+  await loadWeekCircles();
 })();
 </script>
 </body>
