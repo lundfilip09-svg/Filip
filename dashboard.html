@@ -271,7 +271,7 @@ const GC_COLORS = {'1':'#A8C8FA','2':'#6BE3A4','5':'#F2C063','6':'#FF9068','11':
 async function loadCalendar() {
   const el = document.getElementById('calendarCard');
   try {
-    const res = await fetch('/.netlify/functions/google-calendar');
+    const res = await fetch('/api/google-calendar');
     if (!res.ok) throw new Error(res.statusText);
     const { events } = await res.json();
     if (!events || !events.length) { el.innerHTML = `<div class="empty">Ingen hendelser denne uken</div>`; return; }
@@ -308,7 +308,7 @@ async function loadCalendar() {
 // ── Init ────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    const r = await fetch('/.netlify/functions/config');
+    const r = await fetch('/api/config');
     if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
     const cfg = await r.json();
     if (cfg.error) throw new Error(cfg.error);
