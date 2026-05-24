@@ -14,21 +14,22 @@ const CORS = {
 };
 
 // Auth-endepunkt (EU-region)
-const AUTH_URL = 'https://account-eu2.huami.com/v2/client/login';
+const AUTH_URL = 'https://account.huami.com/v2/client/login';
 // Data-endepunkt
 const DATA_URL = 'https://api-mifit-eu2.huami.com/v1/data/band_data.json';
 
 // ── Autentiser med Zepp/Huami ────────────────────────────────────────────────
 async function getToken(email, password) {
   const body = new URLSearchParams({
-    app_name:     'com.huami.midong',
+    dn:           'account.huami.com,app-analytics.huami.com,api-user-account.huami.com,app-watch.huami.com',
+    app_version:  '6.3.0',
+    source:       'com.huami.watch.hmwatchmanager',
     country_code: 'NO',
     device_id:    '02:00:00:00:00:00',
     device_model: 'phone',
     grant_type:   'password',
     tz:           'Europe/Oslo',
-    third_name:   'huami_phone',
-    source:       'com.huami.midong',
+    third_name:   'email',
     email,
     password,
   });
