@@ -6,37 +6,439 @@
   <title>Gjøremål</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .lists-bar {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    /* ── Nav slim ── */
+    .nav-tab { padding: 10px 14px !important; }
+
+    /* ── Root shell: sidebar + content ── */
+    .gm-shell {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 42px);
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
     }
-    .list-chip {
-      padding: 6px 14px; border-radius: 20px; font-size: 12px;
-      font-family: var(--font-mono); cursor: pointer; transition: all 0.15s;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      color: var(--text-tertiary); white-space: nowrap;
+
+    /* ═══ SIDEBAR ═══════════════════════════════════════════ */
+    .gm-sidebar {
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 42px;
+      height: calc(100vh - 42px);
+      overflow-y: auto;
     }
-    .list-chip.active { background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); color: #5BA4F5; }
-    .list-chip:hover:not(.active) { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
-    .list-del-btn {
-      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
-      font-size: 12px; padding: 2px 4px; opacity: 0; transition: opacity 0.15s;
+
+    .gm-sb-head {
+      padding: 30px 20px 22px;
     }
-    .list-chip-wrap { position: relative; display: flex; align-items: center; gap: 2px; }
-    .list-chip-wrap:hover .list-del-btn { opacity: 1; }
-    .list-del-btn:hover { color: var(--danger); }
-    .add-list-row { display: flex; gap: 6px; }
-    .add-list-row input { width: 160px; flex: none; }
-    .add-todo-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .add-todo-row input[type="text"] { flex: 1; min-width: 180px; }
-    .add-todo-row input[type="date"] { width: 140px; flex: none; }
-    .todo-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-left: auto; }
-    .filter-row { display: flex; gap: 6px; margin-bottom: 10px; }
+    .gm-sb-title {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .gm-sb-sub {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+    }
+
+    .gm-sb-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 14px 22px;
+    }
+    .gm-ss {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 12px 13px;
+    }
+    .gm-ss-val {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+    .gm-ss-val.warning { color: var(--warning); }
+    .gm-ss-lbl {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+    }
+
+    .gm-sb-section {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-tertiary);
+      padding: 0 20px 7px;
+    }
+
+    .gm-list-nav {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 8px;
+      overflow-y: auto;
+      gap: 1px;
+    }
+
+    /* Rendered by JS */
+    .gm-li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      transition: all 0.12s;
+      user-select: none;
+    }
+    .gm-li:hover  { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
+    .gm-li.active { background: rgba(91,164,245,0.1);   color: var(--text-primary); }
+    .gm-li-name { flex: 1; }
+    .gm-li-count {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      background: rgba(255,255,255,0.06);
+      padding: 1px 7px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .gm-li.active .gm-li-count { background: rgba(91,164,245,0.15); color: #5BA4F5; }
+    .gm-li-del {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all 0.12s;
+      line-height: 1;
+    }
+    .gm-li:hover .gm-li-del { opacity: 0.6; }
+    .gm-li-del:hover { color: var(--danger) !important; opacity: 1 !important; }
+
+    .gm-new-list-wrap {
+      padding: 12px 8px 20px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+    }
+    .gm-new-list-wrap input {
+      flex: 1;
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+    }
+
+    /* ═══ MAIN ═══════════════════════════════════════════════ */
+    .gm-main {
+      padding: 36px 52px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      min-width: 0;
+    }
+
+    /* Page header */
+    .gm-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .gm-page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .gm-page-sub {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+    .gm-header-date {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* Stats overview */
+    .gm-stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .gm-sc {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .gm-sc-val {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: -0.05em;
+      line-height: 1;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+    }
+    .gm-sc-val.blue    { color: var(--accent-blue); }
+    .gm-sc-val.warning { color: var(--warning); }
+    .gm-sc-val.success { color: var(--success); }
+    .gm-sc-val.danger  { color: var(--danger); }
+    .gm-sc-lbl {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-tertiary);
+    }
+
+    /* Quick-add command panel */
+    .gm-add-panel {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .gm-add-panel:focus-within {
+      border-color: rgba(91,164,245,0.35);
+      box-shadow: 0 0 0 3px rgba(91,164,245,0.07);
+    }
+    .gm-add-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 5px 18px;
+    }
+    .gm-add-ghost-cb {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      border: 1.5px solid rgba(255,255,255,0.14);
+      flex-shrink: 0;
+    }
+    .gm-add-top #todoTitle {
+      flex: 1;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 15px !important;
+      padding: 14px 4px !important;
+      color: var(--text-primary) !important;
+      outline: none !important;
+      min-width: 0;
+      width: auto !important;
+    }
+    .gm-add-top #todoTitle::placeholder { color: var(--text-tertiary); }
+    .gm-add-bottom {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.015);
+    }
+    .gm-add-bottom #todoDue {
+      width: 148px !important;
+      flex: none;
+      font-size: 12px !important;
+      padding: 5px 10px !important;
+    }
+    .gm-add-spacer { flex: 1; }
+
+    /* Task list */
+    .gm-list-block { display: flex; flex-direction: column; }
+    .gm-list-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .filter-row { display: flex; gap: 4px; flex: 1; }
     .filter-btn {
-      font-size: 10px; font-family: var(--font-mono); padding: 3px 10px;
-      border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03); color: var(--text-tertiary); transition: all 0.15s;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 5px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-tertiary);
+      transition: all 0.12s;
     }
-    .filter-btn.active { background: rgba(255,255,255,0.1); color: var(--text-secondary); border-color: rgba(255,255,255,0.2); }
+    .filter-btn.active {
+      background: rgba(255,255,255,0.09);
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.16);
+    }
+    .filter-btn:hover:not(.active) {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+    }
+    .gm-count-text {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Redesigned todo rows */
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 16px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      background: rgba(255,255,255,0.025);
+      border-left: 2px solid transparent;
+      transition: background 0.12s;
+      min-height: 54px;
+    }
+    .todo-item:hover  { background: rgba(255,255,255,0.05); }
+    .todo-item.important { border-left-color: var(--warning); }
+    .todo-item.done   { opacity: 0.38; }
+
+    .todo-cb {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .todo-cb:hover { border-color: rgba(255,255,255,0.4); }
+    .todo-cb.checked { background: var(--success); border-color: var(--success); }
+    .todo-cb.checked::after { content: '✓'; font-size: 11px; color: #050506; font-weight: 700; }
+
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .todo-text.done-text {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+    .todo-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 3px;
+    }
+    .todo-due {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+    .todo-due.overdue { color: var(--danger); }
+
+    .todo-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .star-btn {
+      background: none; border: none;
+      cursor: pointer; font-size: 16px;
+      color: rgba(255,255,255,0.12);
+      transition: color 0.12s;
+      padding: 5px; line-height: 1;
+    }
+    .star-btn:hover { color: rgba(255,255,255,0.4); }
+    .star-btn.active { color: var(--warning); }
+    .todo-del {
+      background: none; border: none;
+      cursor: pointer; font-size: 12px;
+      color: var(--text-tertiary);
+      opacity: 0;
+      transition: opacity 0.12s;
+      padding: 5px 6px;
+    }
+    .todo-item:hover .todo-del { opacity: 0.6; }
+    .todo-del:hover { color: var(--danger); opacity: 1 !important; }
+
+    /* ── Responsive ── */
+    @media (max-width: 960px) {
+      .gm-shell { grid-template-columns: 196px 1fr; }
+      .gm-main  { padding: 28px 32px 60px; }
+      .gm-stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 720px) {
+      .gm-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .gm-sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      .gm-sb-head    { padding: 20px 16px 10px; }
+      .gm-sb-stats   { display: none; }
+      .gm-sb-section { display: none; }
+      .gm-list-nav {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 0 12px 10px;
+        gap: 4px;
+      }
+      .gm-li { white-space: nowrap; flex-shrink: 0; padding: 6px 12px; }
+      .gm-li-del { display: none !important; }
+      .gm-new-list-wrap { border-top: none; padding: 0 12px 10px; margin-top: 0; }
+      .gm-main  { padding: 20px 16px 60px; }
+      .gm-page-title { font-size: 22px; }
+      .gm-stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .gm-add-bottom { flex-wrap: wrap; }
+    }
+    @media (max-width: 480px) {
+      .gm-stat-row { grid-template-columns: repeat(2, 1fr); }
+      .gm-add-top  { padding: 4px 14px; }
+      .gm-add-bottom { padding: 8px 14px; }
+      .gm-page-title { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -44,60 +446,114 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
 </nav>
 
-<main class="page">
+<div class="gm-shell">
 
-  <!-- Lists bar -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-      <div class="lists-bar" id="listsBar">
-        <div class="loading">Laster…</div>
+  <!-- ══ Sidebar ════════════════════════════════════════════ -->
+  <aside class="gm-sidebar">
+
+    <div class="gm-sb-head">
+      <span class="gm-sb-title">Gjøremål</span>
+      <span class="gm-sb-sub">Oppgaver & mål</span>
+    </div>
+
+    <div class="gm-sb-stats">
+      <div class="gm-ss">
+        <div class="gm-ss-val" id="sbActive">–</div>
+        <div class="gm-ss-lbl">Aktive</div>
       </div>
-      <div class="add-list-row">
-        <input class="input-sm" id="newListName" type="text" placeholder="Ny liste…" style="width:150px" onkeydown="if(event.key==='Enter')addList()">
-        <button class="btn btn-ghost btn-sm" onclick="addList()">+</button>
+      <div class="gm-ss">
+        <div class="gm-ss-val warning" id="sbImportant">–</div>
+        <div class="gm-ss-lbl">Viktige</div>
       </div>
     </div>
-  </div>
 
-  <!-- Todos -->
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div class="section-title" style="margin-bottom:0;flex:1" id="listHeading">Gjøremål</div>
-      <span class="todo-count" id="todoCount"></span>
+    <div class="gm-sb-section">Lister</div>
+    <div class="gm-list-nav" id="listsBar">
+      <div class="loading">Laster…</div>
     </div>
 
-    <!-- Add todo -->
-    <div class="add-todo-row">
-      <input type="text" id="todoTitle" placeholder="Nytt gjøremål…" onkeydown="if(event.key==='Enter')addTodo()">
-      <input type="date" id="todoDue">
-      <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" title="Viktig">☆</button>
-      <button class="btn btn-primary btn-sm" onclick="addTodo()">Legg til</button>
+    <div class="gm-new-list-wrap">
+      <input type="text" id="newListName" placeholder="Ny liste…"
+             onkeydown="if(event.key==='Enter')addList()">
+      <button class="btn btn-ghost btn-sm" onclick="addList()">+</button>
     </div>
 
-    <!-- Filters -->
-    <div class="filter-row">
-      <button class="filter-btn active" data-filter="active"  onclick="setFilter('active')">Aktive</button>
-      <button class="filter-btn"        data-filter="all"     onclick="setFilter('all')">Alle</button>
-      <button class="filter-btn"        data-filter="important" onclick="setFilter('important')">Viktige</button>
-      <button class="filter-btn"        data-filter="done"    onclick="setFilter('done')">Fullførte</button>
+  </aside>
+
+  <!-- ══ Main content ════════════════════════════════════════ -->
+  <main class="gm-main">
+
+    <!-- Page header -->
+    <div class="gm-header">
+      <div>
+        <h1 class="gm-page-title" id="listHeading">Generelt</h1>
+        <p class="gm-page-sub">Gjøremål for i dag og fremover</p>
+      </div>
+      <div class="gm-header-date" id="headerDate"></div>
     </div>
 
-    <!-- List -->
-    <div id="todoList"><div class="empty">Ingen gjøremål</div></div>
-  </div>
+    <!-- Stats overview -->
+    <div class="gm-stat-row">
+      <div class="gm-sc">
+        <div class="gm-sc-val blue"    id="statActive">–</div>
+        <div class="gm-sc-lbl">Aktive</div>
+      </div>
+      <div class="gm-sc">
+        <div class="gm-sc-val warning" id="statImportant">–</div>
+        <div class="gm-sc-lbl">Viktige</div>
+      </div>
+      <div class="gm-sc">
+        <div class="gm-sc-val success" id="statDone">–</div>
+        <div class="gm-sc-lbl">Fullført i dag</div>
+      </div>
+      <div class="gm-sc">
+        <div class="gm-sc-val danger"  id="statOverdue">–</div>
+        <div class="gm-sc-lbl">Forfalt</div>
+      </div>
+    </div>
 
-</main>
+    <!-- Quick-add command bar -->
+    <div class="gm-add-panel">
+      <div class="gm-add-top">
+        <div class="gm-add-ghost-cb"></div>
+        <input type="text" id="todoTitle" placeholder="Legg til gjøremål…"
+               onkeydown="if(event.key==='Enter')addTodo()">
+      </div>
+      <div class="gm-add-bottom">
+        <input type="date" id="todoDue">
+        <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" title="Viktig">☆</button>
+        <div class="gm-add-spacer"></div>
+        <button class="btn btn-primary btn-sm" onclick="addTodo()">Legg til</button>
+      </div>
+    </div>
+
+    <!-- Filter + task list -->
+    <div class="gm-list-block">
+      <div class="gm-list-toolbar">
+        <div class="filter-row">
+          <button class="filter-btn active" data-filter="active"    onclick="setFilter('active')">Aktive</button>
+          <button class="filter-btn"        data-filter="all"       onclick="setFilter('all')">Alle</button>
+          <button class="filter-btn"        data-filter="important" onclick="setFilter('important')">Viktige</button>
+          <button class="filter-btn"        data-filter="done"      onclick="setFilter('done')">Fullførte</button>
+        </div>
+        <span class="gm-count-text" id="todoCount"></span>
+      </div>
+      <div id="todoList"><div class="empty">Ingen gjøremål</div></div>
+    </div>
+
+  </main>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -105,6 +561,12 @@
 <script>
 let db;
 document.querySelector('[data-p="gjoremal"]').classList.add('active');
+
+// Set header date
+(function() {
+  const el = document.getElementById('headerDate');
+  if (el) el.textContent = new Date().toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+})();
 
 let _tt;
 function toast(msg, type='ok') {
@@ -121,14 +583,14 @@ function today() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(ds) {
   if (!ds) return '';
   const d = new Date(ds + 'T12:00:00');
-  return d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
+  return d.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
 }
 
 // ── State ─────────────────────────────────────────────────────────────────
-let lists       = ['Generelt'];
-let activeList  = 'Generelt';
-let allTodos    = [];
-let filter      = 'active';
+let lists        = ['Generelt'];
+let activeList   = 'Generelt';
+let allTodos     = [];
+let filter       = 'active';
 let newImportant = false;
 
 // ── Auto-clean (max once per day) ────────────────────────────────────────
@@ -137,6 +599,23 @@ async function autoClean() {
   if (localStorage.getItem(key)) return;
   localStorage.setItem(key, '1');
   await db.from('todos').delete().eq('completed', true).lt('completed_at', today() + 'T00:00:00.000Z');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+function updateStats() {
+  const todayStr = today();
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+  // Sidebar: global across all lists
+  set('sbActive',    allTodos.filter(t => !t.completed).length);
+  set('sbImportant', allTodos.filter(t => t.important && !t.completed).length);
+
+  // Main row: current list only
+  const lt = allTodos.filter(t => t.list_name === activeList);
+  set('statActive',    lt.filter(t => !t.completed).length);
+  set('statImportant', lt.filter(t => t.important && !t.completed).length);
+  set('statDone',      lt.filter(t => t.completed && t.completed_at && t.completed_at.slice(0,10) === todayStr).length);
+  set('statOverdue',   lt.filter(t => !t.completed && t.due_date && t.due_date < todayStr).length);
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────────
@@ -150,12 +629,14 @@ async function loadLists() {
 
 function renderListsBar() {
   const bar = document.getElementById('listsBar');
-  bar.innerHTML = lists.map(l => `
-    <div class="list-chip-wrap">
-      <div class="list-chip ${l===activeList?'active':''}" onclick="selectList('${escHtml(l)}')">${escHtml(l)}</div>
-      ${l !== 'Generelt' ? `<button class="list-del-btn" onclick="deleteList('${escHtml(l)}')" title="Slett liste">✕</button>` : ''}
-    </div>
-  `).join('');
+  bar.innerHTML = lists.map(l => {
+    const cnt = allTodos.filter(t => t.list_name === l && !t.completed).length;
+    return `<div class="gm-li ${l===activeList?'active':''}" onclick="selectList('${escHtml(l)}')">
+      <span class="gm-li-name">${escHtml(l)}</span>
+      ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
+      ${l !== 'Generelt' ? `<button class="gm-li-del" onclick="event.stopPropagation();deleteList('${escHtml(l)}')" title="Slett">✕</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function selectList(name) {
@@ -194,33 +675,43 @@ async function loadTodos() {
 }
 
 function renderTodos() {
-  const el  = document.getElementById('todoList');
-  let items = allTodos.filter(t => t.list_name === activeList);
+  const el   = document.getElementById('todoList');
+  let items  = allTodos.filter(t => t.list_name === activeList);
 
   if (filter === 'active')    items = items.filter(t => !t.completed);
   else if (filter === 'done') items = items.filter(t => t.completed);
   else if (filter === 'important') items = items.filter(t => t.important && !t.completed);
 
+  const activeCount = items.filter(t => !t.completed).length;
   document.getElementById('todoCount').textContent =
-    `${items.filter(t=>!t.completed).length} aktive`;
+    items.length ? `${activeCount} aktive` : '';
 
   if (!items.length) {
-    el.innerHTML = '<div class="empty">Ingen gjøremål her</div>'; return;
+    el.innerHTML = '<div class="empty">Ingen gjøremål her</div>';
+  } else {
+    el.innerHTML = items.map(t => {
+      const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
+      const isOverdue = due && due < new Date() && !t.completed;
+      return `<div class="todo-item ${t.important?'important':''} ${t.completed?'done':''}">
+        <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
+        <div class="todo-body">
+          <div class="todo-text ${t.completed?'done-text':''}">${escHtml(t.title)}</div>
+          ${t.due_date ? `<div class="todo-meta">
+            <span class="todo-due ${isOverdue?'overdue':''}">${isOverdue?'⚠ ':''}${fmtDate(t.due_date)}</span>
+          </div>` : ''}
+        </div>
+        <div class="todo-actions">
+          <button class="star-btn ${t.important?'active':''}" onclick="toggleImportant('${t.id}',${t.important})" title="Viktig">
+            ${t.important ? '★' : '☆'}
+          </button>
+          <button class="todo-del" onclick="deleteTodo('${t.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  el.innerHTML = items.map(t => {
-    const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
-    const isOverdue = due && due < new Date() && !t.completed;
-    return `<div class="todo-item ${t.important?'important':''} ${t.completed?'done':''}">
-      <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
-      <span class="todo-text ${t.completed?'done-text':''}">${escHtml(t.title)}</span>
-      ${t.due_date ? `<span class="todo-due ${isOverdue?'overdue':''}">${fmtDate(t.due_date)}</span>` : ''}
-      <button class="star-btn ${t.important?'active':''}" onclick="toggleImportant('${t.id}',${t.important})" title="Viktig">
-        ${t.important ? '★' : '☆'}
-      </button>
-      <button class="todo-del" onclick="deleteTodo('${t.id}')">✕</button>
-    </div>`;
-  }).join('');
+  renderListsBar();
+  updateStats();
 }
 
 // ── Filter ────────────────────────────────────────────────────────────────
@@ -299,8 +790,8 @@ async function deleteTodo(id) {
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
   } catch (err) {
-    document.querySelector('.page').innerHTML =
-      `<div class="card" style="text-align:center;padding:40px">
+    document.querySelector('.gm-shell').innerHTML =
+      `<div class="card" style="text-align:center;padding:40px;grid-column:1/-1">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
         <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
           Deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
