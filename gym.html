@@ -1620,10 +1620,11 @@ async function saveExOrder(day, section, orderedIds) {
       .filter(Boolean);
     if (reordered.length) allExercises[day][section] = reordered;
   }
-  const updates = orderedIds.map((id, idx) => ({
-    id: isNaN(+id) ? id : +id, sort_order: idx,
-  }));
-  await db.from('workout_program').upsert(updates, { onConflict: 'id' });
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      db.from('workout_program').update({ sort_order: idx }).eq('id', isNaN(+id) ? id : +id)
+    )
+  );
 }
 
 // ── Warmup drag & drop ─────────────────────────────────────────────
@@ -1655,8 +1656,11 @@ async function wmDrop(e) {
   await saveWarmupOrder(newOrder);
 }
 async function saveWarmupOrder(orderedIds) {
-  const updates = orderedIds.map((id, idx) => ({ id: isNaN(+id) ? id : +id, sort_order: idx }));
-  await db.from('workout_program').upsert(updates, { onConflict: 'id' });
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      db.from('workout_program').update({ sort_order: idx }).eq('id', isNaN(+id) ? id : +id)
+    )
+  );
 }
 
 // Touch drag support (mobile)

@@ -233,6 +233,13 @@
     .ind-styrke   { background: #FFB84D; box-shadow: 0 0 5px rgba(255,184,77,0.5); }
     .ind-sprint   { background: #5BA4F5; box-shadow: 0 0 5px rgba(91,164,245,0.5); }
     .ind-kondisjon { background: #6BE3A4; box-shadow: 0 0 5px rgba(107,227,164,0.4); }
+    .week-session-chip {
+      font-size: 7.5px; font-family: var(--font-mono); letter-spacing: 0.04em;
+      padding: 2px 5px; border-radius: 3px; white-space: nowrap; line-height: 1.2;
+    }
+    .week-session-chip.ind-styrke   { background: rgba(255,184,77,0.15);  color: #FFB84D; }
+    .week-session-chip.ind-sprint   { background: rgba(91,164,245,0.15);  color: #5BA4F5; }
+    .week-session-chip.ind-kondisjon { background: rgba(107,227,164,0.15); color: #6BE3A4; }
 
     /* ── Oversikt footer ── */
     .oversikt-footer { margin-top: 14px; display: flex; justify-content: flex-end; }
@@ -448,7 +455,7 @@ async function loadSleep() {
 // ── Knee pain card ─────────────────────────────────────────────────────────
 async function loadKnee() {
   const { data } = await db.from('knee_pain')
-    .select('*').order('created_at', { ascending: false }).limit(1);
+    .select('*').order('date', { ascending: false }).order('id', { ascending: false }).limit(1);
   const el = document.getElementById('kneeCard');
   if (!data?.length) {
     el.innerHTML = `<div class="empty">Ingen smertelogg</div>`; return null;
@@ -506,13 +513,27 @@ function loadSession() {
 }
 
 // ── Week strip ─────────────────────────────────────────────────────────────
-function renderWeekStrip() {
+async function renderWeekStrip() {
   const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
   const now  = new Date();
-  const dow  = now.getDay(); // 0=Sun
+  const dow  = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((dow + 6) % 7));
   monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const mondayStr = monday.toISOString().split('T')[0];
+  const sundayStr = sunday.toISOString().split('T')[0];
+
+  const [gymRes, sprintRes] = await Promise.all([
+    db.from('gym_log').select('date,session_type').gte('date', mondayStr).lte('date', sundayStr),
+    db.from('sprint_log').select('date').gte('date', mondayStr).lte('date', sundayStr),
+  ]);
+
+  const gymByDate = {};
+  (gymRes.data || []).forEach(s => { gymByDate[s.date] = s.session_type || ''; });
+  const sprintDates = new Set((sprintRes.data || []).map(s => s.date));
 
   const dayNames = ['man','tir','ons','tor','fre','lør','søn'];
   const el = document.getElementById('weekStrip');
@@ -520,21 +541,36 @@ function renderWeekStrip() {
   el.innerHTML = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
     const isToday = d.toDateString() === now.toDateString();
-    const txt = (plan[i] || '').trim().toLowerCase();
-    const isRest = !txt || /^hvile/.test(txt);
+
+    const chips = [];
+    const gymType = gymByDate[dateStr];
+    if (gymType !== undefined) {
+      if (/sprint/i.test(gymType)) chips.push({ cls: 'ind-sprint', label: 'Sprint' });
+      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) chips.push({ cls: 'ind-kondisjon', label: 'Mobilitet' });
+      else chips.push({ cls: 'ind-styrke', label: 'Styrke' });
+    }
+    if (sprintDates.has(dateStr) && !chips.some(c => c.cls === 'ind-sprint')) {
+      chips.push({ cls: 'ind-sprint', label: 'Sprint' });
+    }
 
     let indClass = 'ind-rest';
-    if (!isRest) {
-      if (/sprint/.test(txt)) indClass = 'ind-sprint';
-      else if (/kondisjon|sirkulasjon|mobilitet/.test(txt)) indClass = 'ind-kondisjon';
-      else indClass = 'ind-styrke';
+    if (!chips.length) {
+      const txt = (plan[i] || '').trim().toLowerCase();
+      if (txt && !/^hvile/.test(txt)) {
+        if (/sprint/.test(txt)) indClass = 'ind-sprint';
+        else if (/kondisjon|sirkulasjon|mobilitet/.test(txt)) indClass = 'ind-kondisjon';
+        else indClass = 'ind-styrke';
+      }
     }
 
     return `<div class="week-day${isToday ? ' today' : ''}">
       <div class="week-day-name">${dayNames[i]}</div>
       <div class="week-day-num">${d.getDate()}</div>
-      <div class="week-day-indicator ${indClass}"></div>
+      ${chips.length
+        ? chips.map(c => `<div class="week-session-chip ${c.cls}">${c.label}</div>`).join('')
+        : `<div class="week-day-indicator ${indClass}"></div>`}
     </div>`;
   }).join('');
 }
@@ -733,7 +769,6 @@ async function loadCalendar() {
   }
 
   const sessionData = loadSession();
-  renderWeekStrip();
 
   const [sleepData, kneeData] = await Promise.all([
     loadSleep(),
@@ -741,6 +776,7 @@ async function loadCalendar() {
     autoCleanTodos(),
     loadTodos(),
     loadCalendar(),
+    renderWeekStrip(),
   ]);
 
   renderDailyGoals({ sleepData, kneeData, sessionData });
