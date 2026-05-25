@@ -346,6 +346,18 @@
     body[data-ws="done"]   .ws-active { display: none !important; }
     body[data-ws="done"]   .ex-row    { pointer-events: none; }
 
+    /* Exercise drag & drop */
+    .ex-drag-handle {
+      cursor: grab; color: rgba(255,255,255,0.2); font-size: 13px;
+      flex-shrink: 0; padding: 0 2px; opacity: 0; transition: opacity 0.12s;
+      user-select: none; line-height: 1; touch-action: none;
+    }
+    .ex-row:hover .ex-drag-handle { opacity: 1; }
+    .ex-drag-handle:active { cursor: grabbing; }
+    .ex-row-wrap.ex-dragging > .ex-row { opacity: 0.3; }
+    .ex-row-wrap.ex-drag-before { border-top: 2px solid rgba(91,164,245,0.6); margin-top: -1px; }
+    .ex-row-wrap.ex-drag-after  { border-bottom: 2px solid rgba(91,164,245,0.6); margin-bottom: -1px; }
+
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
@@ -487,10 +499,9 @@
       <div class="tool-body" id="tb-rest">
         <div id="restDisplay" class="rest-display">—</div>
         <div class="rest-presets">
-          <button class="rest-preset" onclick="startRest(60)">1m</button>
-          <button class="rest-preset" onclick="startRest(90)">1:30</button>
-          <button class="rest-preset" onclick="startRest(120)">2m</button>
-          <button class="rest-preset" onclick="startRest(180)">3m</button>
+          <button class="rest-preset" onclick="startRest(180)">3:00</button>
+          <button class="rest-preset" onclick="startRest(210)">3:30</button>
+          <button class="rest-preset" onclick="startRest(240)">4:00</button>
         </div>
       </div>
 
@@ -515,9 +526,10 @@
       <div class="tool-body" id="tb-knee">
         <div class="mini-pain-row" id="sbKneeButtons" style="margin-bottom:6px"></div>
         <div class="pain-phase-pills">
-          <button class="pain-phase-pill" id="pp-before" onclick="setSbPhase('before')">Før</button>
+          <button class="pain-phase-pill" id="pp-before"    onclick="setSbPhase('before')">Før</button>
           <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')">Under</button>
-          <button class="pain-phase-pill" id="pp-after"  onclick="setSbPhase('after')">Etter</button>
+          <button class="pain-phase-pill" id="pp-after"     onclick="setSbPhase('after')">Etter</button>
+          <button class="pain-phase-pill" id="pp-day-after" onclick="setSbPhase('day-after')">D.etter</button>
         </div>
       </div>
     </div>
@@ -654,6 +666,7 @@ function resumeRestTimer() {
     updateRestDisplay();
     if (rem <= 0) {
       clearInterval(restTimerInt); restTimerInt = null; restStartedAt = null;
+      playTimerDone();
       const e = document.getElementById('restDisplay');
       if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
       const rv = document.getElementById('restVal');
@@ -819,7 +832,8 @@ function renderSectionBlock(label, exs, day) {
   const addId   = `add-${day}-${label.replace(/\s/g,'_')}`;
   const isMulti = exs.length > 1;
   const totSets = exs.reduce((a, e) => a + e.sets, 0);
-  return `<div class="ex-section${isMulti ? ' multi' : ''}">
+  return `<div class="ex-section${isMulti ? ' multi' : ''}" data-day="${escHtml(day)}" data-section="${escHtml(label)}"
+    ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
     <div class="sec-hd">
       <span class="sec-label">${escHtml(label)}</span>
       <span class="sec-divider"></span>
@@ -846,11 +860,17 @@ function renderExRow(ex, day, num, isWarmup) {
     if (isDone) { progTxt = '✓'; progCls = 'done'; }
     else if (done.size > 0) { progTxt = `${done.size}/${ex.sets}`; progCls = 'partial'; }
   }
-  return `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}">
+  const exDay = ex.day || day;
+  const exSec = ex.section || '';
+  const dragAttrs = isWarmup ? '' :
+    ` draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(exSec)}"` +
+    ` ondragstart="exDragStart(event)" ondragend="exDragEnd(event)"`;
+  return `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"${dragAttrs}>
     <div class="ex-row${isDone ? ' is-done' : ''}${isAct ? ' is-active' : ''}" id="ex-row-${ex.id}"
       onclick="${isWarmup ? '' : `handleExClick('${ex.id}')`}">
       ${!isWarmup ? `<div class="ex-chk${isDone ? ' done' : ''}" id="ex-chk-${ex.id}"
         onclick="event.stopPropagation();toggleExDone('${ex.id}')">${isDone ? '✓' : ''}</div>` : ''}
+      ${!isWarmup ? `<span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>` : ''}
       <div class="ex-r-num">${num}</div>
       <div class="ex-r-info">
         <div class="ex-r-name">${escHtml(ex.exercise_name)}</div>
@@ -860,6 +880,7 @@ function renderExRow(ex, day, num, isWarmup) {
       <button class="ex-r-menu" onclick="event.stopPropagation();toggleEditEx('${ex.id}')" title="Rediger">⋮</button>
     </div>
     <div class="ex-edit-form" id="edit-form-${ex.id}">
+      <input class="input-sm" id="edit-name-${ex.id}" value="${escHtml(ex.exercise_name)}" style="flex:1;min-width:90px" placeholder="Navn">
       <input class="input-sm" type="number" id="edit-sets-${ex.id}" value="${ex.sets}" style="width:48px" placeholder="Sett">
       <span style="color:var(--text-tertiary);font-size:11px;font-family:var(--font-mono)">×</span>
       <input class="input-sm" id="edit-reps-${ex.id}" value="${escHtml(ex.reps)}" style="width:76px" placeholder="Reps">
@@ -963,7 +984,7 @@ function toggleSetDone(exId, setIdx) {
   if (!d || !d[setIdx]) return;
   d[setIdx].done = !d[setIdx].done;
   if (!completedSets[exId]) completedSets[exId] = new Set();
-  if (d[setIdx].done) { completedSets[exId].add(setIdx); startRest(90); }
+  if (d[setIdx].done) { completedSets[exId].add(setIdx); startRest(180); }
   else completedSets[exId].delete(setIdx);
   const row = document.getElementById(`drow-${exId}-${setIdx}`);
   if (row) row.classList.toggle('set-done', d[setIdx].done);
@@ -1072,6 +1093,8 @@ function updateNextEx() {
 
 // ── Workout state ──────────────────────────────────────────────────
 function startWorkout() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default')
+    Notification.requestPermission();
   workoutStart  = Date.now();
   completedSets = {};
   setData       = {};
@@ -1312,14 +1335,17 @@ async function deleteExercise(id) {
 function toggleEditEx(id) { document.getElementById(`edit-form-${id}`)?.classList.toggle('open'); }
 
 async function saveExMeta(id) {
+  const name = document.getElementById(`edit-name-${id}`)?.value.trim();
   const sets = parseInt(document.getElementById(`edit-sets-${id}`).value);
   const reps = document.getElementById(`edit-reps-${id}`).value.trim();
   if (!sets || !reps) { toast('Fyll inn sett og reps', 'err'); return; }
-  await db.from('workout_program').update({ sets, reps }).eq('id', id);
+  const upd = { sets, reps };
+  if (name) upd.exercise_name = name;
+  await db.from('workout_program').update(upd).eq('id', id);
   for (const d of Object.keys(allExercises))
     for (const s of Object.keys(allExercises[d])) {
-      const ex = allExercises[d][s].find(e => e.id === id);
-      if (ex) { ex.sets = sets; ex.reps = reps; }
+      const ex = allExercises[d][s].find(e => String(e.id) === String(id));
+      if (ex) { if (name) ex.exercise_name = name; ex.sets = sets; ex.reps = reps; }
     }
   renderAll();
   toast('Oppdatert');
@@ -1372,31 +1398,36 @@ async function loadGymHistory() {
     const dateStr   = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
     const typeShort = (g.session_type || '').replace('Styrke ','');
     const kneeShort = knee
-      ? [knee.before_score, knee.after_score]
-          .map(v => v !== null && v !== undefined ? v : '—').join('→')
+      ? [knee.before_score, knee.during_score, knee.after_score, knee.day_after_score]
+          .map(v => v !== null && v !== undefined ? v : '—').join('/')
       : '';
     const kneeId = knee?.id || '';
+    const blurSave = `autoSaveKnee('${g.id}','${g.date}','${escHtml(g.session_type || '')}')`;
     return `<div id="hist-wrap-${g.id}">
       <div class="hist-row">
         <span class="hist-date">${dateStr}</span>
         <span class="hist-type">${escHtml(typeShort)}</span>
-        ${kneeShort ? `<span class="hist-knee">${kneeShort}</span>` : ''}
+        <span class="hist-knee" id="hist-knee-${g.id}">${kneeShort}</span>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
       </div>
-      <div class="knee-edit-panel" id="knee-edit-${g.id}">
-        <div class="knee-edit-row" style="margin-bottom:6px">
+      <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
+        <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <span class="knee-edit-label">Før</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}" value="${knee?.before_score ?? ''}" style="width:42px">
+          <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}"
+            value="${knee?.before_score ?? ''}" style="width:42px" onblur="${blurSave}">
           <span class="knee-edit-label">Under</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}" value="${knee?.during_score ?? ''}" style="width:42px">
+          <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}"
+            value="${knee?.during_score ?? ''}" style="width:42px" onblur="${blurSave}">
           <span class="knee-edit-label">Etter</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}" value="${knee?.after_score ?? ''}" style="width:42px">
+          <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}"
+            value="${knee?.after_score ?? ''}" style="width:42px" onblur="${blurSave}">
           <span class="knee-edit-label">D.etter</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}" value="${knee?.day_after_score ?? ''}" style="width:42px">
+          <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}"
+            value="${knee?.day_after_score ?? ''}" style="width:42px" onblur="${blurSave}"
+            title="Kan fylles inn dagen etter">
         </div>
         <div style="display:flex;gap:5px">
-          <button class="btn btn-success btn-sm" onclick="saveKneeEdit('${g.id}','${kneeId}','${g.date}','${escHtml(g.session_type || '')}')">Lagre</button>
-          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">Avbryt</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">Lukk</button>
         </div>
       </div>
     </div>`;
@@ -1435,6 +1466,158 @@ function findExById(id) {
       if (ex) return ex;
     }
   return null;
+}
+
+// ── Drag & drop (exercises) ────────────────────────────────────────
+let _exDragId = null, _exDragEl = null, _exDragDay = null, _exDragSection = null;
+
+function exDragStart(e) {
+  const el = e.currentTarget;
+  _exDragId = el.dataset.exid; _exDragEl = el;
+  _exDragDay = el.dataset.day; _exDragSection = el.dataset.section;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => _exDragEl?.classList.add('ex-dragging'), 0);
+}
+function exDragEnd() {
+  _exDragEl?.classList.remove('ex-dragging');
+  clearExDragClasses();
+  _exDragId = _exDragEl = _exDragDay = _exDragSection = null;
+}
+function clearExDragClasses() {
+  document.querySelectorAll('.ex-drag-before,.ex-drag-after').forEach(el =>
+    el.classList.remove('ex-drag-before','ex-drag-after'));
+}
+function exSecDragOver(e) {
+  const sec = e.currentTarget;
+  if (sec.dataset.day !== _exDragDay || sec.dataset.section !== _exDragSection) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  const target = e.target.closest('.ex-row-wrap[data-exid]');
+  clearExDragClasses();
+  if (!target || target === _exDragEl) return;
+  const r = target.getBoundingClientRect();
+  target.classList.add(e.clientY < r.top + r.height / 2 ? 'ex-drag-before' : 'ex-drag-after');
+}
+function exSecDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) clearExDragClasses();
+}
+async function exSecDrop(e) {
+  e.preventDefault();
+  const sec = e.currentTarget;
+  if (sec.dataset.day !== _exDragDay || sec.dataset.section !== _exDragSection) return;
+  const target = e.target.closest('.ex-row-wrap[data-exid]');
+  clearExDragClasses();
+  if (!target || !_exDragEl || target === _exDragEl) return;
+  const r = target.getBoundingClientRect();
+  if (e.clientY < r.top + r.height / 2) sec.insertBefore(_exDragEl, target);
+  else sec.insertBefore(_exDragEl, target.nextSibling);
+  const newOrder = [...sec.querySelectorAll('.ex-row-wrap[data-exid]')].map(el => el.dataset.exid);
+  await saveExOrder(_exDragDay, _exDragSection, newOrder);
+}
+async function saveExOrder(day, section, orderedIds) {
+  if (allExercises[day]?.[section]) {
+    const reordered = orderedIds
+      .map(id => allExercises[day][section].find(e => String(e.id) === String(id)))
+      .filter(Boolean);
+    if (reordered.length) allExercises[day][section] = reordered;
+  }
+  const updates = orderedIds.map((id, idx) => ({
+    id: isNaN(+id) ? id : +id, sort_order: idx,
+  }));
+  await db.from('workout_program').upsert(updates, { onConflict: 'id' });
+}
+
+// Touch drag support (mobile)
+(function() {
+  let _tEl = null, _tDay = null, _tSec = null;
+  document.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.ex-drag-handle');
+    if (!handle) return;
+    const wrap = handle.closest('.ex-row-wrap[data-exid]');
+    if (!wrap) return;
+    e.preventDefault();
+    _tEl = wrap; _tDay = wrap.dataset.day; _tSec = wrap.dataset.section;
+    wrap.classList.add('ex-dragging');
+    document.addEventListener('touchmove', onTM, { passive: false });
+    document.addEventListener('touchend', onTE);
+  }, { passive: false });
+  function onTM(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    const under = document.elementFromPoint(t.clientX, t.clientY);
+    const target = under?.closest('.ex-row-wrap[data-exid]');
+    clearExDragClasses();
+    if (!target || target === _tEl) return;
+    const sec = target.closest(`[data-day="${_tDay}"][data-section="${_tSec}"]`);
+    if (!sec) return;
+    const r = target.getBoundingClientRect();
+    target.classList.add(t.clientY < r.top + r.height / 2 ? 'ex-drag-before' : 'ex-drag-after');
+  }
+  function onTE(e) {
+    document.removeEventListener('touchmove', onTM);
+    document.removeEventListener('touchend', onTE);
+    if (!_tEl) return;
+    _tEl.classList.remove('ex-dragging');
+    clearExDragClasses();
+    const t = e.changedTouches[0];
+    const under = document.elementFromPoint(t.clientX, t.clientY);
+    const target = under?.closest('.ex-row-wrap[data-exid]');
+    if (target && target !== _tEl) {
+      const sec = target.closest(`[data-section]`);
+      if (sec && sec.dataset.day === _tDay && sec.dataset.section === _tSec) {
+        const r = target.getBoundingClientRect();
+        if (t.clientY < r.top + r.height / 2) sec.insertBefore(_tEl, target);
+        else sec.insertBefore(_tEl, target.nextSibling);
+        const newOrder = [...sec.querySelectorAll('.ex-row-wrap[data-exid]')].map(el => el.dataset.exid);
+        saveExOrder(_tDay, _tSec, newOrder);
+      }
+    }
+    _tEl = _tDay = _tSec = null;
+  }
+})();
+
+// ── Rest timer sound + notification ───────────────────────────────
+function playTimerDone() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.35].forEach(delay => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.22);
+      o.start(ctx.currentTime + delay);
+      o.stop(ctx.currentTime + delay + 0.25);
+    });
+  } catch(e) {}
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try { new Notification('Hviletimer ferdig', { body: 'Tid for neste sett!', silent: true }); } catch(e) {}
+  }
+}
+
+// ── Autosave knee pain in history panel ───────────────────────────
+async function autoSaveKnee(gymId, date, sessionType) {
+  const panel = document.getElementById(`knee-edit-${gymId}`);
+  if (!panel) return;
+  let kneeId = panel.dataset.kneeId || '';
+  const parse = id => { const v = parseInt(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
+  const payload = {
+    before_score:    parse(`ke-before-${gymId}`),
+    during_score:    parse(`ke-during-${gymId}`),
+    after_score:     parse(`ke-after-${gymId}`),
+    day_after_score: parse(`ke-dayafter-${gymId}`),
+  };
+  if (kneeId) {
+    await db.from('knee_pain').update(payload).eq('id', kneeId);
+  } else {
+    const { data } = await db.from('knee_pain')
+      .insert({ date, session_type: sessionType, ...payload }).select('id').single();
+    if (data?.id) { panel.dataset.kneeId = String(data.id); kneeId = String(data.id); }
+  }
+  const display = document.getElementById(`hist-knee-${gymId}`);
+  if (display) {
+    display.textContent = [payload.before_score, payload.during_score, payload.after_score, payload.day_after_score]
+      .map(v => v !== null && v !== undefined ? v : '—').join('/');
+  }
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────

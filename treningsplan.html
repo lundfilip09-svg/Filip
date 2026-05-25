@@ -291,6 +291,50 @@
     .progress-pct  { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
     .progress-bg { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
     .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+    /* ── Pain checkpoint ────────────────────────────────────────── */
+    .pain-checkpoint {
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      font-size: 10px; font-family: var(--font-mono); margin-top: 6px;
+    }
+    .pain-cp-step { display: flex; align-items: center; gap: 3px; }
+    .pain-cp-label { color: var(--text-tertiary); }
+    .pain-cp-val { font-weight: 700; }
+    .pain-cp-arrow { color: rgba(255,255,255,0.18); }
+
+    /* ── Date-grouped history ───────────────────────────────────── */
+    #sessionGrid { display: flex; flex-direction: column; gap: 0; }
+    .hist-date-group { margin-bottom: 20px; }
+    .hist-date-label {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px;
+    }
+    .hist-sessions { display: flex; flex-direction: column; gap: 4px; }
+
+    /* ── Editable session detail ────────────────────────────────── */
+    .sess-edit-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+    .sess-edit-lbl { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sess-edit-input {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+      color: var(--text-primary); font-family: var(--font-mono); font-size: 12px;
+      padding: 4px 6px; text-align: center;
+    }
+    .sess-edit-input:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+    .sess-edit-textarea {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 5px;
+      color: var(--text-secondary); font-family: inherit; font-size: 11px;
+      padding: 6px 8px; line-height: 1.5; resize: vertical; min-height: 52px;
+    }
+    .sess-edit-textarea:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+
+    /* ── Weekly load label ──────────────────────────────────────── */
+    .wbar-load-label {
+      font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
+      letter-spacing: 0.1em; text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -403,12 +447,7 @@
       <div class="card">
         <div class="widget-label">Ukens belastning</div>
         <div class="week-bars" id="weekBars"></div>
-      </div>
-
-      <!-- Week completion progress -->
-      <div class="card">
-        <div class="widget-label" id="weekRangeLabel">Uke —</div>
-        <div id="weekProgress"></div>
+        <div id="weekLoadLabel" class="wbar-load-label" style="margin-top:8px"></div>
       </div>
 
     </div>
@@ -615,6 +654,14 @@ function selectDay(i) {
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
+function loadLevelForDay(i) {
+  if (isRest(i)) return 'rest';
+  const t = planText(i).toLowerCase();
+  if (t.includes('sprint') || t.includes('speed') || t.includes('interval')) return 'high';
+  if (t.includes('mobil') || t.includes('sirk') || t.includes('lett') || t.includes('yoga')) return 'light';
+  return 'medium';
+}
+
 function renderSidebar() {
   const mon = getMondayForOffset(weekOffset);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
@@ -633,24 +680,28 @@ function renderSidebar() {
   document.getElementById('sbPct').textContent     = pct + '%';
   document.getElementById('sbRest').textContent    = rest;
 
-  // Week range label
-  const opts = { day:'numeric', month:'short' };
-  document.getElementById('weekRangeLabel').textContent =
-    `${mon.toLocaleDateString('no-NO', opts)} – ${sun.toLocaleDateString('no-NO', opts)}`;
-
-  // Bar chart
+  // Bar chart — load-aware
   const barEl = document.getElementById('weekBars');
+  let loadScore = 0, doneCount = 0;
   barEl.innerHTML = SHORT_DAYS.map((name, i) => {
-    const ds      = dayDate(i).toISOString().slice(0, 10);
-    const done    = loggedDates.has(ds);
-    const isT     = weekOffset === 0 && i === ti;
-    const hasPlan = !isRest(i);
-    const h = done ? 40 : hasPlan ? 18 : 6;
-    const bg = done
-      ? '#6BE3A4'
-      : hasPlan
-        ? 'rgba(91,164,245,0.35)'
-        : 'rgba(255,255,255,0.07)';
+    const ds    = dayDate(i).toISOString().slice(0, 10);
+    const done  = loggedDates.has(ds);
+    const isT   = weekOffset === 0 && i === ti;
+    const level = loadLevelForDay(i);
+    if (done) {
+      doneCount++;
+      loadScore += level === 'high' ? 3 : level === 'medium' ? 2 : level === 'light' ? 1 : 0;
+    }
+    let h, bg;
+    if (level === 'rest') {
+      h = 4; bg = 'rgba(255,255,255,0.06)';
+    } else if (done) {
+      h = level === 'high' ? 44 : level === 'medium' ? 34 : 24;
+      bg = '#6BE3A4';
+    } else {
+      h = level === 'high' ? 28 : level === 'medium' ? 20 : 14;
+      bg = level === 'high' ? 'rgba(255,107,107,0.35)' : level === 'medium' ? 'rgba(91,164,245,0.35)' : 'rgba(107,227,164,0.2)';
+    }
     const ring = isT ? ';outline:1px solid rgba(91,164,245,0.6);outline-offset:2px' : '';
     return `<div class="wbar-col">
       <div class="wbar-fill" style="height:${h}px;background:${bg}${ring}"></div>
@@ -658,28 +709,11 @@ function renderSidebar() {
     </div>`;
   }).join('');
 
-  // Week progress bars (each planned day as a row)
-  const progEl = document.getElementById('weekProgress');
-  const rows   = [];
-  for (let i = 0; i < 7; i++) {
-    if (isRest(i)) continue;
-    const ds     = dayDate(i).toISOString().slice(0, 10);
-    const done   = loggedDates.has(ds);
-    const isPast = weekOffset < 0 || i < ti;
-    const pct2   = done ? 100 : isPast ? 20 : 0;
-    const fill   = done ? '#6BE3A4' : isPast ? 'rgba(255,100,100,0.45)' : 'rgba(91,164,245,0.35)';
-    const lbl    = planText(i).length > 12 ? planText(i).slice(0, 11) + '…' : planText(i);
-    rows.push(`<div class="progress-row">
-      <div class="progress-header">
-        <span class="progress-name">${SHORT_DAYS[i]} — ${escHtml(lbl)}</span>
-        <span class="progress-pct">${done ? '✓' : isPast ? 'Glemt' : '—'}</span>
-      </div>
-      <div class="progress-bg">
-        <div class="progress-fill" style="width:${pct2}%;background:${fill}"></div>
-      </div>
-    </div>`);
-  }
-  progEl.innerHTML = rows.length ? rows.join('') : '<div class="empty">Ingen planlagte dager</div>';
+  const avg = doneCount > 0 ? loadScore / doneCount : 0;
+  const loadLabel = avg >= 2.5 ? 'High' : avg >= 1.5 ? 'Moderate' : doneCount > 0 ? 'Low' : '—';
+  const loadColor = avg >= 2.5 ? '#FF6B6B' : avg >= 1.5 ? '#F2C063' : '#6BE3A4';
+  document.getElementById('weekLoadLabel').textContent  = loadLabel;
+  document.getElementById('weekLoadLabel').style.color  = loadColor;
 }
 
 // ── Save / clear ───────────────────────────────────────────────────────────
@@ -803,67 +837,86 @@ function renderSessionGrid() {
   const el = document.getElementById('sessionGrid');
   if (!_sessData.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
 
-  el.innerHTML = _sessData.map(g => {
-    const knee       = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
-    const d          = new Date(g.date + 'T12:00:00');
-    const dateStr    = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
-    const dayStr     = d.toLocaleDateString('no-NO', { weekday:'long' });
-    const before     = knee?.before_score;
-    const after      = knee?.after_score;
-    const hasPain    = before != null && after != null;
-    const notesPreview = (g.session_notes || '').trim();
-    const isOpen     = _openDetail === g.id;
+  const groups = [];
+  let lastDate = null;
+  for (const g of _sessData) {
+    if (g.date !== lastDate) { groups.push({ date: g.date, sessions: [] }); lastDate = g.date; }
+    groups[groups.length - 1].sessions.push(g);
+  }
 
-    const painHtml = hasPain
-      ? `<span class="sess-pain">Smerte: <span class="sess-pain-val ${painColorClass(before)}">${before}</span>
-           <span style="color:var(--text-tertiary)"> → </span>
-           <span class="sess-pain-val ${painColorClass(after)}">${after}</span></span>`
-      : '';
+  el.innerHTML = groups.map(grp => {
+    const d       = new Date(grp.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
 
-    return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
-      onclick="toggleSessionDetail('${g.id}')">
-      <div class="sess-date">${dayStr} · ${dateStr}</div>
-      <div class="sess-name">${escHtml(g.session_type || 'Økt')}</div>
-      <div class="sess-meta">
-        ${painHtml}
-        <span class="sess-tag">✓ Fullført</span>
-      </div>
-      ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
-    </div>
-    ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
+    const sessHtml = grp.sessions.map(g => {
+      const knee  = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
+      const isOpen = _openDetail === g.id;
+      const notesPreview = (g.session_notes || '').trim();
+
+      const painSummary = (() => {
+        const vals = [
+          { l: 'Før', v: knee?.before_score },
+          { l: 'Under', v: knee?.during_score },
+          { l: 'Etter', v: knee?.after_score },
+          { l: 'D.etter', v: knee?.day_after_score },
+        ];
+        if (!vals.some(x => x.v != null)) return '';
+        return `<span class="sess-pain">${
+          vals.map(x => `${x.l}: <span class="sess-pain-val ${painColorClass(x.v)}">${x.v ?? '—'}</span>`).join(' · ')
+        }</span>`;
+      })();
+
+      return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
+          onclick="toggleSessionDetail('${g.id}')">
+          <div class="sess-name">${escHtml(g.session_type || 'Økt')}</div>
+          <div class="sess-meta">${painSummary}<span class="sess-tag">✓ Fullført</span></div>
+          ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
+        </div>
+        ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
+    }).join('');
+
+    return `<div class="hist-date-group">
+      <div class="hist-date-label">${dateStr}</div>
+      <div class="hist-sessions">${sessHtml}</div>
+    </div>`;
   }).join('');
 }
 
 function buildDetailHtml(g, knee) {
   const d       = new Date(g.date + 'T12:00:00');
   const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const kneeid  = knee?.id || '';
 
-  const scoreBlock = (label, val) => val != null
-    ? `<div class="sess-detail-block">
-        <div class="sess-detail-lbl">${label}</div>
-        <div class="sess-detail-val ${painColorClass(val)}">${val}</div>
-       </div>`
-    : '';
+  const cpSteps = [
+    { label: 'Før',        val: knee?.before_score },
+    { label: 'Under',      val: knee?.during_score },
+    { label: 'Etter',      val: knee?.after_score },
+    { label: 'Dagen etter',val: knee?.day_after_score },
+  ];
+  const checkpointHtml = `<div class="pain-checkpoint">${
+    cpSteps.map((s, i) => `
+      <div class="pain-cp-step">
+        <span class="pain-cp-label">${s.label}:</span>
+        <span class="pain-cp-val ${painColorClass(s.val)}">${s.val ?? '—'}</span>
+      </div>${i < cpSteps.length - 1 ? '<span class="pain-cp-arrow">→</span>' : ''}`
+    ).join('')
+  }</div>`;
 
-  const painBlocks = [
-    scoreBlock('Smerte før', knee?.before_score),
-    scoreBlock('Under økt',  knee?.during_score),
-    scoreBlock('Etter økt',  knee?.after_score),
-    scoreBlock('Dagen etter',knee?.day_after_score),
-  ].filter(Boolean).join('');
+  const painEditsHtml = `<div class="sess-edit-row">${
+    [
+      { label: 'Før',        field: 'before_score',    val: knee?.before_score },
+      { label: 'Under',      field: 'during_score',    val: knee?.during_score },
+      { label: 'Etter',      field: 'after_score',     val: knee?.after_score },
+      { label: 'Dagen etter',field: 'day_after_score', val: knee?.day_after_score },
+    ].map(p => `<div>
+      <div class="sess-edit-lbl">${p.label}</div>
+      <input type="number" min="0" max="10" class="sess-edit-input"
+        value="${p.val ?? ''}" placeholder="—"
+        onblur="autoSaveKneePainField('${g.id}','${g.date}','${escHtml(g.session_type||'')}','${p.field}',this.value)">
+    </div>`).join('')
+  }</div>`;
 
-  const sameType = _sessData.filter(s => s.session_type === g.session_type);
-  const sparkVals = sameType.slice(0, 8).reverse()
-    .map(s => _kneeMap[s.date + '|' + (s.session_type || '')]?.after_score ?? null);
-  const maxVal = Math.max(...sparkVals.filter(v => v !== null), 1);
-  const sparkHtml = sparkVals.map(v => {
-    if (v === null) return `<div class="spark-bar" style="height:2px;background:rgba(255,255,255,0.08)"></div>`;
-    const h  = Math.round(4 + (v / maxVal) * 26);
-    const bg = v <= 3 ? '#6BE3A4' : v <= 6 ? 'var(--warning)' : '#FF6B6B';
-    return `<div class="spark-bar" style="height:${h}px;background:${bg}"></div>`;
-  }).join('');
-
-  return `<div class="sess-detail open" id="sess-detail-${g.id}" onclick="event.stopPropagation()">
+  return `<div class="sess-detail open" id="sess-detail-${g.id}" data-knee-id="${kneeid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div>
         <div class="sess-detail-title">${escHtml(g.session_type || 'Økt')}</div>
@@ -871,19 +924,19 @@ function buildDetailHtml(g, knee) {
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
     </div>
-    ${painBlocks ? `<div class="sess-detail-grid">${painBlocks}</div>` : ''}
-    ${sparkVals.some(v => v !== null)
-      ? `<div style="margin-bottom:12px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
-            margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Smerte etter — historikk (${escHtml(g.session_type || '')})</div>
-          <div class="pain-sparkline">${sparkHtml}</div>
-        </div>`
-      : ''}
-    ${g.session_notes
-      ? `<div><div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
-            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
-          <div class="sess-detail-notes">${escHtml(g.session_notes)}</div></div>`
-      : ''}
+    <div style="margin-bottom:12px">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Knesmerte</div>
+      ${checkpointHtml}
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Rediger smerteverdier</div>
+      ${painEditsHtml}
+    </div>
+    <div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+      <textarea class="sess-edit-textarea"
+        onblur="autoSaveSessionNotes('${g.id}',this.value)">${escHtml(g.session_notes || '')}</textarea>
+    </div>
   </div>`;
 }
 
@@ -894,6 +947,35 @@ function toggleSessionDetail(id) {
     setTimeout(() => {
       document.getElementById(`sess-detail-${id}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
     }, 60);
+  }
+}
+
+// ── Autosave ───────────────────────────────────────────────────────────────
+async function autoSaveSessionNotes(gymId, value) {
+  const g = _sessData.find(s => String(s.id) === String(gymId));
+  if (!g) return;
+  const notes = value.trim() || null;
+  const { error } = await db.from('gym_log').update({ session_notes: notes }).eq('id', gymId);
+  if (!error) g.session_notes = notes;
+}
+
+async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
+  const panel   = document.getElementById(`sess-detail-${gymId}`);
+  const kneeid  = panel?.dataset?.kneeId || '';
+  const numVal  = value === '' ? null : Number(value);
+  const kneeKey = date + '|' + sessionType;
+
+  if (kneeid) {
+    const { error } = await db.from('knee_pain').update({ [field]: numVal }).eq('id', kneeid);
+    if (!error && _kneeMap[kneeKey]) _kneeMap[kneeKey][field] = numVal;
+  } else {
+    const { data, error } = await db.from('knee_pain').insert({
+      date, session_type: sessionType, [field]: numVal,
+    }).select().single();
+    if (!error && data) {
+      _kneeMap[kneeKey] = data;
+      if (panel) panel.dataset.kneeId = data.id;
+    }
   }
 }
 

@@ -302,18 +302,19 @@ function renderRuns() {
 async function loadPBs() {
   const { data } = await db.from('sprint_records').select('*').order('distance');
   const el = document.getElementById('pbGrid');
-  if (!data || !data.length) { el.innerHTML = '<div class="empty">Ingen rekorder</div>'; return; }
 
   const dOrder = ['60m','60m_celler','60m_flying','100m','200m'];
-  const sorted = dOrder.map(d => data.find(r => r.distance === d)).filter(Boolean);
+  const byDist = {};
+  (data || []).forEach(r => { byDist[r.distance] = r; });
 
-  el.innerHTML = sorted.map(r => {
-    const days  = Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000);
-    const barClr = days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
-    return `<div class="pb-cell" id="pb-${r.distance}">
-      <div class="pb-dist">${distLabel(r.distance)}</div>
-      <div class="pb-time">${r.best_time?.toFixed(2) ?? '–'}</div>
-      <div class="pb-date">${fmtDate(r.date)}</div>
+  el.innerHTML = dOrder.map(d => {
+    const r = byDist[d];
+    const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
+    const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
+    return `<div class="pb-cell" id="pb-${d}">
+      <div class="pb-dist">${distLabel(d)}</div>
+      <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
+      <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       <div class="pb-bar" style="background:${barClr}"></div>
     </div>`;
   }).join('');
@@ -440,25 +441,78 @@ async function logSession() {
 
 // ── History ───────────────────────────────────────────────────────────────
 async function loadHistory() {
-  const { data } = await db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30);
+  const { data } = await db.from('sprint_log').select('*')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(60);
   sprintLog = data || [];
+  renderHistory();
+  await loadKneeTrend();
+}
 
+function renderHistory() {
   const el = document.getElementById('historyList');
-  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; }
-  else {
-    el.innerHTML = sprintLog.map(s =>
-      `<div class="history-row">
-        <span class="history-dist">${escHtml(distLabel(s.distance || '–'))}</span>
-        <span class="history-time">${s.time_seconds != null ? s.time_seconds.toFixed(2) + 's' : '–'}</span>
-        <span class="history-type">${escHtml(s.type || '')}</span>
-        ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
-        <span class="history-date">${fmtDate(s.date)}</span>
-        <button class="history-del" onclick="deleteSession('${s.id}')">✕</button>
-      </div>`
-    ).join('');
+  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
+
+  const groups = new Map();
+  for (const s of sprintLog) {
+    if (!groups.has(s.date)) groups.set(s.date, []);
+    groups.get(s.date).push(s);
   }
 
-  await loadKneeTrend();
+  el.innerHTML = [...groups.entries()].map(([date, runs]) => {
+    const d       = new Date(date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
+
+    const byDist = new Map();
+    for (const r of runs) {
+      if (!byDist.has(r.distance)) byDist.set(r.distance, []);
+      byDist.get(r.distance).push(r);
+    }
+
+    const distRows = [...byDist.entries()].map(([dist, rs]) => {
+      const times = rs.map(r => r.time_seconds).filter(t => t != null);
+      const best  = times.length ? Math.min(...times) : null;
+      const avg   = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
+      return `<div style="margin-bottom:8px">
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--accent-blue);font-weight:600;margin-bottom:2px">${escHtml(distLabel(dist))}</div>
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary)">
+          ${rs.map(r => r.time_seconds != null ? r.time_seconds.toFixed(2) : '–').join(' / ')}s
+        </div>
+        ${times.length > 1 ? `<div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">
+          Raskest: ${best.toFixed(2)} · Snitt: ${avg.toFixed(2)}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+
+    const rpe       = runs.find(r => r.rpe != null)?.rpe;
+    const kneeAfter = runs.find(r => r.knee_after != null)?.knee_after;
+    const notes     = runs.find(r => r.notes)?.notes;
+
+    const chips = [
+      rpe       != null ? `RPE ${rpe}` : null,
+      kneeAfter != null ? `Kne etter: ${kneeAfter}` : null,
+    ].filter(Boolean).map(m => `<span class="badge badge-grey" style="font-size:9px">${escHtml(m)}</span>`).join('');
+
+    return `<div style="margin-bottom:20px">
+      <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;
+        letter-spacing:0.12em;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:10px">${dateStr}</div>
+      ${distRows}
+      ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chips}</div>` : ''}
+      ${notes ? `<div style="font-size:10px;color:var(--text-tertiary);margin-top:6px;line-height:1.5">${escHtml(notes)}</div>` : ''}
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;opacity:0.5"
+          onclick="deleteSprintDate('${date}')">Slett økt</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteSprintDate(date) {
+  if (!confirm('Slett alle løp fra ' + date + '?')) return;
+  await db.from('sprint_log').delete().eq('date', date);
+  await loadHistory();
+  toast('Økt slettet');
 }
 
 // ── Knee trend — reads from knee_pain (before_score/during_score/...) ─────
@@ -568,12 +622,6 @@ async function saveKneeInline() {
   toast('Knesmerte oppdatert');
 }
 
-async function deleteSession(id) {
-  if (!confirm('Slett denne økten?')) return;
-  await db.from('sprint_log').delete().eq('id', id);
-  await loadHistory();
-  toast('Økt slettet');
-}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {
