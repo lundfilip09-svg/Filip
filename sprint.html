@@ -25,18 +25,50 @@
     .run-del:hover { color: var(--danger); }
     .session-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 18px 0 14px; }
     .eval-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
+    .hist-session {
+      margin-bottom: 14px; padding: 11px 13px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.055); border-radius: 10px;
+    }
+    .hist-date-header {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding-bottom: 7px; margin-bottom: 7px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
     .history-row {
       display: flex; align-items: center; gap: 10px;
-      padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 8px;
-      margin-bottom: 4px; font-size: 12px; font-family: var(--font-mono);
+      padding: 5px 0; font-size: 12px; font-family: var(--font-mono);
     }
-    .history-dist { color: var(--accent-blue); width: 82px; flex-shrink: 0; }
-    .history-time { color: var(--text-primary); font-weight: 700; flex: 1; }
+    .history-dist { color: var(--accent-blue); min-width: 90px; flex-shrink: 0; white-space: nowrap; }
+    .history-time { color: var(--text-primary); font-weight: 700; font-size: 13px; flex: 1; }
     .history-type { color: var(--text-tertiary); font-size: 10px; }
-    .history-date { color: var(--text-tertiary); font-size: 10px; flex-shrink: 0; }
-    .history-del  { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity 0.15s; }
-    .history-row:hover .history-del { opacity: 1; }
-    .history-del:hover { color: var(--danger); }
+    .hist-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
+    .hist-chip {
+      font-size: 9px; font-family: var(--font-mono);
+      padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+    }
+    .hist-chip--rpe { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+    .hist-chip--knee {
+      background: rgba(255,255,255,0.04); color: var(--text-tertiary);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .hist-notes {
+      font-size: 10px; color: var(--text-tertiary); margin-top: 8px;
+      line-height: 1.55; padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .hist-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .btn-del-session {
+      background: rgba(160,40,40,0.07); border: 1px solid rgba(160,40,40,0.18);
+      color: rgba(200,80,80,0.65); border-radius: 5px;
+      font-size: 9px; font-family: var(--font-mono);
+      padding: 3px 9px; cursor: pointer; letter-spacing: 0.04em;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .btn-del-session:hover, .btn-del-session:focus {
+      background: rgba(160,40,40,0.15); border-color: rgba(200,80,80,0.35);
+      color: rgba(220,100,100,0.9); outline: none;
+    }
     .trend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .trend-label-sm { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
     @media (max-width: 600px) { .log-grid { grid-template-columns: 1fr 1fr; } }
@@ -475,24 +507,28 @@ function renderHistory() {
         <span class="history-type">${escHtml(r.type || '')}</span>
       </div>`).join('');
 
-    const rpe       = runs.find(r => r.rpe != null)?.rpe;
-    const kneeAfter = runs.find(r => r.knee_after != null)?.knee_after;
-    const notes     = runs.find(r => r.notes)?.notes;
+    const rpe          = runs.find(r => r.rpe           != null)?.rpe;
+    const kneeBefore   = runs.find(r => r.knee_before   != null)?.knee_before;
+    const kneeDuring   = runs.find(r => r.knee_during   != null)?.knee_during;
+    const kneeAfter    = runs.find(r => r.knee_after    != null)?.knee_after;
+    const kneeDayAfter = runs.find(r => r.knee_day_after != null)?.knee_day_after;
+    const notes        = runs.find(r => r.notes)?.notes;
 
     const chips = [
-      rpe       != null ? `RPE ${rpe}` : null,
-      kneeAfter != null ? `Kne etter: ${kneeAfter}` : null,
-    ].filter(Boolean).map(m => `<span class="badge badge-grey" style="font-size:9px">${escHtml(m)}</span>`).join('');
+      rpe          != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
+      kneeBefore   != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
+      kneeDuring   != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
+      kneeAfter    != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
+      kneeDayAfter != null ? `<span class="hist-chip hist-chip--knee">D.etter ${kneeDayAfter}</span>` : '',
+    ].filter(Boolean).join('');
 
-    return `<div style="margin-bottom:20px">
-      <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;
-        letter-spacing:0.12em;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:10px">${dateStr}</div>
+    return `<div class="hist-session">
+      <div class="hist-date-header">${dateStr}</div>
       ${runRows}
-      ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chips}</div>` : ''}
-      ${notes ? `<div style="font-size:10px;color:var(--text-tertiary);margin-top:6px;line-height:1.5">${escHtml(notes)}</div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:6px">
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;opacity:0.5"
-          onclick="deleteSprintDate('${date}')">Slett økt</button>
+      ${chips ? `<div class="hist-chips">${chips}</div>` : ''}
+      ${notes ? `<div class="hist-notes">${escHtml(notes)}</div>` : ''}
+      <div class="hist-footer">
+        <button class="btn-del-session" onclick="deleteSprintDate('${date}')">Slett økt</button>
       </div>
     </div>`;
   }).join('');
