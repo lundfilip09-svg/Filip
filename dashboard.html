@@ -9,12 +9,13 @@
     /* ── Hero ── */
     .dash-hero {
       display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+      padding-bottom: 4px;
     }
     .dash-title {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.03em;
+      font-size: 26px; font-weight: 700; letter-spacing: -0.03em;
       background: linear-gradient(135deg, #fff 0%, #c8c5be 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
     .dash-tagline {
       font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.14em;
@@ -23,77 +24,225 @@
     .dash-tagline .tg-sep { color: rgba(255,255,255,0.12); padding: 0 4px; }
     .dash-date {
       font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.06em; text-align: right; flex-shrink: 0; padding-bottom: 3px;
+      letter-spacing: 0.06em; text-align: right; flex-shrink: 0; padding-bottom: 2px;
       white-space: nowrap;
     }
-    /* ── Layout ── */
-    .summary-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    /* ── Session badge ── */
+
+    /* ── OS Section label ── */
+    .os-label {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 10px; margin-top: 6px;
+    }
+    .os-label-dot {
+      width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(224,118,88,0.65);
+      box-shadow: 0 0 7px rgba(224,118,88,0.45);
+    }
+    .os-label-text {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text-tertiary); white-space: nowrap;
+    }
+    .os-label-line {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(255,255,255,0.07), transparent);
+    }
+
+    /* ── Status row (3 cols) ── */
+    .status-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    @media (max-width: 768px) { .status-row { grid-template-columns: 1fr; } }
+
+    /* Card borders & accents */
+    .card { border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.2s, box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.28); }
+    .card-sleep   { border-top-color: rgba(107,227,164,0.28) !important; border-top-width: 2px !important; }
+    .card-knee    { border-top-color: rgba(255,107,107,0.22) !important; border-top-width: 2px !important; }
+    .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
+
+    /* ── Sleep ── */
+    .stat-big {
+      font-size: 44px; font-weight: 700; font-family: var(--font-mono);
+      letter-spacing: -0.05em; line-height: 1; margin-bottom: 3px;
+    }
+    .stat-sublabel {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 14px;
+    }
+    .stat-secondaries {
+      display: flex; gap: 16px; padding-top: 11px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-sec { display: flex; flex-direction: column; gap: 2px; }
+    .stat-sec-val {
+      font-size: 16px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-secondary); line-height: 1;
+    }
+    .stat-sec-lbl {
+      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-tertiary);
+    }
+
+    /* ── Knee ── */
+    .knee-phases { display: flex; gap: 7px; }
+    .knee-phase {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.025); border-radius: 8px; padding: 10px 6px 8px;
+    }
+    .knee-phase-num {
+      font-size: 24px; font-weight: 700; font-family: var(--font-mono); line-height: 1;
+    }
+    .knee-phase-lbl {
+      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-tertiary); text-align: center;
+    }
+
+    /* ── Session card ── */
     .session-badge {
       display: inline-block; font-size: 10px; font-weight: 700; font-family: var(--font-mono);
       padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
       letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .session-badge.styrke    { background: rgba(242,192,99,0.13);  color: #F2C063; border: 1px solid rgba(242,192,99,0.2); }
-    .session-badge.kondisjon { background: rgba(107,227,164,0.13); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2); }
-    .session-badge.power     { background: rgba(91,164,245,0.13);  color: #5BA4F5; border: 1px solid rgba(91,164,245,0.2); }
-    .session-badge.hvile     { background: rgba(255,255,255,0.05); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
-    /* ── Session card ── */
-    .session-card-main { border-color: rgba(91,164,245,0.1) !important; }
-    .session-card-main:hover { border-color: rgba(91,164,245,0.2) !important; }
-    .session-name-big { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; line-height: 1.3; }
-    .session-meta-sm { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 16px; letter-spacing: 0.04em; }
+    .session-badge.styrke    { background: rgba(242,192,99,0.12);  color: #F2C063; border: 1px solid rgba(242,192,99,0.2); }
+    .session-badge.kondisjon { background: rgba(107,227,164,0.12); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2); }
+    .session-badge.power     { background: rgba(91,164,245,0.12);  color: #5BA4F5; border: 1px solid rgba(91,164,245,0.2); }
+    .session-badge.hvile     { background: rgba(255,255,255,0.04); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
+    .session-name-big { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; line-height: 1.35; }
+    .session-meta-sm  { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 16px; letter-spacing: 0.04em; }
     .session-cta {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(91,164,245,0.1); border: 1px solid rgba(91,164,245,0.22);
       color: #5BA4F5; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 16px;
       border-radius: 6px; cursor: pointer; text-decoration: none;
-      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
     }
     .session-cta:hover { background: rgba(91,164,245,0.18); border-color: rgba(91,164,245,0.38); transform: translateY(-1px); }
-    .session-cta .cta-arrow { display: inline-block; transition: transform 0.2s ease; }
+    .session-cta .cta-arrow { display: inline-block; transition: transform 0.2s; }
     .session-cta:hover .cta-arrow { transform: translateX(3px); }
-    /* ── Exercise list ── */
-    .ex-list { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
-    .ex-item { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
-    .ex-item::before { content: '› '; color: var(--success); }
+
+    /* ── Fokus grid ── */
+    .fokus-grid { display: grid; grid-template-columns: 0.85fr 1fr; gap: 14px; align-items: start; }
+    @media (max-width: 768px) { .fokus-grid { grid-template-columns: 1fr; } }
+    .fokus-right { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Daily goals ── */
+    .goal-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: opacity 0.2s;
+    }
+    .goal-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .goal-check {
+      width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .goal-item.done .goal-check {
+      background: var(--success); border-color: var(--success);
+    }
+    .goal-item.done .goal-check::after { content: '✓'; font-size: 9px; color: #050506; font-weight: 700; }
+    .goal-text { flex: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.35; }
+    .goal-item.done .goal-text { color: var(--text-tertiary); }
+    .goal-meta {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.07em;
+      padding: 2px 6px; border-radius: 3px; white-space: nowrap;
+      background: rgba(107,227,164,0.1); color: var(--success); flex-shrink: 0;
+    }
+
     /* ── Todos ── */
     .todos-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .todos-progress { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); letter-spacing: 0.08em; }
-    .todo-item { transition: opacity 0.32s ease, transform 0.32s ease; border-radius: 5px; }
-    .todo-item:hover { background: rgba(255,255,255,0.025); }
-    .todo-item.completing { opacity: 0.2 !important; transform: translateX(8px); pointer-events: none; }
+    .todo-item { transition: opacity 0.32s ease, transform 0.32s ease; }
+    .todo-item.completing { opacity: 0.15 !important; transform: translateX(8px); pointer-events: none; }
+
+    /* ── Next event ── */
+    .next-evt {
+      display: flex; align-items: flex-start; gap: 10px; padding: 3px 0;
+    }
+    .next-evt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .next-evt-title { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-bottom: 3px; line-height: 1.3; }
+    .next-evt-when { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+
     /* ── Calendar ── */
-    .cal-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; }
-    .cal-header-line { height: 1px; background: rgba(255,255,255,0.07); flex: 1; }
-    .cal-header-label { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; color: var(--text-tertiary); white-space: nowrap; text-transform: uppercase; }
     .cal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
     @media (max-width: 640px) { .cal-grid { grid-template-columns: 1fr; } }
-    .cal-col-title { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em; color: var(--success); margin-bottom: 0.75rem; text-transform: uppercase; }
+    .cal-col-title {
+      font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em;
+      color: var(--text-tertiary); margin-bottom: 0.75rem; text-transform: uppercase;
+    }
     .cal-event {
       display: flex; align-items: center; gap: 0.45rem;
-      padding: 0.4rem 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.045);
+      padding: 0.4rem 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.04);
       border-radius: 4px; margin: 0 -0.35rem;
-      transition: background 0.15s ease;
+      transition: background 0.15s;
     }
     .cal-event:last-child { border-bottom: none; }
     .cal-event:hover { background: rgba(255,255,255,0.025); }
-    .cal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .cal-event-time { font-family: var(--font-mono); font-size: 0.67rem; color: var(--success); min-width: 3rem; flex-shrink: 0; }
-    .cal-event-title { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .cal-event-time {
+      font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-tertiary);
+      min-width: 3rem; flex-shrink: 0;
+    }
+    .cal-event-title {
+      font-size: 0.8rem; color: var(--text-secondary); line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .cal-event-title.allday { color: var(--text-tertiary); font-style: italic; }
     .cal-empty { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); padding: 0.5rem 0; }
     .cal-error { font-family: var(--font-mono); font-size: 0.68rem; color: var(--danger); padding: 0.5rem 0; }
-    /* ── Knee pain ── */
-    .pain-score-big { font-size: 38px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
-    .pain-phase { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); }
-    .pain-cols { display: flex; gap: 16px; justify-content: space-around; }
-    .pain-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    /* ── Card polish ── */
-    .card { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
-    .card:hover { box-shadow: 0 4px 28px rgba(0,0,0,0.2); }
-    @media (max-width: 768px) { .summary-row { grid-template-columns: 1fr; } }
+
+    /* ── Week strip ── */
+    .week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    @media (max-width: 500px) { .week-strip { gap: 5px; } }
+    .week-day {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 12px 4px 10px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 10px; position: relative; overflow: hidden;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .week-day:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.11);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    }
+    .week-day.today {
+      background: rgba(91,164,245,0.07);
+      border-color: rgba(91,164,245,0.22);
+    }
+    .week-day.today::before {
+      content: '';
+      position: absolute; top: 0; left: 20%; right: 20%;
+      height: 1px; background: linear-gradient(to right, transparent, rgba(91,164,245,0.7), transparent);
+    }
+    .week-day.today:hover { background: rgba(91,164,245,0.1); transform: translateY(-2px); }
+    .week-day-name {
+      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-tertiary);
+    }
+    .week-day.today .week-day-name { color: rgba(91,164,245,0.8); }
+    .week-day-num {
+      font-size: 18px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-tertiary); line-height: 1;
+    }
+    .week-day.today .week-day-num { color: var(--text-primary); }
+    .week-day-indicator { width: 5px; height: 5px; border-radius: 50%; margin-top: 2px; }
+    .ind-rest     { background: rgba(255,255,255,0.0); }
+    .ind-styrke   { background: #FFB84D; box-shadow: 0 0 5px rgba(255,184,77,0.5); }
+    .ind-sprint   { background: #5BA4F5; box-shadow: 0 0 5px rgba(91,164,245,0.5); }
+    .ind-kondisjon { background: #6BE3A4; box-shadow: 0 0 5px rgba(107,227,164,0.4); }
+
+    /* ── Oversikt footer ── */
+    .oversikt-footer { margin-top: 14px; display: flex; justify-content: flex-end; }
+    .link-ghost {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-tertiary); text-decoration: none; padding: 4px 0;
+      transition: color 0.15s;
+    }
+    .link-ghost:hover { color: var(--text-secondary); }
   </style>
 </head>
 <body>
@@ -101,18 +250,20 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="dashboard.html"     class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"           class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"        class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"          class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"      class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="treningsplan.html"  class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
 </nav>
 
 <main class="page">
+
+  <!-- Hero -->
   <div class="dash-hero">
     <div>
       <div class="dash-title">Filip's Dashboard</div>
@@ -121,41 +272,81 @@
     <div class="dash-date" id="dateLabel">–</div>
   </div>
 
-  <!-- Summary row -->
-  <div class="summary-row">
-    <!-- Sleep -->
-    <div class="card">
-      <div class="section-title">Søvn siste natt</div>
+  <!-- ══════════════════  STATUS  ══════════════════ -->
+  <div class="os-label">
+    <div class="os-label-dot"></div>
+    <div class="os-label-text">Status</div>
+    <div class="os-label-line"></div>
+  </div>
+  <div class="status-row">
+
+    <div class="card card-sleep">
+      <div class="section-title">Søvn</div>
       <div id="sleepCard"><div class="loading">Laster…</div></div>
     </div>
-    <!-- Knee pain -->
-    <div class="card">
-      <div class="section-title">Knesmerte siste økt</div>
+
+    <div class="card card-knee">
+      <div class="section-title">Knesmerte</div>
       <div id="kneeCard"><div class="loading">Laster…</div></div>
     </div>
-    <!-- Today's session -->
-    <div class="card session-card-main">
+
+    <div class="card card-session">
       <div class="section-title">Dagens økt</div>
       <div id="sessionCard"><div class="loading">Laster…</div></div>
     </div>
+
   </div>
 
-  <!-- Important todos -->
-  <div class="card">
-    <div class="todos-header">
-      <div class="section-title" style="margin-bottom:0">Viktige gjøremål</div>
-      <div class="todos-progress" id="todosProgress"></div>
+  <!-- ══════════════════  FOKUS  ══════════════════ -->
+  <div class="os-label">
+    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
+    <div class="os-label-text">Fokus</div>
+    <div class="os-label-line"></div>
+  </div>
+  <div class="fokus-grid">
+
+    <!-- Daily goals -->
+    <div class="card">
+      <div class="section-title">Dagens mål</div>
+      <div id="dailyGoals"><div class="loading">Laster…</div></div>
     </div>
-    <div id="importantTodos"><div class="loading">Laster…</div></div>
+
+    <!-- Right col -->
+    <div class="fokus-right">
+      <div class="card">
+        <div class="todos-header">
+          <div class="section-title" style="margin-bottom:0">Gjøremål</div>
+          <div class="todos-progress" id="todosProgress"></div>
+        </div>
+        <div id="importantTodos"><div class="loading">Laster…</div></div>
+      </div>
+      <div class="card" id="nextEventCard" style="display:none">
+        <div class="section-title">Neste hendelse</div>
+        <div id="nextEvent"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════  OVERSIKT  ══════════════════ -->
+  <div class="os-label">
+    <div class="os-label-dot" style="background:rgba(107,227,164,0.55);box-shadow:0 0 7px rgba(107,227,164,0.3)"></div>
+    <div class="os-label-text">Oversikt</div>
+    <div class="os-label-line"></div>
+  </div>
+
+  <!-- Week strip -->
+  <div class="card">
+    <div class="section-title">Denne uken</div>
+    <div class="week-strip" id="weekStrip"></div>
+    <div class="oversikt-footer">
+      <a href="treningsplan.html" class="link-ghost">Full treningsoversikt <span>→</span></a>
+    </div>
   </div>
 
   <!-- Calendar -->
   <div class="card">
-    <div class="cal-header">
-      <div class="cal-header-line"></div>
-      <span class="cal-header-label">KALENDER — DENNE UKEN</span>
-      <div class="cal-header-line"></div>
-    </div>
+    <div class="section-title">Kalender</div>
     <div class="cal-grid">
       <div>
         <p class="cal-col-title">I dag</p>
@@ -167,6 +358,7 @@
       </div>
     </div>
   </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -174,11 +366,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 let db;
-
-// Active nav
 document.querySelector('[data-p="dashboard"]').classList.add('active');
 
-// Toast
 let _tt;
 function toast(msg, type = 'ok') {
   const el = document.getElementById('toast');
@@ -188,10 +377,7 @@ function toast(msg, type = 'ok') {
 async function signOut() {
   if (db) await db.auth.signOut();
   window.location.href = 'login.html';
-
 }
-
-// Helpers
 function today() { return new Date().toISOString().slice(0,10); }
 function fmtDate(ds) {
   if (!ds) return '';
@@ -210,11 +396,11 @@ function escHtml(s) {
 }
 
 // Date label
-const now = new Date();
+const _now = new Date();
 document.getElementById('dateLabel').textContent =
-  now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  _now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-// ── Auto-clean completed todos from before today (max once per day) ──────
+// ── Auto-clean todos ───────────────────────────────────────────────────────
 async function autoCleanTodos() {
   const key = 'ac_' + today();
   if (localStorage.getItem(key)) return;
@@ -224,84 +410,84 @@ async function autoCleanTodos() {
     .lt('completed_at', today() + 'T00:00:00.000Z');
 }
 
-// ── Sleep card ──────────────────────────────────────────────────────────
+// ── Sleep card ─────────────────────────────────────────────────────────────
 async function loadSleep() {
   const { data } = await db.from('health_data')
     .select('*').order('date', { ascending: false }).limit(1);
   const el = document.getElementById('sleepCard');
-  if (!data || !data.length) {
-    el.innerHTML = `<div class="empty">Ingen data — send via iPhone-snarvei</div>`; return;
+  if (!data?.length) {
+    el.innerHTML = `<div class="empty">Ingen data</div>`; return null;
   }
   const d = data[0];
-  const sc = d.sleep_score > 0 ? d.sleep_score : null;
-  const scoreColor = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+  const sc  = d.sleep_score > 0  ? d.sleep_score  : null;
+  const hrs = d.sleep_hours > 0  ? d.sleep_hours  : null;
+  const rhr = d.rhr > 0          ? d.rhr          : null;
+  const hrv = d.hrv > 0          ? d.hrv          : null;
+  const clr = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+
   el.innerHTML = `
-    <div class="grid-2">
-      <div class="metric-tile">
-        <div class="metric-lbl">Score</div>
-        <div class="metric-val" style="color:${scoreColor}">${sc ?? '–'}</div>
-        <div class="metric-unit">/ 100</div>
+    <div class="stat-big" style="color:${clr}">${sc ?? '–'}</div>
+    <div class="stat-sublabel">Sleep score</div>
+    <div class="stat-secondaries">
+      <div class="stat-sec">
+        <div class="stat-sec-val">${hrs ?? '–'}<span style="font-size:10px;font-weight:400;color:var(--text-tertiary)">t</span></div>
+        <div class="stat-sec-lbl">Timer</div>
       </div>
-      <div class="metric-tile">
-        <div class="metric-lbl">Timer</div>
-        <div class="metric-val">${d.sleep_hours > 0 ? d.sleep_hours : '–'}</div>
-        <div class="metric-unit">t</div>
-      </div>
-      <div class="metric-tile">
-        <div class="metric-lbl">Hvilepuls</div>
-        <div class="metric-val ${d.rhr > 65 ? 'danger' : ''}">${d.rhr > 0 ? d.rhr : '–'}</div>
-        <div class="metric-unit">bpm</div>
-      </div>
-      <div class="metric-tile">
-        <div class="metric-lbl">HRV</div>
-        <div class="metric-val">${d.hrv > 0 ? d.hrv : '–'}</div>
-        <div class="metric-unit">ms</div>
-      </div>
-    </div>
-    <div style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px">${fmtDate(d.date)}</div>`;
+      ${rhr ? `<div class="stat-sec">
+        <div class="stat-sec-val">${rhr}</div>
+        <div class="stat-sec-lbl">RHR</div>
+      </div>` : ''}
+      ${hrv ? `<div class="stat-sec">
+        <div class="stat-sec-val">${hrv}</div>
+        <div class="stat-sec-lbl">HRV</div>
+      </div>` : ''}
+    </div>`;
+  return d;
 }
 
-// ── Knee pain card ──────────────────────────────────────────────────────
+// ── Knee pain card ─────────────────────────────────────────────────────────
 async function loadKnee() {
   const { data } = await db.from('knee_pain')
     .select('*').order('created_at', { ascending: false }).limit(1);
   const el = document.getElementById('kneeCard');
-  if (!data || !data.length) {
-    el.innerHTML = `<div class="empty">Ingen smertelogg ennå</div>`; return;
+  if (!data?.length) {
+    el.innerHTML = `<div class="empty">Ingen smertelogg</div>`; return null;
   }
   const d = data[0];
   const phases = [
-    { label: 'Før',       val: d.before_score },
-    { label: 'Under',     val: d.during_score },
-    { label: 'Etter',     val: d.after_score },
-    { label: 'Dagen etter', val: d.day_after_score },
+    { label: 'Før',    val: d.before_score },
+    { label: 'Under',  val: d.during_score },
+    { label: 'Etter',  val: d.after_score },
+    { label: 'D.etter',val: d.day_after_score },
   ];
   el.innerHTML = `
-    <div class="pain-cols">
+    <div class="knee-phases">
       ${phases.map(p => `
-        <div class="pain-col">
-          <div class="pain-score-big" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
-          <div class="pain-phase">${p.label}</div>
+        <div class="knee-phase">
+          <div class="knee-phase-num" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
+          <div class="knee-phase-lbl">${p.label}</div>
         </div>`).join('')}
     </div>
-    <div style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:12px">
+    <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px;letter-spacing:0.03em">
       ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
     </div>`;
+  return d;
 }
 
-// ── Today's session card ────────────────────────────────────────────────
+// ── Today's session ────────────────────────────────────────────────────────
 function loadSession() {
   const el = document.getElementById('sessionCard');
   const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
   const planIndex = (new Date().getDay() + 6) % 7;
   const planText = (plan[planIndex] || '').trim();
+  const isRest = !planText || /^hvile/i.test(planText);
 
-  if (!planText || /^hvile/i.test(planText)) {
+  if (isRest) {
     el.innerHTML = `
       <span class="session-badge hvile">Hviledag</span>
       <div class="session-name-big" style="color:var(--text-secondary)">Restitusjonsdag</div>
       <div class="session-meta-sm">Ingen planlagt økt i dag</div>`;
-    return;
+    return { isRest: true };
   }
 
   let cls = 'styrke';
@@ -316,9 +502,88 @@ function loadSession() {
     <div class="session-name-big">${escHtml(planText)}</div>
     <div class="session-meta-sm">Fra ukeplanen · ${dayNow}</div>
     <a href="gym.html" class="session-cta">Åpne Gym <span class="cta-arrow">→</span></a>`;
+  return { isRest: false, planText, cls };
 }
 
-// ── Important todos ─────────────────────────────────────────────────────
+// ── Week strip ─────────────────────────────────────────────────────────────
+function renderWeekStrip() {
+  const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
+  const now  = new Date();
+  const dow  = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((dow + 6) % 7));
+  monday.setHours(0,0,0,0);
+
+  const dayNames = ['man','tir','ons','tor','fre','lør','søn'];
+  const el = document.getElementById('weekStrip');
+
+  el.innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const isToday = d.toDateString() === now.toDateString();
+    const txt = (plan[i] || '').trim().toLowerCase();
+    const isRest = !txt || /^hvile/.test(txt);
+
+    let indClass = 'ind-rest';
+    if (!isRest) {
+      if (/sprint/.test(txt)) indClass = 'ind-sprint';
+      else if (/kondisjon|sirkulasjon|mobilitet/.test(txt)) indClass = 'ind-kondisjon';
+      else indClass = 'ind-styrke';
+    }
+
+    return `<div class="week-day${isToday ? ' today' : ''}">
+      <div class="week-day-name">${dayNames[i]}</div>
+      <div class="week-day-num">${d.getDate()}</div>
+      <div class="week-day-indicator ${indClass}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Daily goals ────────────────────────────────────────────────────────────
+function renderDailyGoals({ sleepData, kneeData, sessionData }) {
+  const el = document.getElementById('dailyGoals');
+  const todayStr = today();
+
+  const goals = [];
+
+  // 1. Dagens økt
+  if (sessionData?.isRest) {
+    goals.push({ text: 'Restitusjonsdag', done: true, meta: 'Hviledag' });
+  } else {
+    goals.push({ text: 'Fullfør dagens økt', done: false });
+  }
+
+  // 2. Sov 8+ timer (based on most recent sleep entry)
+  const sleptEnough = sleepData && sleepData.sleep_hours >= 8;
+  goals.push({
+    text: 'Sov 8+ timer',
+    done: !!sleptEnough,
+    meta: sleptEnough ? `${sleepData.sleep_hours}t` : null,
+  });
+
+  // 3. Logg søvn for i dag
+  const loggedToday = sleepData?.date === todayStr;
+  goals.push({ text: 'Logg søvn', done: loggedToday, meta: loggedToday ? 'Logget' : null });
+
+  // 4. Registrer smerte dagen etter (only if last knee entry is recent and day_after is missing)
+  if (kneeData) {
+    const kneeDayAfterMissing = kneeData.day_after_score === null || kneeData.day_after_score === undefined;
+    goals.push({
+      text: 'Registrer smerte dagen etter',
+      done: !kneeDayAfterMissing,
+      meta: !kneeDayAfterMissing ? String(kneeData.day_after_score) : null,
+    });
+  }
+
+  el.innerHTML = goals.map(g => `
+    <div class="goal-item ${g.done ? 'done' : ''}">
+      <div class="goal-check"></div>
+      <div class="goal-text">${escHtml(g.text)}</div>
+      ${g.done && g.meta ? `<div class="goal-meta">${escHtml(g.meta)}</div>` : ''}
+    </div>`).join('');
+}
+
+// ── Important todos ────────────────────────────────────────────────────────
 async function loadTodos() {
   const { data } = await db.from('todos')
     .select('*')
@@ -327,9 +592,9 @@ async function loadTodos() {
     .order('due_date', { ascending: true, nullsLast: true });
   const el = document.getElementById('importantTodos');
   const progressEl = document.getElementById('todosProgress');
-  if (!data || !data.length) {
+  if (!data?.length) {
     if (progressEl) progressEl.textContent = '';
-    el.innerHTML = `<div class="empty">Ingen viktige gjøremål — legg til i <a href="gjoremal.html" style="color:var(--accent-blue)">Gjøremål</a></div>`;
+    el.innerHTML = `<div class="empty">Ingen viktige gjøremål</div>`;
     return;
   }
   if (progressEl) progressEl.textContent = `${data.length} aktive`;
@@ -359,7 +624,7 @@ async function completeTodo(id, cbEl) {
   }, 350);
 }
 
-// ── Google Calendar ─────────────────────────────────────────────────────
+// ── Calendar helpers ───────────────────────────────────────────────────────
 function _calFmtTime(start) {
   if (!start.dateTime) return 'Heldags';
   return new Date(start.dateTime).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
@@ -389,6 +654,39 @@ function _calEventHTML(timeLabel, title, allDay) {
   </div>`;
 }
 
+// ── Next event ─────────────────────────────────────────────────────────────
+function renderNextEvent(upcoming) {
+  const future = upcoming.filter(e => !_calIsToday(e.start));
+  const cardEl = document.getElementById('nextEventCard');
+  const el     = document.getElementById('nextEvent');
+  if (!future.length || !cardEl) return;
+
+  const next = future[0];
+  const color = kalenderFarge(next.summary || '');
+  let whenStr;
+  if (next.start.dateTime) {
+    const d = new Date(next.start.dateTime);
+    const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1);
+    const dayLabel = d.toDateString() === tmrw.toDateString()
+      ? 'I morgen'
+      : d.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+    whenStr = `${dayLabel} · ${d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`;
+  } else {
+    whenStr = new Date(next.start.date + 'T12:00:00').toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  el.innerHTML = `
+    <div class="next-evt">
+      <div class="next-evt-dot" style="background:${color}"></div>
+      <div>
+        <div class="next-evt-title">${escHtml(next.summary || '(uten tittel)')}</div>
+        <div class="next-evt-when">${whenStr}</div>
+      </div>
+    </div>`;
+  cardEl.style.display = '';
+}
+
+// ── Google Calendar ────────────────────────────────────────────────────────
 async function loadCalendar() {
   const elToday    = document.getElementById('cal-today');
   const elUpcoming = document.getElementById('cal-upcoming');
@@ -405,13 +703,15 @@ async function loadCalendar() {
     elUpcoming.innerHTML = future.length
       ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || '(uten tittel)', !e.start.dateTime)).join('')
       : '<p class="cal-empty">Ingenting planlagt</p>';
+
+    renderNextEvent(upcoming);
   } catch {
     elToday.innerHTML    = '<p class="cal-error">Kalender ikke tilkoblet</p>';
     elUpcoming.innerHTML = '';
   }
 }
 
-// ── Init ────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/config');
@@ -431,8 +731,19 @@ async function loadCalendar() {
       </div>`;
     return;
   }
-  loadSession();
-  await Promise.all([autoCleanTodos(), loadSleep(), loadKnee(), loadTodos(), loadCalendar()]);
+
+  const sessionData = loadSession();
+  renderWeekStrip();
+
+  const [sleepData, kneeData] = await Promise.all([
+    loadSleep(),
+    loadKnee(),
+    autoCleanTodos(),
+    loadTodos(),
+    loadCalendar(),
+  ]);
+
+  renderDailyGoals({ sleepData, kneeData, sessionData });
 })();
 </script>
 </body>

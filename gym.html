@@ -367,9 +367,11 @@
     }
     .ex-row:hover .ex-drag-handle { opacity: 1; }
     .ex-drag-handle:active { cursor: grabbing; }
-    .ex-row-wrap.ex-dragging > .ex-row { opacity: 0.3; }
+    .ex-row-wrap.ex-dragging > .ex-row,
+    .ex-row-wrap.ex-dragging > .circ-row { opacity: 0.3; }
     .ex-row-wrap.ex-drag-before { border-top: 2px solid rgba(91,164,245,0.6); margin-top: -1px; }
     .ex-row-wrap.ex-drag-after  { border-bottom: 2px solid rgba(91,164,245,0.6); margin-bottom: -1px; }
+    .circ-row:hover .ex-drag-handle { opacity: 1; }
 
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
@@ -814,27 +816,30 @@ function renderWarmup() {
   const count = sykExs.length + prepExs.length;
   document.getElementById('warmupBadge').textContent = count ? `${count} øvelser` : '—';
 
-  let html = '';
+  let zoneHtml = '';
+  let addHtml  = '';
 
   if (syk) {
-    html += `<div class="circ-row">
-      <div class="circ-icon">🚴</div>
-      <div>
-        <div class="circ-name">${escHtml(syk.exercise_name)}</div>
-        <div class="circ-meta">${escHtml(syk.reps || '8–10 min')}</div>
+    zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${syk.id}"
+      draggable="true" data-exid="${syk.id}" data-day="${escHtml(syk.day || (isFri ? 'friday_warmup' : 'warmup'))}" data-section="${escHtml(syk.section || cirKey)}"
+      ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
+      <div class="circ-row">
+        <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
+        <div class="circ-icon">🚴</div>
+        <div>
+          <div class="circ-name">${escHtml(syk.exercise_name)}</div>
+          <div class="circ-meta">${escHtml(syk.reps || '8–10 min')}</div>
+        </div>
       </div>
     </div>`;
   }
 
   if (prepExs.length) {
-    html += `<div style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.14em;color:var(--text-tertiary);margin-bottom:4px">Prepøvelser</div>
-    <div>
-      ${prepExs.map((ex, i) => renderExRow(ex, 'warmup', i + 1, true)).join('')}
-    </div>`;
+    zoneHtml += prepExs.map((ex, i) => renderExRow(ex, ex.day || 'warmup', i + 1, true)).join('');
   }
 
   const addId = 'add-warmup-Prepøvelser';
-  html += `<div class="add-ex-form" id="${addId}">
+  addHtml = `<div class="add-ex-form" id="${addId}">
     <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
     <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
     <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
@@ -843,7 +848,12 @@ function renderWarmup() {
   </div>
   <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>`;
 
-  el.innerHTML = html || '<div class="empty">Ingen oppvarmingsdata</div>';
+  el.innerHTML = zoneHtml
+    ? `<div id="warmup-drag-zone" data-wm-zone="1"
+        ondragover="wmDragOver(event)" ondragleave="wmDragLeave(event)" ondrop="wmDrop(event)">
+        ${zoneHtml}
+      </div>${addHtml}`
+    : `<div class="empty">Ingen oppvarmingsdata</div>${addHtml}`;
 }
 
 // ── Workout ────────────────────────────────────────────────────────
@@ -890,15 +900,14 @@ function renderExRow(ex, day, num, isWarmup) {
   }
   const exDay = ex.day || day;
   const exSec = ex.section || '';
-  const dragAttrs = isWarmup ? '' :
-    ` draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(exSec)}"` +
+  const dragAttrs = ` draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(exSec)}"` +
     ` ondragstart="exDragStart(event)" ondragend="exDragEnd(event)"`;
   return `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"${dragAttrs}>
     <div class="ex-row${isDone ? ' is-done' : ''}${isAct ? ' is-active' : ''}" id="ex-row-${ex.id}"
       onclick="${isWarmup ? '' : `handleExClick('${ex.id}')`}">
       ${!isWarmup ? `<div class="ex-chk${isDone ? ' done' : ''}" id="ex-chk-${ex.id}"
         onclick="event.stopPropagation();toggleExDone('${ex.id}')">${isDone ? '✓' : ''}</div>` : ''}
-      ${!isWarmup ? `<span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>` : ''}
+      <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
       <div class="ex-r-num">${num}</div>
       <div class="ex-r-info">
         <div class="ex-r-name">${escHtml(ex.exercise_name)}</div>
@@ -1617,6 +1626,39 @@ async function saveExOrder(day, section, orderedIds) {
   await db.from('workout_program').upsert(updates, { onConflict: 'id' });
 }
 
+// ── Warmup drag & drop ─────────────────────────────────────────────
+const _wmDays = new Set(['warmup', 'friday_warmup']);
+
+function wmDragOver(e) {
+  if (!_exDragId || !_wmDays.has(_exDragDay)) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  const target = e.target.closest('.ex-row-wrap[data-exid]');
+  clearExDragClasses();
+  if (!target || target === _exDragEl) return;
+  const r = target.getBoundingClientRect();
+  target.classList.add(e.clientY < r.top + r.height / 2 ? 'ex-drag-before' : 'ex-drag-after');
+}
+function wmDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) clearExDragClasses();
+}
+async function wmDrop(e) {
+  e.preventDefault();
+  if (!_wmDays.has(_exDragDay)) return;
+  const zone   = e.currentTarget;
+  const target = e.target.closest('.ex-row-wrap[data-exid]');
+  clearExDragClasses();
+  if (!target || !_exDragEl || target === _exDragEl) return;
+  const r = target.getBoundingClientRect();
+  if (e.clientY < r.top + r.height / 2) zone.insertBefore(_exDragEl, target);
+  else zone.insertBefore(_exDragEl, target.nextSibling);
+  const newOrder = [...zone.querySelectorAll('.ex-row-wrap[data-exid]')].map(el => el.dataset.exid);
+  await saveWarmupOrder(newOrder);
+}
+async function saveWarmupOrder(orderedIds) {
+  const updates = orderedIds.map((id, idx) => ({ id: isNaN(+id) ? id : +id, sort_order: idx }));
+  await db.from('workout_program').upsert(updates, { onConflict: 'id' });
+}
+
 // Touch drag support (mobile)
 (function() {
   let _tEl = null, _tDay = null, _tSec = null;
@@ -1653,13 +1695,19 @@ async function saveExOrder(day, section, orderedIds) {
     const under = document.elementFromPoint(t.clientX, t.clientY);
     const target = under?.closest('.ex-row-wrap[data-exid]');
     if (target && target !== _tEl) {
-      const sec = target.closest(`[data-section]`);
-      if (sec && sec.dataset.day === _tDay && sec.dataset.section === _tSec) {
+      let sec = target.closest(`[data-day="${_tDay}"][data-section="${_tSec}"]`);
+      let isWmDrop = false;
+      if (!sec && _wmDays.has(_tDay)) {
+        sec = target.closest('[data-wm-zone]');
+        isWmDrop = !!sec;
+      }
+      if (sec) {
         const r = target.getBoundingClientRect();
         if (t.clientY < r.top + r.height / 2) sec.insertBefore(_tEl, target);
         else sec.insertBefore(_tEl, target.nextSibling);
         const newOrder = [...sec.querySelectorAll('.ex-row-wrap[data-exid]')].map(el => el.dataset.exid);
-        saveExOrder(_tDay, _tSec, newOrder);
+        if (isWmDrop) saveWarmupOrder(newOrder);
+        else saveExOrder(_tDay, _tSec, newOrder);
       }
     }
     _tEl = _tDay = _tSec = null;
