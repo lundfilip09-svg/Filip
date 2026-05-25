@@ -403,10 +403,12 @@ async function logSession() {
   if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
   if (kneeRes.error) { toast('Knesmerte ikke lagret: '  + kneeRes.error.message, 'err'); console.error('knee_pain insert:', kneeRes.error); }
 
-  // Check / update PB — Stevne only, except 60m_celler counts all types
+  // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
   const newPBs = [];
   for (const r of runs) {
-    const countsForPB = r.type === 'Stevne' || r.distance === '60m_celler';
+    const countsForPB = r.distance === '60m_celler'
+      ? r.type === 'Trening'
+      : r.type === 'Stevne';
     if (!countsForPB) continue;
     const { data: rec } = await db.from('sprint_records')
       .select('best_time').eq('distance', r.distance).single();

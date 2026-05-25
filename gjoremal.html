@@ -398,6 +398,33 @@
     .todo-item:hover .todo-del { opacity: 0.6; }
     .todo-del:hover { color: var(--danger); opacity: 1 !important; }
 
+    /* ── Drag & drop ── */
+    .drag-handle {
+      cursor: grab;
+      color: rgba(255,255,255,0.18);
+      font-size: 14px;
+      flex-shrink: 0;
+      padding: 0 3px;
+      opacity: 0;
+      transition: opacity 0.12s;
+      user-select: none;
+      line-height: 1;
+    }
+    .todo-item:hover .drag-handle { opacity: 1; }
+    .drag-handle:active { cursor: grabbing; }
+    .todo-item.dragging {
+      opacity: 0.3;
+      border-left-color: transparent !important;
+    }
+    .todo-item.drag-before {
+      border-top: 2px solid rgba(91,164,245,0.65);
+      margin-top: -1px;
+    }
+    .todo-item.drag-after {
+      border-bottom: 2px solid rgba(91,164,245,0.65);
+      margin-bottom: -1px;
+    }
+
     /* ── Responsive ── */
     @media (max-width: 960px) {
       .gm-shell { grid-template-columns: 196px 1fr; }
@@ -593,6 +620,38 @@ let allTodos     = [];
 let filter       = 'active';
 let newImportant = false;
 
+// ── Drag & drop state ─────────────────────────────────────────────────────
+let _dragId = null;
+let _dragEl = null;
+
+function getOrder(ln) {
+  try { return JSON.parse(localStorage.getItem('gm_order_' + ln) || 'null') || null; } catch(e) { return null; }
+}
+function saveOrder(ln, ids) { localStorage.setItem('gm_order_' + ln, JSON.stringify(ids)); }
+function applyOrder(container, ln) {
+  const order = getOrder(ln);
+  if (!order || !order.length) return;
+  const items = [...container.querySelectorAll('.todo-item[data-id]')];
+  if (!items.length) return;
+  const idSet = new Set(order);
+  const ordered = order.map(id => items.find(el => el.dataset.id === id)).filter(Boolean);
+  const extra   = items.filter(el => !idSet.has(el.dataset.id));
+  [...ordered, ...extra].forEach(el => container.appendChild(el));
+}
+function clearDragClasses() {
+  document.querySelectorAll('.drag-before,.drag-after').forEach(el => el.classList.remove('drag-before','drag-after'));
+}
+function onDragStart(e, id) {
+  _dragId = id; _dragEl = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => _dragEl && _dragEl.classList.add('dragging'), 0);
+}
+function onDragEnd() {
+  if (_dragEl) _dragEl.classList.remove('dragging');
+  clearDragClasses();
+  _dragId = null; _dragEl = null;
+}
+
 // ── Auto-clean (max once per day) ────────────────────────────────────────
 async function autoClean() {
   const key = 'ac_' + today();
@@ -657,6 +716,7 @@ async function addList() {
 async function deleteList(name) {
   if (!confirm(`Slett listen "${name}" og alle dens gjøremål?`)) return;
   await db.from('todos').delete().eq('list_name', name);
+  localStorage.removeItem('gm_order_' + name);
   lists = lists.filter(l => l !== name);
   if (activeList === name) activeList = lists[0] || 'Generelt';
   renderListsBar();
@@ -692,7 +752,10 @@ function renderTodos() {
     el.innerHTML = items.map(t => {
       const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
       const isOverdue = due && due < new Date() && !t.completed;
-      return `<div class="todo-item ${t.important?'important':''} ${t.completed?'done':''}">
+      return `<div class="todo-item ${t.important?'important':''} ${t.completed?'done':''}"
+          data-id="${t.id}" draggable="true"
+          ondragstart="onDragStart(event,'${t.id}')" ondragend="onDragEnd()">
+        <span class="drag-handle">⠿</span>
         <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
         <div class="todo-body">
           <div class="todo-text ${t.completed?'done-text':''}">${escHtml(t.title)}</div>
@@ -708,6 +771,7 @@ function renderTodos() {
         </div>
       </div>`;
     }).join('');
+    applyOrder(el, activeList);
   }
 
   renderListsBar();
@@ -742,6 +806,8 @@ async function addTodo() {
   if (error) { toast('Feil ved lagring', 'err'); return; }
 
   allTodos.unshift(data);
+  const _ord = getOrder(activeList) || [];
+  saveOrder(activeList, [String(data.id), ..._ord]);
   document.getElementById('todoTitle').value = '';
   document.getElementById('todoDue').value   = '';
   newImportant = false;
@@ -778,6 +844,34 @@ async function deleteTodo(id) {
   renderTodos();
   toast('Slettet');
 }
+
+// ── Container drag listeners ──────────────────────────────────────────────
+(function() {
+  const container = document.getElementById('todoList');
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('.todo-item[data-id]');
+    clearDragClasses();
+    if (!target || target === _dragEl) return;
+    const r = target.getBoundingClientRect();
+    target.classList.add(e.clientY < r.top + r.height / 2 ? 'drag-before' : 'drag-after');
+  });
+  container.addEventListener('dragleave', e => {
+    if (!container.contains(e.relatedTarget)) clearDragClasses();
+  });
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.todo-item[data-id]');
+    clearDragClasses();
+    if (!target || !_dragEl || target === _dragEl) return;
+    const r = target.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) container.insertBefore(_dragEl, target);
+    else container.insertBefore(_dragEl, target.nextSibling);
+    const ids = [...container.querySelectorAll('.todo-item[data-id]')].map(el => el.dataset.id);
+    saveOrder(activeList, ids);
+  });
+})();
 
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {
