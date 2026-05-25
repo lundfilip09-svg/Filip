@@ -6,10 +6,9 @@
   <title>Gym — Styrketrening</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* ── Shell ──────────────────────────────────────────────────── */
     .gym-shell {
       display: grid;
-      grid-template-columns: 1fr 268px;
+      grid-template-columns: 1fr 276px;
       gap: 18px;
       align-items: start;
     }
@@ -17,34 +16,34 @@
     .gym-sidebar {
       position: sticky;
       top: 72px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
       max-height: calc(100vh - 88px);
       overflow-y: auto;
       scrollbar-width: none;
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
     }
     .gym-sidebar::-webkit-scrollbar { display: none; }
 
-    /* ── Workout header ─────────────────────────────────────────── */
-    .workout-header {
+    /* Workout header */
+    .wh {
       background: var(--card-bg);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 12px;
       padding: 16px 20px 18px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
-    .wh-top {
+    .wh-row1 {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 14px;
     }
-    .day-pills { display: flex; gap: 4px; }
+    .day-pills { display: flex; gap: 3px; }
     .day-pill {
-      padding: 5px 13px;
+      padding: 4px 12px;
       border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.09);
       background: transparent;
       color: var(--text-tertiary);
       font-size: 11px;
@@ -52,465 +51,301 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .day-pill.active {
-      background: rgba(255,255,255,0.09);
-      color: var(--text-primary);
-      border-color: rgba(255,255,255,0.18);
+    .day-pill.active { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(255,255,255,0.16); }
+    .day-pill:hover:not(.active) { color: var(--text-secondary); }
+    .wh-cta { display: flex; align-items: center; gap: 8px; }
+    .wh-title { font-size: 21px; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); line-height: 1.1; }
+    .wh-meta { display: flex; gap: 14px; margin-top: 4px; }
+    .wh-meta-item { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; }
+    .elapsed-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(107,227,164,0.07); border: 1px solid rgba(107,227,164,0.16);
+      border-radius: 20px; padding: 5px 13px;
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--success);
     }
-    .day-pill:hover:not(.active) { color: var(--text-secondary); border-color: rgba(255,255,255,0.16); }
-    .wh-title {
-      font-size: 21px;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      color: var(--text-primary);
-      line-height: 1.1;
-    }
-    .wh-sub {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      margin-top: 4px;
-      letter-spacing: 0.08em;
-    }
-    .elapsed-badge {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(107,227,164,0.08);
-      border: 1px solid rgba(107,227,164,0.18);
-      border-radius: 20px;
-      padding: 5px 14px;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--success);
-    }
-    .elapsed-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--success);
-      flex-shrink: 0;
-      animation: pulse-dot 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse-dot {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.35; transform:scale(0.65); }
-    }
+    .elapsed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* ── Done banner ────────────────────────────────────────────── */
+    /* Done banner */
     .done-banner {
-      background: rgba(107,227,164,0.06);
-      border: 1px solid rgba(107,227,164,0.16);
-      border-radius: 12px;
-      padding: 22px 24px;
-      text-align: center;
-      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(107,227,164,0.05); border: 1px solid rgba(107,227,164,0.14);
+      border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
     }
-    .done-check { font-size: 28px; margin-bottom: 6px; }
-    .done-title { font-size: 18px; font-weight: 700; color: var(--success); margin-bottom: 4px; }
-    .done-stats { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .done-icon { font-size: 22px; }
+    .done-title { font-size: 15px; font-weight: 700; color: var(--success); }
+    .done-sub { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
 
-    /* ── Collapsible panel ──────────────────────────────────────── */
-    .cp-wrap {
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px;
-      margin-bottom: 8px;
-      overflow: hidden;
+    /* Warmup */
+    .wm-wrap {
+      background: var(--card-bg); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; margin-bottom: 10px; overflow: hidden;
     }
-    .cp-toggle {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 14px;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      text-align: left;
+    .wm-toggle {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 12px 16px;
+      background: transparent; border: none; cursor: pointer; text-align: left;
     }
-    .cp-label {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-tertiary);
-      flex: 1;
-    }
-    .cp-badge {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      background: rgba(255,255,255,0.05);
-      padding: 2px 8px;
-      border-radius: 10px;
-    }
-    .cp-chevron { color: var(--text-tertiary); font-size: 9px; transition: transform 0.2s; }
-    .cp-wrap.open .cp-chevron { transform: rotate(180deg); }
-    .cp-body { display: none; padding: 2px 14px 14px; }
-    .cp-wrap.open .cp-body { display: block; }
+    .wm-label { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); flex: 1; }
+    .wm-badge { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 8px; }
+    .wm-chevron { color: var(--text-tertiary); font-size: 9px; transition: transform 0.2s; }
+    .wm-wrap.open .wm-chevron { transform: rotate(180deg); }
+    .wm-body { display: none; padding: 0 14px 14px; }
+    .wm-wrap.open .wm-body { display: block; }
 
-    /* ── Exercise group (section / superset) ────────────────────── */
-    .ex-group { margin-bottom: 12px; }
-    .ex-group-hd {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 2px;
-      margin-bottom: 5px;
-    }
-    .ex-group-name {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-tertiary);
-      flex: 1;
-    }
-    .ex-group-meta {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-    }
-    .ex-group-body { position: relative; }
-    /* Superset bracket when 2+ exercises in a section */
-    .ex-group-body.multi::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 8px;
-      bottom: 8px;
-      width: 2px;
-      background: linear-gradient(to bottom, var(--accent-blue), rgba(91,164,245,0.25));
-      border-radius: 1px;
-      pointer-events: none;
-    }
-    .ex-group-body.multi .ex-block { margin-left: 10px; }
-
-    /* ── Exercise block ─────────────────────────────────────────── */
-    .ex-block {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    /* Sirkulasjon special row */
+    .circ-row {
+      display: flex; align-items: center; gap: 12px;
       padding: 10px 12px;
-      background: rgba(255,255,255,0.025);
-      border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 8px;
-      margin-bottom: 3px;
+      background: rgba(91,164,245,0.05); border: 1px solid rgba(91,164,245,0.12);
+      border-radius: 8px; margin-bottom: 10px;
+    }
+    .circ-icon { font-size: 18px; flex-shrink: 0; }
+    .circ-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .circ-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+
+    /* Section header */
+    .sec-hd { display: flex; align-items: center; gap: 8px; padding: 8px 2px; margin-bottom: 3px; }
+    .sec-label { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); }
+    .sec-divider { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+    .sec-count { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 1px 7px; border-radius: 8px; }
+
+    /* Superset bracket */
+    .ex-section { margin-bottom: 14px; }
+    .ex-section.multi { border-left: 2px solid rgba(91,164,245,0.28); padding-left: 0; }
+    .ex-section.multi .ex-row { margin-left: 10px; }
+    .ex-section.multi .sec-hd { padding-left: 10px; }
+
+    /* Exercise row */
+    .ex-row-wrap { }
+    .ex-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 8px; cursor: pointer;
       transition: background 0.15s, border-color 0.15s, opacity 0.2s;
-      cursor: default;
+      margin-bottom: 2px;
     }
-    .ex-block:hover { background: rgba(255,255,255,0.04); }
-    .ex-block.is-active {
-      background: rgba(91,164,245,0.07);
-      border-color: rgba(91,164,245,0.25);
-    }
-    .ex-block.is-done {
-      background: rgba(255,255,255,0.012);
-      border-color: rgba(255,255,255,0.03);
-      opacity: 0.5;
-    }
-    .ex-super-lbl {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      font-weight: 700;
-      color: var(--accent-blue);
-      width: 14px;
-      flex-shrink: 0;
-      letter-spacing: 0.04em;
-    }
-    .ex-info { flex: 1; min-width: 0; }
-    .ex-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.2;
-    }
-    .ex-block.is-done .ex-name {
-      text-decoration: line-through;
-      color: var(--text-tertiary);
-    }
-    .ex-vol {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      margin-top: 2px;
-    }
+    .ex-row:hover { background: rgba(255,255,255,0.04); }
+    .ex-row.is-active { background: rgba(91,164,245,0.06); border-color: rgba(91,164,245,0.22); }
+    .ex-row.is-done { opacity: 0.42; background: transparent; }
+    .ex-row.is-done .ex-r-name { text-decoration: line-through; color: var(--text-tertiary); }
 
-    /* Set dots */
-    .set-dots { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
-    .set-dot {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,0.13);
-      background: transparent;
-      cursor: pointer;
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.12s;
-      flex-shrink: 0;
-      line-height: 1;
+    .ex-chk {
+      width: 18px; height: 18px; border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.14); background: transparent;
+      flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: transparent; transition: all 0.12s;
     }
-    .set-dot:hover { border-color: rgba(255,255,255,0.3); color: var(--text-secondary); }
-    .set-dot.done {
-      background: rgba(107,227,164,0.16);
-      border-color: rgba(107,227,164,0.45);
-      color: var(--success);
+    .ex-chk.done { background: rgba(107,227,164,0.16); border-color: rgba(107,227,164,0.5); color: var(--success); }
+    .ex-r-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 14px; flex-shrink: 0; }
+    .ex-r-info { flex: 1; min-width: 0; }
+    .ex-r-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 1px; }
+    .ex-r-prog { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0; }
+    .ex-r-prog.partial { color: var(--warning); }
+    .ex-r-prog.done { color: var(--success); }
+    .ex-r-menu {
+      background: none; border: none; color: var(--text-tertiary);
+      cursor: pointer; font-size: 14px; padding: 2px 4px;
+      opacity: 0; transition: opacity 0.15s; flex-shrink: 0;
     }
-    .set-dot.next-dot {
-      border-color: rgba(91,164,245,0.55);
-      color: var(--accent-blue);
-    }
-
-    /* Weight */
-    .ex-weight { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
-    .ex-w-inp {
-      width: 50px;
-      padding: 4px 6px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px;
-      color: var(--text-primary);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      text-align: center;
-    }
-    .ex-w-inp:focus { outline: none; border-color: rgba(91,164,245,0.5); }
-    .ex-w-unit { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); }
-
-    /* Row actions */
-    .ex-actions { display: flex; gap: 1px; flex-shrink: 0; }
-    .sort-btn, .edit-ex-btn {
-      background: none;
-      border: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      font-size: 12px;
-      padding: 3px 4px;
-      line-height: 1;
-      opacity: 0;
-      transition: opacity 0.15s, color 0.15s;
-    }
-    .ex-block:hover .sort-btn,
-    .ex-block:hover .edit-ex-btn { opacity: 1; }
-    .sort-btn:hover { color: var(--text-secondary); }
-    .edit-ex-btn:hover { color: var(--accent-blue); }
+    .ex-row:hover .ex-r-menu { opacity: 1; }
 
     /* Inline edit form */
     .ex-edit-form {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 12px 8px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.055);
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      margin-top: -3px;
-      margin-bottom: 3px;
+      display: none; align-items: center; gap: 6px;
+      padding: 7px 14px 8px;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.055);
+      border-top: none; border-radius: 0 0 8px 8px;
+      margin-top: -2px; margin-bottom: 2px;
     }
     .ex-edit-form.open { display: flex; }
 
-    /* Add exercise */
-    .add-ex-form {
+    /* Set drawer */
+    .set-drawer {
       display: none;
-      gap: 6px;
-      align-items: center;
-      padding: 8px 10px;
-      margin-top: 4px;
-      background: rgba(255,255,255,0.025);
-      border: 1px dashed rgba(255,255,255,0.1);
-      border-radius: 8px;
+      background: rgba(255,255,255,0.022);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-top: none; border-radius: 0 0 8px 8px;
+      margin-top: -2px; margin-bottom: 2px;
+      overflow: hidden;
+    }
+    .set-drawer.open { display: block; }
+    .drawer-hd {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .drawer-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); flex: 1; }
+    .drawer-meta-lbl { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .drawer-close { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 4px; }
+    .drawer-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: var(--font-mono); }
+    .drawer-table th {
+      padding: 5px 8px; color: var(--text-tertiary);
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+      text-align: left; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .drawer-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-secondary); vertical-align: middle; }
+    .drawer-table tr:last-child td { border-bottom: none; }
+    .drawer-table tr.set-done td { opacity: 0.45; }
+    .set-num-cell { color: var(--text-tertiary); width: 28px; }
+    .set-inp {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; color: var(--text-primary);
+      font-family: var(--font-mono); font-size: 11px; padding: 3px 6px; width: 54px;
+    }
+    .set-inp:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+    .set-notes-inp { width: 80px; }
+    .set-check {
+      width: 22px; height: 22px; border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.12); background: transparent;
+      cursor: pointer; font-size: 10px; color: transparent;
+      display: flex; align-items: center; justify-content: center; transition: all 0.1s;
+    }
+    .set-check.done { background: rgba(107,227,164,0.16); border-color: rgba(107,227,164,0.5); color: var(--success); }
+    .drawer-actions {
+      display: flex; gap: 5px; align-items: center;
+      padding: 8px 10px; border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .drawer-spacer { flex: 1; }
+    .drawer-actions .btn { font-size: 10px; padding: 5px 10px; }
+
+    /* Add exercise */
+    .add-ex-btn {
+      width: 100%; padding: 6px; background: transparent;
+      border: 1px dashed rgba(255,255,255,0.07); border-radius: 6px;
+      color: var(--text-tertiary); font-size: 10px; font-family: var(--font-mono);
+      cursor: pointer; margin-top: 4px; transition: all 0.15s;
+    }
+    .add-ex-btn:hover { border-color: rgba(255,255,255,0.16); color: var(--text-secondary); }
+    .add-ex-form {
+      display: none; gap: 6px; align-items: center;
+      padding: 8px 10px; margin-top: 4px;
+      background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px;
     }
     .add-ex-form.open { display: flex; }
     .add-ex-form input { flex: 1; }
-    .add-ex-form .w-sets, .add-ex-form .w-reps { width: 58px; flex: none; }
-    .add-ex-trigger {
-      width: 100%;
-      padding: 6px;
-      background: transparent;
-      border: 1px dashed rgba(255,255,255,0.07);
-      border-radius: 6px;
-      color: var(--text-tertiary);
-      font-size: 10px;
-      font-family: var(--font-mono);
+    .add-ex-form .w-short { width: 54px; flex: none; }
+
+    /* Sidebar sections */
+    .sb-sec { padding: 13px 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .sb-sec:last-child { border-bottom: none; }
+    .sb-hd { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); margin-bottom: 9px; }
+
+    /* Circular progress ring */
+    .ring-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    .ring-center { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+    .ring-svg { position: absolute; top: 0; left: 0; width: 72px; height: 72px; transform: rotate(-90deg); }
+    .ring-bg { stroke: rgba(255,255,255,0.06); }
+    .ring-fill { stroke: var(--success); stroke-linecap: round; transition: stroke-dashoffset 0.4s ease; }
+    .ring-txt {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      text-align: center; line-height: 1;
+    }
+    .ring-pct { font-size: 15px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); }
+    .ring-sub { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+    .ring-stats { flex: 1; }
+    .ring-count { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1.6; }
+    .ring-timer { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); letter-spacing: -0.02em; line-height: 1; margin-top: 2px; }
+
+    /* Sidebar exercise cards */
+    .sb-ex-card {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 7px; padding: 9px 11px;
+    }
+    .sb-ex-empty { font-size: 11px; color: var(--text-tertiary); }
+    .sb-ex-hint { font-size: 9px; color: var(--text-tertiary); font-family: var(--font-mono); margin-top: 2px; }
+    .sb-ex-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .sb-ex-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+    .sb-ex-prog { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-top: 4px; }
+
+    /* Tool items */
+    .tool-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
       cursor: pointer;
-      margin-top: 3px;
-      transition: all 0.15s;
     }
-    .add-ex-trigger:hover { border-color: rgba(255,255,255,0.2); color: var(--text-secondary); }
+    .tool-item:last-of-type { border-bottom: none; }
+    .tool-icon { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .tool-name { font-size: 11px; font-weight: 500; color: var(--text-secondary); flex: 1; }
+    .tool-val { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .tool-arr { font-size: 10px; color: var(--text-tertiary); transition: transform 0.2s; }
+    .tool-item.open .tool-arr { transform: rotate(90deg); }
+    .tool-body { display: none; padding: 8px 0 4px; }
+    .tool-body.open { display: block; }
 
-    /* ── Sidebar widget ─────────────────────────────────────────── */
-    .sw {
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px;
-      padding: 13px;
+    /* Shortcut bar */
+    .shortcut-bar { display: flex; gap: 4px; }
+    .sc-btn {
+      flex: 1; padding: 7px 4px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 6px; color: var(--text-tertiary);
+      font-size: 9px; font-family: var(--font-mono);
+      cursor: pointer; text-align: center; line-height: 1.4; transition: all 0.12s;
     }
-    .sw-hd {
-      font-size: 8px;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-tertiary);
-      margin-bottom: 9px;
-    }
+    .sc-btn:hover { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+    .sc-btn.accent { background: rgba(107,227,164,0.07); border-color: rgba(107,227,164,0.18); color: var(--success); }
+    .sc-btn.accent:hover { background: rgba(107,227,164,0.13); }
 
-    /* Rest timer */
-    .rest-val {
-      font-size: 38px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      color: var(--text-primary);
-      line-height: 1;
-      margin-bottom: 10px;
-      letter-spacing: -0.02em;
-    }
-    .rest-val.running { color: var(--warning); }
-    .rest-val.done    { color: var(--success); }
-    .rest-presets { display: flex; gap: 4px; }
-    .rest-preset {
-      flex: 1;
-      padding: 5px 0;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 5px;
-      color: var(--text-tertiary);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .rest-preset:hover { background: rgba(255,255,255,0.09); color: var(--text-secondary); }
-
-    /* Progress */
-    .prog-nums {
-      font-size: 26px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      color: var(--text-primary);
-      line-height: 1;
-    }
-    .prog-of {
-      font-size: 13px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-    }
-    .prog-bar-bg {
-      height: 3px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 2px;
-      margin-top: 8px;
-      overflow: hidden;
-    }
-    .prog-bar-fill {
-      height: 100%;
-      background: var(--success);
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
-
-    /* Mini knee pain */
+    /* Mini pain */
     .mini-pain-row { display: flex; gap: 2px; flex-wrap: wrap; }
     .mini-pain-btn {
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: transparent;
-      cursor: pointer;
-      font-size: 8px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.1s;
+      width: 20px; height: 20px; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.1); background: transparent;
+      cursor: pointer; font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary);
+      display: flex; align-items: center; justify-content: center; transition: all 0.1s;
     }
     .mini-pain-btn:hover { background: rgba(255,255,255,0.08); }
     .mini-pain-btn.sel-green  { background: rgba(107,227,164,0.18); border-color: rgba(107,227,164,0.5); color: var(--success); }
     .mini-pain-btn.sel-yellow { background: rgba(242,192,99,0.18);  border-color: rgba(242,192,99,0.5);  color: var(--warning); }
     .mini-pain-btn.sel-orange { background: rgba(242,130,60,0.18);  border-color: rgba(242,130,60,0.5);  color: rgba(242,130,60,1); }
     .mini-pain-btn.sel-red    { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.5); color: var(--danger); }
-    .pain-phase-pills { display: flex; gap: 3px; }
+    .pain-phase-pills { display: flex; gap: 3px; margin-top: 7px; }
     .pain-phase-pill {
-      flex: 1;
-      padding: 4px 0;
-      text-align: center;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--text-tertiary);
-      transition: all 0.12s;
+      flex: 1; padding: 4px 0; text-align: center;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 4px; cursor: pointer;
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); transition: all 0.12s;
     }
     .pain-phase-pill.active { background: rgba(255,255,255,0.09); color: var(--text-secondary); border-color: rgba(255,255,255,0.14); }
 
-    /* Knee grid in done sidebar */
+    /* Rest timer */
+    .rest-display { font-size: 30px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); line-height: 1; margin-bottom: 8px; letter-spacing: -0.02em; }
+    .rest-display.running { color: var(--warning); }
+    .rest-display.done { color: var(--success); }
+    .rest-presets { display: flex; gap: 4px; }
+    .rest-preset { flex: 1; padding: 5px 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; cursor: pointer; transition: all 0.12s; }
+    .rest-preset:hover { background: rgba(255,255,255,0.09); color: var(--text-secondary); }
+
+    /* Knee grid */
     .knee-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
 
-    /* History rows */
-    .hist-wrap { margin-bottom: 0; }
-    .hist-row {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 7px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 11px;
-      font-family: var(--font-mono);
-    }
+    /* History */
+    .hist-row { display: flex; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; font-family: var(--font-mono); }
     .hist-row:last-child { border-bottom: none; }
-    .hist-date { color: var(--text-tertiary); width: 66px; flex-shrink: 0; font-size: 10px; }
+    .hist-date { color: var(--text-tertiary); width: 58px; flex-shrink: 0; font-size: 10px; }
     .hist-type { color: var(--text-secondary); flex: 1; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hist-knee { color: var(--text-tertiary); font-size: 9px; flex-shrink: 0; }
-    .edit-knee-btn {
-      background: none;
-      border: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      font-size: 11px;
-      padding: 2px 3px;
-      margin-left: auto;
-      flex-shrink: 0;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
+    .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
     .hist-row:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
-    .knee-edit-panel {
-      display: none;
-      padding: 8px 10px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 6px;
-      margin-bottom: 4px;
-    }
+    .knee-edit-panel { display: none; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; }
     .knee-edit-panel.open { display: block; }
     .knee-edit-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .knee-edit-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); }
 
-    /* ── Workout state visibility ────────────────────────────────── */
+    /* State visibility */
     body[data-ws="idle"]   .ws-active { display: none !important; }
     body[data-ws="idle"]   .ws-done   { display: none !important; }
     body[data-ws="active"] .ws-idle   { display: none !important; }
     body[data-ws="active"] .ws-done   { display: none !important; }
     body[data-ws="done"]   .ws-idle   { display: none !important; }
     body[data-ws="done"]   .ws-active { display: none !important; }
-    /* Set dots hidden in idle; pointer-events off in done */
-    body[data-ws="idle"] .set-dots    { display: none; }
-    body[data-ws="done"] .ex-block    { pointer-events: none; }
+    body[data-ws="done"]   .ex-row    { pointer-events: none; }
 
-    /* ── Responsive ─────────────────────────────────────────────── */
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
@@ -522,11 +357,11 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
@@ -536,20 +371,19 @@
 <main class="page">
 <div class="gym-shell">
 
-  <!-- ══ LEFT: Main workout area ══════════════════════════════════ -->
+  <!-- ══ LEFT ══════════════════════════════════════════════════════ -->
   <div class="gym-main">
 
-    <!-- Workout header -->
-    <div class="workout-header">
-      <div class="wh-top">
+    <div class="wh">
+      <div class="wh-row1">
         <div class="day-pills">
           <button class="day-pill" data-day="monday"    onclick="setDay('monday')">Mandag</button>
           <button class="day-pill" data-day="wednesday" onclick="setDay('wednesday')">Onsdag</button>
           <button class="day-pill" data-day="friday"    onclick="setDay('friday')">Fredag</button>
         </div>
-        <div style="display:flex;gap:7px;align-items:center">
-          <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 16px;font-size:12px">▷ Start økt</button>
-          <div class="elapsed-badge ws-active">
+        <div class="wh-cta">
+          <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px">▷ Start økt</button>
+          <div class="elapsed-chip ws-active">
             <span class="elapsed-dot"></span>
             <span id="elapsedDisplay">0:00</span>
           </div>
@@ -557,104 +391,149 @@
         </div>
       </div>
       <div class="wh-title" id="workoutTitle">Økt</div>
-      <div class="wh-sub ws-active">Aktiv økt pågår</div>
+      <div class="wh-meta">
+        <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
+        <div class="wh-meta-item">◈ <span id="whExCount">— øvelser</span></div>
+      </div>
     </div>
 
-    <!-- Done banner -->
     <div class="done-banner ws-done">
-      <div class="done-check">✓</div>
-      <div class="done-title">Økt fullført!</div>
-      <div class="done-stats" id="doneStats">Lagre økt i sidepanelet →</div>
+      <div class="done-icon">✓</div>
+      <div>
+        <div class="done-title">Økt fullført!</div>
+        <div class="done-sub" id="doneStats">Lagre i sidepanelet →</div>
+      </div>
     </div>
 
-    <!-- Warmup (collapsible) -->
-    <div class="cp-wrap open" id="warmupPanel">
-      <button class="cp-toggle" onclick="togglePanel('warmupPanel')">
-        <span class="cp-label">Oppvarming</span>
-        <span class="cp-badge" id="warmupBadge">—</span>
-        <span class="cp-chevron">▾</span>
+    <div class="wm-wrap open" id="warmupWrap">
+      <button class="wm-toggle" onclick="document.getElementById('warmupWrap').classList.toggle('open')">
+        <span class="wm-label">Oppvarming</span>
+        <span class="wm-badge" id="warmupBadge">—</span>
+        <span class="wm-chevron">▾</span>
       </button>
-      <div class="cp-body">
+      <div class="wm-body">
         <div id="warmupContent"><div class="loading">Laster…</div></div>
       </div>
     </div>
 
-    <!-- Main workout sections -->
     <div id="workoutBlocks"><div class="loading" style="padding:20px 2px">Laster øvelser…</div></div>
 
   </div>
 
-  <!-- ══ RIGHT: Sidebar ══════════════════════════════════════════ -->
+  <!-- ══ RIGHT ═════════════════════════════════════════════════════ -->
   <aside class="gym-sidebar">
 
-    <!-- IDLE: Pre-workout -->
-    <div class="sw ws-idle">
-      <div class="sw-hd">Dagens økt</div>
-      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:14px;line-height:1.55">Velg dag og trykk start når du er klar.</div>
+    <!-- IDLE: pre-workout -->
+    <div class="sb-sec ws-idle">
+      <div class="sb-hd">Dagens økt</div>
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-bottom:12px">Velg dag og trykk start når du er klar.</div>
       <button class="btn btn-success" style="width:100%;padding:10px;font-size:12px" onclick="startWorkout()">▷ Start økt</button>
     </div>
 
-    <!-- IDLE: Knee pain before -->
-    <div class="sw ws-idle">
-      <div class="sw-hd">Knesmerte — Før økt</div>
+    <div class="sb-sec ws-idle">
+      <div class="sb-hd">Knesmerte — Før økt</div>
       <div class="pain-row" id="knee-before"></div>
     </div>
 
-    <!-- ACTIVE: Rest timer -->
-    <div class="sw ws-active">
-      <div class="sw-hd">Hviletimer</div>
-      <div id="restDisplay" class="rest-val">—</div>
-      <div class="rest-presets">
-        <button class="rest-preset" onclick="startRest(60)">1m</button>
-        <button class="rest-preset" onclick="startRest(90)">1:30</button>
-        <button class="rest-preset" onclick="startRest(120)">2m</button>
-        <button class="rest-preset" onclick="startRest(180)">3m</button>
+    <!-- ACTIVE: ring status -->
+    <div class="sb-sec ws-active">
+      <div class="sb-hd">Øktstatus</div>
+      <div class="ring-wrap">
+        <div class="ring-center">
+          <svg class="ring-svg" viewBox="0 0 72 72">
+            <circle class="ring-bg" cx="36" cy="36" r="30" fill="none" stroke-width="4"/>
+            <circle class="ring-fill" cx="36" cy="36" r="30" fill="none" stroke-width="4"
+              stroke-dasharray="188.5" stroke-dashoffset="188.5" id="ringFill"/>
+          </svg>
+          <div class="ring-txt">
+            <div class="ring-pct" id="ringPct">0%</div>
+            <div class="ring-sub">ferdig</div>
+          </div>
+        </div>
+        <div class="ring-stats">
+          <div class="ring-count" id="sbSetCount">0 / 0 sett</div>
+          <div class="ring-timer" id="sbTimer">0:00</div>
+        </div>
       </div>
     </div>
 
-    <!-- ACTIVE: Progress -->
-    <div class="sw ws-active">
-      <div class="sw-hd">Sett fullført</div>
-      <div>
-        <span class="prog-nums" id="sbDoneSets">0</span>
-        <span class="prog-of"> / <span id="sbTotalSets">0</span></span>
-      </div>
-      <div class="prog-bar-bg">
-        <div class="prog-bar-fill" id="sbProgressBar" style="width:0%"></div>
+    <!-- ACTIVE: active exercise -->
+    <div class="sb-sec ws-active">
+      <div class="sb-hd">Aktiv øvelse</div>
+      <div class="sb-ex-card" id="sbActiveCard">
+        <div class="sb-ex-empty">Ingen aktiv øvelse</div>
+        <div class="sb-ex-hint">Trykk på en øvelse for å begynne</div>
       </div>
     </div>
 
-    <!-- ACTIVE: Next exercise -->
-    <div class="sw ws-active">
-      <div class="sw-hd">Neste øvelse</div>
-      <div id="sbNextName" style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">—</div>
-      <div id="sbNextMeta" style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)"></div>
-    </div>
-
-    <!-- ACTIVE: Knee pain -->
-    <div class="sw ws-active">
-      <div class="sw-hd">Knesmerte — <span id="sbKneePhaseLabel">Under økt</span></div>
-      <div class="mini-pain-row" id="sbKneeButtons" style="margin-bottom:8px"></div>
-      <div class="pain-phase-pills">
-        <button class="pain-phase-pill" id="pp-before" onclick="setSbPhase('before')">Før</button>
-        <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')">Under</button>
-        <button class="pain-phase-pill" id="pp-after"  onclick="setSbPhase('after')">Etter</button>
+    <!-- ACTIVE: next exercise -->
+    <div class="sb-sec ws-active">
+      <div class="sb-hd">Neste øvelse</div>
+      <div class="sb-ex-card" id="sbNextCard">
+        <div class="sb-ex-empty">—</div>
       </div>
     </div>
 
-    <!-- ACTIVE: Quick notes -->
-    <div class="sw ws-active">
-      <div class="sw-hd">Notater</div>
-      <textarea id="sidebarNotes" class="input-sm" rows="2" placeholder="Kommentarer…"
-        style="width:100%;resize:none;box-sizing:border-box"></textarea>
+    <!-- ACTIVE: verktøy -->
+    <div class="sb-sec ws-active">
+      <div class="sb-hd">Verktøy</div>
+
+      <div class="tool-item" id="ti-rest" onclick="toggleTool('rest')">
+        <div class="tool-icon">⏱</div>
+        <div class="tool-name">Hviletimer</div>
+        <div class="tool-val" id="restVal">Ikke i drift</div>
+        <div class="tool-arr">›</div>
+      </div>
+      <div class="tool-body" id="tb-rest">
+        <div id="restDisplay" class="rest-display">—</div>
+        <div class="rest-presets">
+          <button class="rest-preset" onclick="startRest(60)">1m</button>
+          <button class="rest-preset" onclick="startRest(90)">1:30</button>
+          <button class="rest-preset" onclick="startRest(120)">2m</button>
+          <button class="rest-preset" onclick="startRest(180)">3m</button>
+        </div>
+      </div>
+
+      <div class="tool-item" id="ti-notes" onclick="toggleTool('notes')">
+        <div class="tool-icon">📋</div>
+        <div class="tool-name">Notater</div>
+        <div class="tool-val" id="notesVal">0 notater</div>
+        <div class="tool-arr">›</div>
+      </div>
+      <div class="tool-body" id="tb-notes">
+        <textarea id="sidebarNotes" class="input-sm" rows="3" placeholder="Kommentarer…"
+          style="width:100%;resize:none;box-sizing:border-box"
+          oninput="updateNotesCount()"></textarea>
+      </div>
+
+      <div class="tool-item" id="ti-knee" onclick="toggleTool('knee')">
+        <div class="tool-icon">🦵</div>
+        <div class="tool-name">Knesmerte</div>
+        <div class="tool-val" id="kneeVal">Registrer smerte</div>
+        <div class="tool-arr">›</div>
+      </div>
+      <div class="tool-body" id="tb-knee">
+        <div class="mini-pain-row" id="sbKneeButtons" style="margin-bottom:6px"></div>
+        <div class="pain-phase-pills">
+          <button class="pain-phase-pill" id="pp-before" onclick="setSbPhase('before')">Før</button>
+          <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')">Under</button>
+          <button class="pain-phase-pill" id="pp-after"  onclick="setSbPhase('after')">Etter</button>
+        </div>
+      </div>
     </div>
 
-    <!-- ACTIVE: Finish -->
-    <button class="btn btn-success ws-active" style="width:100%;padding:11px;font-size:12px" onclick="finishWorkout()">Fullfør økt ✓</button>
+    <!-- ACTIVE: shortcuts -->
+    <div class="sb-sec ws-active">
+      <div class="shortcut-bar">
+        <button class="sc-btn" onclick="addSetToActive()">Legg til<br>sett</button>
+        <button class="sc-btn" onclick="jumpToNext()">Hopp til<br>neste</button>
+        <button class="sc-btn accent" onclick="finishWorkout()">Fullfør<br>økt</button>
+      </div>
+    </div>
 
-    <!-- DONE: Save log -->
-    <div class="sw ws-done">
-      <div class="sw-hd">Lagre økt</div>
+    <!-- DONE: save log -->
+    <div class="sb-sec ws-done">
+      <div class="sb-hd">Lagre økt</div>
       <div class="form-group" style="margin-bottom:10px">
         <label class="form-label">Dato</label>
         <input type="date" id="logDate" class="input-sm" style="width:100%;box-sizing:border-box">
@@ -682,10 +561,10 @@
       </div>
     </div>
 
-    <!-- ALWAYS: History -->
-    <div class="sw">
-      <div class="sw-hd">Økthistorikk</div>
-      <div id="gymHistory" style="max-height:280px;overflow-y:auto">
+    <!-- ALWAYS: history -->
+    <div class="sb-sec">
+      <div class="sb-hd">Økthistorikk</div>
+      <div id="gymHistory" style="max-height:260px;overflow-y:auto">
         <div class="loading">Laster…</div>
       </div>
     </div>
@@ -701,7 +580,6 @@
 let db;
 document.querySelector('[data-p="gym"]').classList.add('active');
 
-// ── Utilities ─────────────────────────────────────────────────────
 let _tt;
 function toast(msg, type='ok') {
   const el = document.getElementById('toast');
@@ -712,20 +590,22 @@ async function signOut() { if (db) await db.auth.signOut(); window.location.href
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function today() { return new Date().toISOString().slice(0,10); }
 
-// ── Core state ────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────
 let activeDay    = detectDay();
 let allExercises = {};
 let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
-// Workout session state
-let workoutState     = 'idle';   // 'idle' | 'active' | 'done'
-let workoutStart     = null;
-let elapsedTimer     = null;
-let completedSets    = {};       // ex.id -> Set of done set indices
-let restTimerInt     = null;
-let restRemaining    = 0;
-let sbKneePhase      = 'during';
+let workoutState  = 'idle';
+let workoutStart  = null;
+let elapsedTimer  = null;
+let completedSets = {};   // exId -> Set of done set indices
+let setData       = {};   // exId -> [{ done, weight, reps, notes }]
+let activeDrawer  = null;
+let activeExId    = null;
+let restTimerInt  = null;
+let restRemaining = 0;
+let sbKneePhase   = 'during';
 
 function detectDay() {
   const d = new Date().getDay();
@@ -734,13 +614,9 @@ function detectDay() {
   if (d === 5) return 'friday';
   return 'monday';
 }
+function setWS(s) { workoutState = s; document.body.dataset.ws = s; }
 
-function setWS(state) {
-  workoutState = state;
-  document.body.dataset.ws = state;
-}
-
-// ── Init ──────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('logDate').value = today();
   setDay(activeDay);
@@ -765,134 +641,134 @@ async function loadData() {
   (wts.data || []).forEach(w => { weights[w.exercise_name] = w.weight_kg; });
 }
 
-// ── Day ───────────────────────────────────────────────────────────
+// ── Day ────────────────────────────────────────────────────────────
 function setDay(day) {
-  if (workoutState === 'active') return; // prevent mid-workout switch
+  if (workoutState === 'active') return;
   activeDay = day;
   document.querySelectorAll('.day-pill').forEach(t =>
     t.classList.toggle('active', t.dataset.day === day)
   );
-  const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+  const titles    = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+  const durations = { monday:'~75 min', wednesday:'~60 min', friday:'~80 min' };
   document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
+  document.getElementById('whDuration').textContent   = durations[day] || '~75 min';
   renderAll();
 }
 
 function renderAll() {
   renderWarmup();
   renderWorkout();
-  if (workoutState === 'active') {
-    // Restore set dot visual state after re-render
-    const day = allExercises[activeDay] || {};
-    Object.values(day).flat().forEach(ex => refreshSetDots(ex.id));
-    updateProgress();
-    updateNextEx();
-  }
+  const exs = getSortedMainExercises();
+  document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
 }
 
-// ── Warmup ────────────────────────────────────────────────────────
+// ── Warmup ─────────────────────────────────────────────────────────
 function renderWarmup() {
-  const el  = document.getElementById('warmupContent');
-  const isFriday = activeDay === 'friday';
-  const base = allExercises['warmup'] || {};
-  const fri  = allExercises['friday_warmup'] || {};
+  const el       = document.getElementById('warmupContent');
+  const isFri    = activeDay === 'friday';
+  const base     = allExercises['warmup'] || {};
+  const fri      = allExercises['friday_warmup'] || {};
+  const cirSrc   = isFri ? fri : base;
+  const cirKey   = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
+  const sykExs   = cirSrc[cirKey] || [];
+  const syk      = sykExs[0];
 
-  const cirSrc = isFriday ? fri : base;
-  const cirKey = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
-  const sykkelSection = cirSrc[cirKey];
-  const extraSection  = isFriday ? fri['Ekstra'] : null;
-  const hoftSection   = base['Hofteaktivering'] || [];
-  const knaerSection  = base['Knær'] || [];
-  const prepSection   = base['Prepøvelser'] || [];
+  // Merge all prep sections
+  const prepExs = [
+    ...(base['Hofteaktivering'] || []),
+    ...(base['Knær'] || []),
+    ...(base['Prepøvelser'] || []),
+    ...(isFri ? (fri['Ekstra'] || []) : []),
+  ];
+
+  const count = sykExs.length + prepExs.length;
+  document.getElementById('warmupBadge').textContent = count ? `${count} øvelser` : '—';
 
   let html = '';
-  let count = 0;
-  if (sykkelSection) { html += renderSection(cirKey, sykkelSection, isFriday ? 'friday_warmup' : 'warmup', true); count += sykkelSection.length; }
-  if (extraSection)  { html += renderSection('Ekstra', extraSection, 'friday_warmup', true); count += extraSection.length; }
-  if (hoftSection.length) { html += renderSection('Hofteaktivering', hoftSection, 'warmup', true); count += hoftSection.length; }
-  if (knaerSection.length) { html += renderSection('Knær', knaerSection, 'warmup', true); count += knaerSection.length; }
-  if (prepSection.length) { html += renderSection('Prepøvelser', prepSection, 'warmup', true); count += prepSection.length; }
+
+  if (syk) {
+    html += `<div class="circ-row">
+      <div class="circ-icon">🚴</div>
+      <div>
+        <div class="circ-name">${escHtml(syk.exercise_name)}</div>
+        <div class="circ-meta">${escHtml(syk.reps || '8–10 min')}</div>
+      </div>
+    </div>`;
+  }
+
+  if (prepExs.length) {
+    html += `<div style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.14em;color:var(--text-tertiary);margin-bottom:4px">Prepøvelser</div>
+    <div>
+      ${prepExs.map((ex, i) => renderExRow(ex, 'warmup', i + 1, true)).join('')}
+    </div>`;
+  }
+
+  const addId = 'add-warmup-Prepøvelser';
+  html += `<div class="add-ex-form" id="${addId}">
+    <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
+    <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
+    <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
+    <button class="btn btn-success btn-sm" onclick="addExercise('warmup','Prepøvelser','${addId}')">+</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
+  </div>
+  <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>`;
 
   el.innerHTML = html || '<div class="empty">Ingen oppvarmingsdata</div>';
-  document.getElementById('warmupBadge').textContent = count ? `${count} øvelser` : '—';
 }
 
-// ── Workout ───────────────────────────────────────────────────────
+// ── Workout ────────────────────────────────────────────────────────
 function renderWorkout() {
   const el  = document.getElementById('workoutBlocks');
   const day = allExercises[activeDay] || {};
   if (!Object.keys(day).length) {
     el.innerHTML = '<div class="loading" style="padding:20px 2px">Laster øvelser…</div>'; return;
   }
-  el.innerHTML = Object.entries(day).map(([section, exs]) =>
-    renderSection(section, exs, activeDay, true)
-  ).join('');
+  el.innerHTML = Object.entries(day).map(([sec, exs]) => renderSectionBlock(sec, exs, activeDay)).join('');
 }
 
-function renderSection(label, exs, day, editable) {
-  const addId    = `add-${day}-${label.replace(/\s/g,'_')}`;
-  const isWarmup = day === 'warmup' || day === 'friday_warmup';
-  const isMulti  = exs.length > 1;
-  const totalSets = exs.reduce((a, e) => a + e.sets, 0);
-  const meta = isWarmup ? `${exs.length} øvelser` : `${exs.length} øv · ${totalSets} sett`;
-
-  return `<div class="ex-group">
-    <div class="ex-group-hd">
-      <span class="ex-group-name">${escHtml(label)}</span>
-      <span class="ex-group-meta">${meta}</span>
+function renderSectionBlock(label, exs, day) {
+  const addId   = `add-${day}-${label.replace(/\s/g,'_')}`;
+  const isMulti = exs.length > 1;
+  const totSets = exs.reduce((a, e) => a + e.sets, 0);
+  return `<div class="ex-section${isMulti ? ' multi' : ''}">
+    <div class="sec-hd">
+      <span class="sec-label">${escHtml(label)}</span>
+      <span class="sec-divider"></span>
+      <span class="sec-count">${exs.length} øv · ${totSets} sett</span>
     </div>
-    <div class="ex-group-body${isMulti ? ' multi' : ''}">
-      ${exs.map((ex, i) => renderExRow(ex, day, isMulti ? String(i + 1) : '')).join('')}
-    </div>
-    ${editable ? `
+    ${exs.map((ex, i) => renderExRow(ex, day, i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
       <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
-      <input class="input-sm w-sets" type="number" placeholder="Sett" id="${addId}-sets">
-      <input class="input-sm w-reps" placeholder="Reps" id="${addId}-reps">
+      <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
+      <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
       <button class="btn btn-success btn-sm" onclick="addExercise('${day}','${escHtml(label)}','${addId}')">+</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
     </div>
-    <button class="add-ex-trigger" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
-    ` : ''}
+    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
   </div>`;
 }
 
-function renderExRow(ex, day, superLabel) {
-  const w        = weights[ex.exercise_name];
-  const wVal     = w !== undefined && w !== null ? w : '';
-  const isWarmup = day === 'warmup' || day === 'friday_warmup';
-  const done     = completedSets[ex.id] || new Set();
-  const isDone   = done.size >= ex.sets && ex.sets > 0;
-
-  const setDotsHtml = !isWarmup ? [...Array(ex.sets)].map((_, i) => {
-    let cls = 'set-dot';
-    let txt = String(i + 1);
-    if (done.has(i)) { cls += ' done'; txt = '✓'; }
-    else if (i === done.size) { cls += ' next-dot'; }
-    return `<button class="${cls}"
-      onclick="event.stopPropagation();toggleSet('${ex.id}',${i})"
-      title="Sett ${i + 1}">${txt}</button>`;
-  }).join('') : '';
-
-  return `<div id="exrow-wrap-${ex.id}">
-    <div class="ex-block${isDone ? ' is-done' : ''}" id="ex-block-${ex.id}">
-      ${superLabel ? `<span class="ex-super-lbl">${superLabel}</span>` : ''}
-      <div class="ex-info">
-        <div class="ex-name">${escHtml(ex.exercise_name)}</div>
-        <div class="ex-vol">${ex.sets} × ${ex.reps}</div>
+function renderExRow(ex, day, num, isWarmup) {
+  const done   = completedSets[ex.id] || new Set();
+  const isDone = !isWarmup && done.size >= ex.sets && ex.sets > 0;
+  const isAct  = ex.id === activeExId;
+  let progTxt  = '', progCls = '';
+  if (!isWarmup) {
+    if (isDone) { progTxt = '✓'; progCls = 'done'; }
+    else if (done.size > 0) { progTxt = `${done.size}/${ex.sets}`; progCls = 'partial'; }
+  }
+  return `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}">
+    <div class="ex-row${isDone ? ' is-done' : ''}${isAct ? ' is-active' : ''}" id="ex-row-${ex.id}"
+      onclick="${isWarmup ? '' : `handleExClick('${ex.id}')`}">
+      ${!isWarmup ? `<div class="ex-chk${isDone ? ' done' : ''}" id="ex-chk-${ex.id}"
+        onclick="event.stopPropagation();toggleExDone('${ex.id}')">${isDone ? '✓' : ''}</div>` : ''}
+      <div class="ex-r-num">${num}</div>
+      <div class="ex-r-info">
+        <div class="ex-r-name">${escHtml(ex.exercise_name)}</div>
+        <div class="ex-r-vol">${ex.sets} × ${escHtml(ex.reps)}</div>
       </div>
-      ${!isWarmup ? `
-      <div class="set-dots" id="setdots-${ex.id}">${setDotsHtml}</div>
-      <div class="ex-weight">
-        <input class="ex-w-inp" type="number" step="0.5" value="${wVal}" placeholder="—"
-          title="Vekt (kg)" onblur="saveWeight('${escHtml(ex.exercise_name)}', this.value)">
-        <span class="ex-w-unit">kg</span>
-      </div>` : ''}
-      <div class="ex-actions">
-        <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',-1)" title="Opp">↑</button>
-        <button class="sort-btn" onclick="moveExercise('${ex.id}','${day}','${escHtml(ex.section)}',1)" title="Ned">↓</button>
-        <button class="edit-ex-btn" onclick="toggleEditEx('${ex.id}')" title="Rediger">✎</button>
-        <button class="btn btn-danger btn-icon btn-xs" onclick="deleteExercise('${ex.id}')" title="Slett">✕</button>
-      </div>
+      ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
+      <button class="ex-r-menu" onclick="event.stopPropagation();toggleEditEx('${ex.id}')" title="Rediger">⋮</button>
     </div>
     <div class="ex-edit-form" id="edit-form-${ex.id}">
       <input class="input-sm" type="number" id="edit-sets-${ex.id}" value="${ex.sets}" style="width:48px" placeholder="Sett">
@@ -900,25 +776,230 @@ function renderExRow(ex, day, superLabel) {
       <input class="input-sm" id="edit-reps-${ex.id}" value="${escHtml(ex.reps)}" style="width:76px" placeholder="Reps">
       <button class="btn btn-success btn-sm" onclick="saveExMeta('${ex.id}')">✓</button>
       <button class="btn btn-ghost btn-sm" onclick="toggleEditEx('${ex.id}')">✕</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteExercise('${ex.id}')">Slett</button>
     </div>
+    <div class="set-drawer" id="drawer-${ex.id}"></div>
   </div>`;
 }
 
-// ── Workout state ─────────────────────────────────────────────────
+// ── Drawer ─────────────────────────────────────────────────────────
+function handleExClick(exId) {
+  if (workoutState !== 'active') return;
+  if (activeDrawer === exId) { closeDrawer(); return; }
+  openDrawer(exId);
+}
+
+function openDrawer(exId) {
+  if (activeDrawer && activeDrawer !== exId) {
+    document.getElementById(`drawer-${activeDrawer}`)?.classList.remove('open');
+    document.getElementById(`ex-row-${activeDrawer}`)?.classList.remove('is-active');
+  }
+  activeDrawer = exId;
+  activeExId   = exId;
+  initSetData(exId);
+  document.getElementById(`ex-row-${exId}`)?.classList.add('is-active');
+  renderDrawer(exId);
+  updateSbActiveEx(exId);
+  updateNextEx();
+}
+
+function closeDrawer() {
+  if (!activeDrawer) return;
+  document.getElementById(`drawer-${activeDrawer}`)?.classList.remove('open');
+  document.getElementById(`ex-row-${activeDrawer}`)?.classList.remove('is-active');
+  activeDrawer = null;
+  activeExId   = null;
+  updateSbActiveEx(null);
+}
+
+function initSetData(exId) {
+  if (setData[exId]) return;
+  const ex = findExById(exId);
+  if (!ex) return;
+  const prevDone = completedSets[exId] || new Set();
+  setData[exId] = [...Array(ex.sets)].map((_, i) => ({
+    done:   prevDone.has(i),
+    weight: weights[ex.exercise_name] ?? '',
+    reps:   ex.reps,
+    notes:  '',
+  }));
+}
+
+function renderDrawer(exId) {
+  const el = document.getElementById(`drawer-${exId}`);
+  if (!el) return;
+  const ex   = findExById(exId);
+  if (!ex) return;
+  const data = setData[exId] || [];
+  el.innerHTML = `
+    <div class="drawer-hd">
+      <span class="drawer-title">${escHtml(ex.exercise_name)}</span>
+      <span class="drawer-meta-lbl">${ex.sets} × ${escHtml(ex.reps)}</span>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <table class="drawer-table">
+      <thead><tr>
+        <th style="width:28px">Sett</th><th>Reps</th><th>Vekt (kg)</th>
+        <th style="width:32px">✓</th><th>Notater</th>
+      </tr></thead>
+      <tbody id="drawer-body-${exId}">
+        ${data.map((s, i) => drawerRow(exId, i, s)).join('')}
+      </tbody>
+    </table>
+    <div class="drawer-actions">
+      <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ Sett</button>
+      <span class="drawer-spacer"></span>
+      <button class="btn btn-ghost btn-sm" onclick="saveSetWeights('${exId}')">Lagre</button>
+      <button class="btn btn-success btn-sm" onclick="completeExercise('${exId}')">Fullfør øvelse</button>
+    </div>`;
+  el.classList.add('open');
+}
+
+function drawerRow(exId, i, s) {
+  return `<tr id="drow-${exId}-${i}" class="${s.done ? 'set-done' : ''}">
+    <td class="set-num-cell">${i + 1}</td>
+    <td><input class="set-inp" type="text" value="${escHtml(String(s.reps))}"
+      onchange="setData['${exId}'][${i}].reps=this.value"></td>
+    <td><input class="set-inp" type="number" step="0.5" value="${s.weight !== '' && s.weight !== undefined ? s.weight : ''}"
+      onchange="setData['${exId}'][${i}].weight=this.value===''?'':parseFloat(this.value)"></td>
+    <td><button class="set-check${s.done ? ' done' : ''}" id="sc-${exId}-${i}"
+      onclick="toggleSetDone('${exId}',${i})">${s.done ? '✓' : ''}</button></td>
+    <td><input class="set-inp set-notes-inp" type="text" value="${escHtml(s.notes)}"
+      onchange="setData['${exId}'][${i}].notes=this.value" placeholder="—"></td>
+  </tr>`;
+}
+
+function toggleSetDone(exId, setIdx) {
+  const d = setData[exId];
+  if (!d || !d[setIdx]) return;
+  d[setIdx].done = !d[setIdx].done;
+  if (!completedSets[exId]) completedSets[exId] = new Set();
+  if (d[setIdx].done) { completedSets[exId].add(setIdx); startRest(90); }
+  else completedSets[exId].delete(setIdx);
+  const row = document.getElementById(`drow-${exId}-${setIdx}`);
+  if (row) row.classList.toggle('set-done', d[setIdx].done);
+  const btn = document.getElementById(`sc-${exId}-${setIdx}`);
+  if (btn) { btn.className = 'set-check' + (d[setIdx].done ? ' done' : ''); btn.textContent = d[setIdx].done ? '✓' : ''; }
+  updateExRowStatus(exId);
+  updateProgress();
+  updateNextEx();
+}
+
+function addSet(exId) {
+  const ex = findExById(exId);
+  if (!ex || !setData[exId]) return;
+  const d = setData[exId];
+  const last = d.length ? d[d.length - 1] : null;
+  const i = d.length;
+  d.push({ done: false, weight: last?.weight ?? (weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
+  document.getElementById(`drawer-body-${exId}`)?.insertAdjacentHTML('beforeend', drawerRow(exId, i, d[i]));
+}
+
+async function saveSetWeights(exId) {
+  const ex = findExById(exId);
+  if (!ex || !setData[exId]) return;
+  const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
+  if (s) await saveWeight(ex.exercise_name, s.weight);
+}
+
+async function completeExercise(exId) {
+  const ex = findExById(exId);
+  if (!ex) return;
+  initSetData(exId);
+  if (!completedSets[exId]) completedSets[exId] = new Set();
+  setData[exId].forEach((s, i) => { s.done = true; completedSets[exId].add(i); });
+  const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
+  if (s) await saveWeight(ex.exercise_name, s.weight);
+  closeDrawer();
+  updateExRowStatus(exId);
+  updateProgress();
+  const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
+  if (next) setTimeout(() => openDrawer(next.id), 160);
+  else updateNextEx();
+}
+
+function toggleExDone(exId) {
+  if (workoutState !== 'active') return;
+  initSetData(exId);
+  const ex = findExById(exId);
+  if (!ex || !setData[exId]) return;
+  const allDone = setData[exId].every(s => s.done);
+  if (!completedSets[exId]) completedSets[exId] = new Set();
+  setData[exId].forEach((s, i) => {
+    s.done = !allDone;
+    if (!allDone) completedSets[exId].add(i);
+    else completedSets[exId].delete(i);
+  });
+  if (activeDrawer === exId) renderDrawer(exId);
+  updateExRowStatus(exId);
+  updateProgress();
+  updateNextEx();
+}
+
+function updateExRowStatus(exId) {
+  const ex = findExById(exId);
+  if (!ex) return;
+  const done  = completedSets[exId] || new Set();
+  const isDone = done.size >= ex.sets && ex.sets > 0;
+  const row = document.getElementById(`ex-row-${exId}`);
+  if (row) row.classList.toggle('is-done', isDone);
+  const chk = document.getElementById(`ex-chk-${exId}`);
+  if (chk) { chk.className = 'ex-chk' + (isDone ? ' done' : ''); chk.textContent = isDone ? '✓' : ''; }
+  const prog = row?.querySelector('.ex-r-prog');
+  if (prog) {
+    if (isDone)          { prog.textContent = '✓'; prog.className = 'ex-r-prog done'; }
+    else if (done.size)  { prog.textContent = `${done.size}/${ex.sets}`; prog.className = 'ex-r-prog partial'; }
+    else                 { prog.textContent = ''; prog.className = 'ex-r-prog'; }
+  }
+}
+
+// ── Sidebar updates ────────────────────────────────────────────────
+function updateSbActiveEx(exId) {
+  const el = document.getElementById('sbActiveCard');
+  if (!el) return;
+  if (!exId) {
+    el.innerHTML = '<div class="sb-ex-empty">Ingen aktiv øvelse</div><div class="sb-ex-hint">Trykk på en øvelse for å begynne</div>';
+    return;
+  }
+  const ex   = findExById(exId);
+  if (!ex) return;
+  const done = completedSets[exId]?.size || 0;
+  el.innerHTML = `<div class="sb-ex-name">${escHtml(ex.exercise_name)}</div>
+    <div class="sb-ex-vol">${ex.sets} × ${escHtml(ex.reps)}</div>
+    <div class="sb-ex-prog">${done} av ${ex.sets} sett fullført</div>`;
+}
+
+function updateNextEx() {
+  const el   = document.getElementById('sbNextCard');
+  if (!el) return;
+  const next = getSortedMainExercises().find(e =>
+    e.id !== activeExId && (completedSets[e.id]?.size || 0) < e.sets
+  );
+  if (!next) { el.innerHTML = '<div class="sb-ex-empty">Alle øvelser fullført ✓</div>'; return; }
+  el.innerHTML = `<div class="sb-ex-name">${escHtml(next.exercise_name)}</div>
+    <div class="sb-ex-vol">${next.sets} × ${escHtml(next.reps)}</div>`;
+}
+
+// ── Workout state ──────────────────────────────────────────────────
 function startWorkout() {
   workoutStart  = Date.now();
   completedSets = {};
+  setData       = {};
+  activeDrawer  = null;
+  activeExId    = null;
   setWS('active');
-  elapsedTimer = setInterval(updateElapsed, 1000);
+  elapsedTimer = setInterval(() => { updateElapsed(); updateRingTimer(); }, 1000);
   renderAll();
   setSbPhase('during');
   updateProgress();
   updateNextEx();
+  updateSbActiveEx(null);
 }
 
 function finishWorkout() {
   clearInterval(elapsedTimer);
   stopRest();
+  if (activeDrawer) closeDrawer();
   const sbNotes = document.getElementById('sidebarNotes')?.value || '';
   if (sbNotes) document.getElementById('sessionNotes').value = sbNotes;
   const total = getTotalSets(), done = getDoneSets();
@@ -929,94 +1010,78 @@ function finishWorkout() {
 function resetWorkout() {
   clearInterval(elapsedTimer);
   stopRest();
-  workoutStart  = null;
-  completedSets = {};
+  workoutStart = null; completedSets = {}; setData = {}; activeDrawer = null; activeExId = null;
   document.getElementById('elapsedDisplay').textContent = '0:00';
   setWS('idle');
   renderAll();
 }
 
 function updateElapsed() {
+  const s = Math.floor((Date.now() - workoutStart) / 1000);
+  document.getElementById('elapsedDisplay').textContent =
+    `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function updateRingTimer() {
   const s   = Math.floor((Date.now() - workoutStart) / 1000);
-  const m   = Math.floor(s / 60);
+  const h   = Math.floor(s / 3600);
+  const m   = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  document.getElementById('elapsedDisplay').textContent = `${m}:${String(sec).padStart(2,'0')}`;
+  const el  = document.getElementById('sbTimer');
+  if (el) el.textContent = h
+    ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+    : `${m}:${String(sec).padStart(2,'0')}`;
 }
 
-// ── Set tracking ──────────────────────────────────────────────────
-function toggleSet(exId, setIdx) {
-  if (!completedSets[exId]) completedSets[exId] = new Set();
-  if (completedSets[exId].has(setIdx)) {
-    completedSets[exId].delete(setIdx);
-  } else {
-    completedSets[exId].add(setIdx);
-    startRest(90);
-  }
-  refreshSetDots(exId);
-  updateProgress();
-  updateNextEx();
-}
-
-function refreshSetDots(exId) {
-  const container = document.getElementById(`setdots-${exId}`);
-  if (!container) return;
-  const done  = completedSets[exId] || new Set();
-  const ex    = findExById(exId);
-  if (!ex) return;
-
-  const dots = container.querySelectorAll('.set-dot');
-  dots.forEach((dot, i) => {
-    if (done.has(i)) {
-      dot.className = 'set-dot done'; dot.textContent = '✓';
-    } else if (i === done.size) {
-      dot.className = 'set-dot next-dot'; dot.textContent = String(i + 1);
-    } else {
-      dot.className = 'set-dot'; dot.textContent = String(i + 1);
-    }
-  });
-
-  const block = document.getElementById(`ex-block-${exId}`);
-  if (block) block.classList.toggle('is-done', done.size >= ex.sets && ex.sets > 0);
-}
-
-function findExById(id) {
-  for (const day of Object.values(allExercises))
-    for (const exs of Object.values(day)) {
-      const ex = exs.find(e => String(e.id) === String(id));
-      if (ex) return ex;
-    }
-  return null;
-}
-
-function getSortedMainExercises() {
-  return Object.values(allExercises[activeDay] || {}).flat();
-}
+// ── Progress ───────────────────────────────────────────────────────
+function getSortedMainExercises() { return Object.values(allExercises[activeDay] || {}).flat(); }
 function getTotalSets() { return getSortedMainExercises().reduce((a, e) => a + e.sets, 0); }
 function getDoneSets()  { return getSortedMainExercises().reduce((a, e) => a + (completedSets[e.id]?.size || 0), 0); }
 
 function updateProgress() {
   const total = getTotalSets(), done = getDoneSets();
   const pct   = total ? Math.round(done / total * 100) : 0;
-  const d = document.getElementById('sbDoneSets');
-  const t = document.getElementById('sbTotalSets');
-  const b = document.getElementById('sbProgressBar');
-  if (d) d.textContent = done;
-  if (t) t.textContent = total;
-  if (b) b.style.width = pct + '%';
+  const pctEl = document.getElementById('ringPct');
+  if (pctEl) pctEl.textContent = pct + '%';
+  const fill  = document.getElementById('ringFill');
+  if (fill) fill.style.strokeDashoffset = 188.5 - (188.5 * pct / 100);
+  const sc = document.getElementById('sbSetCount');
+  if (sc) sc.textContent = `${done} / ${total} sett`;
 }
 
-function updateNextEx() {
-  const next = getSortedMainExercises().find(ex =>
-    (completedSets[ex.id]?.size || 0) < ex.sets
-  );
-  const nameEl = document.getElementById('sbNextName');
-  const metaEl = document.getElementById('sbNextMeta');
-  if (!nameEl) return;
-  nameEl.textContent = next ? next.exercise_name : 'Alle øvelser fullført ✓';
-  if (metaEl) metaEl.textContent = next ? `${next.sets} × ${next.reps}` : '';
+// ── Shortcuts ──────────────────────────────────────────────────────
+function addSetToActive() {
+  if (!activeDrawer) { toast('Velg en øvelse først', 'err'); return; }
+  addSet(activeDrawer);
+  const tb = document.getElementById('tb-rest');
+  if (tb && !tb.classList.contains('open')) tb.style.display = 'none';
 }
 
-// ── Rest timer ────────────────────────────────────────────────────
+function jumpToNext() {
+  const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
+  if (next) openDrawer(next.id);
+  else toast('Alle øvelser fullført');
+}
+
+// ── Tool toggle ────────────────────────────────────────────────────
+function toggleTool(id) {
+  const tb = document.getElementById(`tb-${id}`);
+  const ti = document.getElementById(`ti-${id}`);
+  if (!tb) return;
+  const open = tb.style.display === 'block';
+  tb.style.display = open ? 'none' : 'block';
+  ti?.classList.toggle('open', !open);
+}
+
+function updateNotesCount() {
+  const ta  = document.getElementById('sidebarNotes');
+  const el  = document.getElementById('notesVal');
+  if (!el || !ta) return;
+  const n = ta.value.trim().split('\n').filter(l => l.trim()).length;
+  el.textContent = n ? `${n} linje${n > 1 ? 'r' : ''}` : '0 notater';
+}
+
+// ── Rest timer ─────────────────────────────────────────────────────
 function startRest(seconds) {
   stopRest();
   restRemaining = seconds;
@@ -1030,24 +1095,35 @@ function startRest(seconds) {
       clearInterval(restTimerInt); restTimerInt = null;
       const e = document.getElementById('restDisplay');
       if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
+      const rv = document.getElementById('restVal');
+      if (rv) rv.textContent = 'Klar!';
     }
   }, 1000);
+  const rv = document.getElementById('restVal');
+  if (rv) rv.textContent = fmtRest(seconds);
+  // Auto-open timer tool
+  const tb = document.getElementById('tb-rest');
+  if (tb && tb.style.display !== 'block') toggleTool('rest');
 }
 
 function stopRest() {
   clearInterval(restTimerInt); restTimerInt = null; restRemaining = 0;
   const el = document.getElementById('restDisplay');
-  if (el) { el.textContent = '—'; el.className = 'rest-val'; }
+  if (el) { el.textContent = '—'; el.className = 'rest-display'; }
+  const rv = document.getElementById('restVal');
+  if (rv) rv.textContent = 'Ikke i drift';
 }
 
 function updateRestDisplay() {
   const el = document.getElementById('restDisplay');
-  if (!el) return;
-  const m = Math.floor(restRemaining / 60), s = restRemaining % 60;
-  el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  if (el) el.textContent = fmtRest(restRemaining);
+  const rv = document.getElementById('restVal');
+  if (rv) rv.textContent = fmtRest(restRemaining);
 }
 
-// ── Pain buttons ──────────────────────────────────────────────────
+function fmtRest(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+// ── Pain ───────────────────────────────────────────────────────────
 function painClass(score) {
   if (score <= 3) return 'sel-green';
   if (score <= 5) return 'sel-yellow';
@@ -1056,7 +1132,7 @@ function painClass(score) {
 }
 
 function buildPainButtons() {
-  ['before','during','after','day-after'].forEach(phase => {
+  ['before','after','day-after'].forEach(phase => {
     const el = document.getElementById(`knee-${phase}`);
     if (!el) return;
     el.innerHTML = [...Array(11)].map((_,i) =>
@@ -1088,20 +1164,17 @@ function selectSbPain(score) {
     const s = parseInt(b.dataset.sbScore);
     b.className = 'mini-pain-btn' + (s === score ? ' ' + painClass(score) : '');
   });
-  // Sync to full pain-btn row if visible
   document.querySelectorAll(`[data-phase="${sbKneePhase}"]`).forEach(b => {
     b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
   });
+  const kv = document.getElementById('kneeVal');
+  if (kv) kv.textContent = `${score} (${sbKneePhase})`;
 }
 
 function setSbPhase(phase) {
   sbKneePhase = phase;
-  const labels = { before:'Før økt', during:'Under økt', after:'Etter økt' };
-  const lbl = document.getElementById('sbKneePhaseLabel');
-  if (lbl) lbl.textContent = labels[phase] || phase;
   document.querySelectorAll('.pain-phase-pill').forEach(p => p.classList.remove('active'));
   document.getElementById(`pp-${phase}`)?.classList.add('active');
-  // Reflect current value for this phase
   const cur = kneePain[phase];
   document.querySelectorAll('.mini-pain-btn').forEach(b => {
     const s = parseInt(b.dataset.sbScore);
@@ -1109,9 +1182,9 @@ function setSbPhase(phase) {
   });
 }
 
-// ── Weight save ───────────────────────────────────────────────────
+// ── Weight ─────────────────────────────────────────────────────────
 async function saveWeight(name, val) {
-  if (val === '' || val === null) return;
+  if (val === '' || val === null || val === undefined) return;
   const kg = parseFloat(val);
   if (isNaN(kg)) return;
   weights[name] = kg;
@@ -1122,16 +1195,16 @@ async function saveWeight(name, val) {
   if (!error) toast(`${name}: ${kg} kg lagret`);
 }
 
-// ── Add exercise ──────────────────────────────────────────────────
+// ── CRUD ───────────────────────────────────────────────────────────
 async function addExercise(day, section, formId) {
   const name = document.getElementById(`${formId}-name`).value.trim();
   const sets = parseInt(document.getElementById(`${formId}-sets`).value) || 3;
   const reps = document.getElementById(`${formId}-reps`).value.trim() || '8–10';
   if (!name) return;
   const maxSort = Math.max(0, ...((allExercises[day]?.[section] || []).map(e => e.sort_order)));
-  const { data, error } = await db.from('workout_program').insert({
-    day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1,
-  }).select().single();
+  const { data, error } = await db.from('workout_program').insert(
+    { day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1 }
+  ).select().single();
   if (error) { toast('Feil ved lagring', 'err'); return; }
   if (!allExercises[day]) allExercises[day] = {};
   if (!allExercises[day][section]) allExercises[day][section] = [];
@@ -1142,38 +1215,17 @@ async function addExercise(day, section, formId) {
   toast(`${name} lagt til`);
 }
 
-// ── Move exercise ─────────────────────────────────────────────────
-async function moveExercise(id, day, section, dir) {
-  const list = allExercises[day]?.[section] || [];
-  const idx  = list.findIndex(e => e.id === id);
-  const nIdx = idx + dir;
-  if (idx < 0 || nIdx < 0 || nIdx >= list.length) return;
-  const a = list[idx], b = list[nIdx];
-  const sA = a.sort_order, sB = b.sort_order;
-  await Promise.all([
-    db.from('workout_program').update({ sort_order: sB }).eq('id', a.id),
-    db.from('workout_program').update({ sort_order: sA }).eq('id', b.id),
-  ]);
-  a.sort_order = sB; b.sort_order = sA;
-  list[idx] = b; list[nIdx] = a;
-  renderAll();
-}
-
-// ── Delete exercise ───────────────────────────────────────────────
 async function deleteExercise(id) {
   if (!confirm('Slett øvelse?')) return;
   await db.from('workout_program').delete().eq('id', id);
-  for (const day of Object.keys(allExercises))
-    for (const sec of Object.keys(allExercises[day]))
-      allExercises[day][sec] = allExercises[day][sec].filter(e => e.id !== id);
+  for (const d of Object.keys(allExercises))
+    for (const s of Object.keys(allExercises[d]))
+      allExercises[d][s] = allExercises[d][s].filter(e => e.id !== id);
   renderAll();
   toast('Øvelse slettet');
 }
 
-// ── Inline edit ───────────────────────────────────────────────────
-function toggleEditEx(id) {
-  document.getElementById(`edit-form-${id}`).classList.toggle('open');
-}
+function toggleEditEx(id) { document.getElementById(`edit-form-${id}`)?.classList.toggle('open'); }
 
 async function saveExMeta(id) {
   const sets = parseInt(document.getElementById(`edit-sets-${id}`).value);
@@ -1181,40 +1233,26 @@ async function saveExMeta(id) {
   if (!sets || !reps) { toast('Fyll inn sett og reps', 'err'); return; }
   await db.from('workout_program').update({ sets, reps }).eq('id', id);
   for (const d of Object.keys(allExercises))
-    for (const sec of Object.keys(allExercises[d])) {
-      const ex = allExercises[d][sec].find(e => e.id === id);
+    for (const s of Object.keys(allExercises[d])) {
+      const ex = allExercises[d][s].find(e => e.id === id);
       if (ex) { ex.sets = sets; ex.reps = reps; }
     }
   renderAll();
   toast('Oppdatert');
 }
 
-// ── Collapsible toggle ────────────────────────────────────────────
-function togglePanel(id) {
-  document.getElementById(id).classList.toggle('open');
-}
-
-// ── Save / clear log ──────────────────────────────────────────────
+// ── Log ────────────────────────────────────────────────────────────
 async function saveLog() {
-  const dayLabels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
-  const notes = document.getElementById('sessionNotes').value.trim();
-  const date  = document.getElementById('logDate').value || today();
-
+  const labels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+  const notes  = document.getElementById('sessionNotes').value.trim();
+  const date   = document.getElementById('logDate').value || today();
   const [kRes, gRes] = await Promise.all([
     db.from('knee_pain').insert({
-      date,
-      session_type:    dayLabels[activeDay] || activeDay,
-      before_score:    kneePain['before'],
-      during_score:    kneePain['during'],
-      after_score:     kneePain['after'],
-      day_after_score: kneePain['day-after'],
-      notes,
+      date, session_type: labels[activeDay] || activeDay,
+      before_score: kneePain['before'], during_score: kneePain['during'],
+      after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
     }),
-    db.from('gym_log').insert({
-      date,
-      session_type:  dayLabels[activeDay] || activeDay,
-      session_notes: notes,
-    }),
+    db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
   ]);
   if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
   toast('Økt lagret!');
@@ -1231,35 +1269,32 @@ function clearLog() {
   document.getElementById('logDate').value = today();
 }
 
-// ── Gym history ───────────────────────────────────────────────────
+// ── History ────────────────────────────────────────────────────────
 async function loadGymHistory() {
   const { data: gymData } = await db.from('gym_log')
     .select('*').order('date', { ascending: false }).limit(20);
   const el = document.getElementById('gymHistory');
   if (!gymData?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
-
   const dates = [...new Set(gymData.map(g => g.date))];
   const { data: kneeData } = await db.from('knee_pain').select('*').in('date', dates);
   const kneeMap = {};
   (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
-  const kn = v => (v !== null && v !== undefined) ? v : '—';
-
   el.innerHTML = gymData.map(g => {
-    const knee  = kneeMap[g.date + '|' + (g.session_type || '')] || null;
-    const d     = new Date(g.date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
+    const knee     = kneeMap[g.date + '|' + (g.session_type || '')] || null;
+    const d        = new Date(g.date + 'T12:00:00');
+    const dateStr  = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
     const typeShort = (g.session_type || '').replace('Styrke ','');
     const kneeShort = knee
       ? [knee.before_score, knee.during_score, knee.after_score]
           .map(v => v !== null && v !== undefined ? v : '—').join('·')
       : '';
     const kneeId = knee?.id || '';
-    return `<div class="hist-wrap" id="hist-wrap-${g.id}">
+    return `<div id="hist-wrap-${g.id}">
       <div class="hist-row">
         <span class="hist-date">${dateStr}</span>
         <span class="hist-type">${escHtml(typeShort)}</span>
         ${kneeShort ? `<span class="hist-knee">${kneeShort}</span>` : ''}
-        <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')" title="Rediger knesmerte">✎</button>
+        <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
       </div>
       <div class="knee-edit-panel" id="knee-edit-${g.id}">
         <div class="knee-edit-row" style="margin-bottom:6px">
@@ -1269,7 +1304,7 @@ async function loadGymHistory() {
           <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}" value="${knee?.during_score ?? ''}" style="width:42px">
           <span class="knee-edit-label">Etter</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}" value="${knee?.after_score ?? ''}" style="width:42px">
-          <span class="knee-edit-label">Dagen etter</span>
+          <span class="knee-edit-label">D.etter</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}" value="${knee?.day_after_score ?? ''}" style="width:42px">
         </div>
         <div style="display:flex;gap:5px">
@@ -1282,7 +1317,7 @@ async function loadGymHistory() {
 }
 
 function toggleKneeEdit(gymId) {
-  document.getElementById(`knee-edit-${gymId}`).classList.toggle('open');
+  document.getElementById(`knee-edit-${gymId}`)?.classList.toggle('open');
 }
 
 async function saveKneeEdit(gymId, kneeId, date, sessionType) {
@@ -1296,16 +1331,23 @@ async function saveKneeEdit(gymId, kneeId, date, sessionType) {
     after_score:     isNaN(after)    ? null : after,
     day_after_score: isNaN(dayAfter) ? null : dayAfter,
   };
-  if (kneeId) {
-    await db.from('knee_pain').update(payload).eq('id', kneeId);
-  } else {
-    await db.from('knee_pain').insert({ date, session_type: sessionType, ...payload });
-  }
+  if (kneeId) await db.from('knee_pain').update(payload).eq('id', kneeId);
+  else await db.from('knee_pain').insert({ date, session_type: sessionType, ...payload });
   toast('Knesmerte oppdatert');
   await loadGymHistory();
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────
+function findExById(id) {
+  for (const day of Object.values(allExercises))
+    for (const exs of Object.values(day)) {
+      const ex = exs.find(e => String(e.id) === String(id));
+      if (ex) return ex;
+    }
+  return null;
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/config');
