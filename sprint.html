@@ -57,7 +57,43 @@
       font-size: 10px; color: var(--text-tertiary); margin-top: 8px;
       line-height: 1.55; padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.04);
     }
-    .hist-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .hist-edit-panel {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .hist-edit-row { display: flex; align-items: center; gap: 8px; }
+    .hist-edit-label {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.08em; width: 52px; flex-shrink: 0;
+    }
+    .hist-edit-input {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px; color: var(--text-primary);
+      font-family: var(--font-mono); font-size: 11px; padding: 3px 6px;
+      transition: border-color 0.15s;
+    }
+    .hist-edit-input:focus { outline: none; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.07); }
+    .hist-edit-input--sm { width: 42px; text-align: center; }
+    .hist-knee-grid { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .hist-knee-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); white-space: nowrap; }
+    .hist-edit-textarea {
+      flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px; color: var(--text-primary); font-family: var(--font-mono); font-size: 11px;
+      padding: 5px 7px; resize: vertical; min-height: 38px; transition: border-color 0.15s;
+    }
+    .hist-edit-textarea:focus { outline: none; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.07); }
+    .btn-edit-session {
+      background: none; border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-tertiary); border-radius: 5px;
+      font-size: 9px; font-family: var(--font-mono);
+      padding: 3px 9px; cursor: pointer; letter-spacing: 0.04em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-edit-session:hover, .btn-edit-session:focus {
+      border-color: rgba(255,255,255,0.25); color: var(--text-secondary); outline: none;
+    }
+    .hist-footer { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
     .btn-del-session {
       background: rgba(160,40,40,0.07); border: 1px solid rgba(160,40,40,0.18);
       color: rgba(200,80,80,0.65); border-radius: 5px;
@@ -525,13 +561,106 @@ function renderHistory() {
     return `<div class="hist-session">
       <div class="hist-date-header">${dateStr}</div>
       ${runRows}
-      ${chips ? `<div class="hist-chips">${chips}</div>` : ''}
-      ${notes ? `<div class="hist-notes">${escHtml(notes)}</div>` : ''}
+      <div class="hist-chips" id="hist-chips-${date}"${!chips ? ' style="display:none"' : ''}>${chips}</div>
+      <div class="hist-notes" id="hist-notes-${date}"${!notes ? ' style="display:none"' : ''}>${notes ? escHtml(notes) : ''}</div>
+      <div class="hist-edit-panel" id="hist-edit-${date}" style="display:none">
+        <div class="hist-edit-row">
+          <span class="hist-edit-label">RPE</span>
+          <input type="number" class="hist-edit-input hist-edit-input--sm" min="1" max="10"
+            value="${rpe ?? ''}" placeholder="–"
+            onblur="saveHistField('${date}','rpe',this.value)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </div>
+        <div class="hist-edit-row" style="align-items:flex-start">
+          <span class="hist-edit-label">Kne</span>
+          <div class="hist-knee-grid">
+            <span class="hist-knee-label">Før</span>
+            <input type="number" class="hist-edit-input hist-edit-input--sm" min="0" max="10"
+              value="${kneeBefore ?? ''}" placeholder="–"
+              onblur="saveHistField('${date}','knee_before',this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+            <span class="hist-knee-label">Under</span>
+            <input type="number" class="hist-edit-input hist-edit-input--sm" min="0" max="10"
+              value="${kneeDuring ?? ''}" placeholder="–"
+              onblur="saveHistField('${date}','knee_during',this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+            <span class="hist-knee-label">Etter</span>
+            <input type="number" class="hist-edit-input hist-edit-input--sm" min="0" max="10"
+              value="${kneeAfter ?? ''}" placeholder="–"
+              onblur="saveHistField('${date}','knee_after',this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+            <span class="hist-knee-label">D.etter</span>
+            <input type="number" class="hist-edit-input hist-edit-input--sm" min="0" max="10"
+              value="${kneeDayAfter ?? ''}" placeholder="–"
+              onblur="saveHistField('${date}','knee_day_after',this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+          </div>
+        </div>
+        <div class="hist-edit-row" style="align-items:flex-start">
+          <span class="hist-edit-label">Notater</span>
+          <textarea class="hist-edit-textarea" rows="2" placeholder="Løpsforhold, teknikk…"
+            onblur="saveHistField('${date}','notes',this.value)"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"
+          >${notes ? escHtml(notes) : ''}</textarea>
+        </div>
+      </div>
       <div class="hist-footer">
+        <button class="btn-edit-session" data-edit="${date}" onclick="toggleHistEdit('${date}')">Rediger</button>
         <button class="btn-del-session" onclick="deleteSprintDate('${date}')">Slett økt</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleHistEdit(date) {
+  const panel = document.getElementById('hist-edit-' + date);
+  const btn   = document.querySelector('.btn-edit-session[data-edit="' + date + '"]');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : '';
+  if (btn) btn.textContent = isOpen ? 'Rediger' : 'Lukk';
+}
+
+async function saveHistField(date, field, valueStr) {
+  let value;
+  if (field === 'notes') {
+    value = valueStr.trim() || null;
+  } else {
+    const s = valueStr.trim();
+    if (s === '') { value = null; }
+    else {
+      const n = Number(s);
+      if (isNaN(n)) return;
+      if (field === 'rpe' && (n < 1 || n > 10)) return;
+      if (field !== 'rpe' && (n < 0 || n > 10)) return;
+      value = n;
+    }
+  }
+  const { error } = await db.from('sprint_log').update({ [field]: value }).eq('date', date);
+  if (error) { toast('Lagringsfeil', 'err'); return; }
+  sprintLog.filter(r => r.date === date).forEach(r => { r[field] = value; });
+  refreshHistCard(date);
+}
+
+function refreshHistCard(date) {
+  const runs       = sprintLog.filter(r => r.date === date);
+  const rpe          = runs.find(r => r.rpe           != null)?.rpe;
+  const kneeBefore   = runs.find(r => r.knee_before   != null)?.knee_before;
+  const kneeDuring   = runs.find(r => r.knee_during   != null)?.knee_during;
+  const kneeAfter    = runs.find(r => r.knee_after    != null)?.knee_after;
+  const kneeDayAfter = runs.find(r => r.knee_day_after != null)?.knee_day_after;
+  const notes        = runs.find(r => r.notes)?.notes;
+  const chips = [
+    rpe          != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
+    kneeBefore   != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
+    kneeDuring   != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
+    kneeAfter    != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
+    kneeDayAfter != null ? `<span class="hist-chip hist-chip--knee">D.etter ${kneeDayAfter}</span>` : '',
+  ].filter(Boolean).join('');
+  const chipsEl = document.getElementById('hist-chips-' + date);
+  if (chipsEl) { chipsEl.innerHTML = chips; chipsEl.style.display = chips ? '' : 'none'; }
+  const notesEl = document.getElementById('hist-notes-' + date);
+  if (notesEl) { notesEl.textContent = notes || ''; notesEl.style.display = notes ? '' : 'none'; }
 }
 
 async function deleteSprintDate(date) {
