@@ -17,7 +17,7 @@
       margin-bottom: 4px; font-size: 12px; font-family: var(--font-mono);
     }
     .run-num  { color: var(--text-tertiary); width: 46px; flex-shrink: 0; }
-    .run-dist { color: var(--accent-blue); width: 46px; font-weight: 600; flex-shrink: 0; }
+    .run-dist { color: var(--accent-blue); width: 82px; font-weight: 600; flex-shrink: 0; }
     .run-time { color: var(--text-primary); font-weight: 700; flex: 1; }
     .run-type { color: var(--text-tertiary); font-size: 10px; }
     .run-del  { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity 0.15s; margin-left: auto; }
@@ -30,7 +30,7 @@
       padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 8px;
       margin-bottom: 4px; font-size: 12px; font-family: var(--font-mono);
     }
-    .history-dist { color: var(--accent-blue); width: 50px; flex-shrink: 0; }
+    .history-dist { color: var(--accent-blue); width: 82px; flex-shrink: 0; }
     .history-time { color: var(--text-primary); font-weight: 700; flex: 1; }
     .history-type { color: var(--text-tertiary); font-size: 10px; }
     .history-date { color: var(--text-tertiary); font-size: 10px; flex-shrink: 0; }
@@ -61,7 +61,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
@@ -99,6 +99,7 @@
         <select id="logDist">
           <option value="60m">60m</option>
           <option value="60m_celler">60m (celler)</option>
+          <option value="60m_flying">60m (flying)</option>
           <option value="80m">80m</option>
           <option value="100m" selected>100m</option>
           <option value="120m">120m</option>
@@ -113,6 +114,7 @@
         <select id="logType">
           <option value="Trening">Trening</option>
           <option value="Stevne">Stevne</option>
+          <option value="Trening (ute)">Trening (ute)</option>
         </select>
       </div>
       <div class="form-group">
@@ -170,6 +172,35 @@
   <div class="card">
     <div class="section-title">Knesmerte — siste 5 økter</div>
     <div id="kneeTrend"><div class="loading">Laster…</div></div>
+    <div id="kneeEditPanel" style="display:none;margin-top:12px;padding:12px;
+      background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07)">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
+        text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px">
+        Rediger knesmerte — <span id="kneeEditDate"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">FØR</div>
+          <input type="number" id="kneeEditBefore" min="0" max="10" class="input-sm" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">UNDER</div>
+          <input type="number" id="kneeEditDuring" min="0" max="10" class="input-sm" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">ETTER</div>
+          <input type="number" id="kneeEditAfter" min="0" max="10" class="input-sm" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">DAGEN ETTER</div>
+          <input type="number" id="kneeEditDayAfter" min="0" max="10" class="input-sm" style="width:100%">
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-success btn-sm" onclick="saveKneeInline()">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeKneeEdit()">Avbryt</button>
+      </div>
+    </div>
   </div>
 
   <!-- History -->
@@ -198,6 +229,10 @@ async function signOut() {
   window.location.href = 'login.html';
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function distLabel(d) {
+  const map = { '60m_celler': '60m (celler)', '60m_flying': '60m (flying)' };
+  return map[d] || d;
+}
 function today() { return new Date().toISOString().slice(0,10); }
 function fmtDate(ds) {
   if (!ds) return '';
@@ -256,7 +291,7 @@ function renderRuns() {
   el.innerHTML = runs.map((r, i) => `
     <div class="run-row">
       <span class="run-num">Løp ${i + 1}</span>
-      <span class="run-dist">${escHtml(r.distance)}</span>
+      <span class="run-dist">${escHtml(distLabel(r.distance))}</span>
       <span class="run-time">${r.time.toFixed(2)}s</span>
       <span class="run-type">${escHtml(r.type)}</span>
       <button class="run-del" onclick="removeRun(${i})" title="Fjern">✕</button>
@@ -269,14 +304,14 @@ async function loadPBs() {
   const el = document.getElementById('pbGrid');
   if (!data || !data.length) { el.innerHTML = '<div class="empty">Ingen rekorder</div>'; return; }
 
-  const dOrder = ['60m','60m_celler','100m','200m'];
+  const dOrder = ['60m','60m_celler','60m_flying','100m','200m'];
   const sorted = dOrder.map(d => data.find(r => r.distance === d)).filter(Boolean);
 
   el.innerHTML = sorted.map(r => {
     const days  = Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000);
     const barClr = days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
     return `<div class="pb-cell" id="pb-${r.distance}">
-      <div class="pb-dist">${r.distance}</div>
+      <div class="pb-dist">${distLabel(r.distance)}</div>
       <div class="pb-time">${r.best_time?.toFixed(2) ?? '–'}</div>
       <div class="pb-date">${fmtDate(r.date)}</div>
       <div class="pb-bar" style="background:${barClr}"></div>
@@ -368,9 +403,11 @@ async function logSession() {
   if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
   if (kneeRes.error) { toast('Knesmerte ikke lagret: '  + kneeRes.error.message, 'err'); console.error('knee_pain insert:', kneeRes.error); }
 
-  // Check / update PB for each unique distance
+  // Check / update PB — Stevne only, except 60m_celler counts all types
   const newPBs = [];
   for (const r of runs) {
+    const countsForPB = r.type === 'Stevne' || r.distance === '60m_celler';
+    if (!countsForPB) continue;
     const { data: rec } = await db.from('sprint_records')
       .select('best_time').eq('distance', r.distance).single();
     if (!rec || r.time < rec.best_time) {
@@ -409,7 +446,7 @@ async function loadHistory() {
   else {
     el.innerHTML = sprintLog.map(s =>
       `<div class="history-row">
-        <span class="history-dist">${escHtml(s.distance || '–')}</span>
+        <span class="history-dist">${escHtml(distLabel(s.distance || '–'))}</span>
         <span class="history-time">${s.time_seconds != null ? s.time_seconds.toFixed(2) + 's' : '–'}</span>
         <span class="history-type">${escHtml(s.type || '')}</span>
         ${s.rpe ? `<span class="badge badge-grey" style="font-size:9px">RPE ${s.rpe}</span>` : ''}
@@ -426,14 +463,14 @@ async function loadHistory() {
 async function loadKneeTrend() {
   // Order by created_at (newest first), fall back to date if column missing
   let { data, error } = await db.from('knee_pain')
-    .select('date,before_score,during_score,after_score,day_after_score')
+    .select('id,date,before_score,during_score,after_score,day_after_score')
     .ilike('session_type', 'Sprint%')
     .order('created_at', { ascending: false, nullsLast: true })
     .order('date',       { ascending: false })
     .limit(5);
   if (error) {
     ({ data } = await db.from('knee_pain')
-      .select('date,before_score,during_score,after_score,day_after_score')
+      .select('id,date,before_score,during_score,after_score,day_after_score')
       .ilike('session_type', 'Sprint%')
       .order('date', { ascending: false })
       .limit(5));
@@ -441,7 +478,11 @@ async function loadKneeTrend() {
   renderKneeTrend(data || []);
 }
 
+let _kneeTrendData = [];
+let _editingKneeIdx = null;
+
 function renderKneeTrend(data) {
+  _kneeTrendData = data;
   const el = document.getElementById('kneeTrend');
   if (!data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
 
@@ -459,8 +500,19 @@ function renderKneeTrend(data) {
   }
 
   el.innerHTML = `
-    <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:8px">
-      ${data.map(d => fmtDate(d.date)).join(' · ')}
+    <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-end">
+      <div style="width:90px;flex-shrink:0"></div>
+      <div style="display:flex;gap:4px;flex:1">
+        ${data.map((d, i) => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="font-size:12px;font-family:var(--font-mono);color:var(--text-secondary);
+              font-weight:600;white-space:nowrap">${fmtDate(d.date)}</div>
+            <button onclick="openKneeEdit(${i})" title="Rediger" style="background:none;border:none;
+              color:var(--text-tertiary);cursor:pointer;font-size:11px;padding:1px 4px;line-height:1;
+              opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1"
+              onmouseout="this.style.opacity=0.6">✎</button>
+          </div>`).join('')}
+      </div>
     </div>
     ${phases.map(ph => `
       <div class="trend-row">
@@ -475,6 +527,43 @@ function renderKneeTrend(data) {
           }).join('')}
         </div>
       </div>`).join('')}`;
+}
+
+function openKneeEdit(idx) {
+  _editingKneeIdx = idx;
+  const d = _kneeTrendData[idx];
+  document.getElementById('kneeEditDate').textContent    = fmtDate(d.date);
+  document.getElementById('kneeEditBefore').value        = d.before_score   ?? '';
+  document.getElementById('kneeEditDuring').value        = d.during_score   ?? '';
+  document.getElementById('kneeEditAfter').value         = d.after_score    ?? '';
+  document.getElementById('kneeEditDayAfter').value      = d.day_after_score ?? '';
+  document.getElementById('kneeEditPanel').style.display = 'block';
+}
+
+function closeKneeEdit() {
+  _editingKneeIdx = null;
+  document.getElementById('kneeEditPanel').style.display = 'none';
+}
+
+async function saveKneeInline() {
+  if (_editingKneeIdx === null) return;
+  const d        = _kneeTrendData[_editingKneeIdx];
+  const before   = document.getElementById('kneeEditBefore').value;
+  const during   = document.getElementById('kneeEditDuring').value;
+  const after    = document.getElementById('kneeEditAfter').value;
+  const dayafter = document.getElementById('kneeEditDayAfter').value;
+
+  const { error } = await db.from('knee_pain').update({
+    before_score:    before   !== '' ? Number(before)   : null,
+    during_score:    during   !== '' ? Number(during)   : null,
+    after_score:     after    !== '' ? Number(after)    : null,
+    day_after_score: dayafter !== '' ? Number(dayafter) : null,
+  }).eq('id', d.id);
+
+  if (error) { toast('Feil ved lagring: ' + error.message, 'err'); return; }
+  closeKneeEdit();
+  await loadKneeTrend();
+  toast('Knesmerte oppdatert');
 }
 
 async function deleteSession(id) {

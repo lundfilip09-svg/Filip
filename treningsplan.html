@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Treningsplan</title>
+  <title>Treningsoversikt</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Hero band ──────────────────────────────────────────── */
@@ -197,7 +197,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
@@ -220,6 +220,17 @@
       <div class="hero-kpi-val" id="kpiLeft">—</div>
       <div class="hero-kpi-label">Planlagte<br>igjen</div>
     </div>
+  </div>
+
+  <!-- Week nav -->
+  <div style="display:flex;align-items:center;justify-content:space-between;
+    padding:6px 2px;margin-bottom:4px">
+    <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
+      style="font-family:var(--font-mono);font-size:11px">← Forrige uke</button>
+    <span id="weekNavLabel" style="font-size:11px;font-family:var(--font-mono);
+      color:var(--text-tertiary)">Uke —</span>
+    <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
+      style="font-family:var(--font-mono);font-size:11px">Neste uke →</button>
   </div>
 
   <!-- Day strip -->
@@ -324,20 +335,37 @@ const SHORT_DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
 const FULL_DAYS  = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
 
 // ── State ──────────────────────────────────────────────────────────────────
-let plan        = {};           // { 0: 'Sprint', notes_0: '...', ... }
-let loggedDates = new Set();
-let selectedIdx = todayIdx();   // which day card is active
+let plan                 = {};   // { 0: 'Sprint', notes_0: '...', ... }
+let loggedDates          = new Set();
+let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
+let selectedIdx          = todayIdx();
+let weekOffset           = 0;    // 0 = this week, -1 = last week, etc.
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function todayIdx() { return (new Date().getDay() + 6) % 7; }
 
-function getMonday() {
+function getMondayForOffset(offset) {
   const now  = new Date();
   const diff = (now.getDay() + 6) % 7;
   const mon  = new Date(now);
-  mon.setDate(now.getDate() - diff);
+  mon.setDate(now.getDate() - diff + offset * 7);
   mon.setHours(0, 0, 0, 0);
   return mon;
+}
+
+function getMonday() { return getMondayForOffset(0); }
+
+function getISOWeek(d) {
+  const tmp = new Date(d.getTime());
+  tmp.setHours(0, 0, 0, 0);
+  tmp.setDate(tmp.getDate() + 3 - (tmp.getDay() + 6) % 7);
+  const w1 = new Date(tmp.getFullYear(), 0, 4);
+  return 1 + Math.round(((tmp.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
+}
+
+function getPlanKey(offset) {
+  if (offset === 0) return PLAN_KEY;
+  return PLAN_KEY + '_' + getMondayForOffset(offset).toISOString().slice(0, 10);
 }
 
 function planText(i)  { return (plan[i]             || '').trim(); }
@@ -349,7 +377,7 @@ function isRest(i) {
 }
 
 function dayDate(i) {
-  const mon = getMonday();
+  const mon = getMondayForOffset(weekOffset);
   const d   = new Date(mon);
   d.setDate(mon.getDate() + i);
   return d;
@@ -363,9 +391,14 @@ function renderHero() {
   document.getElementById('heroEyebrow').textContent =
     'I dag — ' + now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
 
-  const txt = planText(ti);
+  // Always read current week's plan for hero
+  const heroPlan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+  const hpt = i => (heroPlan[i] || '').trim();
+  const hir = i => { const t = hpt(i).toLowerCase(); return !t || t.startsWith('hvile') || t.startsWith('fri'); };
+
+  const txt = hpt(ti);
   const sessionEl = document.getElementById('heroSession');
-  if (txt && !isRest(ti)) {
+  if (txt && !hir(ti)) {
     sessionEl.textContent = txt;
     sessionEl.className   = 'hero-session';
   } else {
@@ -373,33 +406,25 @@ function renderHero() {
     sessionEl.className   = 'hero-session is-rest';
   }
 
-  // Next planned session
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
     const ni = (ti + d) % 7;
-    if (!isRest(ni)) {
-      nextStr = `Neste: ${FULL_DAYS[ni]} — ${planText(ni)}`;
-      break;
-    }
+    if (!hir(ni)) { nextStr = `Neste: ${FULL_DAYS[ni]} — ${hpt(ni)}`; break; }
   }
   document.getElementById('heroNext').textContent = nextStr;
 
-  // KPIs
+  // KPIs always show current week
   const mon = getMonday();
-  let logged = 0, planned = 0, rest = 0;
+  let logged = 0;
   for (let i = 0; i < 7; i++) {
-    const ds = dayDate(i).toISOString().slice(0, 10);
-    if (loggedDates.has(ds)) logged++;
-    if (!isRest(i)) planned++; else rest++;
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    if (currentWeekLoggedDates.has(d.toISOString().slice(0, 10))) logged++;
   }
-  const daysLeftPlanned = (() => {
-    let c = 0;
-    for (let i = ti + 1; i < 7; i++) { if (!isRest(i)) c++; }
-    return c;
-  })();
+  let daysLeft = 0;
+  for (let i = ti + 1; i < 7; i++) { if (!hir(i)) daysLeft++; }
 
   document.getElementById('kpiDone').textContent = `${logged}`;
-  document.getElementById('kpiLeft').textContent = `${daysLeftPlanned}`;
+  document.getElementById('kpiLeft').textContent = `${daysLeft}`;
 }
 
 // ── Day strip ──────────────────────────────────────────────────────────────
@@ -410,7 +435,7 @@ function renderDayStrip() {
     const d      = dayDate(i);
     const ds     = d.toISOString().slice(0, 10);
     const logged = loggedDates.has(ds);
-    const today  = i === ti;
+    const today  = weekOffset === 0 && i === ti;
     const sel    = i === selectedIdx;
     const txt    = planText(i);
     const rest   = isRest(i);
@@ -474,7 +499,7 @@ function selectDay(i) {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function renderSidebar() {
-  const mon = getMonday();
+  const mon = getMondayForOffset(weekOffset);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const ti  = todayIdx();
   let logged = 0, planned = 0, rest = 0;
@@ -501,7 +526,7 @@ function renderSidebar() {
   barEl.innerHTML = SHORT_DAYS.map((name, i) => {
     const ds      = dayDate(i).toISOString().slice(0, 10);
     const done    = loggedDates.has(ds);
-    const isT     = i === ti;
+    const isT     = weekOffset === 0 && i === ti;
     const hasPlan = !isRest(i);
     const h = done ? 40 : hasPlan ? 18 : 6;
     const bg = done
@@ -521,18 +546,19 @@ function renderSidebar() {
   const rows   = [];
   for (let i = 0; i < 7; i++) {
     if (isRest(i)) continue;
-    const ds   = dayDate(i).toISOString().slice(0, 10);
-    const done = loggedDates.has(ds);
-    const pct  = done ? 100 : i < ti ? 20 : 0;
-    const fill = done ? '#6BE3A4' : i < ti ? 'rgba(255,100,100,0.45)' : 'rgba(91,164,245,0.35)';
-    const lbl  = planText(i).length > 12 ? planText(i).slice(0, 11) + '…' : planText(i);
+    const ds     = dayDate(i).toISOString().slice(0, 10);
+    const done   = loggedDates.has(ds);
+    const isPast = weekOffset < 0 || i < ti;
+    const pct2   = done ? 100 : isPast ? 20 : 0;
+    const fill   = done ? '#6BE3A4' : isPast ? 'rgba(255,100,100,0.45)' : 'rgba(91,164,245,0.35)';
+    const lbl    = planText(i).length > 12 ? planText(i).slice(0, 11) + '…' : planText(i);
     rows.push(`<div class="progress-row">
       <div class="progress-header">
         <span class="progress-name">${SHORT_DAYS[i]} — ${escHtml(lbl)}</span>
-        <span class="progress-pct">${done ? '✓' : i < ti ? 'Glemt' : '—'}</span>
+        <span class="progress-pct">${done ? '✓' : isPast ? 'Glemt' : '—'}</span>
       </div>
       <div class="progress-bg">
-        <div class="progress-fill" style="width:${pct}%;background:${fill}"></div>
+        <div class="progress-fill" style="width:${pct2}%;background:${fill}"></div>
       </div>
     </div>`);
   }
@@ -551,7 +577,7 @@ function saveDay() {
   if (notes) plan[nk] = notes;
   else       delete plan[nk];
 
-  localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+  localStorage.setItem(getPlanKey(weekOffset), JSON.stringify(plan));
   renderHero();
   renderDayStrip();
   renderDetail();
@@ -562,12 +588,46 @@ function saveDay() {
 function clearDay() {
   delete plan[selectedIdx];
   delete plan[`notes_${selectedIdx}`];
-  localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+  localStorage.setItem(getPlanKey(weekOffset), JSON.stringify(plan));
   renderHero();
   renderDayStrip();
   renderDetail();
   renderSidebar();
   toast('Dag tømt');
+}
+
+// ── Week navigation ────────────────────────────────────────────────────────
+function renderWeekNav() {
+  const mon  = getMondayForOffset(weekOffset);
+  const sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const opts = { day:'numeric', month:'short' };
+  const wn   = getISOWeek(mon);
+  document.getElementById('weekNavLabel').textContent =
+    `Uke ${wn} · ${mon.toLocaleDateString('no-NO', opts)} – ${sun.toLocaleDateString('no-NO', opts)}`;
+  const nextBtn = document.getElementById('weekNavNext');
+  nextBtn.disabled      = weekOffset >= 0;
+  nextBtn.style.opacity = weekOffset >= 0 ? '0.35' : '';
+  nextBtn.style.cursor  = weekOffset >= 0 ? 'default' : '';
+}
+
+async function changeWeek(delta) {
+  const next = weekOffset + delta;
+  if (next > 0) return;
+  weekOffset  = next;
+  plan        = JSON.parse(localStorage.getItem(getPlanKey(weekOffset)) || '{}');
+  selectedIdx = weekOffset === 0 ? todayIdx() : 0;
+
+  const mon = getMondayForOffset(weekOffset);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const { data } = await db.from('gym_log').select('date')
+    .gte('date', mon.toISOString().slice(0, 10))
+    .lte('date', sun.toISOString().slice(0, 10));
+  loggedDates = new Set((data || []).map(r => r.date));
+
+  renderWeekNav();
+  renderDayStrip();
+  renderDetail();
+  renderSidebar();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -597,8 +657,10 @@ function clearDay() {
     .gte('date', mon.toISOString().slice(0, 10))
     .lte('date', sun.toISOString().slice(0, 10));
   loggedDates = new Set((data || []).map(r => r.date));
+  currentWeekLoggedDates = new Set(loggedDates);
 
   renderHero();
+  renderWeekNav();
   renderDayStrip();
   renderDetail();
   renderSidebar();

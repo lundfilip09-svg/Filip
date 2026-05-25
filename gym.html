@@ -51,7 +51,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsplan</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
   </div>
@@ -206,16 +206,20 @@ function renderWarmup() {
   const base = allExercises['warmup'] || {};
   const fri  = allExercises['friday_warmup'] || {};
 
-  const sykkelSection = isFriday ? fri['Sykkel'] : base['Sykkel'];
+  const cirSrc = isFriday ? fri : base;
+  const cirKey = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
+  const sykkelSection = cirSrc[cirKey];
   const extraSection  = isFriday ? fri['Ekstra'] : null;
   const hoftSection   = base['Hofteaktivering'] || [];
   const knaerSection  = base['Knær'] || [];
+  const prepSection   = base['Prepøvelser'] || [];
 
   let html = '';
-  if (sykkelSection) html += renderSection('Sykkel', sykkelSection, isFriday ? 'friday_warmup' : 'warmup', true);
+  if (sykkelSection) html += renderSection(cirKey, sykkelSection, isFriday ? 'friday_warmup' : 'warmup', true);
   if (extraSection)  html += renderSection('Ekstra', extraSection, 'friday_warmup', true);
   if (hoftSection.length) html += renderSection('Hofteaktivering', hoftSection, 'warmup', true);
   if (knaerSection.length) html += renderSection('Knær', knaerSection, 'warmup', true);
+  if (prepSection.length) html += renderSection('Prepøvelser', prepSection, 'warmup', true);
 
   el.innerHTML = html || '<div class="empty">Ingen oppvarmingsdata</div>';
 }
