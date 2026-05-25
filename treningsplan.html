@@ -484,6 +484,11 @@ async function signOut() {
   window.location.href = 'login.html';
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function localISODate(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const PLAN_KEY   = 'treningsplan_v1';
@@ -574,7 +579,7 @@ function renderHero() {
   let logged = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(mon); d.setDate(mon.getDate() + i);
-    if (currentWeekLoggedDates.has(d.toISOString().slice(0, 10))) logged++;
+    if (currentWeekLoggedDates.has(localISODate(d))) logged++;
   }
   let daysLeft = 0;
   for (let i = ti + 1; i < 7; i++) { if (!hir(i)) daysLeft++; }
@@ -587,10 +592,10 @@ function renderHero() {
 function renderDayStrip() {
   const ti = todayIdx();
   const el = document.getElementById('dayStrip');
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = localISODate(new Date());
   el.innerHTML = SHORT_DAYS.map((name, i) => {
     const d      = dayDate(i);
-    const ds     = d.toISOString().slice(0, 10);
+    const ds     = localISODate(d);
     const logged = loggedDates.has(ds) && ds <= todayIso;
     const today  = weekOffset === 0 && i === ti;
     const sel    = i === selectedIdx;
@@ -624,9 +629,9 @@ function renderDayStrip() {
 function renderDetail() {
   const i    = selectedIdx;
   const d    = dayDate(i);
-  const ds   = d.toISOString().slice(0, 10);
+  const ds   = localISODate(d);
   const txt  = planText(i);
-  const todayIso2 = new Date().toISOString().slice(0, 10);
+  const todayIso2 = localISODate(new Date());
   const logged = loggedDates.has(ds) && ds <= todayIso2;
 
   const dateLabel = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
@@ -671,7 +676,7 @@ function renderSidebar() {
   let logged = 0, planned = 0, rest = 0;
 
   for (let i = 0; i < 7; i++) {
-    const ds = dayDate(i).toISOString().slice(0, 10);
+    const ds = localISODate(dayDate(i));
     if (loggedDates.has(ds)) logged++;
     if (!isRest(i)) planned++; else rest++;
   }
@@ -686,7 +691,7 @@ function renderSidebar() {
   const barEl = document.getElementById('weekBars');
   let loadScore = 0, doneCount = 0;
   barEl.innerHTML = SHORT_DAYS.map((name, i) => {
-    const ds    = dayDate(i).toISOString().slice(0, 10);
+    const ds    = localISODate(dayDate(i));
     const done  = loggedDates.has(ds);
     const isT   = weekOffset === 0 && i === ti;
     const level = loadLevelForDay(i);
@@ -773,8 +778,8 @@ async function changeWeek(delta) {
   const mon = getMondayForOffset(weekOffset);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const { data } = await db.from('gym_log').select('date')
-    .gte('date', mon.toISOString().slice(0, 10))
-    .lte('date', sun.toISOString().slice(0, 10));
+    .gte('date', localISODate(mon))
+    .lte('date', localISODate(sun));
   loggedDates = new Set((data || []).map(r => r.date));
 
   renderWeekNav();
@@ -1005,8 +1010,8 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const { data } = await db.from('gym_log')
     .select('date')
-    .gte('date', mon.toISOString().slice(0, 10))
-    .lte('date', sun.toISOString().slice(0, 10));
+    .gte('date', localISODate(mon))
+    .lte('date', localISODate(sun));
   loggedDates = new Set((data || []).map(r => r.date));
   currentWeekLoggedDates = new Set(loggedDates);
 

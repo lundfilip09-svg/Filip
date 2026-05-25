@@ -460,6 +460,33 @@
       .gm-stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .gm-add-bottom { flex-wrap: wrap; }
     }
+    @media (max-width: 640px) {
+      /* Pin "Ny liste" as a dim footer bar — out of the way, below all content */
+      .gm-new-list-wrap {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        padding: 8px 16px 14px;
+        background: rgba(8, 8, 10, 0.96);
+        border-top: 1px solid rgba(255,255,255,0.07);
+        border-radius: 0;
+        margin-top: 0;
+        z-index: 100;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+      .gm-new-list-wrap:hover,
+      .gm-new-list-wrap:focus-within { opacity: 1; }
+      .gm-new-list-wrap input {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+      }
+      .gm-new-list-wrap .btn {
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+      }
+      /* Prevent todo list content hiding behind fixed bar */
+      .gm-main { padding-bottom: 80px; }
+    }
     @media (max-width: 480px) {
       .gm-stat-row { grid-template-columns: repeat(2, 1fr); }
       .gm-add-top  { padding: 4px 14px; }

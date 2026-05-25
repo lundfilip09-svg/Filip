@@ -377,8 +377,8 @@ function kalenderFarge(tittel) {
   const t = tittel || '';
   if (t.includes('Styrke') || t.includes('Friidrett')) return '#FFB84D';
   if (t.includes('Stevne') || t.includes('Konkurranse')) return '#F6C453';
-  if (t.includes('Gudstjeneste') || t.includes('Salhus') || t.includes('Salt')) return '#EFD97A';
-  if (t.includes('Helligdag') || t.includes('Fri')) return '#66C7A3';
+  if (t.includes('Gudstjeneste') || t.includes('Salhus') || t.includes('Salt')) return '#7EC8E3';
+  if (t.includes('Helligdag')) return '#66C7A3';
   return '#B197FC';
 }
 function _calEventHTML(timeLabel, title, allDay) {

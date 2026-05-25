@@ -445,10 +445,10 @@ async function logSession() {
 
 // ── History ───────────────────────────────────────────────────────────────
 async function loadHistory() {
-  const { data } = await db.from('sprint_log').select('*')
+  const { data, error } = await db.from('sprint_log').select('*')
     .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
     .limit(60);
+  console.log('[sprintHistory] sprint_log →', data, error);
   sprintLog = data || [];
   renderHistory();
   await loadKneeTrend();
@@ -466,28 +466,14 @@ function renderHistory() {
 
   el.innerHTML = [...groups.entries()].map(([date, runs]) => {
     const d       = new Date(date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
+    const dateStr = d.toLocaleDateString('no-NO', { weekday:'short', day:'numeric', month:'long' });
 
-    const byDist = new Map();
-    for (const r of runs) {
-      if (!byDist.has(r.distance)) byDist.set(r.distance, []);
-      byDist.get(r.distance).push(r);
-    }
-
-    const distRows = [...byDist.entries()].map(([dist, rs]) => {
-      const times = rs.map(r => r.time_seconds).filter(t => t != null);
-      const best  = times.length ? Math.min(...times) : null;
-      const avg   = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
-      return `<div style="margin-bottom:8px">
-        <div style="font-size:11px;font-family:var(--font-mono);color:var(--accent-blue);font-weight:600;margin-bottom:2px">${escHtml(distLabel(dist))}</div>
-        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary)">
-          ${rs.map(r => r.time_seconds != null ? r.time_seconds.toFixed(2) : '–').join(' / ')}s
-        </div>
-        ${times.length > 1 ? `<div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">
-          Raskest: ${best.toFixed(2)} · Snitt: ${avg.toFixed(2)}
-        </div>` : ''}
-      </div>`;
-    }).join('');
+    const runRows = runs.map(r => `
+      <div class="history-row">
+        <span class="history-dist">${escHtml(distLabel(r.distance))}</span>
+        <span class="history-time">${r.time_seconds != null ? r.time_seconds.toFixed(2) + 's' : '–'}</span>
+        <span class="history-type">${escHtml(r.type || '')}</span>
+      </div>`).join('');
 
     const rpe       = runs.find(r => r.rpe != null)?.rpe;
     const kneeAfter = runs.find(r => r.knee_after != null)?.knee_after;
@@ -501,7 +487,7 @@ function renderHistory() {
     return `<div style="margin-bottom:20px">
       <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;
         letter-spacing:0.12em;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:10px">${dateStr}</div>
-      ${distRows}
+      ${runRows}
       ${chips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chips}</div>` : ''}
       ${notes ? `<div style="font-size:10px;color:var(--text-tertiary);margin-top:6px;line-height:1.5">${escHtml(notes)}</div>` : ''}
       <div style="display:flex;justify-content:flex-end;margin-top:6px">

@@ -142,7 +142,20 @@
     .ex-r-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 14px; flex-shrink: 0; }
     .ex-r-info { flex: 1; min-width: 0; }
     .ex-r-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 1px; }
+    .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 1px; display: flex; align-items: center; gap: 3px; }
+    .ex-inline-input {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px; color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 10px; padding: 1px 4px; text-align: center;
+    }
+    .ex-inline-input:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+    .ex-r-del {
+      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
+      font-size: 15px; padding: 2px 6px; opacity: 0;
+      transition: opacity 0.15s, color 0.15s; flex-shrink: 0;
+    }
+    .ex-row:hover .ex-r-del { opacity: 0.5; }
+    .ex-r-del:hover { opacity: 1 !important; color: var(--danger); }
     .ex-r-prog { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0; }
     .ex-r-prog.partial { color: var(--warning); }
     .ex-r-prog.done { color: var(--success); }
@@ -889,19 +902,18 @@ function renderExRow(ex, day, num, isWarmup) {
       <div class="ex-r-num">${num}</div>
       <div class="ex-r-info">
         <div class="ex-r-name">${escHtml(ex.exercise_name)}</div>
-        <div class="ex-r-vol">${ex.sets} × ${escHtml(ex.reps)}</div>
+        <div class="ex-r-vol">
+          <input type="number" min="1" class="ex-inline-input" value="${ex.sets}" style="width:32px"
+            onclick="event.stopPropagation()"
+            onblur="autoSaveExField('${ex.id}','sets',this.value)">
+          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">×</span>
+          <input class="ex-inline-input" value="${escHtml(ex.reps)}" style="width:54px"
+            onclick="event.stopPropagation()"
+            onblur="autoSaveExField('${ex.id}','reps',this.value)">
+        </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
-      <button class="ex-r-menu" onclick="event.stopPropagation();toggleEditEx('${ex.id}')" title="Rediger">⋮</button>
-    </div>
-    <div class="ex-edit-form" id="edit-form-${ex.id}">
-      <input class="input-sm" id="edit-name-${ex.id}" value="${escHtml(ex.exercise_name)}" style="flex:1;min-width:90px" placeholder="Navn">
-      <input class="input-sm" type="number" id="edit-sets-${ex.id}" value="${ex.sets}" style="width:48px" placeholder="Sett">
-      <span style="color:var(--text-tertiary);font-size:11px;font-family:var(--font-mono)">×</span>
-      <input class="input-sm" id="edit-reps-${ex.id}" value="${escHtml(ex.reps)}" style="width:76px" placeholder="Reps">
-      <button class="btn btn-success btn-sm" onclick="saveExMeta('${ex.id}')">✓</button>
-      <button class="btn btn-ghost btn-sm" onclick="toggleEditEx('${ex.id}')">✕</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteExercise('${ex.id}')">Slett</button>
+      <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="Slett">×</button>
     </div>
     <div class="set-drawer" id="drawer-${ex.id}"></div>
   </div>`;
@@ -1364,6 +1376,28 @@ async function saveExMeta(id) {
     }
   renderAll();
   toast('Oppdatert');
+}
+
+async function autoSaveExField(id, field, value) {
+  if (field === 'sets') {
+    const v = parseInt(value);
+    if (isNaN(v) || v < 1) return;
+    await db.from('workout_program').update({ sets: v }).eq('id', id);
+    for (const d of Object.keys(allExercises))
+      for (const s of Object.keys(allExercises[d])) {
+        const ex = allExercises[d][s].find(e => String(e.id) === String(id));
+        if (ex) ex.sets = v;
+      }
+  } else {
+    const v = value.trim();
+    if (!v) return;
+    await db.from('workout_program').update({ reps: v }).eq('id', id);
+    for (const d of Object.keys(allExercises))
+      for (const s of Object.keys(allExercises[d])) {
+        const ex = allExercises[d][s].find(e => String(e.id) === String(id));
+        if (ex) ex.reps = v;
+      }
+  }
 }
 
 // ── Log ────────────────────────────────────────────────────────────
