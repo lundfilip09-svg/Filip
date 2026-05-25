@@ -353,7 +353,7 @@ async function logSession() {
   }));
 
   const distList = [...new Set(runs.map(r => r.distance))].join('/');
-  const [logRes] = await Promise.all([
+  const [logRes, kneeRes] = await Promise.all([
     db.from('sprint_log').insert(inserts).select(),
     db.from('knee_pain').insert({
       date, session_type: `Sprint ${distList} ${runs[0].type}`,
@@ -365,7 +365,8 @@ async function logSession() {
     }),
   ]);
 
-  if (logRes.error) { toast('Feil ved lagring', 'err'); return; }
+  if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
+  if (kneeRes.error) { toast('Knesmerte ikke lagret: '  + kneeRes.error.message, 'err'); console.error('knee_pain insert:', kneeRes.error); }
 
   // Check / update PB for each unique distance
   const newPBs = [];
@@ -423,11 +424,20 @@ async function loadHistory() {
 
 // ── Knee trend — reads from knee_pain (before_score/during_score/...) ─────
 async function loadKneeTrend() {
-  const { data } = await db.from('knee_pain')
+  // Order by created_at (newest first), fall back to date if column missing
+  let { data, error } = await db.from('knee_pain')
     .select('date,before_score,during_score,after_score,day_after_score')
     .ilike('session_type', 'Sprint%')
-    .order('date', { ascending: false })
+    .order('created_at', { ascending: false, nullsLast: true })
+    .order('date',       { ascending: false })
     .limit(5);
+  if (error) {
+    ({ data } = await db.from('knee_pain')
+      .select('date,before_score,during_score,after_score,day_after_score')
+      .ilike('session_type', 'Sprint%')
+      .order('date', { ascending: false })
+      .limit(5));
+  }
   renderKneeTrend(data || []);
 }
 
