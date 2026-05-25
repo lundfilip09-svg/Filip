@@ -756,6 +756,40 @@ async function loadData() {
   });
   weights = {};
   (wts.data || []).forEach(w => { weights[w.exercise_name] = w.weight_kg; });
+  _applyLocalExOrders();
+}
+
+// ── Exercise order localStorage helpers ───────────────────────────
+function _exOrdKey(day, section) { return `ex_ord__${day}__${section}`; }
+function _saveLocalExOrder(day, section, ids) {
+  try { localStorage.setItem(_exOrdKey(day, section), JSON.stringify(ids.map(String))); } catch {}
+}
+function _applyLocalExOrders() {
+  // Strength sections
+  for (const day of Object.keys(allExercises)) {
+    for (const section of Object.keys(allExercises[day])) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(_exOrdKey(day, section)));
+        if (!saved?.length) continue;
+        const reordered = saved.map(id => allExercises[day][section].find(e => String(e.id) === id)).filter(Boolean);
+        if (reordered.length === allExercises[day][section].length) allExercises[day][section] = reordered;
+      } catch {}
+    }
+  }
+  // Warmup: apply sort_orders from saved list
+  try {
+    const saved = JSON.parse(localStorage.getItem('ex_ord__warmup'));
+    if (saved?.length) {
+      saved.forEach((id, idx) => {
+        for (const wmDay of ['warmup', 'friday_warmup']) {
+          for (const exs of Object.values(allExercises[wmDay] || {})) {
+            const ex = exs.find(e => String(e.id) === String(id));
+            if (ex) { ex.sort_order = idx; return; }
+          }
+        }
+      });
+    }
+  } catch {}
 }
 
 // ── Day ────────────────────────────────────────────────────────────
@@ -796,50 +830,55 @@ function oppdaterTidsestimat() {
 
 // ── Warmup ─────────────────────────────────────────────────────────
 function renderWarmup() {
-  const el       = document.getElementById('warmupContent');
-  const isFri    = activeDay === 'friday';
-  const base     = allExercises['warmup'] || {};
-  const fri      = allExercises['friday_warmup'] || {};
-  const cirSrc   = isFri ? fri : base;
-  const cirKey   = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
-  const sykExs   = cirSrc[cirKey] || [];
-  const syk      = sykExs[0];
+  const el    = document.getElementById('warmupContent');
+  const isFri = activeDay === 'friday';
+  const base  = allExercises['warmup'] || {};
+  const fri   = allExercises['friday_warmup'] || {};
 
-  // Merge all prep sections
-  const prepExs = [
-    ...(base['Hofteaktivering'] || []),
-    ...(base['Knær'] || []),
-    ...(base['Prepøvelser'] || []),
-    ...(isFri ? (fri['Ekstra'] || []) : []),
-  ];
+  // Identify the sykkel section key
+  const cirSrc = isFri ? fri : base;
+  const cirKey = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
 
-  const count = sykExs.length + prepExs.length;
-  document.getElementById('warmupBadge').textContent = count ? `${count} øvelser` : '—';
+  // Collect ALL warmup exercises into a flat list
+  const allWmExs = [];
+  for (const [sec, exs] of Object.entries(base)) {
+    for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey && !isFri });
+  }
+  if (isFri) {
+    for (const [sec, exs] of Object.entries(fri)) {
+      for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey });
+    }
+  }
+
+  // Sort by sort_order (null → last, tie-break by original array position)
+  allWmExs.sort((a, b) => (a.ex.sort_order ?? Infinity) - (b.ex.sort_order ?? Infinity));
+
+  document.getElementById('warmupBadge').textContent =
+    allWmExs.length ? `${allWmExs.length} øvelser` : '—';
 
   let zoneHtml = '';
-  let addHtml  = '';
-
-  if (syk) {
-    zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${syk.id}"
-      draggable="true" data-exid="${syk.id}" data-day="${escHtml(syk.day || (isFri ? 'friday_warmup' : 'warmup'))}" data-section="${escHtml(syk.section || cirKey)}"
-      ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
-      <div class="circ-row">
-        <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
-        <div class="circ-icon">🚴</div>
-        <div>
-          <div class="circ-name">${escHtml(syk.exercise_name)}</div>
-          <div class="circ-meta">${escHtml(syk.reps || '8–10 min')}</div>
+  allWmExs.forEach(({ ex, isSyk }, i) => {
+    const exDay = ex.day || (isFri ? 'friday_warmup' : 'warmup');
+    if (isSyk) {
+      zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"
+        draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(ex.section || cirKey)}"
+        ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
+        <div class="circ-row">
+          <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
+          <div class="circ-icon">🚴</div>
+          <div>
+            <div class="circ-name">${escHtml(ex.exercise_name)}</div>
+            <div class="circ-meta">${escHtml(ex.reps || '8–10 min')}</div>
+          </div>
         </div>
-      </div>
-    </div>`;
-  }
-
-  if (prepExs.length) {
-    zoneHtml += prepExs.map((ex, i) => renderExRow(ex, ex.day || 'warmup', i + 1, true)).join('');
-  }
+      </div>`;
+    } else {
+      zoneHtml += renderExRow(ex, exDay, i + 1, true);
+    }
+  });
 
   const addId = 'add-warmup-Prepøvelser';
-  addHtml = `<div class="add-ex-form" id="${addId}">
+  const addHtml = `<div class="add-ex-form" id="${addId}">
     <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
     <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
     <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
@@ -1620,6 +1659,7 @@ async function saveExOrder(day, section, orderedIds) {
       .filter(Boolean);
     if (reordered.length) allExercises[day][section] = reordered;
   }
+  _saveLocalExOrder(day, section, orderedIds);
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.from('workout_program').update({ sort_order: idx }).eq('id', isNaN(+id) ? id : +id)
@@ -1656,6 +1696,18 @@ async function wmDrop(e) {
   await saveWarmupOrder(newOrder);
 }
 async function saveWarmupOrder(orderedIds) {
+  // Update in-memory sort_orders so renderWarmup re-sorts correctly on tab switch
+  const orderMap = Object.fromEntries(orderedIds.map((id, idx) => [String(id), idx]));
+  for (const wmDay of ['warmup', 'friday_warmup']) {
+    for (const exs of Object.values(allExercises[wmDay] || {})) {
+      for (const ex of exs) {
+        const newIdx = orderMap[String(ex.id)];
+        if (newIdx !== undefined) ex.sort_order = newIdx;
+      }
+    }
+  }
+  // Persist to localStorage (reliable) + Supabase (cross-device)
+  try { localStorage.setItem('ex_ord__warmup', JSON.stringify(orderedIds.map(String))); } catch {}
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.from('workout_program').update({ sort_order: idx }).eq('id', isNaN(+id) ? id : +id)

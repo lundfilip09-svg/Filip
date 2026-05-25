@@ -513,6 +513,9 @@ function loadSession() {
 }
 
 // ── Week strip ─────────────────────────────────────────────────────────────
+function _localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 async function renderWeekStrip() {
   const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
   const now  = new Date();
@@ -523,8 +526,9 @@ async function renderWeekStrip() {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  const mondayStr = monday.toISOString().split('T')[0];
-  const sundayStr = sunday.toISOString().split('T')[0];
+  // Use LOCAL date strings to match DB dates (avoids UTC offset bug)
+  const mondayStr = _localDateStr(monday);
+  const sundayStr = _localDateStr(sunday);
 
   const [gymRes, sprintRes] = await Promise.all([
     db.from('gym_log').select('date,session_type').gte('date', mondayStr).lte('date', sundayStr),
@@ -537,26 +541,33 @@ async function renderWeekStrip() {
 
   const dayNames = ['man','tir','ons','tor','fre','lør','søn'];
   const el = document.getElementById('weekStrip');
+  const todayStr = _localDateStr(now);
 
   el.innerHTML = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
-    const isToday = d.toDateString() === now.toDateString();
+    const dateStr = _localDateStr(d);
+    const isToday = dateStr === todayStr;
+    const isPast  = dateStr <= todayStr;
 
     const chips = [];
     const gymType = gymByDate[dateStr];
     if (gymType !== undefined) {
       if (/sprint/i.test(gymType)) chips.push({ cls: 'ind-sprint', label: 'Sprint' });
-      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) chips.push({ cls: 'ind-kondisjon', label: 'Mobilitet' });
-      else chips.push({ cls: 'ind-styrke', label: 'Styrke' });
+      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) {
+        const lbl = gymType.length > 14 ? 'Mobilitet' : gymType;
+        chips.push({ cls: 'ind-kondisjon', label: lbl });
+      } else {
+        const lbl = gymType.replace('Styrke ', '').replace('Kapasitet','Kap.').replace('Power','Pwr');
+        chips.push({ cls: 'ind-styrke', label: lbl || 'Styrke' });
+      }
     }
     if (sprintDates.has(dateStr) && !chips.some(c => c.cls === 'ind-sprint')) {
       chips.push({ cls: 'ind-sprint', label: 'Sprint' });
     }
 
     let indClass = 'ind-rest';
-    if (!chips.length) {
+    if (!chips.length && !isPast) {
       const txt = (plan[i] || '').trim().toLowerCase();
       if (txt && !/^hvile/.test(txt)) {
         if (/sprint/.test(txt)) indClass = 'ind-sprint';
