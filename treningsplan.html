@@ -152,6 +152,112 @@
     }
     .detail-actions { display: flex; gap: 8px; }
 
+    /* ── Session history ────────────────────────────────────── */
+    .hist-section { margin-top: 20px; }
+    .hist-section-hd {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .hist-section-title {
+      font-size: 11px; font-family: var(--font-mono);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-tertiary); flex: 1;
+    }
+    .trend-badge {
+      font-size: 9px; font-family: var(--font-mono);
+      padding: 3px 10px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .trend-good    { background: rgba(107,227,164,0.12); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2); }
+    .trend-bad     { background: rgba(255,107,107,0.12); color: #FF6B6B; border: 1px solid rgba(255,107,107,0.2); }
+    .trend-neutral { background: rgba(255,255,255,0.05); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
+
+    .sess-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .sess-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sess-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
+    .sess-card.expanded { border-color: rgba(91,164,245,0.3); }
+    .sess-date {
+      font-size: 9px; font-family: var(--font-mono);
+      color: var(--text-tertiary); text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: 4px;
+    }
+    .sess-name {
+      font-size: 14px; font-weight: 600;
+      color: var(--text-primary); line-height: 1.2; margin-bottom: 6px;
+    }
+    .sess-meta {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .sess-pain {
+      font-size: 10px; font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+    .sess-pain-val { font-weight: 600; }
+    .sess-pain-val.pain-low  { color: #6BE3A4; }
+    .sess-pain-val.pain-mid  { color: var(--warning); }
+    .sess-pain-val.pain-high { color: #FF6B6B; }
+    .sess-tag {
+      font-size: 9px; font-family: var(--font-mono);
+      padding: 2px 7px; border-radius: 10px;
+      background: rgba(107,227,164,0.1); color: #6BE3A4;
+      border: 1px solid rgba(107,227,164,0.2);
+    }
+    .sess-notes-preview {
+      font-size: 10px; color: var(--text-tertiary);
+      margin-top: 7px; line-height: 1.5;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+
+    /* Session detail drawer */
+    .sess-detail {
+      display: none;
+      background: rgba(91,164,245,0.04);
+      border: 1px solid rgba(91,164,245,0.15);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-top: 4px;
+      grid-column: 1 / -1;
+    }
+    .sess-detail.open { display: block; }
+    .sess-detail-hd {
+      display: flex; align-items: baseline;
+      justify-content: space-between; margin-bottom: 14px;
+    }
+    .sess-detail-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .sess-detail-date  { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .sess-detail-close {
+      background: none; border: none; color: var(--text-tertiary);
+      cursor: pointer; font-size: 14px; padding: 2px 4px;
+    }
+    .sess-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .sess-detail-block {
+      background: rgba(255,255,255,0.03); border-radius: 7px; padding: 10px 12px;
+    }
+    .sess-detail-lbl  { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sess-detail-val  { font-size: 15px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); }
+    .sess-detail-notes { font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* Pain trend mini chart */
+    .pain-sparkline {
+      display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-top: 8px;
+    }
+    .spark-bar {
+      flex: 1; border-radius: 2px 2px 0 0; min-height: 2px;
+      transition: height 0.3s ease;
+    }
+
     /* ── Sidebar ────────────────────────────────────────────── */
     .sidebar { display: flex; flex-direction: column; gap: 12px; }
     .widget-label {
@@ -305,6 +411,17 @@
         <div id="weekProgress"></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Session history -->
+  <div class="hist-section">
+    <div class="hist-section-hd">
+      <span class="hist-section-title">Øktlogg</span>
+      <span id="painTrendBadge" class="trend-badge trend-neutral" style="display:none"></span>
+    </div>
+    <div id="sessionGrid" class="sess-grid">
+      <div class="loading">Laster øktlogg…</div>
     </div>
   </div>
 
@@ -630,6 +747,156 @@ async function changeWeek(delta) {
   renderSidebar();
 }
 
+// ── Session history & pain trend ───────────────────────────────────────────
+let _sessData   = [];
+let _kneeMap    = {};
+let _openDetail = null;
+
+function painColorClass(score) {
+  if (score === null || score === undefined) return '';
+  if (score <= 3) return 'pain-low';
+  if (score <= 6) return 'pain-mid';
+  return 'pain-high';
+}
+
+function calcPainTrend(kneeSessions) {
+  const scored = kneeSessions.filter(k => k.after_score !== null && k.after_score !== undefined);
+  if (scored.length < 3) return null;
+  const half   = Math.ceil(scored.length / 2);
+  const avg    = arr => arr.reduce((s, k) => s + k.after_score, 0) / arr.length;
+  const delta  = avg(scored.slice(0, half)) - avg(scored.slice(half));
+  if (delta < -0.6) return { text: '↓ Knesmerte forbedres', type: 'good' };
+  if (delta >  0.6) return { text: '↑ Knesmerte øker',     type: 'bad' };
+  return { text: '— Knesmerte stabil', type: 'neutral' };
+}
+
+async function loadSessionHistory() {
+  const { data: gymData } = await db.from('gym_log')
+    .select('*').order('date', { ascending: false }).limit(30);
+  const el = document.getElementById('sessionGrid');
+  if (!gymData?.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px 0">Ingen loggede økter ennå</div>';
+    return;
+  }
+  _sessData = gymData;
+
+  const dates = [...new Set(gymData.map(g => g.date))];
+  const { data: kneeData } = await db.from('knee_pain').select('*').in('date', dates);
+  _kneeMap = {};
+  (kneeData || []).forEach(k => { _kneeMap[k.date + '|' + (k.session_type || '')] = k; });
+
+  const kneeSorted = gymData
+    .map(g => _kneeMap[g.date + '|' + (g.session_type || '')])
+    .filter(Boolean);
+  const trend = calcPainTrend(kneeSorted);
+  if (trend) {
+    const badge = document.getElementById('painTrendBadge');
+    badge.textContent   = trend.text;
+    badge.className     = `trend-badge trend-${trend.type}`;
+    badge.style.display = '';
+  }
+
+  renderSessionGrid();
+}
+
+function renderSessionGrid() {
+  const el = document.getElementById('sessionGrid');
+  if (!_sessData.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
+
+  el.innerHTML = _sessData.map(g => {
+    const knee       = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
+    const d          = new Date(g.date + 'T12:00:00');
+    const dateStr    = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
+    const dayStr     = d.toLocaleDateString('no-NO', { weekday:'long' });
+    const before     = knee?.before_score;
+    const after      = knee?.after_score;
+    const hasPain    = before != null && after != null;
+    const notesPreview = (g.session_notes || '').trim();
+    const isOpen     = _openDetail === g.id;
+
+    const painHtml = hasPain
+      ? `<span class="sess-pain">Smerte: <span class="sess-pain-val ${painColorClass(before)}">${before}</span>
+           <span style="color:var(--text-tertiary)"> → </span>
+           <span class="sess-pain-val ${painColorClass(after)}">${after}</span></span>`
+      : '';
+
+    return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
+      onclick="toggleSessionDetail('${g.id}')">
+      <div class="sess-date">${dayStr} · ${dateStr}</div>
+      <div class="sess-name">${escHtml(g.session_type || 'Økt')}</div>
+      <div class="sess-meta">
+        ${painHtml}
+        <span class="sess-tag">✓ Fullført</span>
+      </div>
+      ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
+    </div>
+    ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
+  }).join('');
+}
+
+function buildDetailHtml(g, knee) {
+  const d       = new Date(g.date + 'T12:00:00');
+  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  const scoreBlock = (label, val) => val != null
+    ? `<div class="sess-detail-block">
+        <div class="sess-detail-lbl">${label}</div>
+        <div class="sess-detail-val ${painColorClass(val)}">${val}</div>
+       </div>`
+    : '';
+
+  const painBlocks = [
+    scoreBlock('Smerte før', knee?.before_score),
+    scoreBlock('Under økt',  knee?.during_score),
+    scoreBlock('Etter økt',  knee?.after_score),
+    scoreBlock('Dagen etter',knee?.day_after_score),
+  ].filter(Boolean).join('');
+
+  const sameType = _sessData.filter(s => s.session_type === g.session_type);
+  const sparkVals = sameType.slice(0, 8).reverse()
+    .map(s => _kneeMap[s.date + '|' + (s.session_type || '')]?.after_score ?? null);
+  const maxVal = Math.max(...sparkVals.filter(v => v !== null), 1);
+  const sparkHtml = sparkVals.map(v => {
+    if (v === null) return `<div class="spark-bar" style="height:2px;background:rgba(255,255,255,0.08)"></div>`;
+    const h  = Math.round(4 + (v / maxVal) * 26);
+    const bg = v <= 3 ? '#6BE3A4' : v <= 6 ? 'var(--warning)' : '#FF6B6B';
+    return `<div class="spark-bar" style="height:${h}px;background:${bg}"></div>`;
+  }).join('');
+
+  return `<div class="sess-detail open" id="sess-detail-${g.id}" onclick="event.stopPropagation()">
+    <div class="sess-detail-hd">
+      <div>
+        <div class="sess-detail-title">${escHtml(g.session_type || 'Økt')}</div>
+        <div class="sess-detail-date">${dateStr}</div>
+      </div>
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
+    </div>
+    ${painBlocks ? `<div class="sess-detail-grid">${painBlocks}</div>` : ''}
+    ${sparkVals.some(v => v !== null)
+      ? `<div style="margin-bottom:12px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
+            margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Smerte etter — historikk (${escHtml(g.session_type || '')})</div>
+          <div class="pain-sparkline">${sparkHtml}</div>
+        </div>`
+      : ''}
+    ${g.session_notes
+      ? `<div><div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
+            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+          <div class="sess-detail-notes">${escHtml(g.session_notes)}</div></div>`
+      : ''}
+  </div>`;
+}
+
+function toggleSessionDetail(id) {
+  _openDetail = _openDetail === id ? null : id;
+  renderSessionGrid();
+  if (_openDetail) {
+    setTimeout(() => {
+      document.getElementById(`sess-detail-${id}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 60);
+  }
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -664,6 +931,7 @@ async function changeWeek(delta) {
   renderDayStrip();
   renderDetail();
   renderSidebar();
+  loadSessionHistory();
 })();
 </script>
 </body>

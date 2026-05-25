@@ -597,15 +597,18 @@ let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
 let workoutState  = 'idle';
-let workoutStart  = null;
+let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
-let completedSets = {};   // exId -> Set of done set indices
-let setData       = {};   // exId -> [{ done, weight, reps, notes }]
+let completedSets = {};     // exId -> Set of done set indices
+let setData       = {};     // exId -> [{ done, weight, reps, notes }]
 let activeDrawer  = null;
 let activeExId    = null;
 let restTimerInt  = null;
-let restRemaining = 0;
+let restStartedAt = null;   // timestamp (ms) — persisted
+let restDuration  = 0;      // total seconds — persisted
 let sbKneePhase   = 'during';
+
+const SESSION_KEY = 'gym_session_v2';
 
 function detectDay() {
   const d = new Date().getDay();
@@ -616,13 +619,99 @@ function detectDay() {
 }
 function setWS(s) { workoutState = s; document.body.dataset.ws = s; }
 
+// ── Session persistence ────────────────────────────────────────────
+function saveSession() {
+  if (workoutState !== 'active') return;
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      workoutStartedAt: workoutStart,
+      activeDay,
+      completedSets: Object.fromEntries(
+        Object.entries(completedSets).map(([k, v]) => [k, [...v]])
+      ),
+      setData,
+      kneePain: { ...kneePain },
+      restStartedAt,
+      restDuration,
+      notes: document.getElementById('sidebarNotes')?.value || '',
+    }));
+  } catch(e) {}
+}
+
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function getRestRemaining() {
+  if (!restStartedAt || !restDuration) return 0;
+  return Math.max(0, restDuration - Math.floor((Date.now() - restStartedAt) / 1000));
+}
+
+function resumeRestTimer() {
+  const el = document.getElementById('restDisplay');
+  if (el) { el.classList.add('running'); el.classList.remove('done'); }
+  updateRestDisplay();
+  restTimerInt = setInterval(() => {
+    const rem = getRestRemaining();
+    updateRestDisplay();
+    if (rem <= 0) {
+      clearInterval(restTimerInt); restTimerInt = null; restStartedAt = null;
+      const e = document.getElementById('restDisplay');
+      if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
+      const rv = document.getElementById('restVal');
+      if (rv) rv.textContent = 'Klar!';
+    }
+  }, 500);
+}
+
+function tryRestoreSession(data) {
+  if (!data?.workoutStartedAt) return false;
+  try {
+    workoutStart  = data.workoutStartedAt;
+    completedSets = {};
+    Object.entries(data.completedSets || {}).forEach(([k, v]) => { completedSets[k] = new Set(v); });
+    setData = data.setData || {};
+    Object.assign(kneePain, data.kneePain || {});
+    if (data.restStartedAt && data.restDuration) {
+      restStartedAt = data.restStartedAt;
+      restDuration  = data.restDuration;
+    }
+    return true;
+  } catch(e) { clearSession(); return false; }
+}
+
 // ── Init ───────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('logDate').value = today();
+
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
+  if (saved?.activeDay) activeDay = saved.activeDay;
+
   setDay(activeDay);
   await loadData();
-  renderAll();
-  buildPainButtons();
+
+  if (saved?.workoutStartedAt && tryRestoreSession(saved)) {
+    setWS('active');
+    elapsedTimer = setInterval(() => { updateElapsed(); updateRingTimer(); }, 1000);
+    renderAll();
+    setSbPhase('during');
+    updateProgress();
+    updateNextEx();
+    updateSbActiveEx(null);
+    buildPainButtons();
+    ['before','during','after','day-after'].forEach(p => {
+      if (kneePain[p] !== null && kneePain[p] !== undefined) selectPain(p, kneePain[p]);
+    });
+    if (saved.notes) {
+      const el = document.getElementById('sidebarNotes');
+      if (el) { el.value = saved.notes; updateNotesCount(); }
+    }
+    if (getRestRemaining() > 0) resumeRestTimer();
+    toast('Økt gjenopprettet');
+  } else {
+    renderAll();
+    buildPainButtons();
+  }
+
   await loadGymHistory();
 }
 
@@ -883,6 +972,7 @@ function toggleSetDone(exId, setIdx) {
   updateExRowStatus(exId);
   updateProgress();
   updateNextEx();
+  saveSession();
 }
 
 function addSet(exId) {
@@ -994,6 +1084,7 @@ function startWorkout() {
   updateProgress();
   updateNextEx();
   updateSbActiveEx(null);
+  saveSession();
 }
 
 function finishWorkout() {
@@ -1012,6 +1103,7 @@ function resetWorkout() {
   stopRest();
   workoutStart = null; completedSets = {}; setData = {}; activeDrawer = null; activeExId = null;
   document.getElementById('elapsedDisplay').textContent = '0:00';
+  clearSession();
   setWS('idle');
   renderAll();
 }
@@ -1079,35 +1171,25 @@ function updateNotesCount() {
   if (!el || !ta) return;
   const n = ta.value.trim().split('\n').filter(l => l.trim()).length;
   el.textContent = n ? `${n} linje${n > 1 ? 'r' : ''}` : '0 notater';
+  saveSession();
 }
 
-// ── Rest timer ─────────────────────────────────────────────────────
+// ── Rest timer (timestamp-based — survives refresh/lock) ───────────
 function startRest(seconds) {
   stopRest();
-  restRemaining = seconds;
-  const el = document.getElementById('restDisplay');
-  if (el) { el.classList.add('running'); el.classList.remove('done'); }
-  updateRestDisplay();
-  restTimerInt = setInterval(() => {
-    restRemaining--;
-    updateRestDisplay();
-    if (restRemaining <= 0) {
-      clearInterval(restTimerInt); restTimerInt = null;
-      const e = document.getElementById('restDisplay');
-      if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
-      const rv = document.getElementById('restVal');
-      if (rv) rv.textContent = 'Klar!';
-    }
-  }, 1000);
+  restStartedAt = Date.now();
+  restDuration  = seconds;
+  saveSession();
+  resumeRestTimer();
   const rv = document.getElementById('restVal');
   if (rv) rv.textContent = fmtRest(seconds);
-  // Auto-open timer tool
   const tb = document.getElementById('tb-rest');
   if (tb && tb.style.display !== 'block') toggleTool('rest');
 }
 
 function stopRest() {
-  clearInterval(restTimerInt); restTimerInt = null; restRemaining = 0;
+  clearInterval(restTimerInt); restTimerInt = null;
+  restStartedAt = null; restDuration = 0;
   const el = document.getElementById('restDisplay');
   if (el) { el.textContent = '—'; el.className = 'rest-display'; }
   const rv = document.getElementById('restVal');
@@ -1115,10 +1197,11 @@ function stopRest() {
 }
 
 function updateRestDisplay() {
-  const el = document.getElementById('restDisplay');
-  if (el) el.textContent = fmtRest(restRemaining);
-  const rv = document.getElementById('restVal');
-  if (rv) rv.textContent = fmtRest(restRemaining);
+  const rem = getRestRemaining();
+  const el  = document.getElementById('restDisplay');
+  if (el) el.textContent = fmtRest(rem);
+  const rv  = document.getElementById('restVal');
+  if (rv) rv.textContent = fmtRest(rem);
 }
 
 function fmtRest(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
@@ -1169,6 +1252,7 @@ function selectSbPain(score) {
   });
   const kv = document.getElementById('kneeVal');
   if (kv) kv.textContent = `${score} (${sbKneePhase})`;
+  saveSession();
 }
 
 function setSbPhase(phase) {
@@ -1255,6 +1339,7 @@ async function saveLog() {
     db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
   ]);
   if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
+  clearSession();
   toast('Økt lagret!');
   await loadGymHistory();
 }
@@ -1269,24 +1354,26 @@ function clearLog() {
   document.getElementById('logDate').value = today();
 }
 
-// ── History ────────────────────────────────────────────────────────
+// ── History (compact — last 3 sessions; full log in Treningsoversikt) ──
 async function loadGymHistory() {
   const { data: gymData } = await db.from('gym_log')
-    .select('*').order('date', { ascending: false }).limit(20);
+    .select('*').order('date', { ascending: false }).limit(3);
   const el = document.getElementById('gymHistory');
   if (!gymData?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
+
   const dates = [...new Set(gymData.map(g => g.date))];
   const { data: kneeData } = await db.from('knee_pain').select('*').in('date', dates);
   const kneeMap = {};
   (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
+
   el.innerHTML = gymData.map(g => {
-    const knee     = kneeMap[g.date + '|' + (g.session_type || '')] || null;
-    const d        = new Date(g.date + 'T12:00:00');
-    const dateStr  = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
+    const knee      = kneeMap[g.date + '|' + (g.session_type || '')] || null;
+    const d         = new Date(g.date + 'T12:00:00');
+    const dateStr   = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
     const typeShort = (g.session_type || '').replace('Styrke ','');
     const kneeShort = knee
-      ? [knee.before_score, knee.during_score, knee.after_score]
-          .map(v => v !== null && v !== undefined ? v : '—').join('·')
+      ? [knee.before_score, knee.after_score]
+          .map(v => v !== null && v !== undefined ? v : '—').join('→')
       : '';
     const kneeId = knee?.id || '';
     return `<div id="hist-wrap-${g.id}">
@@ -1313,7 +1400,10 @@ async function loadGymHistory() {
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('') +
+  `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
+    font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
+    text-align:center">Se full øktlogg →</a>`;
 }
 
 function toggleKneeEdit(gymId) {
