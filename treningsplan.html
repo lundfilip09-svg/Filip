@@ -587,10 +587,11 @@ function renderHero() {
 function renderDayStrip() {
   const ti = todayIdx();
   const el = document.getElementById('dayStrip');
+  const todayIso = new Date().toISOString().slice(0, 10);
   el.innerHTML = SHORT_DAYS.map((name, i) => {
     const d      = dayDate(i);
     const ds     = d.toISOString().slice(0, 10);
-    const logged = loggedDates.has(ds);
+    const logged = loggedDates.has(ds) && ds <= todayIso;
     const today  = weekOffset === 0 && i === ti;
     const sel    = i === selectedIdx;
     const txt    = planText(i);
@@ -625,7 +626,8 @@ function renderDetail() {
   const d    = dayDate(i);
   const ds   = d.toISOString().slice(0, 10);
   const txt  = planText(i);
-  const logged = loggedDates.has(ds);
+  const todayIso2 = new Date().toISOString().slice(0, 10);
+  const logged = loggedDates.has(ds) && ds <= todayIso2;
 
   const dateLabel = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
   document.getElementById('detailMeta').textContent =

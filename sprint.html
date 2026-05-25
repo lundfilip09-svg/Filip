@@ -48,7 +48,6 @@
     .goal-vals span { color: var(--text-primary); }
     .goal-bar-bg { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
     .goal-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
-    .pb-edit { width: 52px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; color: var(--text-primary); font-family: var(--font-mono); font-size: 11px; padding: 1px 4px; text-align: center; }
   </style>
 </head>
 <body>
@@ -300,12 +299,28 @@ function renderRuns() {
 
 // ── PB Board ──────────────────────────────────────────────────────────────
 async function loadPBs() {
-  const { data } = await db.from('sprint_records').select('*').order('distance');
-  const el = document.getElementById('pbGrid');
+  const [{ data: recData }, { data: cellerData }] = await Promise.all([
+    db.from('sprint_records').select('*').order('distance'),
+    db.from('sprint_log')
+      .select('time_seconds,date')
+      .eq('distance', '60m_celler')
+      .eq('type', 'Trening')
+      .not('time_seconds', 'is', null)
+      .order('time_seconds', { ascending: true })
+      .limit(1),
+  ]);
 
-  const dOrder = ['60m','60m_celler','60m_flying','100m','200m'];
+  const el = document.getElementById('pbGrid');
+  const dOrder = ['60m','60m_celler','100m','200m'];
   const byDist = {};
-  (data || []).forEach(r => { byDist[r.distance] = r; });
+  (recData || []).forEach(r => { byDist[r.distance] = r; });
+
+  // 60m_celler PB is computed live from sprint_log, type='Trening' only
+  if (cellerData?.length) {
+    byDist['60m_celler'] = { best_time: cellerData[0].time_seconds, date: cellerData[0].date };
+  } else {
+    delete byDist['60m_celler'];
+  }
 
   el.innerHTML = dOrder.map(d => {
     const r = byDist[d];
@@ -347,8 +362,7 @@ function renderSprintGoals(best) {
       <div class="goal-header">
         <span class="goal-name">${g.dist}</span>
         <div class="goal-vals">
-          PB: <input class="pb-edit" id="pb-edit-${g.dist}" type="number" step="0.01"
-            value="${pb.toFixed(2)}" onchange="updatePB('${g.dist}',this.value)">s
+          PB: <span>${pb.toFixed(2)}s</span>
           &nbsp;·&nbsp; Mål: <span>${g.goal.toFixed(2)}s</span>
           &nbsp;·&nbsp; <span style="color:${deltaColor}">${deltaStr}</span>
         </div>
@@ -358,17 +372,6 @@ function renderSprintGoals(best) {
       </div>
     </div>`;
   }).join('');
-}
-
-async function updatePB(dist, val) {
-  const time = parseFloat(val);
-  if (isNaN(time) || time <= 0) return;
-  await db.from('sprint_records').upsert(
-    { distance: dist, best_time: time, date: today() },
-    { onConflict: 'distance' }
-  );
-  await loadSprintGoals();
-  toast('PB oppdatert');
 }
 
 // ── Log session ───────────────────────────────────────────────────────────
@@ -407,6 +410,7 @@ async function logSession() {
   // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
   const newPBs = [];
   for (const r of runs) {
+    if (r.distance === '60m_flying') continue;
     const countsForPB = r.distance === '60m_celler'
       ? r.type === 'Trening'
       : r.type === 'Stevne';

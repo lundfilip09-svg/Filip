@@ -750,10 +750,8 @@ function setDay(day) {
   document.querySelectorAll('.day-pill').forEach(t =>
     t.classList.toggle('active', t.dataset.day === day)
   );
-  const titles    = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
-  const durations = { monday:'~75 min', wednesday:'~60 min', friday:'~80 min' };
+  const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
   document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
-  document.getElementById('whDuration').textContent   = durations[day] || '~75 min';
   renderAll();
 }
 
@@ -762,6 +760,23 @@ function renderAll() {
   renderWorkout();
   const exs = getSortedMainExercises();
   document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
+  oppdaterTidsestimat();
+}
+
+function oppdaterTidsestimat() {
+  const isFri   = activeDay === 'friday';
+  const base    = allExercises['warmup'] || {};
+  const fri     = allExercises['friday_warmup'] || {};
+  const prepExs = [
+    ...(base['Hofteaktivering'] || []),
+    ...(base['Knær'] || []),
+    ...(base['Prepøvelser'] || []),
+    ...(isFri ? (fri['Ekstra'] || []) : []),
+  ];
+  const mainExs = getSortedMainExercises();
+  const raw     = 15 + prepExs.length * 2 + mainExs.length * 4;
+  const rounded = Math.round(raw / 5) * 5;
+  document.getElementById('whDuration').textContent = `~${rounded} min`;
 }
 
 // ── Warmup ─────────────────────────────────────────────────────────
@@ -1380,34 +1395,76 @@ function clearLog() {
   document.getElementById('logDate').value = today();
 }
 
-// ── History (compact — last 3 sessions; full log in Treningsoversikt) ──
+// ── History (sidebar: last 10 sessions; full log in Treningsoversikt) ──
 async function loadGymHistory() {
-  const { data: gymData } = await db.from('gym_log')
-    .select('*').order('date', { ascending: false }).limit(3);
   const el = document.getElementById('gymHistory');
-  if (!gymData?.length) { el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return; }
 
-  const dates = [...new Set(gymData.map(g => g.date))];
-  const { data: kneeData } = await db.from('knee_pain').select('*').in('date', dates);
-  const kneeMap = {};
-  (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
+  // Primary source: gym_log
+  const { data: gymData, error: gymErr } = await db.from('gym_log')
+    .select('*').order('date', { ascending: false }).limit(10);
+  console.log('[gymHistory] gym_log →', gymData, gymErr);
 
-  el.innerHTML = gymData.map(g => {
-    const knee      = kneeMap[g.date + '|' + (g.session_type || '')] || null;
-    const d         = new Date(g.date + 'T12:00:00');
-    const dateStr   = d.toLocaleDateString('no-NO', { day:'numeric', month:'short' });
-    const typeShort = (g.session_type || '').replace('Styrke ','');
-    const kneeShort = knee
-      ? [knee.before_score, knee.during_score, knee.after_score, knee.day_after_score]
-          .map(v => v !== null && v !== undefined ? v : '—').join('/')
-      : '';
-    const kneeId = knee?.id || '';
+  let sessions = gymData || [];
+  let kneeMap  = {};
+
+  if (sessions.length) {
+    const dates = [...new Set(sessions.map(g => g.date))];
+    const { data: kneeData, error: kneeErr } = await db.from('knee_pain')
+      .select('*').in('date', dates);
+    console.log('[gymHistory] knee_pain join →', kneeData, kneeErr);
+    (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
+  } else {
+    // Fallback: build from knee_pain for non-sprint sessions
+    const { data: kneeData, error: kneeErr } = await db.from('knee_pain')
+      .select('*')
+      .not('session_type', 'ilike', 'Sprint%')
+      .order('date', { ascending: false })
+      .limit(10);
+    console.log('[gymHistory] knee_pain fallback →', kneeData, kneeErr);
+    if (kneeData?.length) {
+      sessions = kneeData.map(k => ({
+        id: k.id, date: k.date, session_type: k.session_type, session_notes: null, _knee: k,
+      }));
+    }
+  }
+
+  if (!sessions.length) {
+    el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return;
+  }
+
+  const _wds = ['søn','man','tir','ons','tor','fre','lør'];
+  const _mos = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  function fmtSessDate(ds) {
+    const d = new Date(ds + 'T12:00:00');
+    return `${_wds[d.getDay()]}. ${d.getDate()}. ${_mos[d.getMonth()]}`;
+  }
+  function painClrH(v) {
+    if (v == null) return 'var(--text-tertiary)';
+    if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
+    if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
+  }
+
+  el.innerHTML = sessions.map(g => {
+    const knee    = g._knee || kneeMap[g.date + '|' + (g.session_type || '')] || null;
+    const kneeId  = knee?.id || '';
     const blurSave = `autoSaveKnee('${g.id}','${g.date}','${escHtml(g.session_type || '')}')`;
+
+    const painStr = [
+      { l:'Før',         v: knee?.before_score },
+      { l:'Under',       v: knee?.during_score },
+      { l:'Etter',       v: knee?.after_score },
+      { l:'Dagen etter', v: knee?.day_after_score },
+    ].map(p =>
+      `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`
+    ).join(' · ');
+
     return `<div id="hist-wrap-${g.id}">
-      <div class="hist-row">
-        <span class="hist-date">${dateStr}</span>
-        <span class="hist-type">${escHtml(typeShort)}</span>
-        <span class="hist-knee" id="hist-knee-${g.id}">${kneeShort}</span>
+      <div class="hist-row" style="align-items:flex-start;padding:8px 0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:2px">${fmtSessDate(g.date)}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(g.session_type || '')}</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
+        </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
       </div>
       <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
@@ -1613,11 +1670,7 @@ async function autoSaveKnee(gymId, date, sessionType) {
       .insert({ date, session_type: sessionType, ...payload }).select('id').single();
     if (data?.id) { panel.dataset.kneeId = String(data.id); kneeId = String(data.id); }
   }
-  const display = document.getElementById(`hist-knee-${gymId}`);
-  if (display) {
-    display.textContent = [payload.before_score, payload.during_score, payload.after_score, payload.day_after_score]
-      .map(v => v !== null && v !== undefined ? v : '—').join('/');
-  }
+  await loadGymHistory();
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────
