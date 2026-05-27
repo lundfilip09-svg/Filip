@@ -124,30 +124,54 @@
     @media (max-width: 768px) { .fokus-grid { grid-template-columns: 1fr; } }
     .fokus-right { display: flex; flex-direction: column; gap: 14px; }
 
-    /* ── Daily goals ── */
-    .goal-item {
+    /* ── Dagens fokus ── */
+    .fokus-panel { display: flex; flex-direction: column; gap: 4px; }
+    .fokus-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-      transition: opacity 0.2s;
+      padding: 8px 10px 8px 12px;
+      border-radius: 7px;
+      border-left: 2px solid transparent;
+      background: rgba(255,255,255,0.018);
+      transition: background 0.15s;
+      cursor: default;
     }
-    .goal-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .goal-check {
-      width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
-      border: 1.5px solid rgba(255,255,255,0.18);
+    .fokus-item.is-checkable { cursor: pointer; }
+    .fokus-item.is-checkable:hover { background: rgba(255,255,255,0.038); }
+    .fokus-item.is-done { opacity: 0.38; pointer-events: none; }
+    .fokus-item.is-done .fokus-text { text-decoration: line-through; color: var(--text-tertiary); }
+    .fokus-item.cat-styrke   { border-left-color: rgba(255,184,77,0.55); }
+    .fokus-item.cat-sprint   { border-left-color: rgba(91,164,245,0.55); }
+    .fokus-item.cat-rehab    { border-left-color: rgba(107,227,164,0.5); }
+    .fokus-item.cat-recovery { border-left-color: rgba(177,151,252,0.45); }
+    .fokus-item.cat-sovn     { border-left-color: rgba(91,164,245,0.35); }
+    .fokus-item.cat-warning  { border-left-color: rgba(242,130,60,0.6); background: rgba(242,130,60,0.04); }
+    .fokus-item.cat-kalender { border-left-color: rgba(126,200,227,0.45); }
+    .fokus-body  { flex: 1; min-width: 0; }
+    .fokus-text  { font-size: 12px; color: var(--text-secondary); line-height: 1.3; }
+    .fokus-subtext {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      margin-top: 1px; letter-spacing: 0.02em;
+    }
+    .fokus-badge {
+      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .fokus-badge--styrke   { background: rgba(255,184,77,0.1);  color: rgba(255,184,77,0.8); }
+    .fokus-badge--sprint   { background: rgba(91,164,245,0.1);  color: rgba(91,164,245,0.8); }
+    .fokus-badge--rehab    { background: rgba(107,227,164,0.1); color: rgba(107,227,164,0.8); }
+    .fokus-badge--recovery { background: rgba(177,151,252,0.1); color: rgba(177,151,252,0.8); }
+    .fokus-badge--sovn     { background: rgba(91,164,245,0.07); color: rgba(91,164,245,0.65); }
+    .fokus-badge--warning  { background: rgba(242,130,60,0.12); color: rgba(242,130,60,0.9); }
+    .fokus-badge--kalender { background: rgba(126,200,227,0.1); color: rgba(126,200,227,0.8); }
+    .fokus-check {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.14); margin-left: 6px;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.2s, border-color 0.2s;
     }
-    .goal-item.done .goal-check {
-      background: var(--success); border-color: var(--success);
-    }
-    .goal-item.done .goal-check::after { content: '✓'; font-size: 9px; color: #050506; font-weight: 700; }
-    .goal-text { flex: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.35; }
-    .goal-item.done .goal-text { color: var(--text-tertiary); }
-    .goal-meta {
-      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.07em;
-      padding: 2px 6px; border-radius: 3px; white-space: nowrap;
-      background: rgba(107,227,164,0.1); color: var(--success); flex-shrink: 0;
-    }
+    .fokus-item.is-done .fokus-check { background: var(--success); border-color: var(--success); }
+    .fokus-item.is-done .fokus-check::after { content: '✓'; font-size: 8px; color: #050506; font-weight: 700; }
 
     /* ── Todos ── */
     .todos-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -313,10 +337,10 @@
   </div>
   <div class="fokus-grid">
 
-    <!-- Daily goals -->
+    <!-- Dagens fokus -->
     <div class="card">
-      <div class="section-title">Dagens mål</div>
-      <div id="dailyGoals"><div class="loading">Laster…</div></div>
+      <div class="section-title">Dagens fokus</div>
+      <div id="dailyFokus"><div class="loading">Laster…</div></div>
     </div>
 
     <!-- Right col -->
@@ -599,48 +623,137 @@ async function renderWeekStrip() {
   }).join('');
 }
 
-// ── Daily goals ────────────────────────────────────────────────────────────
-function renderDailyGoals({ sleepData, kneeData, sessionData }) {
-  const el = document.getElementById('dailyGoals');
-  const todayStr = today();
+// ── Dagens fokus ─────────────────────────────────────────────────────────────
+let _calUpcoming   = [];
+let _lastFokusData = null;
 
-  const goals = [];
+function _fokusKey(id)    { return `fokus_done_${today()}_${id}`; }
+function _isFokusDone(id) { return !!localStorage.getItem(_fokusKey(id)); }
 
-  // 1. Dagens økt
-  if (sessionData?.isRest) {
-    goals.push({ text: 'Restitusjonsdag', done: true, meta: 'Hviledag' });
-  } else {
-    goals.push({ text: 'Fullfør dagens økt', done: false });
+function toggleFokusItem(id) {
+  const key = _fokusKey(id);
+  if (localStorage.getItem(key)) localStorage.removeItem(key);
+  else localStorage.setItem(key, '1');
+  if (_lastFokusData) renderDailyFokus(_lastFokusData);
+}
+
+function _buildFokusList({ sleepData, kneeData, sessionData }) {
+  const items = [];
+  const isRest   = !!sessionData?.isRest;
+  const isSprint = sessionData?.cls === 'power';
+  const isStyrke = !isRest && !isSprint;
+
+  const sleepHours      = sleepData?.sleep_hours || 0;
+  const lastPain        = kneeData?.after_score ?? null;
+  const dayAfterMissing = kneeData &&
+    (kneeData.day_after_score === null || kneeData.day_after_score === undefined);
+
+  // ── Priority 1-2: Urgent / blocking ──────────────────────────────────
+  if (dayAfterMissing) {
+    items.push({ id: 'knee-dayafter', priority: 1, cat: 'rehab', type: 'actionable',
+      text: 'Registrer knesmerte fra forrige økt' });
   }
 
-  // 2. Sov 8+ timer (based on most recent sleep entry)
-  const sleptEnough = sleepData && sleepData.sleep_hours >= 8;
-  goals.push({
-    text: 'Sov 8+ timer',
-    done: !!sleptEnough,
-    meta: sleptEnough ? `${sleepData.sleep_hours}t` : null,
+  if (lastPain !== null && lastPain >= 3) {
+    items.push({ id: 'knee-warning', priority: 2, cat: 'warning', type: 'info',
+      text: isSprint ? 'Vær forsiktig med høy toppfart i dag'
+                     : 'Ikke push gjennom smerte i dag',
+      subtext: `Smerte etter siste økt: ${lastPain}/10` });
+  }
+
+  // ── Priority 2-3: Sleep ───────────────────────────────────────────────
+  if (sleepHours > 0 && sleepHours < 7) {
+    items.push({ id: 'sleep-critical', priority: 2, cat: 'sovn', type: 'info',
+      text: 'Vurder redusert belastning i dag',
+      subtext: `${sleepHours}t søvn sist natt` });
+  } else if (sleepHours > 0 && sleepHours < 8) {
+    items.push({ id: 'sleep-under8', priority: 4, cat: 'sovn', type: 'info',
+      text: 'Du sov under 8 timer i natt',
+      subtext: `${sleepHours}t registrert` });
+  }
+
+  // ── Priority 2-3: Calendar ────────────────────────────────────────────
+  const tmrw    = new Date(); tmrw.setDate(tmrw.getDate() + 1);
+  const tmrwStr = tmrw.toDateString();
+  const compTomorrow = _calUpcoming.some(e => {
+    const d = new Date(e.start?.dateTime || (e.start?.date + 'T12:00:00'));
+    return d.toDateString() === tmrwStr &&
+      /stevne|konkurranse|competition|meet|race/i.test(e.summary || '');
   });
-
-  // 3. Logg søvn for i dag
-  const loggedToday = sleepData?.date === todayStr;
-  goals.push({ text: 'Logg søvn', done: loggedToday, meta: loggedToday ? 'Logget' : null });
-
-  // 4. Registrer smerte dagen etter (only if last knee entry is recent and day_after is missing)
-  if (kneeData) {
-    const kneeDayAfterMissing = kneeData.day_after_score === null || kneeData.day_after_score === undefined;
-    goals.push({
-      text: 'Registrer smerte dagen etter',
-      done: !kneeDayAfterMissing,
-      meta: !kneeDayAfterMissing ? String(kneeData.day_after_score) : null,
-    });
+  const heavyTomorrow = !compTomorrow && _calUpcoming.some(e => {
+    const d = new Date(e.start?.dateTime || (e.start?.date + 'T12:00:00'));
+    return d.toDateString() === tmrwStr &&
+      /styrke|sprint|friidrett|trening/i.test(e.summary || '');
+  });
+  if (compTomorrow) {
+    items.push({ id: 'cal-comp', priority: 2, cat: 'kalender', type: 'info',
+      text: 'Prioriter restitusjon — stevne i morgen' });
+    items.push({ id: 'cal-sleep-early', priority: 3, cat: 'kalender', type: 'info',
+      text: 'Sov tidlig i kveld' });
+  } else if (heavyTomorrow) {
+    items.push({ id: 'cal-heavy', priority: 7, cat: 'kalender', type: 'info',
+      text: 'Tung økt i morgen — prioriter søvn' });
   }
 
-  el.innerHTML = goals.map(g => `
-    <div class="goal-item ${g.done ? 'done' : ''}">
-      <div class="goal-check"></div>
-      <div class="goal-text">${escHtml(g.text)}</div>
-      ${g.done && g.meta ? `<div class="goal-meta">${escHtml(g.meta)}</div>` : ''}
-    </div>`).join('');
+  // ── Priority 5-8: Training-day specific ──────────────────────────────
+  if (isRest) {
+    items.push({ id: 'rehab', priority: 5, cat: 'rehab', type: 'actionable',
+      text: 'Fullfør rehabiliteringsøvelser' });
+    items.push({ id: 'active-rest', priority: 8, cat: 'recovery', type: 'info',
+      text: 'Aktiv restitusjon anbefales' });
+  }
+
+  if (isStyrke) {
+    items.push({ id: 'warmup-styrke', priority: 6, cat: 'styrke', type: 'info',
+      text: 'Prioriter god oppvarming' });
+    items.push({ id: 'knee-log-session', priority: 6, cat: 'styrke', type: 'actionable',
+      text: 'Logg knesmerte etter økten',
+      autoDone: kneeData?.date === today() });
+  }
+
+  if (isSprint) {
+    items.push({ id: 'sprint-warmup', priority: 6, cat: 'sprint', type: 'info',
+      text: 'Full sprintoppvarming før maksdrag' });
+    items.push({ id: 'sprint-log', priority: 6, cat: 'sprint', type: 'actionable',
+      text: 'Logg sprintdata etter økten' });
+    items.push({ id: 'sprint-intensity', priority: 7, cat: 'sprint', type: 'info',
+      text: 'Hold deg innen planlagt intensitet' });
+  }
+
+  return items.sort((a, b) => a.priority - b.priority).slice(0, 5);
+}
+
+const _FOKUS_CAT_LABELS = {
+  styrke: 'Styrke', sprint: 'Sprint', rehab: 'Rehab',
+  recovery: 'Recovery', sovn: 'Søvn', warning: 'OBS', kalender: 'Kalender',
+};
+
+function _renderFokusItem(item) {
+  const manualDone  = item.type === 'actionable' && !item.autoDone && _isFokusDone(item.id);
+  const isDone      = !!item.autoDone || manualDone;
+  const isCheckable = item.type === 'actionable' && !item.autoDone;
+  const cls = ['fokus-item', `cat-${item.cat}`,
+    isCheckable && 'is-checkable', isDone && 'is-done'].filter(Boolean).join(' ');
+
+  return `<div class="${cls}"${isCheckable ? ` onclick="toggleFokusItem('${item.id}')"` : ''}>
+    <div class="fokus-body">
+      <div class="fokus-text">${escHtml(item.text)}</div>
+      ${item.subtext ? `<div class="fokus-subtext">${escHtml(item.subtext)}</div>` : ''}
+    </div>
+    <span class="fokus-badge fokus-badge--${item.cat}">${_FOKUS_CAT_LABELS[item.cat] || item.cat}</span>
+    ${isCheckable ? '<div class="fokus-check"></div>' : ''}
+  </div>`;
+}
+
+function renderDailyFokus(data) {
+  _lastFokusData = data;
+  const el    = document.getElementById('dailyFokus');
+  const items = _buildFokusList(data);
+  if (!items.length) {
+    el.innerHTML = `<div class="empty" style="padding:2px 0">Alt ser bra ut i dag</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
 }
 
 // ── Important todos ────────────────────────────────────────────────────────
@@ -754,6 +867,7 @@ async function loadCalendar() {
     const res = await fetch('/api/google-calendar');
     if (!res.ok) throw new Error('API svarte ' + res.status);
     const { today: todayEvts = [], upcoming = [] } = await res.json();
+    _calUpcoming = upcoming;
 
     elToday.innerHTML = todayEvts.length
       ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || '(uten tittel)', !e.start.dateTime)).join('')
@@ -803,7 +917,7 @@ async function loadCalendar() {
     renderWeekStrip(),
   ]);
 
-  renderDailyGoals({ sleepData, kneeData, sessionData });
+  renderDailyFokus({ sleepData, kneeData, sessionData });
 })();
 </script>
 </body>
