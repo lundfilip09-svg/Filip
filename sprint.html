@@ -36,12 +36,12 @@
       padding-bottom: 10px; margin-bottom: 10px;
       border-bottom: 1px solid rgba(255,255,255,0.07);
     }
+    .hist-runs { margin-bottom: 2px; }
     .history-row {
       display: flex; align-items: center; gap: 12px;
-      padding: 7px 0; font-size: 13px; font-family: var(--font-mono);
-      border-bottom: 1px solid rgba(255,255,255,0.035);
+      padding: 8px 0; font-size: 13px; font-family: var(--font-mono);
     }
-    .history-row:last-of-type { border-bottom: none; }
+    .hist-runs .history-row + .history-row { border-top: 1px solid rgba(255,255,255,0.04); }
     .history-dist { color: var(--accent-blue); min-width: 100px; flex-shrink: 0; white-space: nowrap; font-weight: 600; }
     .history-time { color: var(--text-primary); font-weight: 700; font-size: 16px; flex: 1; letter-spacing: -0.01em; }
     .history-type { color: var(--text-tertiary); font-size: 10px; flex-shrink: 0; }
@@ -130,6 +130,7 @@
       <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
       <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
       <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="kalender.html"  class="nav-tab" data-p="kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
@@ -536,7 +537,7 @@ function renderHistory() {
 
   el.innerHTML = [...groups.entries()].map(([date, runs]) => {
     const d       = new Date(date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('no-NO', { weekday:'short', day:'numeric', month:'long' });
+    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
     const runRows = runs.map(r => `
       <div class="history-row">
@@ -552,18 +553,22 @@ function renderHistory() {
     const kneeDayAfter = runs.find(r => r.knee_day_after != null)?.knee_day_after;
     const notes        = runs.find(r => r.notes)?.notes;
 
+    const hasAnyMeta = rpe != null || kneeBefore != null || kneeDuring != null
+      || kneeAfter != null || kneeDayAfter != null;
+
     const chips = [
-      rpe          != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
-      kneeBefore   != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
-      kneeDuring   != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
-      kneeAfter    != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
-      kneeDayAfter != null ? `<span class="hist-chip hist-chip--knee">D.etter ${kneeDayAfter}</span>` : '',
+      rpe        != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
+      kneeBefore != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
+      kneeDuring != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
+      kneeAfter  != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
+      // D.etter always shown — '—' when not yet filled
+      `<span class="hist-chip hist-chip--knee" style="${kneeDayAfter == null ? 'opacity:0.45' : ''}">D.etter ${kneeDayAfter ?? '—'}</span>`,
     ].filter(Boolean).join('');
 
     return `<div class="hist-session">
       <div class="hist-date-header">${dateStr}</div>
-      ${runRows}
-      <div class="hist-chips" id="hist-chips-${date}"${!chips ? ' style="display:none"' : ''}>${chips}</div>
+      <div class="hist-runs">${runRows}</div>
+      <div class="hist-chips" id="hist-chips-${date}">${chips}</div>
       <div class="hist-notes" id="hist-notes-${date}"${!notes ? ' style="display:none"' : ''}>${notes ? escHtml(notes) : ''}</div>
       <div class="hist-edit-panel" id="hist-edit-${date}" style="display:none">
         <div class="hist-edit-row">
@@ -645,7 +650,7 @@ async function saveHistField(date, field, valueStr) {
 }
 
 function refreshHistCard(date) {
-  const runs       = sprintLog.filter(r => r.date === date);
+  const runs         = sprintLog.filter(r => r.date === date);
   const rpe          = runs.find(r => r.rpe           != null)?.rpe;
   const kneeBefore   = runs.find(r => r.knee_before   != null)?.knee_before;
   const kneeDuring   = runs.find(r => r.knee_during   != null)?.knee_during;
@@ -653,14 +658,14 @@ function refreshHistCard(date) {
   const kneeDayAfter = runs.find(r => r.knee_day_after != null)?.knee_day_after;
   const notes        = runs.find(r => r.notes)?.notes;
   const chips = [
-    rpe          != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
-    kneeBefore   != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
-    kneeDuring   != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
-    kneeAfter    != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
-    kneeDayAfter != null ? `<span class="hist-chip hist-chip--knee">D.etter ${kneeDayAfter}</span>` : '',
+    rpe        != null ? `<span class="hist-chip hist-chip--rpe">RPE ${rpe}</span>` : '',
+    kneeBefore != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
+    kneeDuring != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
+    kneeAfter  != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
+    `<span class="hist-chip hist-chip--knee" style="${kneeDayAfter == null ? 'opacity:0.45' : ''}">D.etter ${kneeDayAfter ?? '—'}</span>`,
   ].filter(Boolean).join('');
   const chipsEl = document.getElementById('hist-chips-' + date);
-  if (chipsEl) { chipsEl.innerHTML = chips; chipsEl.style.display = chips ? '' : 'none'; }
+  if (chipsEl) chipsEl.innerHTML = chips;
   const notesEl = document.getElementById('hist-notes-' + date);
   if (notesEl) { notesEl.textContent = notes || ''; notesEl.style.display = notes ? '' : 'none'; }
 }
