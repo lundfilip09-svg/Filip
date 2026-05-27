@@ -749,7 +749,14 @@ async function loadGCalRange() {
 
 async function loadCustomEvents() {
   if (!db) return;
-  const { data } = await db.from('calendar_events').select('*');
+  const { data, error } = await db.from('calendar_events').select('*');
+  if (error) {
+    if (error.message && error.message.includes('calendar_events')) {
+      toast('Mangler database-tabell. Kjør supabase/migrations/006_calendar_events.sql i Supabase SQL Editor.', 'err');
+    }
+    customEvents = [];
+    return;
+  }
   customEvents = (data || []).map(e => ({
     id: 'custom-' + e.id,
     dbId: e.id,
@@ -1138,7 +1145,13 @@ async function createEvent(data) {
   };
 
   const { data: rows, error } = await db.from('calendar_events').insert(payload).select();
-  if (error) { toast('Feil: ' + error.message, 'err'); return; }
+  if (error) {
+    const msg = error.message?.includes('calendar_events')
+      ? 'Tabell mangler — kjør 006_calendar_events.sql i Supabase SQL Editor'
+      : 'Feil: ' + error.message;
+    toast(msg, 'err');
+    return;
+  }
 
   const row = rows[0];
   const ev = {
