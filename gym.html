@@ -433,6 +433,17 @@
       </div>
     </div>
 
+    <div class="wm-wrap open" id="aktiverWrap">
+      <button class="wm-toggle" onclick="document.getElementById('aktiverWrap').classList.toggle('open')">
+        <span class="wm-label">Daglig aktivering</span>
+        <span class="wm-badge" id="aktiverBadge">0/3</span>
+        <span class="wm-chevron">▾</span>
+      </button>
+      <div class="wm-body">
+        <div id="aktiverContent"></div>
+      </div>
+    </div>
+
     <div class="wm-wrap open" id="warmupWrap">
       <button class="wm-toggle" onclick="document.getElementById('warmupWrap').classList.toggle('open')">
         <span class="wm-label">Oppvarming</span>
@@ -806,7 +817,11 @@ function setDay(day) {
 }
 
 function renderAll() {
-  renderWarmup();
+  // Warmup is hidden on Wednesday
+  const warmupWrap = document.getElementById('warmupWrap');
+  if (warmupWrap) warmupWrap.style.display = activeDay === 'wednesday' ? 'none' : '';
+  renderAktivering();
+  if (activeDay !== 'wednesday') renderWarmup();
   renderWorkout();
   const exs = getSortedMainExercises();
   document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
@@ -829,6 +844,43 @@ function oppdaterTidsestimat() {
   document.getElementById('whDuration').textContent = `~${rounded} min`;
 }
 
+// ── Daglig aktivering ──────────────────────────────────────────────────────
+const AKTIVERING = [
+  { id: 'akt-clamshell', name: 'Banded Clamshells', vol: '2 × 15 (per side)' },
+  { id: 'akt-glute',     name: 'Glute Bridges',     vol: '3 × 15' },
+  { id: 'akt-plank',     name: 'Plank',              vol: '3 × 30 sek' },
+];
+function _aktKey(id) {
+  const d = new Date();
+  return `akt_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}_${id}`;
+}
+function renderAktivering() {
+  const el = document.getElementById('aktiverContent');
+  if (!el) return;
+  let done = 0;
+  el.innerHTML = AKTIVERING.map(ex => {
+    const isDone = !!localStorage.getItem(_aktKey(ex.id));
+    if (isDone) done++;
+    return `<div class="ex-row-wrap">
+      <div class="ex-row${isDone ? ' is-done' : ''}">
+        <div class="ex-chk${isDone ? ' done' : ''}" onclick="event.stopPropagation();toggleAkt('${ex.id}')">${isDone ? '✓' : ''}</div>
+        <div class="ex-r-info">
+          <div class="ex-r-name">${escHtml(ex.name)}</div>
+          <div class="ex-r-vol">${escHtml(ex.vol)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const badge = document.getElementById('aktiverBadge');
+  if (badge) badge.textContent = `${done}/${AKTIVERING.length}`;
+}
+function toggleAkt(id) {
+  const key = _aktKey(id);
+  if (localStorage.getItem(key)) localStorage.removeItem(key);
+  else localStorage.setItem(key, '1');
+  renderAktivering();
+}
+
 // ── Warmup ─────────────────────────────────────────────────────────
 function renderWarmup() {
   const el    = document.getElementById('warmupContent');
@@ -840,15 +892,11 @@ function renderWarmup() {
   const cirSrc = isFri ? fri : base;
   const cirKey = cirSrc['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
 
-  // Collect ALL warmup exercises into a flat list
+  // Collect warmup exercises for the active day only (base for Mon, fri for Fri)
   const allWmExs = [];
-  for (const [sec, exs] of Object.entries(base)) {
-    for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey && !isFri });
-  }
-  if (isFri) {
-    for (const [sec, exs] of Object.entries(fri)) {
-      for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey });
-    }
+  const dayWmExs = isFri ? fri : base;
+  for (const [sec, exs] of Object.entries(dayWmExs)) {
+    for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey });
   }
 
   // Sort by sort_order (null → last, tie-break by original array position)
@@ -959,6 +1007,14 @@ function renderExRow(ex, day, num, isWarmup) {
           <input class="ex-inline-input" value="${escHtml(ex.reps)}" style="width:54px"
             onclick="event.stopPropagation()"
             onblur="autoSaveExField('${ex.id}','reps',this.value)">
+          ${!isWarmup ? `<span style="color:rgba(255,255,255,0.18);font-family:var(--font-mono);margin:0 2px">·</span>
+          <input class="ex-inline-input" type="number" step="2.5" min="0" placeholder="—"
+            value="${weights[ex.exercise_name] !== undefined ? weights[ex.exercise_name] : ''}"
+            style="width:42px"
+            data-exname="${escHtml(ex.exercise_name)}"
+            onclick="event.stopPropagation()"
+            onblur="saveWeight(this.dataset.exname, this.value)">
+          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">kg</span>` : ''}
         </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
