@@ -14,11 +14,31 @@
     .mood-btn.selected { border-color: var(--warning); box-shadow: 0 0 10px rgba(242,192,99,0.3); }
     .mood-row { display: flex; gap: 8px; align-items: center; }
     .chart-wrap { position: relative; height: 260px; margin-top: 10px; }
-    .stat-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
-    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
-    @media (max-width: 640px) { .stat-row { grid-template-columns: repeat(3,1fr); } }
-    @media (max-width: 400px) { .stat-row { grid-template-columns: repeat(2,1fr); } }
+    .stat-row    { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .stat-row-3  { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+    .legend-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-row  { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
+
+    /* Søvnarkitektur-bar */
+    .arch-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+    .arch-bar   { display: flex; height: 16px; border-radius: 6px; overflow: hidden; gap: 2px; }
+    .arch-bar .seg { border-radius: 3px; transition: width .4s ease; min-width: 2px; }
+    .seg-deep  { background: #7C6FD4; }
+    .seg-rem   { background: #4A9EE8; }
+    .seg-light { background: #6BE3A4; }
+    .seg-awake { background: rgba(255,255,255,0.1); }
+    .arch-leg  { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .arch-leg-item { display: flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .arch-leg-dot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    .time-chips { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+    .time-chip  { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+    .time-chip strong { color: var(--text-primary); font-size: 13px; font-weight: 500; }
+
+    @media (max-width: 640px) {
+      .stat-row { grid-template-columns: repeat(2,1fr); }
+      .stat-row-3 { grid-template-columns: repeat(3,1fr); }
+    }
   </style>
 </head>
 <body>
@@ -26,12 +46,12 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"  class="nav-tab" data-p="kalender">Kalender</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
+      <a href="kalender.html"     class="nav-tab" data-p="kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
     </div>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
@@ -43,15 +63,13 @@
   <!-- Today -->
   <div class="card">
     <div class="section-title">I dag — <span id="todayLabel" style="text-transform:none;letter-spacing:0;color:var(--text-secondary);font-weight:400"></span></div>
-    <div class="stat-row" id="todayStats">
-      <div class="loading" style="grid-column:1/-1">Laster…</div>
-    </div>
+    <div id="todayStats"><div class="loading">Laster…</div></div>
   </div>
 
   <!-- Mood -->
   <div class="card">
     <div class="section-title">Humør i dag</div>
-    <div class="mood-row" id="moodRow">
+    <div class="mood-row">
       <button class="mood-btn" data-mood="1" onclick="saveMood(1)" title="Dårlig">😔</button>
       <button class="mood-btn" data-mood="2" onclick="saveMood(2)" title="Ok">😐</button>
       <button class="mood-btn" data-mood="3" onclick="saveMood(3)" title="Bra">🙂</button>
@@ -65,9 +83,11 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="section-title" style="margin-bottom:0">Siste 14 dager</div>
-      <div style="display:flex;gap:12px;align-items:center">
-        <div class="legend-row"><div class="legend-dot" style="background:#6BE3A4"></div>Søvntimer</div>
-        <div class="legend-row"><div style="width:18px;height:2px;background:rgba(255,255,255,0.25);border-top:2px dashed rgba(255,255,255,0.25);flex-shrink:0"></div>8t mål</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="legend-row"><div class="arch-leg-dot" style="background:#7C6FD4"></div>Dyp</div>
+        <div class="legend-row"><div class="arch-leg-dot" style="background:#4A9EE8"></div>REM</div>
+        <div class="legend-row"><div class="arch-leg-dot" style="background:#6BE3A4"></div>Lett</div>
+        <div class="legend-row"><div style="width:18px;height:2px;border-top:2px dashed rgba(255,255,255,0.25);flex-shrink:0"></div>8t mål</div>
       </div>
     </div>
     <div class="chart-wrap">
@@ -91,27 +111,28 @@ function toast(msg, type='ok') {
   el.textContent = msg; el.className = `toast ${type} show`;
   clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
 }
-async function signOut() {
-  if (db) await db.auth.signOut();
-  window.location.href = 'login.html';
-}
+async function signOut() { if (db) await db.auth.signOut(); window.location.href = 'login.html'; }
 function today() { return new Date().toISOString().slice(0, 10); }
 
-// Date label
-const now = new Date();
 document.getElementById('todayLabel').textContent =
-  now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
+  new Date().toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
 
 let currentMood = null;
 let todayEntry  = null;
 
-// ── Today stats ───────────────────────────────────────────────────────────
+function minToHM(min) {
+  if (!min) return '–';
+  const h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? `${h}t${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
+}
+function minToH(min) { return min ? +(min / 60).toFixed(2) : null; }
+
+// ── Today ─────────────────────────────────────────────────────────────────
 async function loadToday() {
   const { data } = await db.from('health_data')
     .select('*').eq('date', today()).order('timestamp', { ascending: false }).limit(1);
   todayEntry = data?.[0] || null;
   renderStats(todayEntry);
-
   if (todayEntry?.mood) {
     currentMood = todayEntry.mood;
     highlightMood(currentMood);
@@ -122,38 +143,81 @@ async function loadToday() {
 function renderStats(d) {
   const el = document.getElementById('todayStats');
   if (!d) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1">Ingen data for i dag — send via iPhone-snarvei</div>`;
+    el.innerHTML = `<div class="empty">Ingen data for i dag — synces automatisk kl. 07:00</div>`;
     return;
   }
+
   const sc = d.sleep_score;
   const scColor = !sc ? '' : sc >= 80 ? 'success' : sc >= 60 ? 'warning' : 'danger';
-  const stats = [
-    { lbl:'Søvnscore',   val: sc ?? '–',   unit:'/ 100', cls: scColor },
-    { lbl:'Søvntimer',   val: d.sleep_hours ?? '–', unit:'t' },
-    { lbl:'Innsovning',  val: d.sleep_onset_minutes ?? '–', unit:'min' },
-    { lbl:'Hvilepuls',   val: d.rhr ?? '–', unit:'bpm', cls: d.rhr > 65 ? 'danger' : '' },
+
+  const topStats = [
+    { lbl:'Søvnscore',  val: sc ?? '–',            unit:'/ 100', cls: scColor },
+    { lbl:'Total søvn', val: d.sleep_hours ?? '–', unit:'t' },
+    { lbl:'Hvilepuls',  val: d.rhr ?? '–',         unit:'bpm',   cls: d.rhr > 65 ? 'danger' : '' },
+    { lbl:'HRV',        val: d.hrv ?? '–',         unit:'ms' },
   ];
-  el.innerHTML = stats.map(s =>
-    `<div class="metric-tile">
-      <div class="metric-lbl">${s.lbl}</div>
-      <div class="metric-val ${s.cls||''}">${s.val}</div>
-      ${s.unit ? `<div class="metric-unit">${s.unit}</div>` : ''}
-    </div>`
-  ).join('');
+
+  const hasFaser = d.deep_sleep_minutes || d.rem_sleep_minutes || d.light_sleep_minutes;
+  const faseStats = [
+    { lbl:'Dyp søvn',  val: minToHM(d.deep_sleep_minutes),  color:'#7C6FD4' },
+    { lbl:'REM',       val: minToHM(d.rem_sleep_minutes),   color:'#4A9EE8' },
+    { lbl:'Lett søvn', val: minToHM(d.light_sleep_minutes), color:'#6BE3A4' },
+  ];
+
+  const total = (d.deep_sleep_minutes||0) + (d.rem_sleep_minutes||0) + (d.light_sleep_minutes||0) + (d.awake_minutes||0);
+  const pct = m => total > 0 ? ((m||0)/total*100).toFixed(1) : 0;
+
+  const archHtml = hasFaser ? `
+    <div class="arch-label">Søvnarkitektur</div>
+    <div class="arch-bar">
+      <div class="seg seg-deep"  style="width:${pct(d.deep_sleep_minutes)}%"></div>
+      <div class="seg seg-rem"   style="width:${pct(d.rem_sleep_minutes)}%"></div>
+      <div class="seg seg-light" style="width:${pct(d.light_sleep_minutes)}%"></div>
+      ${d.awake_minutes ? `<div class="seg seg-awake" style="width:${pct(d.awake_minutes)}%"></div>` : ''}
+    </div>
+    <div class="arch-leg">
+      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#7C6FD4"></div>Dyp ${pct(d.deep_sleep_minutes)}%</div>
+      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#4A9EE8"></div>REM ${pct(d.rem_sleep_minutes)}%</div>
+      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#6BE3A4"></div>Lett ${pct(d.light_sleep_minutes)}%</div>
+      ${d.awake_minutes ? `<div class="arch-leg-item"><div class="arch-leg-dot" style="background:rgba(255,255,255,0.2)"></div>Våken ${pct(d.awake_minutes)}%</div>` : ''}
+    </div>` : '';
+
+  const timeHtml = (d.sleep_start || d.sleep_end) ? `
+    <div class="time-chips">
+      ${d.sleep_start ? `<div class="time-chip">Innsovning <strong>${d.sleep_start}</strong></div>` : ''}
+      ${d.sleep_end   ? `<div class="time-chip">Oppvåkning <strong>${d.sleep_end}</strong></div>`   : ''}
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="stat-row">
+      ${topStats.map(s => `
+        <div class="metric-tile">
+          <div class="metric-lbl">${s.lbl}</div>
+          <div class="metric-val ${s.cls||''}">${s.val}</div>
+          ${s.unit ? `<div class="metric-unit">${s.unit}</div>` : ''}
+        </div>`).join('')}
+    </div>
+    ${hasFaser ? `
+    <div class="stat-row-3">
+      ${faseStats.map(s => `
+        <div class="metric-tile" style="border-top:2px solid ${s.color}40">
+          <div class="metric-lbl">${s.lbl}</div>
+          <div class="metric-val" style="color:${s.color}">${s.val}</div>
+        </div>`).join('')}
+    </div>` : ''}
+    ${archHtml}
+    ${timeHtml}
+  `;
 }
 
 // ── Mood ──────────────────────────────────────────────────────────────────
 function highlightMood(mood) {
-  document.querySelectorAll('.mood-btn').forEach(b => {
-    b.classList.toggle('selected', parseInt(b.dataset.mood) === mood);
-  });
+  document.querySelectorAll('.mood-btn').forEach(b =>
+    b.classList.toggle('selected', parseInt(b.dataset.mood) === mood));
 }
-
 async function saveMood(mood) {
-  currentMood = mood;
-  highlightMood(mood);
+  currentMood = mood; highlightMood(mood);
   document.getElementById('moodSaved').textContent = 'Lagrer…';
-
   if (todayEntry) {
     await db.from('health_data').update({ mood }).eq('id', todayEntry.id);
   } else {
@@ -163,15 +227,12 @@ async function saveMood(mood) {
   toast('Humør lagret');
 }
 
-// ── 14-day chart ──────────────────────────────────────────────────────────
+// ── 14-day stacked chart ──────────────────────────────────────────────────
 async function loadChart() {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 13);
-  const cutoffStr = cutoff.toISOString().slice(0,10);
-
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 13);
   const { data } = await db.from('health_data')
-    .select('date,sleep_hours')
-    .gte('date', cutoffStr).order('date');
+    .select('date,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes')
+    .gte('date', cutoff.toISOString().slice(0,10)).order('date');
 
   const dayNames = ['søn','man','tir','ons','tor','fre','lør'];
   const labels = [], dates = [];
@@ -181,9 +242,14 @@ async function loadChart() {
     dates.push(d.toISOString().slice(0,10));
   }
 
-  const sleepVals = dates.map(ds => {
-    const e = (data || []).find(r => r.date === ds);
-    return e && e.sleep_hours > 0 ? e.sleep_hours : null;
+  const find = ds => (data||[]).find(r => r.date === ds);
+  const deepV  = dates.map(ds => { const e=find(ds); return e?.deep_sleep_minutes  ? minToH(e.deep_sleep_minutes)  : null; });
+  const remV   = dates.map(ds => { const e=find(ds); return e?.rem_sleep_minutes   ? minToH(e.rem_sleep_minutes)   : null; });
+  const lightV = dates.map(ds => {
+    const e = find(ds); if (!e) return null;
+    if (e.light_sleep_minutes) return minToH(e.light_sleep_minutes);
+    if (e.sleep_hours && !e.deep_sleep_minutes) return e.sleep_hours; // fallback
+    return null;
   });
 
   const ctx = document.getElementById('sleepChart').getContext('2d');
@@ -192,54 +258,26 @@ async function loadChart() {
     data: {
       labels,
       datasets: [
-        {
-          label: 'Søvntimer',
-          data: sleepVals,
-          backgroundColor: 'rgba(107,227,164,0.45)',
-          borderColor: '#6BE3A4',
-          borderWidth: 1,
-          borderRadius: 4,
-          order: 1,
-        },
-        {
-          label: '8t mål',
-          data: Array(14).fill(8),
-          type: 'line',
-          borderColor: 'rgba(255,255,255,0.25)',
-          borderDash: [5, 4],
-          borderWidth: 1.5,
-          pointRadius: 0,
-          fill: false,
-          order: 0,
-        },
+        { label:'Dyp søvn',  data: deepV,  backgroundColor:'rgba(124,111,212,0.8)', borderColor:'#7C6FD4', borderWidth:1, stack:'sleep', borderRadius:{topLeft:0,topRight:0}, order:1 },
+        { label:'REM',       data: remV,   backgroundColor:'rgba(74,158,232,0.8)',  borderColor:'#4A9EE8', borderWidth:1, stack:'sleep', borderRadius:{topLeft:0,topRight:0}, order:1 },
+        { label:'Lett søvn', data: lightV, backgroundColor:'rgba(107,227,164,0.55)',borderColor:'#6BE3A4', borderWidth:1, stack:'sleep', borderRadius:{topLeft:4,topRight:4}, order:1 },
+        { label:'8t mål', data:Array(14).fill(8), type:'line', borderColor:'rgba(255,255,255,0.25)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined, order:0 },
       ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(15,15,18,0.95)',
-          titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
-          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-          callbacks: {
-            label: ctx => ctx.dataset.label === '8t mål' ? null : `${ctx.parsed.y}t søvn`,
-          },
-          filter: item => item.dataset.label !== '8t mål',
+          backgroundColor:'rgba(15,15,18,0.95)', titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
+          borderColor:'rgba(255,255,255,0.08)', borderWidth:1,
+          filter: item => item.dataset.label !== '8t mål' && item.parsed.y > 0,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}t` },
         },
       },
       scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#76746E', font: { family: 'ui-monospace', size: 10 }, maxRotation: 45 },
-        },
-        y: {
-          min: 0, max: 12,
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#76746E', font: { family: 'ui-monospace', size: 10 } },
-          title: { display: true, text: 'timer', color: '#6BE3A4', font: { size: 10 } },
-        },
+        x: { stacked:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#76746E',font:{family:'ui-monospace',size:10},maxRotation:45} },
+        y: { stacked:true, min:0, max:12, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#76746E',font:{family:'ui-monospace',size:10}}, title:{display:true,text:'timer',color:'#6BE3A4',font:{size:10}} },
       },
     },
   });
@@ -258,9 +296,6 @@ async function loadChart() {
     document.querySelector('.page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
-        <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
-        </div>
       </div>`;
     return;
   }

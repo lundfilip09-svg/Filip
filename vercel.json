@@ -1,5 +1,11 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/dashboard.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/garmin-sync",
+      "schedule": "0 5 * * *"
+    }
   ]
 }
