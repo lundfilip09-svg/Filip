@@ -517,8 +517,19 @@ function loadSession() {
 function _localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function _weekStripLabel(txt) {
+  if (/sprint/i.test(txt))    return 'Sprint';
+  if (/sirk/i.test(txt))      return 'Sirk.';
+  if (/mobil/i.test(txt))     return 'Mobil.';
+  if (/kondi/i.test(txt))     return 'Kondi.';
+  if (/styrke/i.test(txt))    return 'Styrke';
+  if (/hvile/i.test(txt))     return 'Hvile';
+  const first = txt.split(/\s+/)[0];
+  return first.length <= 8 ? first : first.slice(0, 7) + '…';
+}
 async function renderWeekStrip() {
   const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
+  console.log('treningsplan_v1:', plan);
   const now  = new Date();
   const dow  = now.getDay();
   const monday = new Date(now);
@@ -549,31 +560,32 @@ async function renderWeekStrip() {
     d.setDate(monday.getDate() + i);
     const dateStr = _localDateStr(d);
     const isToday = dateStr === todayStr;
-    const isPast  = dateStr <= todayStr;
 
     const chips = [];
+
+    // Logged gym session
     const gymType = gymByDate[dateStr];
     if (gymType !== undefined) {
-      if (/sprint/i.test(gymType)) chips.push({ cls: 'ind-sprint', label: 'Sprint' });
-      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) {
-        const lbl = gymType.length > 14 ? 'Mobilitet' : gymType;
-        chips.push({ cls: 'ind-kondisjon', label: lbl });
-      } else {
-        const lbl = gymType.replace('Styrke ', '').replace('Kapasitet','Kap.').replace('Power','Pwr');
-        chips.push({ cls: 'ind-styrke', label: lbl || 'Styrke' });
-      }
+      let cls = 'ind-styrke';
+      if (/sprint/i.test(gymType)) cls = 'ind-sprint';
+      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) cls = 'ind-kondisjon';
+      chips.push({ cls, label: _weekStripLabel(gymType) || 'Styrke' });
     }
+
+    // Logged sprint session (if not already counted as sprint)
     if (sprintDates.has(dateStr) && !chips.some(c => c.cls === 'ind-sprint')) {
       chips.push({ cls: 'ind-sprint', label: 'Sprint' });
     }
 
-    let indClass = 'ind-rest';
-    if (!chips.length && !isPast) {
-      const txt = (plan[i] || '').trim().toLowerCase();
-      if (txt && !/^hvile/.test(txt)) {
-        if (/sprint/.test(txt)) indClass = 'ind-sprint';
-        else if (/kondisjon|sirkulasjon|mobilitet/.test(txt)) indClass = 'ind-kondisjon';
-        else indClass = 'ind-styrke';
+    // Plan-based chip for days with no logged session
+    if (!chips.length) {
+      const txt = (plan[i] || '').trim();
+      if (txt && !/^hvile/i.test(txt) && !/^fri/i.test(txt)) {
+        const t = txt.toLowerCase();
+        let cls = 'ind-styrke';
+        if (/sprint/.test(t)) cls = 'ind-sprint';
+        else if (/kondisjon|sirkulasjon|mobilitet/.test(t)) cls = 'ind-kondisjon';
+        chips.push({ cls, label: _weekStripLabel(txt) });
       }
     }
 
@@ -582,7 +594,7 @@ async function renderWeekStrip() {
       <div class="week-day-num">${d.getDate()}</div>
       ${chips.length
         ? chips.map(c => `<div class="week-session-chip ${c.cls}">${c.label}</div>`).join('')
-        : `<div class="week-day-indicator ${indClass}"></div>`}
+        : `<div class="week-day-indicator ind-rest"></div>`}
     </div>`;
   }).join('');
 }
