@@ -377,6 +377,9 @@
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
     }
+
+    body[data-day="rehab"] .wh-cta { display: none !important; }
+    body[data-day="rehab"] .ws-idle { display: none !important; }
   </style>
 </head>
 <body data-ws="idle">
@@ -408,6 +411,7 @@
           <button class="day-pill" data-day="monday"    onclick="setDay('monday')">Mandag</button>
           <button class="day-pill" data-day="wednesday" onclick="setDay('wednesday')">Onsdag</button>
           <button class="day-pill" data-day="friday"    onclick="setDay('friday')">Fredag</button>
+          <button class="day-pill" data-day="rehab"     onclick="setDay('rehab')">Rehab</button>
         </div>
         <div class="wh-cta">
           <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px">▷ Start økt</button>
@@ -430,17 +434,6 @@
       <div>
         <div class="done-title">Økt fullført!</div>
         <div class="done-sub" id="doneStats">Lagre i sidepanelet →</div>
-      </div>
-    </div>
-
-    <div class="wm-wrap open" id="aktiverWrap">
-      <button class="wm-toggle" onclick="document.getElementById('aktiverWrap').classList.toggle('open')">
-        <span class="wm-label">Daglig aktivering</span>
-        <span class="wm-badge" id="aktiverBadge">0/3</span>
-        <span class="wm-chevron">▾</span>
-      </button>
-      <div class="wm-body">
-        <div id="aktiverContent"></div>
       </div>
     </div>
 
@@ -769,6 +762,7 @@ async function loadData() {
   weights = {};
   (wts.data || []).forEach(w => { weights[w.exercise_name] = w.weight_kg; });
   _applyLocalExOrders();
+  await seedRehabIfEmpty();
 }
 
 // ── Exercise order localStorage helpers ───────────────────────────
@@ -808,27 +802,36 @@ function _applyLocalExOrders() {
 function setDay(day) {
   if (workoutState === 'active') return;
   activeDay = day;
+  document.body.dataset.day = day;
   document.querySelectorAll('.day-pill').forEach(t =>
     t.classList.toggle('active', t.dataset.day === day)
   );
-  const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+  const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power', rehab:'Daglig Rehab' };
   document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
   renderAll();
 }
 
 function renderAll() {
-  // Warmup is hidden on Wednesday
+  const isRehab = activeDay === 'rehab';
   const warmupWrap = document.getElementById('warmupWrap');
-  if (warmupWrap) warmupWrap.style.display = activeDay === 'wednesday' ? 'none' : '';
-  renderAktivering();
-  if (activeDay !== 'wednesday') renderWarmup();
-  renderWorkout();
-  const exs = getSortedMainExercises();
-  document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
+  if (warmupWrap) warmupWrap.style.display = (activeDay === 'wednesday' || isRehab) ? 'none' : '';
+  if (isRehab) {
+    renderRehab();
+    document.getElementById('whExCount').textContent = `${(allExercises['rehab']?.['Rehab'] || []).length} øvelser`;
+  } else {
+    if (activeDay !== 'wednesday') renderWarmup();
+    renderWorkout();
+    const exs = getSortedMainExercises();
+    document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
+  }
   oppdaterTidsestimat();
 }
 
 function oppdaterTidsestimat() {
+  if (activeDay === 'rehab') {
+    document.getElementById('whDuration').textContent = '~15 min';
+    return;
+  }
   const isFri   = activeDay === 'friday';
   const base    = allExercises['warmup'] || {};
   const fri     = allExercises['friday_warmup'] || {};
@@ -844,41 +847,47 @@ function oppdaterTidsestimat() {
   document.getElementById('whDuration').textContent = `~${rounded} min`;
 }
 
-// ── Daglig aktivering ──────────────────────────────────────────────────────
-const AKTIVERING = [
-  { id: 'akt-clamshell', name: 'Banded Clamshells', vol: '2 × 15 (per side)' },
-  { id: 'akt-glute',     name: 'Glute Bridges',     vol: '3 × 15' },
-  { id: 'akt-plank',     name: 'Plank',              vol: '3 × 30 sek' },
-];
-function _aktKey(id) {
-  const d = new Date();
-  return `akt_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}_${id}`;
+// ── Rehab ──────────────────────────────────────────────────────────
+async function seedRehabIfEmpty() {
+  if ((allExercises['rehab']?.['Rehab'] || []).length > 0) return;
+  const defaults = [
+    { name: 'Spanish Squat ISO',                   sets: 2, reps: '35–45 sek', sort_order: 0 },
+    { name: 'Ankelstrekk mot vegg (Knee-to-wall)', sets: 2, reps: '12 reps',   sort_order: 1 },
+    { name: 'Hip Swivels',                         sets: 1, reps: '10 reps',   sort_order: 2 },
+    { name: 'Face pulls med strikk',               sets: 2, reps: '15 reps',   sort_order: 3 },
+  ];
+  if (!allExercises['rehab']) allExercises['rehab'] = {};
+  if (!allExercises['rehab']['Rehab']) allExercises['rehab']['Rehab'] = [];
+  for (const d of defaults) {
+    const { data, error } = await db.from('workout_program').insert({
+      day: 'rehab', section: 'Rehab', exercise_name: d.name,
+      sets: d.sets, reps: d.reps, sort_order: d.sort_order,
+    }).select().single();
+    if (data && !error) allExercises['rehab']['Rehab'].push(data);
+  }
 }
-function renderAktivering() {
-  const el = document.getElementById('aktiverContent');
-  if (!el) return;
-  let done = 0;
-  el.innerHTML = AKTIVERING.map(ex => {
-    const isDone = !!localStorage.getItem(_aktKey(ex.id));
-    if (isDone) done++;
-    return `<div class="ex-row-wrap">
-      <div class="ex-row${isDone ? ' is-done' : ''}">
-        <div class="ex-chk${isDone ? ' done' : ''}" onclick="event.stopPropagation();toggleAkt('${ex.id}')">${isDone ? '✓' : ''}</div>
-        <div class="ex-r-info">
-          <div class="ex-r-name">${escHtml(ex.name)}</div>
-          <div class="ex-r-vol">${escHtml(ex.vol)}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  const badge = document.getElementById('aktiverBadge');
-  if (badge) badge.textContent = `${done}/${AKTIVERING.length}`;
-}
-function toggleAkt(id) {
-  const key = _aktKey(id);
-  if (localStorage.getItem(key)) localStorage.removeItem(key);
-  else localStorage.setItem(key, '1');
-  renderAktivering();
+
+function renderRehab() {
+  const el  = document.getElementById('workoutBlocks');
+  const exs = allExercises['rehab']?.['Rehab'] || [];
+  const addId = 'add-rehab-Rehab';
+  el.innerHTML = `<div class="ex-section" data-day="rehab" data-section="Rehab"
+    ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
+    <div class="sec-hd">
+      <span class="sec-label">Daglig Rehab</span>
+      <span class="sec-divider"></span>
+      <span class="sec-count">${exs.length} øvelser</span>
+    </div>
+    ${exs.map((ex, i) => renderExRow(ex, 'rehab', i + 1, true)).join('')}
+    <div class="add-ex-form" id="${addId}">
+      <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
+      <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
+      <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
+      <button class="btn btn-success btn-sm" onclick="addExercise('rehab','Rehab','${addId}')">+</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
+    </div>
+    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
+  </div>`;
 }
 
 // ── Warmup ─────────────────────────────────────────────────────────
@@ -926,12 +935,13 @@ function renderWarmup() {
     }
   });
 
-  const addId = 'add-warmup-Prepøvelser';
+  const wmAddDay = isFri ? 'friday_warmup' : 'warmup';
+  const addId = `add-${wmAddDay}-Prepøvelser`;
   const addHtml = `<div class="add-ex-form" id="${addId}">
     <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
     <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
     <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
-    <button class="btn btn-success btn-sm" onclick="addExercise('warmup','Prepøvelser','${addId}')">+</button>
+    <button class="btn btn-success btn-sm" onclick="addExercise('${wmAddDay}','Prepøvelser','${addId}')">+</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
   </div>
   <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>`;
