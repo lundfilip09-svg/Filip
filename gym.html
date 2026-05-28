@@ -633,6 +633,38 @@ let restDuration  = 0;      // total seconds — persisted
 let sbKneePhase   = 'during';
 
 const SESSION_KEY = 'gym_session_v2';
+const DRAFT_KEY   = 'gym_form_draft';
+
+function saveDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      activeDay,
+      logDate:      document.getElementById('logDate')?.value       || '',
+      sessionNotes: document.getElementById('sessionNotes')?.value  || '',
+      sidebarNotes: document.getElementById('sidebarNotes')?.value  || '',
+      setData,
+      kneePain: { ...kneePain },
+    }));
+  } catch(e) {}
+}
+
+function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
+
+function restoreDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    if (d.setData)      setData = d.setData;
+    if (d.kneePain)     Object.assign(kneePain, d.kneePain);
+    if (d.logDate)      document.getElementById('logDate').value = d.logDate;
+    if (d.sessionNotes) document.getElementById('sessionNotes').value = d.sessionNotes;
+    if (d.sidebarNotes) {
+      const el = document.getElementById('sidebarNotes');
+      if (el) { el.value = d.sidebarNotes; try { updateNotesCount(); } catch(e) {} }
+    }
+  } catch(e) { /* ugyldig draft, ignorer */ }
+}
 
 function detectDay() {
   const d = new Date().getDay();
@@ -710,7 +742,16 @@ async function init() {
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
-  if (saved?.activeDay) activeDay = saved.activeDay;
+
+  // Restore active day — session key wins, then draft, then detectDay()
+  if (saved?.activeDay) {
+    activeDay = saved.activeDay;
+  } else {
+    try {
+      const dr = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      if (dr?.activeDay) activeDay = dr.activeDay;
+    } catch(e) {}
+  }
 
   setDay(activeDay);
   await loadData();
@@ -734,9 +775,20 @@ async function init() {
     if (getRestRemaining() > 0) resumeRestTimer();
     toast('Økt gjenopprettet');
   } else {
+    restoreDraft();   // populates setData + kneePain before rendering
     renderAll();
     buildPainButtons();
+    // Re-highlight pain buttons now that they exist in the DOM
+    ['before','during','after','day-after'].forEach(p => {
+      if (kneePain[p] !== null && kneePain[p] !== undefined) selectPain(p, kneePain[p]);
+    });
   }
+
+  // Persist draft on notes / date changes
+  ['sessionNotes','sidebarNotes','logDate'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', saveDraft);
+    document.getElementById(id)?.addEventListener('change', saveDraft);
+  });
 
   await loadGymHistory();
 }
@@ -805,6 +857,7 @@ function setDay(day) {
   const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power', rehab:'Daglig Rehab' };
   document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
   renderAll();
+  saveDraft();
 }
 
 function renderAll() {
@@ -1214,13 +1267,13 @@ function drawerRow(exId, i, s) {
   return `<tr id="drow-${exId}-${i}" class="${s.done ? 'set-done' : ''}">
     <td class="set-num-cell">${i + 1}</td>
     <td><input class="set-inp" type="text" value="${escHtml(String(s.reps))}"
-      onchange="setData['${exId}'][${i}].reps=this.value"></td>
+      onchange="setData['${exId}'][${i}].reps=this.value;saveDraft()"></td>
     <td><input class="set-inp" type="number" step="0.5" value="${s.weight !== '' && s.weight !== undefined ? s.weight : ''}"
-      onchange="setData['${exId}'][${i}].weight=this.value===''?'':parseFloat(this.value)"></td>
+      onchange="setData['${exId}'][${i}].weight=this.value===''?'':parseFloat(this.value);saveDraft()"></td>
     <td><button class="set-check${s.done ? ' done' : ''}" id="sc-${exId}-${i}"
       onclick="toggleSetDone('${exId}',${i})">${s.done ? '✓' : ''}</button></td>
     <td><input class="set-inp set-notes-inp" type="text" value="${escHtml(s.notes)}"
-      onchange="setData['${exId}'][${i}].notes=this.value" placeholder="—"></td>
+      onchange="setData['${exId}'][${i}].notes=this.value;saveDraft()" placeholder="—"></td>
   </tr>`;
 }
 
@@ -1507,6 +1560,7 @@ function selectPain(phase, score) {
   document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
     b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
   });
+  saveDraft();
 }
 
 function selectSbPain(score) {
@@ -1521,6 +1575,7 @@ function selectSbPain(score) {
   const kv = document.getElementById('kneeVal');
   if (kv) kv.textContent = `${score} (${sbKneePhase})`;
   saveSession();
+  saveDraft();
 }
 
 function setSbPhase(phase) {
@@ -1634,6 +1689,7 @@ async function saveLog() {
   ]);
   if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
   clearSession();
+  clearDraft();
   toast('Økt lagret!');
   await loadGymHistory();
 }
