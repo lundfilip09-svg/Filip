@@ -71,15 +71,25 @@ def fetch_garmin_data(target_date=None):
         sleep = garmin.get_sleep_data(sleep_date)
         dto   = sleep.get("dailySleepDTO", {})
 
-        # Debug: lagre nøkkelinfo om hva Garmin returnerte
+        # Debug: logg hva Garmin returnerte (fjernes etter bekreftelse)
         result["_sleep_date_fetched"] = sleep_date
-        result["_sleep_keys"] = list(dto.keys()) if dto else []
-        result["_sleep_time_sec"] = dto.get("sleepTimeSeconds")
+        result["_sleep_time_sec"]     = dto.get("sleepTimeSeconds")
+        result["_deep_sec"]           = dto.get("deepSleepSeconds")
+        result["_light_sec"]          = dto.get("lightSleepSeconds")
+        result["_rem_sec"]            = dto.get("remSleepSeconds")
 
         def sec_to_min(s):
             return round(s / 60) if s else None
 
         total_sec = dto.get("sleepTimeSeconds") or 0
+        # Fallback: sum opp fasene hvis totalverdien mangler
+        if not total_sec:
+            total_sec = sum(filter(None, [
+                dto.get("deepSleepSeconds"),
+                dto.get("lightSleepSeconds"),
+                dto.get("remSleepSeconds"),
+                dto.get("awakeSleepSeconds"),
+            ]))
         if total_sec > 0:
             result["sleep_hours"] = round(total_sec / 3600, 2)
 
