@@ -132,8 +132,6 @@ def fetch_garmin_data(target_date=None):
         )
         if hrv_val:
             result["hrv"] = hrv_val
-        # Debug: alltid vis alle HRV-felter så vi ser riktig feltnavn
-        result["_hrv_all"] = {k: v for k, v in summary.items() if v is not None}
     except Exception:
         result["_hrv_error"] = traceback.format_exc()
 
