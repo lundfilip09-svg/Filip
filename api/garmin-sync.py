@@ -1,21 +1,24 @@
 # api/garmin-sync.py
 # Henter helsedata fra Garmin Connect og lagrer i Supabase.
-# Vercel Serverless Function — kjøres automatisk via cron kl. 07:45 norsk tid (05:45 UTC).
+# Cron: kl. 07:45 norsk tid (05:45 UTC) hver dag.
 #
-# Nødvendige env-variabler i Vercel:
-#   GARMIN_EMAIL              — din Garmin Connect e-post
-#   GARMIN_PASSWORD           — ditt Garmin Connect passord
-#   SUPABASE_URL              — f.eks. https://xxxx.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY — Supabase service role key
+# Logikk:
+#   - Søvndata hentes fra IGÅR (Garmin lagrer søvn under datoen du la deg)
+#   - Daglig statistikk (RHR, HRV, skritt, body battery) hentes fra I DAG
+#   - Alt lagres under dagens dato
+#   - Støtter ?date=YYYY-MM-DD for manuell kjøring på spesifikk dato
+#
+# Env-variabler i Vercel:
+#   GARMIN_EMAIL, GARMIN_PASSWORD, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 import json
 import os
 import datetime
 import urllib.request
 import traceback
 
-# Desktop User-Agent — Garmin/Cloudflare blokkerer standard mobilagent
 DESKTOP_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -33,31 +36,39 @@ def ts_to_hhmm(ms_timestamp):
         return None
 
 
-def fetch_garmin_data():
+def garmin_login(email, password):
     from garminconnect import Garmin
-
-    email    = os.environ["GARMIN_EMAIL"].strip()
-    password = os.environ["GARMIN_PASSWORD"].strip()
-
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-
-    # Sett desktop User-Agent på garth-klienten for å unngå Cloudflare-blokkering
-    garmin = Garmin(email, password)
+    garmin = Garmin(email.strip(), password.strip())
     try:
         if hasattr(garmin, "garth") and hasattr(garmin.garth, "sess"):
             garmin.garth.sess.headers.update({"User-Agent": DESKTOP_UA})
         elif hasattr(garmin, "session"):
             garmin.session.headers.update({"User-Agent": DESKTOP_UA})
     except Exception:
-        pass  # Fortsett uansett
-
+        pass
     garmin.login()
+    return garmin
 
-    result = {"date": yesterday}
 
-    # ── Søvn (total + faser) ────────────────────────────────────────────────
+def fetch_garmin_data(target_date=None):
+    email    = os.environ["GARMIN_EMAIL"].strip()
+    password = os.environ["GARMIN_PASSWORD"].strip()
+
+    today     = datetime.date.today().isoformat()
+    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+
+    # Lagre under ønsket dato (default: i dag)
+    save_date = target_date or today
+
+    # Søvn hentes fra datoen søvnen STARTET (vanligvis igår ved morgenkjøring)
+    sleep_date = target_date or yesterday
+
+    garmin = garmin_login(email, password)
+    result = {"date": save_date}
+
+    # ── Søvn ────────────────────────────────────────────────────────────────
     try:
-        sleep = garmin.get_sleep_data(yesterday)
+        sleep = garmin.get_sleep_data(sleep_date)
         dto   = sleep.get("dailySleepDTO", {})
 
         def sec_to_min(s):
@@ -88,30 +99,34 @@ def fetch_garmin_data():
         except (KeyError, TypeError):
             pass
 
-    except Exception as e:
+    except Exception:
         result["_sleep_error"] = traceback.format_exc()
 
-    # ── Daglig statistikk (RHR, skritt) ─────────────────────────────────────
+    # ── Daglig statistikk (hentes fra DAGENS dato) ───────────────────────────
+    stats_date = target_date or today
     try:
-        stats = garmin.get_stats(yesterday)
+        stats = garmin.get_stats(stats_date)
         if stats.get("restingHeartRate"):
             result["rhr"] = stats["restingHeartRate"]
         if stats.get("totalSteps"):
             result["steps"] = stats["totalSteps"]
-    except Exception as e:
+    except Exception:
         result["_stats_error"] = traceback.format_exc()
 
     # ── HRV ─────────────────────────────────────────────────────────────────
     try:
-        hrv_data = garmin.get_hrv_data(yesterday)
-        hrv_val  = hrv_data.get("hrvSummary", {}).get("lastNight")
+        hrv_data = garmin.get_hrv_data(sleep_date)
+        hrv_val  = (
+            hrv_data.get("hrvSummary", {}).get("lastNight") or
+            hrv_data.get("hrvSummary", {}).get("weekly5DayAverage")
+        )
         if hrv_val: result["hrv"] = hrv_val
-    except Exception as e:
+    except Exception:
         result["_hrv_error"] = traceback.format_exc()
 
     # ── Body Battery ─────────────────────────────────────────────────────────
     try:
-        bb_list = garmin.get_body_battery(yesterday)
+        bb_list = garmin.get_body_battery(stats_date)
         if bb_list and isinstance(bb_list, list):
             vals = [
                 entry.get("charged") or entry.get("value") or entry.get("bodyBattery")
@@ -119,7 +134,7 @@ def fetch_garmin_data():
             ]
             vals = [v for v in vals if v is not None]
             if vals: result["body_battery"] = max(vals)
-    except Exception as e:
+    except Exception:
         result["_bb_error"] = traceback.format_exc()
 
     return result
@@ -148,12 +163,22 @@ def save_to_supabase(row):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        # Les valgfri ?date=YYYY-MM-DD fra URL
+        target_date = None
         try:
-            row    = fetch_garmin_data()
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            if "date" in params:
+                target_date = params["date"][0]
+        except Exception:
+            pass
+
+        try:
+            row      = fetch_garmin_data(target_date)
             save_to_supabase(row)
             public   = {k: v for k, v in row.items() if not k.startswith("_")}
             warnings = {k: v for k, v in row.items() if k.startswith("_")}
-            body   = json.dumps({"ok": True, "data": public, "warnings": warnings}, indent=2)
+            body     = json.dumps({"ok": True, "data": public, "warnings": warnings}, indent=2)
             self.send_response(200)
         except Exception as e:
             body = json.dumps({"ok": False, "error": str(e), "trace": traceback.format_exc()}, indent=2)
