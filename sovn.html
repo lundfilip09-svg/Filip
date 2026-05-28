@@ -276,8 +276,8 @@
       </div>
       <div class="chart-toggle-group">
         <div class="chart-pills">
-          <button class="cp-btn" data-days="7"  onclick="setChartPeriod(7)">7d</button>
-          <button class="cp-btn active" data-days="14" onclick="setChartPeriod(14)">14d</button>
+          <button class="cp-btn active" data-days="7"  onclick="setChartPeriod(7)">7d</button>
+          <button class="cp-btn" data-days="14" onclick="setChartPeriod(14)">14d</button>
           <button class="cp-btn" data-days="30" onclick="setChartPeriod(30)">30d</button>
         </div>
       </div>
@@ -312,7 +312,7 @@ let todayEntry   = null;
 let chartData    = [];
 let chartInstance = null;
 let chartMetric  = 'sleep';
-let chartDays    = 14;
+let chartDays    = 7;
 
 function minToHM(min) {
   if (!min) return '–';
