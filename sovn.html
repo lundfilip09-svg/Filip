@@ -133,37 +133,6 @@
     .ri-label { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
     .ri-val { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-secondary); }
 
-    /* ── Mood ── */
-    .mood-card {
-      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 14px; padding: 15px 18px;
-      display: flex; align-items: center; gap: 18px;
-    }
-    .mood-chips { display: flex; gap: 7px; flex: 1; flex-wrap: wrap; }
-    .mood-chip {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      padding: 9px 13px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.07);
-      background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.14s;
-      min-width: 58px;
-    }
-    .mood-chip:hover {
-      background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14);
-      transform: translateY(-2px);
-    }
-    .mood-chip.selected {
-      background: rgba(242,192,99,0.11); border-color: rgba(242,192,99,0.35);
-      box-shadow: 0 0 14px rgba(242,192,99,0.14);
-    }
-    .mc-emoji { font-size: 17px; line-height: 1; }
-    .mc-mood-lbl {
-      font-size: 8.5px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.05em; white-space: nowrap;
-    }
-    .mood-chip.selected .mc-mood-lbl { color: var(--warning); }
-    .mood-saved-txt {
-      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0;
-    }
-
     /* ── Chart ── */
     .chart-card {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
@@ -250,19 +219,6 @@
     </div>
   </div>
 
-  <!-- Mood -->
-  <div class="mood-card">
-    <div class="card-lbl" style="margin-bottom:0;flex-shrink:0">Humør i dag</div>
-    <div class="mood-chips">
-      <button class="mood-chip" data-mood="1" onclick="saveMood(1)"><span class="mc-emoji">😴</span><span class="mc-mood-lbl">Trøtt</span></button>
-      <button class="mood-chip" data-mood="2" onclick="saveMood(2)"><span class="mc-emoji">😐</span><span class="mc-mood-lbl">Ok</span></button>
-      <button class="mood-chip" data-mood="3" onclick="saveMood(3)"><span class="mc-emoji">🙂</span><span class="mc-mood-lbl">Bra</span></button>
-      <button class="mood-chip" data-mood="4" onclick="saveMood(4)"><span class="mc-emoji">😊</span><span class="mc-mood-lbl">Veldig bra</span></button>
-      <button class="mood-chip" data-mood="5" onclick="saveMood(5)"><span class="mc-emoji">🔥</span><span class="mc-mood-lbl">Energisk</span></button>
-    </div>
-    <div class="mood-saved-txt" id="moodSaved"></div>
-  </div>
-
   <!-- Chart -->
   <div class="chart-card">
     <div class="chart-header">
@@ -307,7 +263,6 @@ function toast(msg, type='ok') {
 async function signOut() { if (db) await db.auth.signOut(); window.location.href = 'login.html'; }
 function today() { return new Date().toISOString().slice(0, 10); }
 
-let currentMood  = null;
 let todayEntry   = null;
 let chartData    = [];
 let chartInstance = null;
@@ -523,30 +478,6 @@ async function loadToday() {
     .select('*').eq('date', today()).order('timestamp', { ascending: false }).limit(1);
   todayEntry = data?.[0] || null;
   renderStats(todayEntry);
-  if (todayEntry?.mood) {
-    currentMood = todayEntry.mood;
-    highlightMood(currentMood);
-    document.getElementById('moodSaved').textContent = 'Lagret';
-  }
-}
-
-// ── Mood ───────────────────────────────────────────────────────────────────
-function highlightMood(mood) {
-  document.querySelectorAll('.mood-chip').forEach(b =>
-    b.classList.toggle('selected', parseInt(b.dataset.mood) === mood));
-}
-
-async function saveMood(mood) {
-  currentMood = mood;
-  highlightMood(mood);
-  document.getElementById('moodSaved').textContent = 'Lagrer…';
-  if (todayEntry) {
-    await db.from('health_data').update({ mood }).eq('id', todayEntry.id);
-  } else {
-    await db.from('health_data').insert({ date: today(), mood });
-  }
-  document.getElementById('moodSaved').textContent = 'Lagret';
-  toast('Humør lagret');
 }
 
 // ── Chart ──────────────────────────────────────────────────────────────────
