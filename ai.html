@@ -320,9 +320,23 @@ function hideLoading() {
   document.getElementById('loadingMsg')?.remove();
 }
 
-// ── Send message ─────────────────────────────────────────────────────────────
+// ── Chat history (session-scoped, cleared on page load) ──────────────────────
 let isSending = false;
+let chatHistory = []; // {role:'user'|'assistant', content:string}[]
 
+function saveHistory() {
+  localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+}
+
+function historyForApi() {
+  // Take last 9 stored messages so that + the new user message = 10 total.
+  // Anthropic requires the array to start with a user turn.
+  let msgs = chatHistory.slice(-9);
+  while (msgs.length > 0 && msgs[0].role !== 'user') msgs = msgs.slice(1);
+  return msgs;
+}
+
+// ── Send message ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (isSending) return;
   const input = document.getElementById('chatInput');
@@ -349,7 +363,7 @@ async function sendMessage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ message: msg }),
+      body: JSON.stringify({ message: msg, history: historyForApi() }),
     });
 
     hideLoading();
@@ -360,6 +374,10 @@ async function sendMessage() {
     } else {
       const { reply } = await res.json();
       appendMessage('ai', reply);
+      chatHistory.push({ role: 'user', content: msg });
+      chatHistory.push({ role: 'assistant', content: reply });
+      if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+      saveHistory();
     }
   } catch (e) {
     hideLoading();
@@ -393,6 +411,7 @@ function autoResize(el) {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 (async () => {
+  localStorage.removeItem('ai_chat_history'); // fresh start on every page load
   try {
     const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);

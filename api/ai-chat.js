@@ -43,12 +43,20 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message } = req.body || {};
+  const { message, history } = req.body || {};
   const authHeader = req.headers.authorization;
 
   if (!message || !authHeader) {
     return res.status(400).json({ error: 'Mangler melding eller autentisering' });
   }
+
+  // Sanitise history: must be alternating user/assistant messages
+  const safeHistory = Array.isArray(history)
+    ? history.filter(m => m
+        && (m.role === 'user' || m.role === 'assistant')
+        && typeof m.content === 'string'
+        && m.content.length < 8000)
+    : [];
 
   const token = authHeader.replace('Bearer ', '').trim();
   const { SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY } = process.env;
@@ -99,6 +107,7 @@ ${JSON.stringify(kneePainData, null, 2)}`;
       max_tokens: 1000,
       system: SYSTEM_PROMPT,
       messages: [
+        ...safeHistory,
         {
           role: 'user',
           content: `${context}\n\n---\n\n${message}`,
