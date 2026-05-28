@@ -712,7 +712,11 @@ async function loadLists() {
   const defaultLists = ['Generelt', 'Trening', 'Skole'];
   lists = [...new Set([...defaultLists, ...fromDb])];
   const savedTab = localStorage.getItem('gjøremål_aktiv_fane');
-  if (savedTab && lists.includes(savedTab)) activeList = savedTab;
+  if (savedTab && lists.includes(savedTab)) {
+    activeList = savedTab;
+    const h = document.getElementById('listHeading');
+    if (h) h.textContent = activeList;
+  }
   renderListsBar();
 }
 
@@ -720,10 +724,10 @@ function renderListsBar() {
   const bar = document.getElementById('listsBar');
   bar.innerHTML = lists.map(l => {
     const cnt = allTodos.filter(t => t.list_name === l && !t.completed).length;
-    return `<div class="gm-li ${l===activeList?'active':''}" onclick="selectList('${escHtml(l)}')">
+    return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}" onclick="selectList(this.dataset.list)">
       <span class="gm-li-name">${escHtml(l)}</span>
       ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
-      ${l !== 'Generelt' ? `<button class="gm-li-del" onclick="event.stopPropagation();deleteList('${escHtml(l)}')" title="Slett">✕</button>` : ''}
+      ${l !== 'Generelt' ? `<button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="Slett">✕</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -924,7 +928,8 @@ async function deleteTodo(id) {
       </div>`;
     return;
   }
-  await Promise.all([autoClean(), loadLists(), loadTodos()]);
+  await Promise.all([autoClean(), loadLists()]);
+  await loadTodos();
 })();
 </script>
 </body>
