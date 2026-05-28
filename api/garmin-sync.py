@@ -126,8 +126,8 @@ def fetch_garmin_data(target_date=None):
         hrv_data = garmin.get_hrv_data(sleep_date)
         summary  = hrv_data.get("hrvSummary", {})
         hrv_val  = (
-            summary.get("lastNight") or
-            summary.get("lastNight5MinHigh") or
+            summary.get("lastNightAvg") or      # gjennomsnitt natt (foretrukket)
+            summary.get("lastNight") or          # fallback til nattverdi
             summary.get("weekly5DayAverage")
         )
         if hrv_val:
