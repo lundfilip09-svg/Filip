@@ -71,13 +71,6 @@ def fetch_garmin_data(target_date=None):
         sleep = garmin.get_sleep_data(sleep_date)
         dto   = sleep.get("dailySleepDTO", {})
 
-        # Debug: logg hva Garmin returnerte (fjernes etter bekreftelse)
-        result["_sleep_date_fetched"] = sleep_date
-        result["_sleep_time_sec"]     = dto.get("sleepTimeSeconds")
-        result["_deep_sec"]           = dto.get("deepSleepSeconds")
-        result["_light_sec"]          = dto.get("lightSleepSeconds")
-        result["_rem_sec"]            = dto.get("remSleepSeconds")
-
         def sec_to_min(s):
             return round(s / 60) if s else None
 
@@ -131,11 +124,17 @@ def fetch_garmin_data(target_date=None):
     # ── HRV ─────────────────────────────────────────────────────────────────
     try:
         hrv_data = garmin.get_hrv_data(sleep_date)
+        summary  = hrv_data.get("hrvSummary", {})
         hrv_val  = (
-            hrv_data.get("hrvSummary", {}).get("lastNight") or
-            hrv_data.get("hrvSummary", {}).get("weekly5DayAverage")
+            summary.get("lastNight") or
+            summary.get("lastNight5MinHigh") or
+            summary.get("weekly5DayAverage")
         )
-        if hrv_val: result["hrv"] = hrv_val
+        if hrv_val:
+            result["hrv"] = hrv_val
+        else:
+            # Debug: vis hva vi fikk fra HRV-endepunktet
+            result["_hrv_summary"] = summary
     except Exception:
         result["_hrv_error"] = traceback.format_exc()
 
