@@ -95,7 +95,7 @@ ${JSON.stringify(kneePainData, null, 2)}`;
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: SYSTEM_PROMPT,
       messages: [
@@ -108,8 +108,12 @@ ${JSON.stringify(kneePainData, null, 2)}`;
   });
 
   if (!anthropicRes.ok) {
-    const err = await anthropicRes.json().catch(() => ({}));
-    return res.status(502).json({ error: err.error?.message || 'Anthropic API-feil' });
+    const rawBody = await anthropicRes.text();
+    let parsed = {};
+    try { parsed = JSON.parse(rawBody); } catch {}
+    const detail = parsed.error?.message || rawBody || 'ukjent feil';
+    const errorMsg = `Anthropic ${anthropicRes.status}: ${detail}`;
+    return res.status(502).json({ error: errorMsg });
   }
 
   const data = await anthropicRes.json();
