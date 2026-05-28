@@ -483,11 +483,11 @@ function localISODate(d) {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const PLAN_KEY   = 'treningsplan_v1';
 const SHORT_DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
 const FULL_DAYS  = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
 
 // ── State ──────────────────────────────────────────────────────────────────
+let userId               = null;
 let plan                 = {};   // { 0: 'Sprint', notes_0: '...', ... }
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
@@ -516,9 +516,13 @@ function getISOWeek(d) {
   return 1 + Math.round(((tmp.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
 }
 
-function getPlanKey(offset) {
-  if (offset === 0) return PLAN_KEY;
-  return PLAN_KEY + '_' + getMondayForOffset(offset).toISOString().slice(0, 10);
+async function loadPlanFromDb() {
+  const { data } = await db.from('training_plan').select('day_index,session_text,notes');
+  plan = {};
+  (data || []).forEach(r => {
+    if (r.session_text) plan[r.day_index]           = r.session_text;
+    if (r.notes)        plan[`notes_${r.day_index}`] = r.notes;
+  });
 }
 
 function planText(i)  { return (plan[i]             || '').trim(); }
@@ -544,14 +548,9 @@ function renderHero() {
   document.getElementById('heroEyebrow').textContent =
     'I dag — ' + now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
 
-  // Always read current week's plan for hero
-  const heroPlan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
-  const hpt = i => (heroPlan[i] || '').trim();
-  const hir = i => { const t = hpt(i).toLowerCase(); return !t || t.startsWith('hvile') || t.startsWith('fri'); };
-
-  const txt = hpt(ti);
+  const txt = planText(ti);
   const sessionEl = document.getElementById('heroSession');
-  if (txt && !hir(ti)) {
+  if (txt && !isRest(ti)) {
     sessionEl.textContent = txt;
     sessionEl.className   = 'hero-session';
   } else {
@@ -562,7 +561,7 @@ function renderHero() {
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
     const ni = (ti + d) % 7;
-    if (!hir(ni)) { nextStr = `Neste: ${FULL_DAYS[ni]} — ${hpt(ni)}`; break; }
+    if (!isRest(ni)) { nextStr = `Neste: ${FULL_DAYS[ni]} — ${planText(ni)}`; break; }
   }
   document.getElementById('heroNext').textContent = nextStr;
 
@@ -574,7 +573,7 @@ function renderHero() {
     if (currentWeekLoggedDates.has(localISODate(d))) logged++;
   }
   let daysLeft = 0;
-  for (let i = ti + 1; i < 7; i++) { if (!hir(i)) daysLeft++; }
+  for (let i = ti + 1; i < 7; i++) { if (!isRest(i)) daysLeft++; }
 
   document.getElementById('kpiDone').textContent = `${logged}`;
   document.getElementById('kpiLeft').textContent = `${daysLeft}`;
@@ -716,18 +715,21 @@ function renderSidebar() {
 }
 
 // ── Save / clear ───────────────────────────────────────────────────────────
-function saveDay() {
+async function saveDay() {
   const txt   = document.getElementById('detailPlan').value.trim();
   const notes = document.getElementById('detailNotes').value.trim();
 
   if (txt) plan[selectedIdx] = txt;
   else     delete plan[selectedIdx];
+  if (notes) plan[`notes_${selectedIdx}`] = notes;
+  else       delete plan[`notes_${selectedIdx}`];
 
-  const nk = `notes_${selectedIdx}`;
-  if (notes) plan[nk] = notes;
-  else       delete plan[nk];
+  const { error } = await db.from('training_plan').upsert(
+    { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
+    { onConflict: 'user_id,day_index' }
+  );
+  if (error) { toast('Feil ved lagring', 'err'); return; }
 
-  localStorage.setItem(getPlanKey(weekOffset), JSON.stringify(plan));
   renderHero();
   renderDayStrip();
   renderDetail();
@@ -735,10 +737,15 @@ function saveDay() {
   toast('Lagret');
 }
 
-function clearDay() {
+async function clearDay() {
   delete plan[selectedIdx];
   delete plan[`notes_${selectedIdx}`];
-  localStorage.setItem(getPlanKey(weekOffset), JSON.stringify(plan));
+
+  await db.from('training_plan')
+    .delete()
+    .eq('user_id', userId)
+    .eq('day_index', selectedIdx);
+
   renderHero();
   renderDayStrip();
   renderDetail();
@@ -764,7 +771,6 @@ async function changeWeek(delta) {
   const next = weekOffset + delta;
   if (next > 0) return;
   weekOffset  = next;
-  plan        = JSON.parse(localStorage.getItem(getPlanKey(weekOffset)) || '{}');
   selectedIdx = weekOffset === 0 ? todayIdx() : 0;
 
   const mon = getMondayForOffset(weekOffset);
@@ -986,6 +992,7 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
+    userId = session.user.id;
   } catch (err) {
     document.querySelector('.page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">
@@ -994,7 +1001,7 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
     return;
   }
 
-  plan = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+  await loadPlanFromDb();
 
   const mon = getMonday();
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);

@@ -400,7 +400,14 @@
 <script src="utils.js"></script>
 <script>
 let db;
+let weekPlan = {}; // { day_index: session_text } loaded from Supabase
 document.querySelector('[data-p="dashboard"]').classList.add('active');
+
+async function loadWeekPlan() {
+  const { data } = await db.from('training_plan').select('day_index,session_text');
+  weekPlan = {};
+  (data || []).forEach(r => { if (r.session_text) weekPlan[r.day_index] = r.session_text; });
+}
 
 // Date label
 const _now = new Date();
@@ -511,9 +518,8 @@ async function loadKnee() {
 // ── Today's session ────────────────────────────────────────────────────────
 function loadSession() {
   const el = document.getElementById('sessionCard');
-  const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
   const planIndex = (new Date().getDay() + 6) % 7;
-  const planText = (plan[planIndex] || '').trim();
+  const planText = (weekPlan[planIndex] || '').trim();
   const isRest = !planText || /^hvile/i.test(planText);
 
   if (isRest) {
@@ -556,8 +562,6 @@ function _weekStripLabel(txt) {
   return first.length <= 8 ? first : first.slice(0, 7) + '…';
 }
 async function renderWeekStrip() {
-  const plan = JSON.parse(localStorage.getItem('treningsplan_v1') || '{}');
-  console.log('treningsplan_v1:', plan);
   const now  = new Date();
   const dow  = now.getDay();
   const monday = new Date(now);
@@ -607,7 +611,7 @@ async function renderWeekStrip() {
 
     // Plan-based chip for days with no logged session
     if (!chips.length) {
-      const txt = (plan[i] || '').trim();
+      const txt = (weekPlan[i] || '').trim();
       if (txt && !/^hvile/i.test(txt) && !/^fri/i.test(txt)) {
         const t = txt.toLowerCase();
         let cls = 'ind-styrke';
@@ -907,6 +911,7 @@ async function loadCalendar() {
     return;
   }
 
+  await loadWeekPlan().catch(() => {});
   const sessionData = loadSession();
 
   // Hvert kort har egen feilhåndtering — én feil stopper ikke resten
