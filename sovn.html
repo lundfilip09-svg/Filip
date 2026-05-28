@@ -6,38 +6,206 @@
   <title>Søvn & Restitusjon</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .mood-btn {
-      width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.04); font-size: 15px; cursor: pointer;
-      transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+    .sovn-page {
+      max-width: 1180px; margin: 0 auto;
+      padding: 14px 16px 60px;
+      display: flex; flex-direction: column; gap: 10px;
     }
-    .mood-btn.selected { border-color: var(--warning); box-shadow: 0 0 10px rgba(242,192,99,0.3); }
-    .mood-row { display: flex; gap: 8px; align-items: center; }
-    .chart-wrap { position: relative; height: 260px; margin-top: 10px; }
-    .stat-row    { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
-    .stat-row-3  { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
-    .legend-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .legend-row  { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
 
-    /* Søvnarkitektur-bar */
-    .arch-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
-    .arch-bar   { display: flex; height: 16px; border-radius: 6px; overflow: hidden; gap: 2px; }
-    .arch-bar .seg { border-radius: 3px; transition: width .4s ease; min-width: 2px; }
-    .seg-deep  { background: #7C6FD4; }
-    .seg-rem   { background: #4A9EE8; }
-    .seg-light { background: #6BE3A4; }
-    .seg-awake { background: rgba(255,255,255,0.1); }
-    .arch-leg  { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
-    .arch-leg-item { display: flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
-    .arch-leg-dot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    /* ── Hero ── */
+    .hero-card {
+      background: linear-gradient(135deg, rgba(124,111,212,0.07) 0%, rgba(74,158,232,0.05) 50%, rgba(107,227,164,0.04) 100%);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 22px 26px;
+      position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, rgba(124,111,212,0.5), rgba(74,158,232,0.35), rgba(107,227,164,0.2), transparent);
+    }
+    .hero-inner { display: flex; align-items: center; gap: 26px; }
+    .hero-score-box {
+      width: 88px; height: 88px; border-radius: 18px; flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+      transition: box-shadow 0.3s;
+    }
+    .hero-score-box.score-good { background: rgba(107,227,164,0.09); border-color: rgba(107,227,164,0.28); box-shadow: 0 0 32px rgba(107,227,164,0.12); }
+    .hero-score-box.score-ok   { background: rgba(242,192,99,0.09);  border-color: rgba(242,192,99,0.28);  box-shadow: 0 0 32px rgba(242,192,99,0.12);  }
+    .hero-score-box.score-bad  { background: rgba(255,107,107,0.09); border-color: rgba(255,107,107,0.28); box-shadow: 0 0 32px rgba(255,107,107,0.12); }
+    .hero-score-num {
+      font-size: 34px; font-weight: 800; font-family: var(--font-mono);
+      line-height: 1; letter-spacing: -0.03em;
+    }
+    .hero-score-lbl {
+      font-size: 7.5px; font-family: var(--font-mono); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-top: 4px;
+    }
+    .hero-right { flex: 1; min-width: 0; }
+    .hero-date {
+      font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px;
+    }
+    .hero-status {
+      font-size: 21px; font-weight: 700; line-height: 1.15;
+      letter-spacing: -0.02em; margin-bottom: 3px;
+    }
+    .hero-tagline { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
+    .hero-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hero-chip {
+      padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-family: var(--font-mono);
+      background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-secondary);
+    }
 
-    .time-chips { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
-    .time-chip  { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
-    .time-chip strong { color: var(--text-primary); font-size: 13px; font-weight: 500; }
+    /* ── Metrics Grid ── */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .metric-card {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 12px; padding: 15px 14px; transition: background 0.14s;
+    }
+    .metric-card:hover { background: rgba(255,255,255,0.04); }
+    .mc-top-lbl {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px;
+    }
+    .mc-val {
+      font-size: 28px; font-weight: 700; font-family: var(--font-mono);
+      line-height: 1; letter-spacing: -0.02em; color: var(--text-primary);
+    }
+    .mc-unit {
+      font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 4px;
+    }
 
+    /* ── Mid Grid ── */
+    .mid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mid-card {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 14px; padding: 17px 18px;
+    }
+    .card-lbl {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-lbl::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(255,255,255,0.07), transparent);
+    }
+
+    /* Sleep architecture */
+    .arch-insight {
+      font-size: 12px; font-weight: 600; font-family: var(--font-mono); margin-bottom: 12px;
+    }
+    .arch-bar-premium {
+      height: 12px; border-radius: 6px; overflow: hidden; display: flex; gap: 2px;
+      margin-bottom: 18px;
+    }
+    .arch-seg { border-radius: 2px; transition: width 0.5s ease; min-width: 2px; }
+    .arch-stages { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .arch-stage-item { display: flex; align-items: center; gap: 8px; }
+    .arch-stage-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .arch-stage-name {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .arch-stage-val {
+      font-size: 14px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary);
+    }
+    .arch-times { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+    .time-badge {
+      padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-family: var(--font-mono);
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-secondary);
+    }
+
+    /* Readiness */
+    .readiness-status {
+      font-size: 17px; font-weight: 700; font-family: var(--font-mono); margin-bottom: 3px;
+    }
+    .readiness-desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
+    .readiness-level {
+      height: 4px; border-radius: 3px; background: rgba(255,255,255,0.07); margin-bottom: 16px; overflow: hidden;
+    }
+    .readiness-level-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .readiness-indicators { display: flex; flex-direction: column; gap: 7px; }
+    .ri-row { display: flex; align-items: center; justify-content: space-between; }
+    .ri-label { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
+    .ri-val { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-secondary); }
+
+    /* ── Mood ── */
+    .mood-card {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 14px; padding: 15px 18px;
+      display: flex; align-items: center; gap: 18px;
+    }
+    .mood-chips { display: flex; gap: 7px; flex: 1; flex-wrap: wrap; }
+    .mood-chip {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 9px 13px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.14s;
+      min-width: 58px;
+    }
+    .mood-chip:hover {
+      background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14);
+      transform: translateY(-2px);
+    }
+    .mood-chip.selected {
+      background: rgba(242,192,99,0.11); border-color: rgba(242,192,99,0.35);
+      box-shadow: 0 0 14px rgba(242,192,99,0.14);
+    }
+    .mc-emoji { font-size: 17px; line-height: 1; }
+    .mc-mood-lbl {
+      font-size: 8.5px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.05em; white-space: nowrap;
+    }
+    .mood-chip.selected .mc-mood-lbl { color: var(--warning); }
+    .mood-saved-txt {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0;
+    }
+
+    /* ── Chart ── */
+    .chart-card {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 14px; padding: 17px 18px;
+    }
+    .chart-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; gap: 10px; flex-wrap: wrap;
+    }
+    .chart-toggle-group { display: flex; gap: 6px; align-items: center; }
+    .chart-pills {
+      display: flex; background: rgba(255,255,255,0.04); border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08); padding: 2px; gap: 2px;
+    }
+    .cm-btn, .cp-btn {
+      padding: 4px 11px; border-radius: 6px; border: none; background: none;
+      font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-tertiary); cursor: pointer; transition: all 0.13s;
+    }
+    .cm-btn.active, .cp-btn.active { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    .cm-btn:hover:not(.active), .cp-btn:hover:not(.active) { color: var(--text-secondary); }
+    .chart-legend { display: flex; gap: 12px; margin-bottom: 11px; flex-wrap: wrap; }
+    .chart-leg-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+    }
+    .chart-leg-dot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .chart-leg-line { width: 16px; height: 2px; border-top: 2px dashed rgba(255,255,255,0.22); flex-shrink: 0; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── Misc ── */
+    .empty-state {
+      font-size: 11px; font-family: var(--font-mono);
+      color: rgba(255,255,255,0.16); padding: 14px 0; text-align: center; line-height: 1.8;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) { .mid-grid { grid-template-columns: 1fr; } }
     @media (max-width: 640px) {
-      .stat-row { grid-template-columns: repeat(2,1fr); }
-      .stat-row-3 { grid-template-columns: repeat(3,1fr); }
+      .metrics-grid { grid-template-columns: repeat(2,1fr); }
+      .hero-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .mood-card { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -58,38 +226,63 @@
   </div>
 </nav>
 
-<main class="page">
+<main class="sovn-page">
 
-  <!-- Today -->
-  <div class="card">
-    <div class="section-title">I dag — <span id="todayLabel" style="text-transform:none;letter-spacing:0;color:var(--text-secondary);font-weight:400"></span></div>
-    <div id="todayStats"><div class="loading">Laster…</div></div>
+  <!-- Hero -->
+  <div class="hero-card">
+    <div id="heroInner">
+      <div class="hero-inner"><div class="empty-state">Laster…</div></div>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid" id="metricsGrid"></div>
+
+  <!-- Mid: Architecture + Readiness -->
+  <div class="mid-grid">
+    <div class="mid-card" id="archSection">
+      <div class="card-lbl">Søvnarkitektur</div>
+      <div class="empty-state">Laster…</div>
+    </div>
+    <div class="mid-card" id="readinessSection">
+      <div class="card-lbl">Treningsberedskap</div>
+      <div class="empty-state">Laster…</div>
+    </div>
   </div>
 
   <!-- Mood -->
-  <div class="card">
-    <div class="section-title">Humør i dag</div>
-    <div class="mood-row">
-      <button class="mood-btn" data-mood="1" onclick="saveMood(1)" title="Dårlig">😔</button>
-      <button class="mood-btn" data-mood="2" onclick="saveMood(2)" title="Ok">😐</button>
-      <button class="mood-btn" data-mood="3" onclick="saveMood(3)" title="Bra">🙂</button>
-      <button class="mood-btn" data-mood="4" onclick="saveMood(4)" title="Veldig bra">😊</button>
-      <button class="mood-btn" data-mood="5" onclick="saveMood(5)" title="Utmerket">😄</button>
-      <span id="moodSaved" style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);margin-left:8px"></span>
+  <div class="mood-card">
+    <div class="card-lbl" style="margin-bottom:0;flex-shrink:0">Humør i dag</div>
+    <div class="mood-chips">
+      <button class="mood-chip" data-mood="1" onclick="saveMood(1)"><span class="mc-emoji">😴</span><span class="mc-mood-lbl">Trøtt</span></button>
+      <button class="mood-chip" data-mood="2" onclick="saveMood(2)"><span class="mc-emoji">😐</span><span class="mc-mood-lbl">Ok</span></button>
+      <button class="mood-chip" data-mood="3" onclick="saveMood(3)"><span class="mc-emoji">🙂</span><span class="mc-mood-lbl">Bra</span></button>
+      <button class="mood-chip" data-mood="4" onclick="saveMood(4)"><span class="mc-emoji">😊</span><span class="mc-mood-lbl">Veldig bra</span></button>
+      <button class="mood-chip" data-mood="5" onclick="saveMood(5)"><span class="mc-emoji">🔥</span><span class="mc-mood-lbl">Energisk</span></button>
     </div>
+    <div class="mood-saved-txt" id="moodSaved"></div>
   </div>
 
-  <!-- 14-day chart -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="section-title" style="margin-bottom:0">Siste 14 dager</div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div class="legend-row"><div class="arch-leg-dot" style="background:#7C6FD4"></div>Dyp</div>
-        <div class="legend-row"><div class="arch-leg-dot" style="background:#4A9EE8"></div>REM</div>
-        <div class="legend-row"><div class="arch-leg-dot" style="background:#6BE3A4"></div>Lett</div>
-        <div class="legend-row"><div style="width:18px;height:2px;border-top:2px dashed rgba(255,255,255,0.25);flex-shrink:0"></div>8t mål</div>
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-toggle-group">
+        <div class="chart-pills">
+          <button class="cm-btn active" data-metric="sleep"  onclick="setChartMetric('sleep')">Søvn</button>
+          <button class="cm-btn"        data-metric="hrv"    onclick="setChartMetric('hrv')">HRV</button>
+          <button class="cm-btn"        data-metric="rhr"    onclick="setChartMetric('rhr')">Puls</button>
+          <button class="cm-btn"        data-metric="score"  onclick="setChartMetric('score')">Score</button>
+        </div>
+      </div>
+      <div class="chart-toggle-group">
+        <div class="chart-pills">
+          <button class="cp-btn" data-days="7"  onclick="setChartPeriod(7)">7d</button>
+          <button class="cp-btn active" data-days="14" onclick="setChartPeriod(14)">14d</button>
+          <button class="cp-btn" data-days="30" onclick="setChartPeriod(30)">30d</button>
+        </div>
       </div>
     </div>
+    <div class="chart-legend" id="chartLegend"></div>
     <div class="chart-wrap">
       <canvas id="sleepChart"></canvas>
     </div>
@@ -114,11 +307,12 @@ function toast(msg, type='ok') {
 async function signOut() { if (db) await db.auth.signOut(); window.location.href = 'login.html'; }
 function today() { return new Date().toISOString().slice(0, 10); }
 
-document.getElementById('todayLabel').textContent =
-  new Date().toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
-
-let currentMood = null;
-let todayEntry  = null;
+let currentMood  = null;
+let todayEntry   = null;
+let chartData    = [];
+let chartInstance = null;
+let chartMetric  = 'sleep';
+let chartDays    = 14;
 
 function minToHM(min) {
   if (!min) return '–';
@@ -126,8 +320,204 @@ function minToHM(min) {
   return h > 0 ? `${h}t${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
 }
 function minToH(min) { return min ? +(min / 60).toFixed(2) : null; }
+function sleepHoursStr(h) {
+  if (!h) return '–';
+  return `${Math.floor(h)}t${Math.round((h % 1) * 60) > 0 ? ' ' + Math.round((h % 1) * 60) + 'm' : ''}`;
+}
 
-// ── Today ─────────────────────────────────────────────────────────────────
+// ── Smart insights ─────────────────────────────────────────────────────────
+function getHeroText(d) {
+  if (!d) return { main:'Ingen søvndata', sub:'Synces kl. 07:00', color:'var(--text-tertiary)' };
+  const sc = d.sleep_score;
+  if (!sc) {
+    return { main:'Sover videre?', sub: d.sleep_hours ? `Registrert ${sleepHoursStr(d.sleep_hours)}` : 'Venter på data', color:'var(--text-secondary)' };
+  }
+  if (sc >= 85) return { main:'God restitusjon', sub:'Bra grunnlag for sprint i dag', color:'#6BE3A4' };
+  if (sc >= 70) return { main:'Solid søvnnatt', sub:'Klar for trening', color:'#6BE3A4' };
+  if (sc >= 55) return { main:'Middels restitusjon', sub:'Lett økt kan være lurt', color:'#F2C063' };
+  return { main:'Krevende natt', sub:'Prioriter hvile i dag', color:'#FF6B6B' };
+}
+
+function getArchInsight(d) {
+  if (!d) return null;
+  const total = (d.deep_sleep_minutes||0) + (d.rem_sleep_minutes||0) + (d.light_sleep_minutes||0);
+  if (total < 10) return null;
+  const deepPct = (d.deep_sleep_minutes||0) / total * 100;
+  const remPct  = (d.rem_sleep_minutes||0)  / total * 100;
+  if (deepPct < 10) return { text:'Lite dyp søvn i natt', color:'#F2C063' };
+  if (remPct  < 14) return { text:'REM under normalen',   color:'#F2C063' };
+  if (deepPct > 22 && remPct > 20) return { text:'Fremragende søvnkvalitet', color:'#6BE3A4' };
+  if (deepPct > 18) return { text:'Dyp søvn solid i natt', color:'#6BE3A4' };
+  if (remPct  > 22) return { text:'Bra REM-søvn i natt',   color:'#4A9EE8' };
+  return { text:'Søvnkvalitet normal', color:'var(--text-tertiary)' };
+}
+
+function getReadinessInsight(d) {
+  if (!d || !d.sleep_score) return { status:'Mangler data', desc:'', color:'var(--text-tertiary)', level:0 };
+  const sc = d.sleep_score, hrv = d.hrv, rhr = d.rhr;
+  if (sc >= 85 && rhr && rhr < 58)
+    return { status:'Klar for høy intensitet', desc:'Score og hvilepuls er optimale', color:'#6BE3A4', level:100 };
+  if (sc >= 70)
+    return { status:'Bra grunnlag for trening', desc:'God restitusjon over natten', color:'#6BE3A4', level:72 };
+  if (sc >= 55)
+    return { status:'Moderat restitusjon', desc:'Vurder å holde intensiteten nede', color:'#F2C063', level:45 };
+  return { status:'Vurder hvile i dag', desc:'Søvnkvalitet under normalen', color:'#FF6B6B', level:20 };
+}
+
+// ── Render: Hero ───────────────────────────────────────────────────────────
+function renderHero(d) {
+  const el  = document.getElementById('heroInner');
+  const sc  = d?.sleep_score;
+  const txt = getHeroText(d);
+  const cls = !sc ? '' : sc >= 80 ? ' score-good' : sc >= 60 ? ' score-ok' : ' score-bad';
+
+  const chips = [];
+  if (d?.sleep_hours) chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
+  if (d?.rhr)         chips.push(`❤️ ${d.rhr} bpm`);
+  if (d?.hrv)         chips.push(`⚡ HRV ${d.hrv}ms`);
+  if (d?.sleep_start) chips.push(`🛌 ${d.sleep_start}`);
+  if (d?.sleep_end)   chips.push(`⏰ ${d.sleep_end}`);
+
+  el.innerHTML = `
+    <div class="hero-inner">
+      <div class="hero-score-box${cls}">
+        <div class="hero-score-num" style="${sc && sc >= 80 ? 'color:#6BE3A4' : sc && sc >= 60 ? 'color:#F2C063' : sc && sc < 60 ? 'color:#FF6B6B' : ''}">${sc ?? '–'}</div>
+        <div class="hero-score-lbl">Søvnscore</div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-date">${new Date().toLocaleDateString('no-NO', {weekday:'long',day:'numeric',month:'long'})}</div>
+        <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
+        <div class="hero-tagline">${d?.sleep_hours ? 'Du sov ' + sleepHoursStr(d.sleep_hours) + (txt.sub ? ' · ' + txt.sub : '') : txt.sub}</div>
+        ${chips.length ? `<div class="hero-chips">${chips.map(c => `<div class="hero-chip">${c}</div>`).join('')}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── Render: Metrics ────────────────────────────────────────────────────────
+function renderMetrics(d) {
+  const el = document.getElementById('metricsGrid');
+  const sc = d?.sleep_score;
+  const metrics = [
+    {
+      lbl:'Søvnscore', val: sc ?? '–', unit:'/100',
+      color: !sc ? '' : sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B',
+      glow:  !sc ? '' : sc >= 80 ? 'rgba(107,227,164,0.14)' : sc >= 60 ? 'rgba(242,192,99,0.14)' : 'rgba(255,107,107,0.14)',
+    },
+    {
+      lbl:'Total søvn', val: d?.sleep_hours ? sleepHoursStr(d.sleep_hours) : '–', unit:'',
+      color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',
+    },
+    {
+      lbl:'Hvilepuls', val: d?.rhr ?? '–', unit:'bpm',
+      color: !d?.rhr ? '' : d.rhr < 58 ? '#6BE3A4' : d.rhr < 68 ? '' : '#FF6B6B',
+      glow:  !d?.rhr ? '' : d.rhr < 58 ? 'rgba(107,227,164,0.1)' : d.rhr < 68 ? '' : 'rgba(255,107,107,0.1)',
+    },
+    {
+      lbl:'HRV', val: d?.hrv ?? '–', unit:'ms',
+      color: !d?.hrv ? '' : d.hrv >= 50 ? '#6BE3A4' : d.hrv >= 35 ? '' : '#F2C063',
+      glow:  !d?.hrv ? '' : d.hrv >= 50 ? 'rgba(107,227,164,0.1)' : d.hrv >= 35 ? '' : 'rgba(242,192,99,0.1)',
+    },
+  ];
+
+  el.innerHTML = metrics.map(m => `
+    <div class="metric-card" style="${m.glow ? `box-shadow:0 0 28px ${m.glow}` : ''}">
+      <div class="mc-top-lbl">${m.lbl}</div>
+      <div class="mc-val" style="${m.color ? `color:${m.color}` : ''}">${m.val}</div>
+      ${m.unit ? `<div class="mc-unit">${m.unit}</div>` : ''}
+    </div>`
+  ).join('');
+}
+
+// ── Render: Sleep Architecture ─────────────────────────────────────────────
+function renderArch(d) {
+  const el = document.getElementById('archSection');
+  const hasFaser = d?.deep_sleep_minutes || d?.rem_sleep_minutes || d?.light_sleep_minutes;
+
+  if (!d || !hasFaser) {
+    el.innerHTML = `<div class="card-lbl">Søvnarkitektur</div><div class="empty-state">Ingen fasedata for i dag</div>`;
+    return;
+  }
+
+  const total = (d.deep_sleep_minutes||0) + (d.rem_sleep_minutes||0) + (d.light_sleep_minutes||0) + (d.awake_minutes||0);
+  const pct    = m => total > 0 ? ((m||0)/total*100).toFixed(1) : 0;
+  const pctN   = m => total > 0 ? (m||0)/total*100 : 0;
+  const insight = getArchInsight(d);
+
+  const stages = [
+    { name:'Dyp søvn',  mins:d.deep_sleep_minutes,  color:'#7C6FD4' },
+    { name:'REM',       mins:d.rem_sleep_minutes,   color:'#4A9EE8' },
+    { name:'Lett søvn', mins:d.light_sleep_minutes, color:'#6BE3A4' },
+  ];
+  if (d.awake_minutes) stages.push({ name:'Våken', mins:d.awake_minutes, color:'rgba(255,255,255,0.15)' });
+
+  el.innerHTML = `
+    <div class="card-lbl">Søvnarkitektur</div>
+    ${insight ? `<div class="arch-insight" style="color:${insight.color}">${insight.text}</div>` : ''}
+    <div class="arch-bar-premium">
+      ${stages.map(s => pctN(s.mins) > 0.5 ? `<div class="arch-seg" style="width:${pctN(s.mins)}%;background:${s.color}" title="${s.name}: ${pct(s.mins)}%"></div>` : '').join('')}
+    </div>
+    <div class="arch-stages">
+      ${stages.filter(s => s.mins).map(s => `
+        <div class="arch-stage-item">
+          <div class="arch-stage-dot" style="background:${s.color}"></div>
+          <div>
+            <div class="arch-stage-name">${s.name}</div>
+            <div class="arch-stage-val">${minToHM(s.mins)} <span style="opacity:0.45;font-size:9px">${pct(s.mins)}%</span></div>
+          </div>
+        </div>`).join('')}
+    </div>
+    ${(d.sleep_start || d.sleep_end) ? `
+    <div class="arch-times">
+      ${d.sleep_start ? `<div class="time-badge">🛌 ${d.sleep_start}</div>` : ''}
+      ${d.sleep_end   ? `<div class="time-badge">⏰ ${d.sleep_end}</div>`   : ''}
+    </div>` : ''}`;
+}
+
+// ── Render: Readiness ──────────────────────────────────────────────────────
+function renderReadiness(d) {
+  const el = document.getElementById('readinessSection');
+  const r  = getReadinessInsight(d);
+
+  const indicators = [];
+  if (d?.sleep_score) {
+    const sc = d.sleep_score;
+    indicators.push({ label:'Søvnscore', val:`${sc}/100`, status: sc >= 80 ? 'God' : sc >= 60 ? 'Ok' : 'Lav', color: sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
+  }
+  if (d?.hrv) {
+    const hrv = d.hrv;
+    indicators.push({ label:'HRV', val:`${hrv}ms`, status: hrv >= 50 ? 'Høy' : hrv >= 35 ? 'Normal' : 'Lav', color: hrv >= 50 ? '#6BE3A4' : hrv >= 35 ? 'var(--text-secondary)' : '#F2C063' });
+  }
+  if (d?.rhr) {
+    const rhr = d.rhr;
+    indicators.push({ label:'Hvilepuls', val:`${rhr} bpm`, status: rhr < 58 ? 'Lav ✓' : rhr < 68 ? 'Normal' : 'Høy', color: rhr < 58 ? '#6BE3A4' : rhr < 68 ? 'var(--text-secondary)' : '#FF6B6B' });
+  }
+
+  el.innerHTML = `
+    <div class="card-lbl">Treningsberedskap</div>
+    <div class="readiness-status" style="color:${r.color}">${r.status}</div>
+    ${r.desc ? `<div class="readiness-desc">${r.desc}</div>` : ''}
+    <div class="readiness-level">
+      <div class="readiness-level-fill" style="width:${r.level}%;background:${r.color}"></div>
+    </div>
+    <div class="readiness-indicators">
+      ${indicators.map(i => `
+        <div class="ri-row">
+          <span class="ri-label">${i.label}</span>
+          <span style="font-size:10.5px;font-family:var(--font-mono);color:${i.color}">${i.status}</span>
+        </div>`).join('')}
+    </div>
+    ${!d ? `<div class="empty-state" style="margin-top:8px">Ingen data for i dag</div>` : ''}`;
+}
+
+// ── Render: All ────────────────────────────────────────────────────────────
+function renderStats(d) {
+  renderHero(d);
+  renderMetrics(d);
+  renderArch(d);
+  renderReadiness(d);
+}
+
+// ── Today ──────────────────────────────────────────────────────────────────
 async function loadToday() {
   const { data } = await db.from('health_data')
     .select('*').eq('date', today()).order('timestamp', { ascending: false }).limit(1);
@@ -140,83 +530,15 @@ async function loadToday() {
   }
 }
 
-function renderStats(d) {
-  const el = document.getElementById('todayStats');
-  if (!d) {
-    el.innerHTML = `<div class="empty">Ingen data for i dag — synces automatisk kl. 07:00</div>`;
-    return;
-  }
-
-  const sc = d.sleep_score;
-  const scColor = !sc ? '' : sc >= 80 ? 'success' : sc >= 60 ? 'warning' : 'danger';
-
-  const topStats = [
-    { lbl:'Søvnscore',  val: sc ?? '–',            unit:'/ 100', cls: scColor },
-    { lbl:'Total søvn', val: d.sleep_hours ?? '–', unit:'t' },
-    { lbl:'Hvilepuls',  val: d.rhr ?? '–',         unit:'bpm',   cls: d.rhr > 65 ? 'danger' : '' },
-    { lbl:'HRV',        val: d.hrv ?? '–',         unit:'ms' },
-  ];
-
-  const hasFaser = d.deep_sleep_minutes || d.rem_sleep_minutes || d.light_sleep_minutes;
-  const faseStats = [
-    { lbl:'Dyp søvn',  val: minToHM(d.deep_sleep_minutes),  color:'#7C6FD4' },
-    { lbl:'REM',       val: minToHM(d.rem_sleep_minutes),   color:'#4A9EE8' },
-    { lbl:'Lett søvn', val: minToHM(d.light_sleep_minutes), color:'#6BE3A4' },
-  ];
-
-  const total = (d.deep_sleep_minutes||0) + (d.rem_sleep_minutes||0) + (d.light_sleep_minutes||0) + (d.awake_minutes||0);
-  const pct = m => total > 0 ? ((m||0)/total*100).toFixed(1) : 0;
-
-  const archHtml = hasFaser ? `
-    <div class="arch-label">Søvnarkitektur</div>
-    <div class="arch-bar">
-      <div class="seg seg-deep"  style="width:${pct(d.deep_sleep_minutes)}%"></div>
-      <div class="seg seg-rem"   style="width:${pct(d.rem_sleep_minutes)}%"></div>
-      <div class="seg seg-light" style="width:${pct(d.light_sleep_minutes)}%"></div>
-      ${d.awake_minutes ? `<div class="seg seg-awake" style="width:${pct(d.awake_minutes)}%"></div>` : ''}
-    </div>
-    <div class="arch-leg">
-      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#7C6FD4"></div>Dyp ${pct(d.deep_sleep_minutes)}%</div>
-      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#4A9EE8"></div>REM ${pct(d.rem_sleep_minutes)}%</div>
-      <div class="arch-leg-item"><div class="arch-leg-dot" style="background:#6BE3A4"></div>Lett ${pct(d.light_sleep_minutes)}%</div>
-      ${d.awake_minutes ? `<div class="arch-leg-item"><div class="arch-leg-dot" style="background:rgba(255,255,255,0.2)"></div>Våken ${pct(d.awake_minutes)}%</div>` : ''}
-    </div>` : '';
-
-  const timeHtml = (d.sleep_start || d.sleep_end) ? `
-    <div class="time-chips">
-      ${d.sleep_start ? `<div class="time-chip">Innsovning <strong>${d.sleep_start}</strong></div>` : ''}
-      ${d.sleep_end   ? `<div class="time-chip">Oppvåkning <strong>${d.sleep_end}</strong></div>`   : ''}
-    </div>` : '';
-
-  el.innerHTML = `
-    <div class="stat-row">
-      ${topStats.map(s => `
-        <div class="metric-tile">
-          <div class="metric-lbl">${s.lbl}</div>
-          <div class="metric-val ${s.cls||''}">${s.val}</div>
-          ${s.unit ? `<div class="metric-unit">${s.unit}</div>` : ''}
-        </div>`).join('')}
-    </div>
-    ${hasFaser ? `
-    <div class="stat-row-3">
-      ${faseStats.map(s => `
-        <div class="metric-tile" style="border-top:2px solid ${s.color}40">
-          <div class="metric-lbl">${s.lbl}</div>
-          <div class="metric-val" style="color:${s.color}">${s.val}</div>
-        </div>`).join('')}
-    </div>` : ''}
-    ${archHtml}
-    ${timeHtml}
-  `;
-}
-
-// ── Mood ──────────────────────────────────────────────────────────────────
+// ── Mood ───────────────────────────────────────────────────────────────────
 function highlightMood(mood) {
-  document.querySelectorAll('.mood-btn').forEach(b =>
+  document.querySelectorAll('.mood-chip').forEach(b =>
     b.classList.toggle('selected', parseInt(b.dataset.mood) === mood));
 }
+
 async function saveMood(mood) {
-  currentMood = mood; highlightMood(mood);
+  currentMood = mood;
+  highlightMood(mood);
   document.getElementById('moodSaved').textContent = 'Lagrer…';
   if (todayEntry) {
     await db.from('health_data').update({ mood }).eq('id', todayEntry.id);
@@ -227,62 +549,136 @@ async function saveMood(mood) {
   toast('Humør lagret');
 }
 
-// ── 14-day stacked chart ──────────────────────────────────────────────────
-async function loadChart() {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 13);
-  const { data } = await db.from('health_data')
-    .select('date,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes')
-    .gte('date', cutoff.toISOString().slice(0,10)).order('date');
+// ── Chart ──────────────────────────────────────────────────────────────────
+function updateChartLegend(metric) {
+  const el = document.getElementById('chartLegend');
+  const legends = {
+    sleep: `
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#7C6FD4"></div>Dyp søvn</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8"></div>REM</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#6BE3A4"></div>Lett søvn</div>
+      <div class="chart-leg-item"><div class="chart-leg-line"></div>8t mål</div>`,
+    hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8;border-radius:50%"></div>HRV (ms)</div>`,
+    rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#FF6B6B;border-radius:50%"></div>Hvilepuls (bpm)</div>`,
+    score: `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#6BE3A4"></div>Søvnscore (0–100)</div>`,
+  };
+  el.innerHTML = legends[metric] || '';
+}
 
+function renderChart(metric, days) {
   const dayNames = ['søn','man','tir','ons','tor','fre','lør'];
   const labels = [], dates = [];
-  for (let i = 13; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     labels.push(`${dayNames[d.getDay()]} ${d.getDate()}`);
     dates.push(d.toISOString().slice(0,10));
   }
+  const find = ds => chartData.find(r => r.date === ds);
 
-  const find = ds => (data||[]).find(r => r.date === ds);
-  const deepV  = dates.map(ds => { const e=find(ds); return e?.deep_sleep_minutes  ? minToH(e.deep_sleep_minutes)  : null; });
-  const remV   = dates.map(ds => { const e=find(ds); return e?.rem_sleep_minutes   ? minToH(e.rem_sleep_minutes)   : null; });
-  const lightV = dates.map(ds => {
-    const e = find(ds); if (!e) return null;
-    if (e.light_sleep_minutes) return minToH(e.light_sleep_minutes);
-    if (e.sleep_hours && !e.deep_sleep_minutes) return e.sleep_hours; // fallback
-    return null;
-  });
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  updateChartLegend(metric);
+
+  let datasets, isLine = false, yMax, yLabel;
+
+  if (metric === 'sleep') {
+    const deepV  = dates.map(ds => { const e=find(ds); return e?.deep_sleep_minutes  ? minToH(e.deep_sleep_minutes)  : null; });
+    const remV   = dates.map(ds => { const e=find(ds); return e?.rem_sleep_minutes   ? minToH(e.rem_sleep_minutes)   : null; });
+    const lightV = dates.map(ds => {
+      const e = find(ds); if (!e) return null;
+      if (e.light_sleep_minutes) return minToH(e.light_sleep_minutes);
+      if (e.sleep_hours && !e.deep_sleep_minutes) return e.sleep_hours;
+      return null;
+    });
+    datasets = [
+      { label:'Dyp søvn',  data:deepV,  backgroundColor:'rgba(124,111,212,0.82)', borderColor:'#7C6FD4', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:'REM',       data:remV,   backgroundColor:'rgba(74,158,232,0.82)',  borderColor:'#4A9EE8', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:'Lett søvn', data:lightV, backgroundColor:'rgba(107,227,164,0.55)', borderColor:'#6BE3A4', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
+      { label:'8t mål', data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.2)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
+    ];
+    yMax = 12; yLabel = 'timer';
+
+  } else if (metric === 'hrv') {
+    const vals = dates.map(ds => { const e=find(ds); return e?.hrv || null; });
+    datasets = [{ label:'HRV', data:vals, borderColor:'#4A9EE8', backgroundColor:'rgba(74,158,232,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#4A9EE8', pointHoverRadius:5, pointBorderColor:'transparent' }];
+    isLine = true; yLabel = 'ms';
+
+  } else if (metric === 'rhr') {
+    const vals = dates.map(ds => { const e=find(ds); return e?.rhr || null; });
+    datasets = [{ label:'Hvilepuls', data:vals, borderColor:'#FF6B6B', backgroundColor:'rgba(255,107,107,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#FF6B6B', pointHoverRadius:5, pointBorderColor:'transparent' }];
+    isLine = true; yLabel = 'bpm';
+
+  } else if (metric === 'score') {
+    const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
+    datasets = [{
+      label:'Søvnscore', data:vals,
+      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 80 ? 'rgba(107,227,164,0.75)' : v >= 60 ? 'rgba(242,192,99,0.75)' : 'rgba(255,107,107,0.75)'),
+      borderColor:      vals.map(v => !v ? 'transparent' : v >= 80 ? '#6BE3A4' : v >= 60 ? '#F2C063' : '#FF6B6B'),
+      borderWidth:1, borderRadius:4,
+    }];
+    yMax = 100; yLabel = 'score';
+  }
 
   const ctx = document.getElementById('sleepChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'Dyp søvn',  data: deepV,  backgroundColor:'rgba(124,111,212,0.8)', borderColor:'#7C6FD4', borderWidth:1, stack:'sleep', borderRadius:{topLeft:0,topRight:0}, order:1 },
-        { label:'REM',       data: remV,   backgroundColor:'rgba(74,158,232,0.8)',  borderColor:'#4A9EE8', borderWidth:1, stack:'sleep', borderRadius:{topLeft:0,topRight:0}, order:1 },
-        { label:'Lett søvn', data: lightV, backgroundColor:'rgba(107,227,164,0.55)',borderColor:'#6BE3A4', borderWidth:1, stack:'sleep', borderRadius:{topLeft:4,topRight:4}, order:1 },
-        { label:'8t mål', data:Array(14).fill(8), type:'line', borderColor:'rgba(255,255,255,0.25)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined, order:0 },
-      ],
-    },
+  chartInstance = new Chart(ctx, {
+    type: isLine ? 'line' : 'bar',
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
+      animation: { duration: 380 },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor:'rgba(15,15,18,0.95)', titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
-          borderColor:'rgba(255,255,255,0.08)', borderWidth:1,
+          backgroundColor:'rgba(10,10,13,0.97)', titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
+          borderColor:'rgba(255,255,255,0.08)', borderWidth:1, padding:10, cornerRadius:8,
           filter: item => item.dataset.label !== '8t mål' && item.parsed.y > 0,
-          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}t` },
+          callbacks: {
+            label: ctx => {
+              if (metric === 'sleep') return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}t`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y}`;
+            },
+          },
         },
       },
       scales: {
-        x: { stacked:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#76746E',font:{family:'ui-monospace',size:10},maxRotation:45} },
-        y: { stacked:true, min:0, max:12, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#76746E',font:{family:'ui-monospace',size:10}}, title:{display:true,text:'timer',color:'#6BE3A4',font:{size:10}} },
+        x: {
+          stacked: metric === 'sleep',
+          grid: { color:'rgba(255,255,255,0.04)', drawBorder:false },
+          ticks: { color:'#6B6964', font:{family:'ui-monospace',size:9}, maxRotation:45, maxTicksLimit:days <= 14 ? 14 : 16 },
+        },
+        y: {
+          stacked: metric === 'sleep',
+          min: 0, ...(yMax ? { max:yMax } : {}),
+          grid: { color:'rgba(255,255,255,0.05)', drawBorder:false },
+          ticks: { color:'#6B6964', font:{family:'ui-monospace',size:9} },
+          title: { display:true, text:yLabel, color:'rgba(255,255,255,0.18)', font:{size:9} },
+        },
       },
     },
   });
 }
 
+async function loadChartData() {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
+  const { data } = await db.from('health_data')
+    .select('date,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,hrv,rhr,sleep_score')
+    .gte('date', cutoff.toISOString().slice(0,10)).order('date');
+  chartData = data || [];
+  renderChart(chartMetric, chartDays);
+}
+
+function setChartMetric(metric) {
+  chartMetric = metric;
+  document.querySelectorAll('.cm-btn').forEach(b => b.classList.toggle('active', b.dataset.metric === metric));
+  renderChart(metric, chartDays);
+}
+
+function setChartPeriod(days) {
+  chartDays = days;
+  document.querySelectorAll('.cp-btn').forEach(b => b.classList.toggle('active', b.dataset.days === String(days)));
+  renderChart(chartMetric, days);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/config');
@@ -293,13 +689,13 @@ async function loadChart() {
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
   } catch (err) {
-    document.querySelector('.page').innerHTML =
+    document.querySelector('.sovn-page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
       </div>`;
     return;
   }
-  await Promise.all([loadToday(), loadChart()]);
+  await Promise.all([loadToday(), loadChartData()]);
 })();
 </script>
 </body>
