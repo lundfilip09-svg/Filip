@@ -411,12 +411,21 @@ function autoResize(el) {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 (async () => {
-  localStorage.removeItem('ai_chat_history'); // fresh start on every page load
   try {
     const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
+
+    // Restore persisted history
+    try {
+      const stored = localStorage.getItem('ai_chat_history');
+      if (stored) {
+        chatHistory = JSON.parse(stored);
+        chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+      }
+    } catch { chatHistory = []; }
+
     document.getElementById('chatInput').focus();
   } catch (err) {
     document.querySelector('.chat-card').innerHTML =
