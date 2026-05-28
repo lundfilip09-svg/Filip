@@ -59,10 +59,26 @@
     }
 
     /* ── Metrics Grid ── */
+    /* ── Warning bar ── */
+    .warn-bar {
+      border-radius: 12px; padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .warn-bar.warn-red    { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.25); }
+    .warn-bar.warn-orange { background: rgba(242,192,99,0.08);  border: 1px solid rgba(242,192,99,0.25);  }
+    .warn-bar.warn-ok     { background: rgba(107,227,164,0.06); border: 1px solid rgba(107,227,164,0.2);  }
+    .warn-item { display: flex; align-items: flex-start; gap: 10px; }
+    .warn-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .warn-text { font-size: 11.5px; line-height: 1.5; }
+    .warn-title { font-weight: 600; color: var(--text-primary); }
+    .warn-advice { color: var(--text-secondary); margin-top: 1px; font-size: 11px; }
+
+    /* ── Metrics ── */
     .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
     .metric-card {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 12px; padding: 15px 14px; transition: background 0.14s;
+      border-radius: 12px; padding: 14px 14px 12px; transition: all 0.14s;
+      cursor: default; position: relative;
     }
     .metric-card:hover { background: rgba(255,255,255,0.04); }
     .mc-top-lbl {
@@ -75,6 +91,17 @@
     }
     .mc-unit {
       font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 4px;
+    }
+    .mc-status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; padding: 2px 7px; border-radius: 20px;
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.06em;
+      text-transform: uppercase; border: 1px solid currentColor;
+    }
+    .mc-advice {
+      margin-top: 7px; padding-top: 7px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 10px; color: var(--text-secondary); line-height: 1.55;
     }
 
     /* ── Mid Grid ── */
@@ -203,6 +230,9 @@
       <div class="hero-inner"><div class="empty-state">Laster…</div></div>
     </div>
   </div>
+
+  <!-- Warning bar -->
+  <div id="warnBar"></div>
 
   <!-- Metrics -->
   <div class="metrics-grid" id="metricsGrid"></div>
@@ -349,36 +379,100 @@ function renderHero(d) {
 }
 
 // ── Render: Metrics ────────────────────────────────────────────────────────
+// ── Metric analysis engine ─────────────────────────────────────────────────
+function analyzeMetrics(d) {
+  const results = [];
+
+  // HRV
+  if (d?.hrv) {
+    const v = d.hrv;
+    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge:'Optimal',  color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:'Nervesystemet er restituert. Grønt lys for sprint og høy intensitet i dag.' });
+    else if (v >= 50) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge:'Bra',      color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice:'God restitusjon. Moderat til høy intensitet fungerer fint.' });
+    else if (v >= 40) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'warn',   badge:'Lav',      color:'#F2C063', glow:'rgba(242,192,99,0.12)',   advice:'HRV under normalen. Hold intensiteten moderat — unngå maksøkter og rep til failure i dag.' });
+    else if (v >= 30) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge:'Kritisk',  color:'#FF6B6B', glow:'rgba(255,107,107,0.14)',  advice:'HRV svært lav. Kroppen er under stress. Lett aktivitet eller hviledag — ellers risikerer du overtrening.' });
+    else              results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge:'Alarm',    color:'#FF6B6B', glow:'rgba(255,107,107,0.18)',  advice:'⚠️ Ekstremt lav HRV. Hvil i dag. Sjekk om du er syk, dehydrert eller sover for lite.' });
+  }
+
+  // RHR
+  if (d?.rhr) {
+    const v = d.rhr;
+    if (v <= 50)      results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Excellent', color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice:'Optimal hvilepuls. Kroppen er godt restituert.' });
+    else if (v <= 56) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Normal',    color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:'Normal hvilepuls. Ingen grunn til bekymring.' });
+    else if (v <= 63) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'warn',   badge:'Forhøyet',  color:'#F2C063', glow:'rgba(242,192,99,0.12)',   advice:'Lett forhøyet hvilepuls. Kan indikere stress, dehydrering eller tidlig sykdom. Moderer treningsmengden.' });
+    else if (v <= 72) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Høy',       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)',  advice:'Forhøyet hvilepuls. Kroppen er under press. Hvil eller lett økt — sjekk væskeinntak og søvn.' });
+    else              results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Alarm',     color:'#FF6B6B', glow:'rgba(255,107,107,0.18)',  advice:'⚠️ Høy hvilepuls. Tren ikke intensivt i dag. Kan indikere sykdom eller alvorlig underrestitusjon.' });
+  }
+
+  // Sleep hours
+  if (d?.sleep_hours) {
+    const v = d.sleep_hours;
+    if (v >= 8)       results.push({ key:'sleep', val:sleepHoursStr(v), label:'Total søvn', level:'ok',     badge:'Optimal',  color:'#5BA4F5', glow:'rgba(91,164,245,0.12)',  advice:'Optimal søvnlengde. Kroppen har fått det den trenger for full restitusjon.' });
+    else if (v >= 7)  results.push({ key:'sleep', val:sleepHoursStr(v), label:'Total søvn', level:'ok',     badge:'Bra',      color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',   advice:'Tilstrekkelig søvn. Litt under idealet, men bra nok for de fleste dager.' });
+    else if (v >= 6)  results.push({ key:'sleep', val:sleepHoursStr(v), label:'Total søvn', level:'warn',   badge:'For lite',  color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice:'Under anbefalt søvnmengde. Legg deg 30–60 min tidligere i kveld. Unngå hard trening sent på dagen.' });
+    else              results.push({ key:'sleep', val:sleepHoursStr(v), label:'Total søvn', level:'danger', badge:'Kritisk',  color:'#FF6B6B', glow:'rgba(255,107,107,0.14)',  advice:'⚠️ Kritisk lite søvn. Ingen høyintensitetsøkt i dag. Prioriter søvn over alt annet i kveld.' });
+  }
+
+  // Sleep score
+  if (d?.sleep_score) {
+    const v = d.sleep_score;
+    if (v >= 85)      results.push({ key:'score', val:`${v}`, label:'Søvnscore', unit:'/100', level:'ok',     badge:'Fremragende', color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:'Fremragende søvnkvalitet. Kroppen har restituert optimalt.' });
+    else if (v >= 70) results.push({ key:'score', val:`${v}`, label:'Søvnscore', unit:'/100', level:'ok',     badge:'God',         color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice:'God søvnkvalitet. Du er godt restituert.' });
+    else if (v >= 55) results.push({ key:'score', val:`${v}`, label:'Søvnscore', unit:'/100', level:'warn',   badge:'Akseptabel',  color:'#F2C063', glow:'rgba(242,192,99,0.12)',   advice:'Søvnkvaliteten kan forbedres. Unngå skjerm og koffein siste 2t før legging.' });
+    else              results.push({ key:'score', val:`${v}`, label:'Søvnscore', unit:'/100', level:'danger', badge:'Dårlig',      color:'#FF6B6B', glow:'rgba(255,107,107,0.14)',  advice:'Dårlig søvnkvalitet. Prioriter søvnhygiene: fast leggetid, mørkt rom, ingen koffein etter kl 14.' });
+  }
+
+  return results;
+}
+
+function renderWarnings(metrics) {
+  const el = document.getElementById('warnBar');
+  const dangers = metrics.filter(m => m.level === 'danger');
+  const warns   = metrics.filter(m => m.level === 'warn');
+
+  if (!dangers.length && !warns.length) { el.innerHTML = ''; return; }
+
+  const items = [...dangers, ...warns];
+  const cls   = dangers.length ? 'warn-red' : 'warn-orange';
+  const icon  = dangers.length ? '⚠️' : '💡';
+
+  el.innerHTML = `<div class="warn-bar ${cls}">
+    ${items.map(m => `
+      <div class="warn-item">
+        <div class="warn-icon">${icon}</div>
+        <div class="warn-text">
+          <div class="warn-title">${m.label}: ${m.badge}</div>
+          <div class="warn-advice">${m.advice}</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderMetrics(d) {
   const el = document.getElementById('metricsGrid');
-  const sc = d?.sleep_score;
-  const metrics = [
-    {
-      lbl:'Søvnscore', val: sc ?? '–', unit:'/100',
-      color: !sc ? '' : sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B',
-      glow:  !sc ? '' : sc >= 80 ? 'rgba(107,227,164,0.14)' : sc >= 60 ? 'rgba(242,192,99,0.14)' : 'rgba(255,107,107,0.14)',
-    },
-    {
-      lbl:'Total søvn', val: d?.sleep_hours ? sleepHoursStr(d.sleep_hours) : '–', unit:'',
-      color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',
-    },
-    {
-      lbl:'Hvilepuls', val: d?.rhr ?? '–', unit:'bpm',
-      color: !d?.rhr ? '' : d.rhr < 58 ? '#6BE3A4' : d.rhr < 68 ? '' : '#FF6B6B',
-      glow:  !d?.rhr ? '' : d.rhr < 58 ? 'rgba(107,227,164,0.1)' : d.rhr < 68 ? '' : 'rgba(255,107,107,0.1)',
-    },
-    {
-      lbl:'HRV', val: d?.hrv ?? '–', unit:'ms',
-      color: !d?.hrv ? '' : d.hrv >= 50 ? '#6BE3A4' : d.hrv >= 35 ? '' : '#F2C063',
-      glow:  !d?.hrv ? '' : d.hrv >= 50 ? 'rgba(107,227,164,0.1)' : d.hrv >= 35 ? '' : 'rgba(242,192,99,0.1)',
-    },
+  if (!d) { el.innerHTML = ''; renderWarnings([]); return; }
+
+  const metrics = analyzeMetrics(d);
+  renderWarnings(metrics);
+
+  // Lag en map for rask oppslag
+  const byKey = {};
+  metrics.forEach(m => byKey[m.key] = m);
+
+  // Alltid vis alle 4 kort i fast rekkefølge
+  const cards = [
+    byKey['score'] || { key:'score', val:'–', label:'Søvnscore', unit:'/100', level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['sleep'] || { key:'sleep', val:'–', label:'Total søvn', level:'none', badge:'', color:'#5BA4F5', glow:'', advice:'' },
+    byKey['rhr']   || { key:'rhr',   val:'–', label:'Hvilepuls', unit:'bpm', level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV', unit:'ms', level:'none', badge:'', color:'', glow:'', advice:'' },
   ];
 
-  el.innerHTML = metrics.map(m => `
-    <div class="metric-card" style="${m.glow ? `box-shadow:0 0 28px ${m.glow}` : ''}">
-      <div class="mc-top-lbl">${m.lbl}</div>
+  el.innerHTML = cards.map(m => `
+    <div class="metric-card" style="${m.glow ? `box-shadow:0 0 28px ${m.glow};border-color:${m.color}22` : ''}">
+      <div class="mc-top-lbl">${m.label}</div>
       <div class="mc-val" style="${m.color ? `color:${m.color}` : ''}">${m.val}</div>
       ${m.unit ? `<div class="mc-unit">${m.unit}</div>` : ''}
+      ${m.badge ? `<div class="mc-status-badge" style="color:${m.color};border-color:${m.color}55;background:${m.color}11">${m.badge}</div>` : ''}
+      ${m.advice ? `<div class="mc-advice">${m.advice}</div>` : ''}
     </div>`
   ).join('');
 }
