@@ -314,6 +314,46 @@ const skKnee = { before: null, during: null, after: null, dayafter: null };
 let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
 
+const DRAFT_KEY = 'sprint_form_draft';
+
+function saveDraft() {
+  const draft = {
+    date:    document.getElementById('logDate').value,
+    dist:    document.getElementById('logDist').value,
+    type:    document.getElementById('logType').value,
+    rpe:     document.getElementById('logRpe').value,
+    notes:   document.getElementById('logNotes').value,
+    runs:    runs,
+    skKnee:  { ...skKnee },
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+function restoreDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    if (d.date)  document.getElementById('logDate').value = d.date;
+    if (d.dist)  document.getElementById('logDist').value = d.dist;
+    if (d.type)  document.getElementById('logType').value = d.type;
+    if (d.rpe)   document.getElementById('logRpe').value  = d.rpe;
+    if (d.notes) document.getElementById('logNotes').value = d.notes;
+    if (Array.isArray(d.runs)) { runs = d.runs; renderRuns(); }
+    if (d.skKnee) {
+      ['before','during','after','dayafter'].forEach(p => {
+        if (d.skKnee[p] !== null && d.skKnee[p] !== undefined) {
+          selPain(p, d.skKnee[p]);
+        }
+      });
+    }
+  } catch (e) { /* ugyldig draft, ignorer */ }
+}
+
 // Date default
 document.getElementById('logDate').value = today();
 
@@ -332,8 +372,17 @@ function selPain(phase, score) {
   document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
     b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
   });
+  saveDraft();
 }
 ['before','during','after','dayafter'].forEach(buildPainRow);
+restoreDraft();
+
+// Lagre draft ved endringer i tekstfelt/select
+['logDate','logDist','logType','logRpe','logNotes'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', saveDraft);
+  if (el) el.addEventListener('change', saveDraft);
+});
 
 // ── Runs list ─────────────────────────────────────────────────────────────
 function addRun() {
@@ -345,11 +394,13 @@ function addRun() {
   document.getElementById('logTime').value = '';
   document.getElementById('logTime').focus();
   renderRuns();
+  saveDraft();
 }
 
 function removeRun(i) {
   runs.splice(i, 1);
   renderRuns();
+  saveDraft();
 }
 
 function renderRuns() {
@@ -500,6 +551,7 @@ async function logSession() {
   }
 
   toast(newPBs.length ? `Ny PB! ${newPBs.join(', ')}` : `${runs.length} løp lagret!`);
+  clearDraft();
 
   // Reset
   runs = [];
@@ -643,7 +695,10 @@ async function saveHistField(date, field, valueStr) {
       value = n;
     }
   }
-  const { error } = await db.from('sprint_log').update({ [field]: value }).eq('date', date);
+  // Oppdater alle rader for denne datoen med korrekte IDer (ikke bare .eq('date'))
+  const ids = sprintLog.filter(r => r.date === date).map(r => r.id);
+  if (!ids.length) return;
+  const { error } = await db.from('sprint_log').update({ [field]: value }).in('id', ids);
   if (error) { toast('Lagringsfeil', 'err'); return; }
   sprintLog.filter(r => r.date === date).forEach(r => { r[field] = value; });
   refreshHistCard(date);
@@ -785,13 +840,21 @@ async function saveKneeInline() {
 }
 
 
+
+async function getConfig() {
+  const cached = sessionStorage.getItem('app_config');
+  if (cached) return JSON.parse(cached);
+  const r = await fetch('/api/config');
+  if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
+  const cfg = await r.json();
+  if (cfg.error) throw new Error(cfg.error);
+  sessionStorage.setItem('app_config', JSON.stringify(cfg));
+  return cfg;
+}
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    const r = await fetch('/api/config');
-    if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
-    const cfg = await r.json();
-    if (cfg.error) throw new Error(cfg.error);
+    const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }

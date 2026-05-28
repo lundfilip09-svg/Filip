@@ -459,6 +459,9 @@ async function loadSleep() {
   const deep = d.deep_sleep_minutes > 0 ? d.deep_sleep_minutes : null;
   const rem  = d.rem_sleep_minutes  > 0 ? d.rem_sleep_minutes  : null;
   const clr  = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+  const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const dataAge = daysAgo === 0 ? 'I natt' : daysAgo === 1 ? 'I går' : daysAgo != null ? `${daysAgo} dager siden` : '';
+  const ageColor = daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
 
   // Formater timer som "7t 50m"
   function fmtHours(h) {
@@ -474,6 +477,7 @@ async function loadSleep() {
         <div>
           <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">Søvnscore</div>
           <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px">${fmtHours(hrs)}</div>
+          ${dataAge ? `<div style="font-size:9px;font-family:var(--font-mono);color:${ageColor};margin-top:3px">${dataAge}</div>` : ''}
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -487,11 +491,11 @@ async function loadSleep() {
         </div>` : ''}
         ${deep ? `<div style="background:rgba(124,111,212,0.08);border:1px solid rgba(124,111,212,0.18);border-radius:7px;padding:5px 9px">
           <div style="font-size:9px;font-family:var(--font-mono);color:rgba(124,111,212,0.7);letter-spacing:0.08em;text-transform:uppercase">Dyp</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${Math.round(deep/60)}t${deep%60>0?deep%60+'m':''}</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${deep>=60?Math.floor(deep/60)+'t':''}${deep%60>0?deep%60+'m':deep<60?deep+'m':''}</div>
         </div>` : ''}
         ${rem ? `<div style="background:rgba(107,227,164,0.08);border:1px solid rgba(107,227,164,0.18);border-radius:7px;padding:5px 9px">
           <div style="font-size:9px;font-family:var(--font-mono);color:rgba(107,227,164,0.7);letter-spacing:0.08em;text-transform:uppercase">REM</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${Math.round(rem/60)}t${rem%60>0?rem%60+'m':''}</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${rem>=60?Math.floor(rem/60)+'t':''}${rem%60>0?rem%60+'m':rem<60?rem+'m':''}</div>
         </div>` : ''}
       </div>
     </a>`;
@@ -514,16 +518,18 @@ async function loadKnee() {
     { label: 'D.etter',val: d.day_after_score },
   ];
   el.innerHTML = `
-    <div class="knee-phases">
-      ${phases.map(p => `
-        <div class="knee-phase">
-          <div class="knee-phase-num" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
-          <div class="knee-phase-lbl">${p.label}</div>
-        </div>`).join('')}
-    </div>
-    <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px;letter-spacing:0.03em">
-      ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
-    </div>`;
+    <a href="sprint.html" style="text-decoration:none;color:inherit;display:block">
+      <div class="knee-phases">
+        ${phases.map(p => `
+          <div class="knee-phase">
+            <div class="knee-phase-num" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
+            <div class="knee-phase-lbl">${p.label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px;letter-spacing:0.03em">
+        ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
+      </div>
+    </a>`;
   return d;
 }
 
@@ -549,12 +555,14 @@ function loadSession() {
 
   const badgeLabels = { styrke: 'Styrke', kondisjon: 'Kondisjon', power: 'Sprint' };
   const dayNow = new Date().toLocaleDateString('no-NO', { weekday: 'long' });
+  const ctaHref  = cls === 'power' ? 'sprint.html' : 'gym.html';
+  const ctaLabel = cls === 'power' ? 'Åpne Sprint' : 'Åpne Gym';
 
   el.innerHTML = `
     <span class="session-badge ${cls}">${badgeLabels[cls]}</span>
     <div class="session-name-big">${escHtml(planText)}</div>
     <div class="session-meta-sm">Fra ukeplanen · ${dayNow}</div>
-    <a href="gym.html" class="session-cta">Åpne Gym <span class="cta-arrow">→</span></a>`;
+    <a href="${ctaHref}" class="session-cta">${ctaLabel} <span class="cta-arrow">→</span></a>`;
   return { isRest: false, planText, cls };
 }
 
@@ -907,12 +915,20 @@ async function loadCalendar() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
+async function getConfig() {
+  const cached = sessionStorage.getItem('app_config');
+  if (cached) return JSON.parse(cached);
+  const r = await fetch('/api/config');
+  if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
+  const cfg = await r.json();
+  if (cfg.error) throw new Error(cfg.error);
+  sessionStorage.setItem('app_config', JSON.stringify(cfg));
+  return cfg;
+}
+
 (async () => {
   try {
-    const r = await fetch('/api/config');
-    if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
-    const cfg = await r.json();
-    if (cfg.error) throw new Error(cfg.error);
+    const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
@@ -929,13 +945,14 @@ async function loadCalendar() {
 
   const sessionData = loadSession();
 
+  // Hvert kort har egen feilhåndtering — én feil stopper ikke resten
   const [sleepData, kneeData] = await Promise.all([
-    loadSleep(),
-    loadKnee(),
-    autoCleanTodos(),
-    loadTodos(),
-    loadCalendar(),
-    renderWeekStrip(),
+    loadSleep().catch(e => { console.error('sleep', e); return null; }),
+    loadKnee().catch(e  => { console.error('knee', e);  return null; }),
+    autoCleanTodos().catch(() => {}),
+    loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = '<div class="empty">Kunne ikke laste gjøremål</div>'; }),
+    loadCalendar().catch(() => {}),
+    renderWeekStrip().catch(() => {}),
   ]);
 
   renderDailyFokus({ sleepData, kneeData, sessionData });
