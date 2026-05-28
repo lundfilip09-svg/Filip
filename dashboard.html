@@ -444,36 +444,57 @@ async function autoCleanTodos() {
 
 // ── Sleep card ─────────────────────────────────────────────────────────────
 async function loadSleep() {
+  // Hent nyeste rad sortert på timestamp (ikke bare dato) for å unngå duplikat-problemet
   const { data } = await db.from('health_data')
-    .select('*').order('date', { ascending: false }).limit(1);
+    .select('*').order('date', { ascending: false }).order('timestamp', { ascending: false }).limit(1);
   const el = document.getElementById('sleepCard');
   if (!data?.length) {
     el.innerHTML = `<div class="empty">Ingen data</div>`; return null;
   }
   const d = data[0];
-  const sc  = d.sleep_score > 0  ? d.sleep_score  : null;
-  const hrs = d.sleep_hours > 0  ? d.sleep_hours  : null;
-  const rhr = d.rhr > 0          ? d.rhr          : null;
-  const hrv = d.hrv > 0          ? d.hrv          : null;
-  const clr = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+  const sc   = d.sleep_score > 0  ? d.sleep_score  : null;
+  const hrs  = d.sleep_hours > 0  ? d.sleep_hours  : null;
+  const rhr  = d.rhr > 0          ? d.rhr          : null;
+  const hrv  = d.hrv > 0          ? d.hrv          : null;
+  const deep = d.deep_sleep_minutes > 0 ? d.deep_sleep_minutes : null;
+  const rem  = d.rem_sleep_minutes  > 0 ? d.rem_sleep_minutes  : null;
+  const clr  = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+
+  // Formater timer som "7t 50m"
+  function fmtHours(h) {
+    if (!h) return '–';
+    const t = Math.round(h * 60);
+    return t >= 60 ? `${Math.floor(t/60)}t ${t%60}m` : `${t}m`;
+  }
 
   el.innerHTML = `
-    <div class="stat-big" style="color:${clr}">${sc ?? '–'}</div>
-    <div class="stat-sublabel">Sleep score</div>
-    <div class="stat-secondaries">
-      <div class="stat-sec">
-        <div class="stat-sec-val">${hrs ?? '–'}<span style="font-size:10px;font-weight:400;color:var(--text-tertiary)">t</span></div>
-        <div class="stat-sec-lbl">Timer</div>
+    <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="font-size:32px;font-weight:800;font-family:var(--font-mono);letter-spacing:-0.03em;color:${clr};line-height:1">${sc ?? '–'}</div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">Søvnscore</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px">${fmtHours(hrs)}</div>
+        </div>
       </div>
-      ${rhr ? `<div class="stat-sec">
-        <div class="stat-sec-val">${rhr}</div>
-        <div class="stat-sec-lbl">RHR</div>
-      </div>` : ''}
-      ${hrv ? `<div class="stat-sec">
-        <div class="stat-sec-val">${hrv}</div>
-        <div class="stat-sec-lbl">HRV</div>
-      </div>` : ''}
-    </div>`;
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${rhr ? `<div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.18);border-radius:7px;padding:5px 9px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(255,107,107,0.7);letter-spacing:0.08em;text-transform:uppercase">RHR</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#FF8A8A">${rhr}</div>
+        </div>` : ''}
+        ${hrv ? `<div style="background:rgba(74,158,232,0.08);border:1px solid rgba(74,158,232,0.18);border-radius:7px;padding:5px 9px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(74,158,232,0.7);letter-spacing:0.08em;text-transform:uppercase">HRV</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#4A9EE8">${hrv}ms</div>
+        </div>` : ''}
+        ${deep ? `<div style="background:rgba(124,111,212,0.08);border:1px solid rgba(124,111,212,0.18);border-radius:7px;padding:5px 9px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(124,111,212,0.7);letter-spacing:0.08em;text-transform:uppercase">Dyp</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${Math.round(deep/60)}t${deep%60>0?deep%60+'m':''}</div>
+        </div>` : ''}
+        ${rem ? `<div style="background:rgba(107,227,164,0.08);border:1px solid rgba(107,227,164,0.18);border-radius:7px;padding:5px 9px">
+          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(107,227,164,0.7);letter-spacing:0.08em;text-transform:uppercase">REM</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${Math.round(rem/60)}t${rem%60>0?rem%60+'m':''}</div>
+        </div>` : ''}
+      </div>
+    </a>`;
   return d;
 }
 
