@@ -60,8 +60,8 @@ def fetch_garmin_data(target_date=None):
     # Lagre under ønsket dato (default: i dag)
     save_date = target_date or today
 
-    # Søvn hentes fra datoen søvnen STARTET (vanligvis igår ved morgenkjøring)
-    sleep_date = target_date or yesterday
+    # Søvn hentes fra datoen du VÅKNET (i dag) – Garmin lagrer søvn under oppvåkningsdatoen
+    sleep_date = target_date or today
 
     garmin = garmin_login(email, password)
     result = {"date": save_date}
