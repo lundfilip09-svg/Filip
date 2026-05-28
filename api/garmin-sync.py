@@ -71,6 +71,11 @@ def fetch_garmin_data(target_date=None):
         sleep = garmin.get_sleep_data(sleep_date)
         dto   = sleep.get("dailySleepDTO", {})
 
+        # Debug: lagre nøkkelinfo om hva Garmin returnerte
+        result["_sleep_date_fetched"] = sleep_date
+        result["_sleep_keys"] = list(dto.keys()) if dto else []
+        result["_sleep_time_sec"] = dto.get("sleepTimeSeconds")
+
         def sec_to_min(s):
             return round(s / 60) if s else None
 
