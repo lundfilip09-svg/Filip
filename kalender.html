@@ -549,8 +549,9 @@
 
 </main>
 
-<div class="toast" id="toastEl"></div>
+<div class="toast" id="toast"></div>
 
+<script src="utils.js"></script>
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
 const TL_START_H = 6;
@@ -584,10 +585,6 @@ let activeEventId  = null;
 let viewMode       = 'agenda';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
 function pad(n) { return String(n).padStart(2, '0'); }
 function toLocalStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function getMonday(d) {
@@ -1275,22 +1272,6 @@ function getISOWeek(d) {
   const w1 = new Date(tmp.getFullYear(), 0, 4);
   return 1 + Math.round(((tmp-w1)/86400000 - 3 + (w1.getDay()+6)%7)/7);
 }
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function toast(msg, type = 'ok') {
-  const el = document.getElementById('toastEl');
-  el.textContent = msg;
-  el.className = `toast${type === 'err' ? ' err' : ''}`;
-  el.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.remove('show'), 3200);
-}
-async function signOut() {
-  if (db) await db.auth.signOut();
-  window.location.href = 'login.html';
-}
-
 // ── Daily stats ────────────────────────────────────────────────────────────
 async function loadDailyStats() {
   if (!db) return;
@@ -1305,17 +1286,6 @@ async function loadDailyStats() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-async function getConfig() {
-  const cached = sessionStorage.getItem('app_config');
-  if (cached) return JSON.parse(cached);
-  const r = await fetch('/api/config');
-  if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
-  const cfg = await r.json();
-  if (cfg.error) throw new Error(cfg.error);
-  sessionStorage.setItem('app_config', JSON.stringify(cfg));
-  return cfg;
-}
-
 (async () => {
   document.querySelector('[data-p="kalender"]').classList.add('active');
 
