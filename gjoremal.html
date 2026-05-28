@@ -711,6 +711,8 @@ async function loadLists() {
   const fromDb = [...new Set((data || []).map(t => t.list_name))];
   const defaultLists = ['Generelt', 'Trening', 'Skole'];
   lists = [...new Set([...defaultLists, ...fromDb])];
+  const savedTab = localStorage.getItem('gjøremål_aktiv_fane');
+  if (savedTab && lists.includes(savedTab)) activeList = savedTab;
   renderListsBar();
 }
 
@@ -728,6 +730,7 @@ function renderListsBar() {
 
 function selectList(name) {
   activeList = name;
+  try { localStorage.setItem('gjøremål_aktiv_fane', name); } catch {}
   renderListsBar();
   document.getElementById('listHeading').textContent = name;
   renderTodos();
