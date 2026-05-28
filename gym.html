@@ -874,6 +874,24 @@ async function seedRehabIfEmpty() {
 async function migrateWarmupData() {
   const log = { fixed: [], moved: [], seeded: [] };
 
+  // 0. Seed Monday sykkel if missing from warmup
+  const hasMondaySykkel = Object.entries(allExercises['warmup'] || {}).some(([sec, exs]) =>
+    /sirkul|sykkel/i.test(sec) || exs.some(e => /sykkel/i.test(e.exercise_name))
+  );
+  if (!hasMondaySykkel) {
+    console.log('[migrateWarmup] Seeding Monday sykkel');
+    const { data, error } = await db.from('workout_program').insert({
+      day: 'warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
+      sets: 1, reps: '8–10 min', sort_order: 0,
+    }).select().single();
+    if (data && !error) {
+      if (!allExercises['warmup']) allExercises['warmup'] = {};
+      if (!allExercises['warmup']['Sirkulasjon']) allExercises['warmup']['Sirkulasjon'] = [];
+      allExercises['warmup']['Sirkulasjon'].push(data);
+      log.seeded.push('Sykkel (warmup/Monday)');
+    }
+  }
+
   // 1. Fix Monday sykkel duration: should be 8–10 min, not 5–8 min
   for (const [sec, exs] of Object.entries(allExercises['warmup'] || {})) {
     for (const ex of exs) {
