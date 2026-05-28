@@ -126,15 +126,14 @@ def fetch_garmin_data(target_date=None):
         hrv_data = garmin.get_hrv_data(sleep_date)
         summary  = hrv_data.get("hrvSummary", {})
         hrv_val  = (
-            summary.get("lastNightAvg") or      # gjennomsnitt natt (foretrukket)
-            summary.get("lastNight") or          # fallback til nattverdi
+            summary.get("lastNightAvg") or
+            summary.get("lastNight") or
             summary.get("weekly5DayAverage")
         )
         if hrv_val:
             result["hrv"] = hrv_val
-        else:
-            # Debug: vis hva vi fikk fra HRV-endepunktet
-            result["_hrv_summary"] = summary
+        # Debug: alltid vis alle HRV-felter så vi ser riktig feltnavn
+        result["_hrv_all"] = {k: v for k, v in summary.items() if v is not None}
     except Exception:
         result["_hrv_error"] = traceback.format_exc()
 
