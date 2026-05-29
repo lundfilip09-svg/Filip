@@ -158,7 +158,7 @@ def save_to_supabase(row):
     clean = {k: v for k, v in row.items() if not k.startswith("_")}
     data  = json.dumps(clean).encode("utf-8")
     req   = urllib.request.Request(
-        f"{supabase_url}/rest/v1/health_data",
+        f"{supabase_url}/rest/v1/health_data?on_conflict=date",
         data=data,
         headers={
             "Content-Type":  "application/json",
