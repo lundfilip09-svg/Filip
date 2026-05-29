@@ -16,7 +16,7 @@ BEHANDLINGSFILOSOFI (fra Havre): Trene 80% intensitet, ikke presse gjennom smert
 
 DAGLIGE REHAB-ØVELSER (dager uten sprint/styrke): Spanish Squat ISO 2×35-45sek, Ankelstrekk mot vegg 2×12, Hip Swivels 1×10, Face pulls med strikk 2×15.
 
-TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Rehab tirsdag/torsdag/lørdag/søndag. Neste naprapat ~5 uker fra siste besøk.
+TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Sprint-dager: Søndag, Tirsdag og Torsdag (kan reduseres til 2 dager i vondere perioder). Rehab tirsdag/torsdag/lørdag/søndag. Neste naprapat ~5 uker fra siste besøk.
 
 NAKKE/RYGG (sekundært): Høyre indre rygg svakere pga telefon/dominant høyrehånd. Stiv rygg → skuldre fremover → nakkesmerter. Tiltak: Rows med strikk for midtre rygg.
 
