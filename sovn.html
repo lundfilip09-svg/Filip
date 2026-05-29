@@ -286,6 +286,10 @@
 let db;
 document.querySelector('[data-p="sovn"]').classList.add('active');
 
+// ── Sett inn Vercel-domenet ditt her ─────────────────────────────────────
+const VERCEL_DOMAIN = 'https://DITT-DOMENE.vercel.app';
+// ─────────────────────────────────────────────────────────────────────────
+
 let todayEntry   = null;
 let chartData    = [];
 let chartInstance = null;
@@ -356,6 +360,7 @@ function renderHero(d) {
   if (d?.sleep_start) chips.push(`🛌 ${d.sleep_start}`);
   if (d?.sleep_end)   chips.push(`⏰ ${d.sleep_end}`);
 
+  const noData = !d || !d.sleep_score;
   el.innerHTML = `
     <div class="hero-inner">
       <div class="hero-score-box${cls}">
@@ -367,8 +372,36 @@ function renderHero(d) {
         <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
         <div class="hero-tagline">${d?.sleep_hours ? 'Du sov ' + sleepHoursStr(d.sleep_hours) + (txt.sub ? ' · ' + txt.sub : '') : txt.sub}</div>
         ${chips.length ? `<div class="hero-chips">${chips.map(c => `<div class="hero-chip">${c}</div>`).join('')}</div>` : ''}
+        ${noData ? `
+        <button onclick="copySyncCommand(this)" style="
+          margin-top:14px; display:inline-flex; align-items:center; gap:7px;
+          background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.11);
+          color:var(--text-secondary); font-family:var(--font-mono); font-size:11px;
+          padding:7px 13px; border-radius:7px; cursor:pointer; transition:all 0.15s;
+          letter-spacing:0.03em;" onmouseover="this.style.background='rgba(255,255,255,0.09)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          <span>📋</span> Kopier sync-kommando
+        </button>` : ''}
       </div>
     </div>`;
+}
+
+function copySyncCommand(btn) {
+  const cmd = `curl "${VERCEL_DOMAIN}/api/garmin-sync"`;
+  navigator.clipboard.writeText(cmd).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>✓</span> Kopiert!';
+    btn.style.borderColor = 'rgba(107,227,164,0.3)';
+    btn.style.color = 'var(--success)';
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2500);
+  }).catch(() => {
+    // Fallback: prompt med kommandoen
+    prompt('Kopier kommandoen under:', `curl "${VERCEL_DOMAIN}/api/garmin-sync"`);
+  });
 }
 
 // ── Render: Metrics ────────────────────────────────────────────────────────
