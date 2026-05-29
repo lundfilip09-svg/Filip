@@ -294,7 +294,7 @@ let todayEntry   = null;
 let chartData    = [];
 let chartInstance = null;
 let chartMetric  = 'sleep';
-let chartDays    = 7;
+let chartDays    = parseInt(localStorage.getItem('sovn_chart_days') || '7', 10);
 
 function minToHM(min) {
   if (!min) return '–';
@@ -742,6 +742,7 @@ function setChartMetric(metric) {
 
 function setChartPeriod(days) {
   chartDays = days;
+  localStorage.setItem('sovn_chart_days', days);
   document.querySelectorAll('.cp-btn').forEach(b => b.classList.toggle('active', b.dataset.days === String(days)));
   renderChart(chartMetric, days);
 }
@@ -761,6 +762,8 @@ function setChartPeriod(days) {
       </div>`;
     return;
   }
+  // Sett riktig periode-knapp aktiv
+  document.querySelectorAll('.cp-btn').forEach(b => b.classList.toggle('active', b.dataset.days === String(chartDays)));
   await Promise.all([loadToday(), loadChartData()]);
 })();
 </script>

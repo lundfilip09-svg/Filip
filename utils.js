@@ -11,6 +11,8 @@ function toast(msg, type = 'ok') {
 }
 
 async function signOut() {
+  localStorage.removeItem('ai_chat_history');
+  localStorage.removeItem('ai_draft');
   if (db) await db.auth.signOut();
   window.location.href = 'login.html';
 }

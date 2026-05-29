@@ -769,9 +769,12 @@ function renderWeekNav() {
 
 async function changeWeek(delta) {
   const next = weekOffset + delta;
-  if (next > 0) return;
-  weekOffset  = next;
-  selectedIdx = weekOffset === 0 ? todayIdx() : 0;
+  if (next > 0) return;          // ikke fremover fra nåværende uke
+  if (next < -52) return;        // ikke lenger bak enn 1 år
+  weekOffset = next;
+  // Bevar valgt ukedag om mulig, reset til mandag kun ved hopp langt bakover
+  if (weekOffset === 0) selectedIdx = todayIdx();
+  // else: behold selectedIdx slik at samme ukedag vises i ny uke
 
   const mon = getMondayForOffset(weekOffset);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);

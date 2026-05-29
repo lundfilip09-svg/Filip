@@ -741,6 +741,16 @@ let _lastFokusData = null;
 function _fokusKey(id)    { return `fokus_done_${today()}_${id}`; }
 function _isFokusDone(id) { return !!localStorage.getItem(_fokusKey(id)); }
 
+// Rydd fokus-nøkler eldre enn 7 dager så localStorage ikke vokser ubegrenset
+(function cleanFokusKeys() {
+  const cutoff = Date.now() - 7 * 86400000;
+  Object.keys(localStorage).forEach(k => {
+    if (!k.startsWith('fokus_done_')) return;
+    const datePart = k.split('_')[2]; // fokus_done_YYYY-MM-DD_id
+    if (datePart && new Date(datePart).getTime() < cutoff) localStorage.removeItem(k);
+  });
+})();
+
 function toggleFokusItem(id) {
   const key = _fokusKey(id);
   if (localStorage.getItem(key)) localStorage.removeItem(key);
@@ -975,9 +985,21 @@ async function loadCalendar() {
   const elToday    = document.getElementById('cal-today');
   const elUpcoming = document.getElementById('cal-upcoming');
   try {
-    const res = await fetch('/api/google-calendar');
-    if (!res.ok) throw new Error('API svarte ' + res.status);
-    const { today: todayEvts = [], upcoming = [] } = await res.json();
+    // Cache i sessionStorage i 30 min — unngår unødvendig API-kall ved sidebytte
+    const CAL_KEY = `cal_cache_${today()}`;
+    let calData = null;
+    const cached = sessionStorage.getItem(CAL_KEY);
+    if (cached) {
+      const { ts, data } = JSON.parse(cached);
+      if (Date.now() - ts < 30 * 60 * 1000) calData = data;
+    }
+    if (!calData) {
+      const res = await fetch('/api/google-calendar');
+      if (!res.ok) throw new Error('API svarte ' + res.status);
+      calData = await res.json();
+      sessionStorage.setItem(CAL_KEY, JSON.stringify({ ts: Date.now(), data: calData }));
+    }
+    const { today: todayEvts = [], upcoming = [] } = calData;
     _calUpcoming = upcoming;
 
     elToday.innerHTML = todayEvts.length
@@ -1017,11 +1039,13 @@ async function loadCalendar() {
   await loadWeekPlan().catch(() => {});
   const sessionData = loadSession();
 
+  // #13: autoClean må fullføres FØR loadTodos (unngår race condition)
+  await autoCleanTodos().catch(() => {});
+
   // Hvert kort har egen feilhåndtering — én feil stopper ikke resten
   const [sleepData, kneeData] = await Promise.all([
     loadSleep().catch(e => { console.error('sleep', e); return null; }),
     loadKnee().catch(e  => { console.error('knee', e);  return null; }),
-    autoCleanTodos().catch(() => {}),
     loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = '<div class="empty">Kunne ikke laste gjøremål</div>'; }),
     loadCalendar().catch(() => {}),
     renderWeekStrip().catch(() => {}),

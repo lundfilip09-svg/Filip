@@ -418,6 +418,14 @@ function autoResize(el) {
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
 
+    // Rydd chat om annen bruker logger inn
+    const storedUid = localStorage.getItem('ai_user_id');
+    if (storedUid && storedUid !== session.user.id) {
+      localStorage.removeItem('ai_chat_history');
+      localStorage.removeItem('ai_draft');
+    }
+    localStorage.setItem('ai_user_id', session.user.id);
+
     // Restore persisted history
     try {
       const stored = localStorage.getItem('ai_chat_history');

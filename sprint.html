@@ -346,10 +346,18 @@ document.getElementById('logDate').value = today();
 function painClass(s) {
   return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
 }
+function painHint(i) {
+  // Subtil fargeantydning som viser skala 0=grønn → 10=rød før valg
+  const t = i / 10;
+  const r = Math.round(t * 255);
+  const g = Math.round((1 - t) * 180 + 20);
+  return `rgba(${r},${g},40,0.13)`;
+}
 function buildPainRow(phase) {
   const el = document.getElementById(`sk-${phase}`);
   el.innerHTML = [...Array(11)].map((_,i) =>
-    `<button class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i})">${i}</button>`
+    `<button class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i})"
+      style="background:${painHint(i)}">${i}</button>`
   ).join('');
 }
 function selPain(phase, score) {
@@ -687,6 +695,9 @@ async function saveHistField(date, field, valueStr) {
   if (error) { toast('Lagringsfeil', 'err'); return; }
   sprintLog.filter(r => r.date === date).forEach(r => { r[field] = value; });
   refreshHistCard(date);
+  if (['knee_before','knee_during','knee_after','knee_day_after'].includes(field)) {
+    loadKneeTrend();
+  }
 }
 
 function refreshHistCard(date) {

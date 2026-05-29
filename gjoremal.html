@@ -138,6 +138,7 @@
     }
     .gm-li:hover .gm-li-del { opacity: 0.6; }
     .gm-li-del:hover { color: var(--danger) !important; opacity: 1 !important; }
+    @media (hover: none) { .gm-li-del { opacity: 0.4; } } /* alltid synlig på touch */
 
     .gm-new-list-wrap {
       padding: 12px 8px 20px;
@@ -397,6 +398,7 @@
     }
     .todo-item:hover .todo-del { opacity: 0.6; }
     .todo-del:hover { color: var(--danger); opacity: 1 !important; }
+    @media (hover: none) { .todo-del { opacity: 0.4; } } /* alltid synlig på touch */
 
     /* ── Drag & drop ── */
     .drag-handle {
@@ -584,7 +586,8 @@
       <div class="gm-add-top">
         <div class="gm-add-ghost-cb"></div>
         <input type="text" id="todoTitle" placeholder="Legg til gjøremål…"
-               onkeydown="if(event.key==='Enter')addTodo()">
+               onkeydown="if(event.key==='Enter')addTodo()"
+               oninput="localStorage.setItem('gm_draft_title', this.value)">
       </div>
       <div class="gm-add-bottom">
         <input type="date" id="todoDue">
@@ -695,7 +698,7 @@ async function loadLists() {
   const fromDb = [...new Set((data || []).map(t => t.list_name))];
   const defaultLists = ['Generelt', 'Trening', 'Skole'];
   lists = [...new Set([...defaultLists, ...fromDb])];
-  const savedTab = localStorage.getItem('gjøremål_aktiv_fane');
+  const savedTab = localStorage.getItem('gjoremal_active_tab');
   if (savedTab && lists.includes(savedTab)) {
     activeList = savedTab;
     const h = document.getElementById('listHeading');
@@ -718,7 +721,7 @@ function renderListsBar() {
 
 function selectList(name) {
   activeList = name;
-  try { localStorage.setItem('gjøremål_aktiv_fane', name); } catch {}
+  try { localStorage.setItem('gjoremal_active_tab', name); } catch {}
   renderListsBar();
   document.getElementById('listHeading').textContent = name;
   renderTodos();
@@ -829,6 +832,7 @@ async function addTodo() {
   saveOrder(activeList, [String(data.id), ..._ord]);
   document.getElementById('todoTitle').value = '';
   document.getElementById('todoDue').value   = '';
+  localStorage.removeItem('gm_draft_title');
   newImportant = false;
   document.getElementById('newImportant').textContent = '☆';
   document.getElementById('newImportant').style.color = '';
@@ -912,6 +916,10 @@ async function deleteTodo(id) {
   }
   await Promise.all([autoClean(), loadLists()]);
   await loadTodos();
+
+  // Gjenopprett draft-tekst
+  const draft = localStorage.getItem('gm_draft_title');
+  if (draft) document.getElementById('todoTitle').value = draft;
 })();
 </script>
 </body>
