@@ -237,7 +237,7 @@
           placeholder="Skriv en melding…"
           rows="1"
           onkeydown="handleKey(event)"
-          oninput="autoResize(this)"
+          oninput="autoResize(this); localStorage.setItem('ai_draft', this.value)"
         ></textarea>
         <button class="chat-send" id="sendBtn" onclick="sendMessage()" title="Send (Enter)">
           ↑
@@ -349,6 +349,7 @@ async function sendMessage() {
   btn.disabled = true;
   input.value = '';
   input.style.height = '';
+  localStorage.removeItem('ai_draft');
 
   appendMessage('user', msg);
   showLoading();
@@ -425,6 +426,14 @@ function autoResize(el) {
         chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
       }
     } catch { chatHistory = []; }
+
+    // Restore draft input
+    const draft = localStorage.getItem('ai_draft');
+    if (draft) {
+      const inp = document.getElementById('chatInput');
+      inp.value = draft;
+      autoResize(inp);
+    }
 
     document.getElementById('chatInput').focus();
   } catch (err) {
