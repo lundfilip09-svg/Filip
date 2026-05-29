@@ -422,11 +422,13 @@ function analyzeMetrics(d) {
   // RHR
   if (d?.rhr) {
     const v = d.rhr;
-    if (v <= 50)      results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Excellent', color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice:'Optimal hvilepuls. Kroppen er godt restituert.' });
-    else if (v <= 56) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Normal',    color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:'Normal hvilepuls. Ingen grunn til bekymring.' });
-    else if (v <= 63) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'warn',   badge:'Forhøyet',  color:'#F2C063', glow:'rgba(242,192,99,0.12)',   advice:'Lett forhøyet hvilepuls. Kan indikere stress, dehydrering eller tidlig sykdom. Moderer treningsmengden.' });
-    else if (v <= 72) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Høy',       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)',  advice:'Forhøyet hvilepuls. Kroppen er under press. Hvil eller lett økt — sjekk væskeinntak og søvn.' });
-    else              results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Alarm',     color:'#FF6B6B', glow:'rgba(255,107,107,0.18)',  advice:'⚠️ Høy hvilepuls. Tren ikke intensivt i dag. Kan indikere sykdom eller alvorlig underrestitusjon.' });
+    // Grenser tilpasset ung sprinter — lav RHR er positivt, ikke alarm
+    if (v <= 42)      results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Toppform',  color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:'Svært lav hvilepuls — tegn på god kondisjon og full restitusjon. Grønt lys for hard trening.' });
+    else if (v <= 52) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Excellent', color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice:'Optimal hvilepuls for sprinter. Kroppen er godt restituert.' });
+    else if (v <= 60) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'ok',     badge:'Normal',    color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:'Normal hvilepuls. Ingenting å bekymre seg for.' });
+    else if (v <= 68) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'warn',   badge:'Forhøyet',  color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice:'Lett forhøyet hvilepuls. Kan indikere stress, dårlig søvn eller tidlig sykdom. Vurder roligere økt.' });
+    else if (v <= 78) results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Høy',       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice:'Forhøyet hvilepuls. Kroppen er under press — hvil eller lett økt i dag.' });
+    else              results.push({ key:'rhr', val:`${v}`, label:'Hvilepuls', unit:'bpm', level:'danger', badge:'Alarm',     color:'#FF6B6B', glow:'rgba(255,107,107,0.18)', advice:'⚠️ Høy hvilepuls. Ikke tren intensivt. Kan indikere sykdom eller alvorlig underrestitusjon.' });
   }
 
   // Sleep hours
@@ -564,7 +566,7 @@ function renderReadiness(d) {
   }
   if (d?.rhr) {
     const rhr = d.rhr;
-    indicators.push({ label:'Hvilepuls', val:`${rhr} bpm`, status: rhr < 58 ? 'Lav ✓' : rhr < 68 ? 'Normal' : 'Høy', color: rhr < 58 ? '#6BE3A4' : rhr < 68 ? 'var(--text-secondary)' : '#FF6B6B' });
+    indicators.push({ label:'Hvilepuls', val:`${rhr} bpm`, status: rhr < 53 ? 'Optimal ✓' : rhr < 61 ? 'Normal' : rhr < 69 ? 'Forhøyet' : 'Høy', color: rhr < 61 ? '#6BE3A4' : rhr < 69 ? '#F2C063' : '#FF6B6B' });
   }
 
   el.innerHTML = `

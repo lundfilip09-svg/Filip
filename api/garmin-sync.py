@@ -185,12 +185,22 @@ class handler(BaseHTTPRequestHandler):
             pass
 
         try:
-            row      = fetch_garmin_data(target_date)
-            save_to_supabase(row)
-            public   = {k: v for k, v in row.items() if not k.startswith("_")}
-            warnings = {k: v for k, v in row.items() if k.startswith("_")}
-            body     = json.dumps({"ok": True, "data": public, "warnings": warnings}, indent=2)
-            self.send_response(200)
+            row    = fetch_garmin_data(target_date)
+            public = {k: v for k, v in row.items() if not k.startswith("_")}
+
+            # Ikke overskriv eksisterende data med ufullstendig henting
+            # Krev minst sleep_hours ELLER sleep_score for å lagre
+            has_sleep = public.get("sleep_hours") or public.get("sleep_score")
+            if not has_sleep:
+                warnings = {k: v for k, v in row.items() if k.startswith("_")}
+                warnings["_skip_reason"] = "Ingen søvndata hentet fra Garmin — lagring hoppet over for å unngå å overskrive eksisterende data"
+                body = json.dumps({"ok": False, "data": public, "warnings": warnings}, indent=2)
+                self.send_response(200)
+            else:
+                save_to_supabase(row)
+                warnings = {k: v for k, v in row.items() if k.startswith("_")}
+                body = json.dumps({"ok": True, "data": public, "warnings": warnings}, indent=2)
+                self.send_response(200)
         except Exception as e:
             body = json.dumps({"ok": False, "error": str(e), "trace": traceback.format_exc()}, indent=2)
             self.send_response(500)

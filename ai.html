@@ -358,14 +358,22 @@ async function sendMessage() {
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
 
-    const res = await fetch('/api/ai-chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ message: msg, history: historyForApi() }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    let res;
+    try {
+      res = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ message: msg, history: historyForApi() }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     hideLoading();
 
@@ -377,12 +385,22 @@ async function sendMessage() {
       appendMessage('ai', reply);
       chatHistory.push({ role: 'user', content: msg });
       chatHistory.push({ role: 'assistant', content: reply });
-      if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+      if (chatHistory.length > 10) {
+        const toRemove = chatHistory.length - 10;
+        chatHistory = chatHistory.slice(-10);
+        // Fjern tilsvarende DOM-elementer så DOM ikke vokser ubegrenset
+        const history = document.getElementById('chatHistory');
+        const msgs = history.querySelectorAll('.msg:not(.msg-loading)');
+        for (let i = 0; i < toRemove && msgs[i]; i++) msgs[i].remove();
+      }
       saveHistory();
     }
   } catch (e) {
     hideLoading();
-    appendMessage('ai', 'Nettverksfeil — sjekk tilkobling og prøv igjen', true);
+    const msg = e.name === 'AbortError'
+      ? 'Forespørselen tok for lang tid (30s) — prøv igjen'
+      : 'Nettverksfeil — sjekk tilkobling og prøv igjen';
+    appendMessage('ai', msg, true);
   } finally {
     isSending = false;
     input.disabled = false;

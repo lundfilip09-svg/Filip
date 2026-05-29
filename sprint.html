@@ -606,8 +606,10 @@ function renderHistory() {
       kneeBefore != null ? `<span class="hist-chip hist-chip--knee">Før ${kneeBefore}</span>` : '',
       kneeDuring != null ? `<span class="hist-chip hist-chip--knee">Under ${kneeDuring}</span>` : '',
       kneeAfter  != null ? `<span class="hist-chip hist-chip--knee">Etter ${kneeAfter}</span>` : '',
-      // D.etter always shown — '—' when not yet filled
-      `<span class="hist-chip hist-chip--knee" style="${kneeDayAfter == null ? 'opacity:0.45' : ''}">D.etter ${kneeDayAfter ?? '—'}</span>`,
+      // D.etter: vis kun om sesjon er fra i går eller eldre (ellers er det umulig å ha fylt inn)
+      (kneeDayAfter != null || date < today())
+        ? `<span class="hist-chip hist-chip--knee" style="${kneeDayAfter == null ? 'opacity:0.45' : ''}">D.etter ${kneeDayAfter ?? '—'}</span>`
+        : '',
     ].filter(Boolean).join('');
 
     return `<div class="hist-session">
@@ -682,15 +684,19 @@ async function saveHistField(date, field, valueStr) {
     if (s === '') { value = null; }
     else {
       const n = Number(s);
-      if (isNaN(n)) return;
-      if (field === 'rpe' && (n < 1 || n > 10)) return;
-      if (field !== 'rpe' && (n < 0 || n > 10)) return;
+      if (isNaN(n)) { toast('Ugyldig verdi', 'err'); return; }
+      if (field === 'rpe' && (n < 1 || n > 10)) { toast('RPE må være 1–10', 'err'); return; }
+      if (field !== 'rpe' && (n < 0 || n > 10)) { toast('Smerte må være 0–10', 'err'); return; }
       value = n;
     }
   }
-  // Oppdater alle rader for denne datoen med korrekte IDer (ikke bare .eq('date'))
   const ids = sprintLog.filter(r => r.date === date).map(r => r.id);
   if (!ids.length) return;
+  // Informer bruker om at kne-verdier gjelder alle løp på denne datoen
+  const kneeFields = ['knee_before','knee_during','knee_after','knee_day_after'];
+  if (kneeFields.includes(field) && ids.length > 1 && value !== null) {
+    toast(`Oppdaterer alle ${ids.length} løp på denne datoen`, 'ok');
+  }
   const { error } = await db.from('sprint_log').update({ [field]: value }).in('id', ids);
   if (error) { toast('Lagringsfeil', 'err'); return; }
   sprintLog.filter(r => r.date === date).forEach(r => { r[field] = value; });

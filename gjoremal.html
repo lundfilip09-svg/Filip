@@ -587,7 +587,7 @@
         <div class="gm-add-ghost-cb"></div>
         <input type="text" id="todoTitle" placeholder="Legg til gjøremål…"
                onkeydown="if(event.key==='Enter')addTodo()"
-               oninput="localStorage.setItem('gm_draft_title', this.value)">
+               oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
       </div>
       <div class="gm-add-bottom">
         <input type="date" id="todoDue">
@@ -892,7 +892,7 @@ async function deleteTodo(id) {
     if (e.clientY < r.top + r.height / 2) container.insertBefore(_dragEl, target);
     else container.insertBefore(_dragEl, target.nextSibling);
     const ids = [...container.querySelectorAll('.todo-item[data-id]')].map(el => el.dataset.id);
-    saveOrder(activeList, ids);
+    if (ids.length > 0) saveOrder(activeList, ids);
   });
 })();
 
@@ -917,9 +917,15 @@ async function deleteTodo(id) {
   await Promise.all([autoClean(), loadLists()]);
   await loadTodos();
 
-  // Gjenopprett draft-tekst
-  const draft = localStorage.getItem('gm_draft_title');
-  if (draft) document.getElementById('todoTitle').value = draft;
+  // Gjenopprett draft-tekst (maks 24 timer gammel)
+  try {
+    const raw = localStorage.getItem('gm_draft_title');
+    if (raw) {
+      const { t, ts } = JSON.parse(raw);
+      if (t && Date.now() - ts < 86400000) document.getElementById('todoTitle').value = t;
+      else localStorage.removeItem('gm_draft_title');
+    }
+  } catch { localStorage.removeItem('gm_draft_title'); }
 })();
 </script>
 </body>

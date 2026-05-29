@@ -11,7 +11,15 @@
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CAL_BASE  = 'https://www.googleapis.com/calendar/v3';
 
+// Cache tokenet i module-scope — overlever warm Vercel-instanser (unngår unødvendig token-refresh)
+let _cachedToken = null;
+let _tokenExpiry = 0;
+
 async function refreshAccessToken(clientId, clientSecret, refreshToken) {
+  // Bruk cachet token om det er gyldig i minst 5 min til
+  if (_cachedToken && Date.now() < _tokenExpiry - 5 * 60 * 1000) {
+    return _cachedToken;
+  }
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -24,7 +32,9 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   });
   if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
   const data = await res.json();
-  return data.access_token;
+  _cachedToken = data.access_token;
+  _tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+  return _cachedToken;
 }
 
 async function fetchEvents(token, calId, timeMin, timeMax, maxResults) {

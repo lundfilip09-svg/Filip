@@ -498,6 +498,12 @@
 </main>
 
 <div class="toast" id="toast"></div>
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;
+  background:rgba(255,107,107,0.12);border-bottom:1px solid rgba(255,107,107,0.3);
+  padding:8px 16px;text-align:center;font-size:11px;font-family:var(--font-mono);
+  color:var(--danger);letter-spacing:0.04em">
+  Ingen nettverkstilkobling — data kan være utdatert
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="utils.js"></script>
@@ -866,7 +872,17 @@ function _renderFokusItem(item) {
   </div>`;
 }
 
+// ── Offline-indikator ─────────────────────────────────────────────────────
+function updateOfflineBanner() {
+  const b = document.getElementById('offlineBanner');
+  if (b) b.style.display = navigator.onLine ? 'none' : '';
+}
+window.addEventListener('online',  updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+updateOfflineBanner();
+
 function renderDailyFokus(data) {
+  if (!data) return;
   _lastFokusData = data;
   const el    = document.getElementById('dailyFokus');
   const items = _buildFokusList(data);
