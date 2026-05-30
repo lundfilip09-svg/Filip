@@ -635,7 +635,7 @@ function _buildSessCard(date, runs, isOpen) {
   </div>`;
 
   const d       = new Date(date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   const detail = isOpen ? `<div class="sess-detail open" id="sess-detail-${date}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
@@ -695,7 +695,7 @@ function renderHistory() {
 
   el.innerHTML = [...groups.entries()].map(([date, runs]) => {
     const d       = new Date(date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
+    const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
     return `<div class="hist-date-group">
       <div class="hist-date-label">${dateStr}</div>
       <div class="hist-sessions">${_buildSessCard(date, runs, _openDetail === date)}</div>
@@ -879,6 +879,7 @@ async function saveKneeInline() {
       </div>`;
     return;
   }
+  onLangChange = () => { renderHistory(); applyLang(); };
   applyLang();
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();

@@ -617,7 +617,10 @@ function localISODate(d) {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const SHORT_DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
-const FULL_DAYS  = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+// 2024-01-01 is a Monday — use it to derive weekday names in the active locale
+function fullDay(i) {
+  return new Date(2024, 0, 1 + i).toLocaleDateString(fmtLocale(), { weekday: 'long' });
+}
 
 // ── State ──────────────────────────────────────────────────────────────────
 let userId               = null;
@@ -679,7 +682,7 @@ function renderHero() {
   const now = new Date();
 
   document.getElementById('heroEyebrow').textContent =
-    'I dag — ' + now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
+    t('tp.today') + ' — ' + now.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
 
   const txt = planText(ti);
   const sessionEl = document.getElementById('heroSession');
@@ -694,7 +697,7 @@ function renderHero() {
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
     const ni = (ti + d) % 7;
-    if (!isRest(ni)) { nextStr = `Neste: ${FULL_DAYS[ni]} — ${planText(ni)}`; break; }
+    if (!isRest(ni)) { nextStr = `${t('tp.next')}: ${fullDay(ni)} — ${planText(ni)}`; break; }
   }
   document.getElementById('heroNext').textContent = nextStr;
 
@@ -758,9 +761,9 @@ function renderDetail() {
   const todayIso2 = localISODate(new Date());
   const logged = loggedDates.has(ds) && ds <= todayIso2;
 
-  const dateLabel = d.toLocaleDateString('no-NO', { day:'numeric', month:'long' });
+  const dateLabel = d.toLocaleDateString(fmtLocale(), { day:'numeric', month:'long' });
   document.getElementById('detailMeta').textContent =
-    `${FULL_DAYS[i]} — ${dateLabel}`;
+    `${fullDay(i)} — ${dateLabel}`;
 
   const titleEl = document.getElementById('detailTitle');
   if (txt && !isRest(i)) {
@@ -894,7 +897,7 @@ function renderWeekNav() {
   const opts = { day:'numeric', month:'short' };
   const wn   = getISOWeek(mon);
   document.getElementById('weekNavLabel').textContent =
-    `Uke ${wn} · ${mon.toLocaleDateString('no-NO', opts)} – ${sun.toLocaleDateString('no-NO', opts)}`;
+    `${t('tp.week')} ${wn} · ${mon.toLocaleDateString(fmtLocale(), opts)} – ${sun.toLocaleDateString(fmtLocale(), opts)}`;
   const nextBtn = document.getElementById('weekNavNext');
   nextBtn.disabled      = weekOffset >= 0;
   nextBtn.style.opacity = weekOffset >= 0 ? '0.35' : '';
@@ -1050,7 +1053,7 @@ function renderSessionGrid() {
 
   el.innerHTML = groups.map(grp => {
     const d       = new Date(grp.date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
+    const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
 
     const sessHtml = grp.sessions.map(entry => {
       if (entry.type === 'gym') {
@@ -1125,7 +1128,7 @@ function renderAddCard() {
 
 function buildDetailHtml(g, knee) {
   const d       = new Date(g.date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const kneeid  = knee?.id || '';
 
   const cpSteps = [
@@ -1184,7 +1187,7 @@ function buildDetailHtml(g, knee) {
 function buildSprintDetailHtml(s, knee) {
   const sid = 'sprint-' + s.date;
   const d   = new Date(s.date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const kneeid  = knee?.id || '';
   const distList = [...new Set(s.runs.map(r => r.distance))].join('/');
   const sessionType = knee?.session_type || `Sprint ${distList} ${s.runs[0]?.type || ''}`.trim();
@@ -1307,7 +1310,7 @@ async function autoSaveSessionNotes(gymId, value) {
 function buildActDetailHtml(a) {
   const aid     = 'act-' + a.id;
   const d       = new Date(a.date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const label   = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
   const actEmoji = { Fotball:'', Padel:'', Svømming:'', Sykling:'', Turgåing:'' }[a.activity_type] || '';
 
@@ -1496,6 +1499,14 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
   loggedDates = new Set((data || []).map(r => r.date));
   currentWeekLoggedDates = new Set(loggedDates);
 
+  onLangChange = () => {
+    renderHero();
+    renderWeekNav();
+    renderDayStrip();
+    renderDetail();
+    renderSidebar();
+    loadSessionHistory();
+  };
   applyLang();
   renderHero();
   renderWeekNav();

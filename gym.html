@@ -844,6 +844,7 @@ async function init() {
     document.getElementById(id)?.addEventListener('change', saveDraft);
   });
 
+  onLangChange = () => { loadGymHistory(); applyLang(); };
   await loadGymHistory();
   await checkDayAfterRehab();
   applyLang();
@@ -1823,11 +1824,8 @@ async function loadGymHistory() {
     el.innerHTML = `<div class="empty">${t('gym.no_history')}</div>`; return;
   }
 
-  const _wds = ['søn','man','tir','ons','tor','fre','lør'];
-  const _mos = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
   function fmtSessDate(ds) {
-    const d = new Date(ds + 'T12:00:00');
-    return `${_wds[d.getDay()]}. ${d.getDate()}. ${_mos[d.getMonth()]}`;
+    return new Date(ds + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'short', day:'numeric', month:'short' });
   }
   function painClrH(v) {
     if (v == null) return 'var(--text-tertiary)';

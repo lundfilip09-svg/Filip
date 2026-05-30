@@ -232,7 +232,8 @@ const TRANSLATIONS = {
     'tp.plan_saved': 'Plan lagret', 'tp.plan_load_error': 'Kunne ikke laste plan',
     'tp.add_activity': '+ Aktivitet', 'tp.loading_log': 'Laster øktlogg…',
     'tp.hero_loading': 'I dag — laster…',
-    'tp.today': 'I dag', 'tp.rest': 'Hviledag', 'tp.free': 'Fri',
+    'tp.today': 'I dag', 'tp.week': 'Uke', 'tp.next': 'Neste',
+    'tp.rest': 'Hviledag', 'tp.free': 'Fri',
     'tp.no_session_planned': 'Ingen planlagt økt',
     'tp.session_logged': '✓ Logget', 'tp.edit_session': 'Rediger økt',
     // AI
@@ -488,7 +489,8 @@ const TRANSLATIONS = {
     'tp.plan_saved': 'Plan saved', 'tp.plan_load_error': 'Could not load plan',
     'tp.add_activity': '+ Activity', 'tp.loading_log': 'Loading session log…',
     'tp.hero_loading': 'Today — loading…',
-    'tp.today': 'Today', 'tp.rest': 'Rest day', 'tp.free': 'Off',
+    'tp.today': 'Today', 'tp.week': 'Week', 'tp.next': 'Next',
+    'tp.rest': 'Rest day', 'tp.free': 'Off',
     'tp.no_session_planned': 'No session planned',
     'tp.session_logged': '✓ Logged', 'tp.edit_session': 'Edit session',
     // AI
