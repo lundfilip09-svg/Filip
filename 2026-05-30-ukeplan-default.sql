@@ -9,14 +9,13 @@ SELECT
   session_text,
   notes
 FROM (VALUES
-  (0, 'Styrke Kapasitet', 'Tung styrke — knebøy, hoftehengsle, trekk/press'),
-  (1, 'Sprint',           '100m/200m intervaller, flygende 60m, eller tempoløp'),
-  (2, 'Mobilitet og kondisjon', 'Mobilitet, skulder, hofte, rygg + lett kondisjon'),
-  (3, 'Sprint',           'Akselerasjon, 60m blokk, teknikk'),
-  (4, 'Styrke Power',     'Eksplosiv styrke — RDL, benkpress, rows, chin-ups'),
-  (5, 'Fri',              ''),
-  (6, 'Sprint',           'Lengre distanse, 150m/200m, eller aktiv hvile')
+  (0, 'Styrke Kapasitet',        NULL),
+  (1, 'Sprint',                  NULL),
+  (2, 'Mobilitet og kondisjon',  NULL),
+  (3, 'Sprint',                  NULL),
+  (4, 'Styrke Power',            NULL),
+  (5, 'Fri',                     NULL),
+  (6, 'Sprint',                  NULL)
 ) AS v(day_index, session_text, notes)
 ON CONFLICT (user_id, day_index) DO UPDATE
-  SET session_text = EXCLUDED.session_text,
-      notes        = EXCLUDED.notes;
+  SET session_text = EXCLUDED.session_text;
