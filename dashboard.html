@@ -609,6 +609,31 @@ async function loadSleep() {
   return d;
 }
 
+// ── Rehab data ─────────────────────────────────────────────────────────────
+async function loadRehabData() {
+  const { data: sessions } = await db.from('gym_log')
+    .select('id, date, session_type')
+    .ilike('session_type', '%rehab%')
+    .order('date', { ascending: false })
+    .limit(1);
+
+  const lastSession = sessions?.[0] || null;
+  if (!lastSession) return { lastDate: null, daysSince: Infinity, lastKnee: null };
+
+  const lastDate   = lastSession.date;
+  const todayStr   = new Date().toLocaleDateString('sv');
+  const diffMs     = new Date(todayStr) - new Date(lastDate);
+  const daysSince  = Math.round(diffMs / 86400000);
+
+  const { data: kneeRows } = await db.from('knee_pain')
+    .select('*')
+    .eq('date', lastDate)
+    .ilike('session_type', '%rehab%')
+    .limit(1);
+
+  return { lastDate, daysSince, lastKnee: kneeRows?.[0] || null };
+}
+
 // ── Knee pain card ─────────────────────────────────────────────────────────
 async function loadKnee() {
   const { data } = await db.from('knee_pain')
@@ -683,6 +708,7 @@ function _weekStripLabel(txt) {
   if (/kondi/i.test(txt))     return 'Kondi.';
   if (/styrke/i.test(txt))    return 'Styrke';
   if (/hvile/i.test(txt))     return 'Hvile';
+  if (/rehab/i.test(txt))     return 'Rehab';
   const first = txt.split(/\s+/)[0];
   return first.length <= 8 ? first : first.slice(0, 7) + '…';
 }
@@ -724,8 +750,9 @@ async function renderWeekStrip() {
     const gymType = gymByDate[dateStr];
     if (gymType !== undefined) {
       let cls = 'ind-styrke';
-      if (/sprint/i.test(gymType)) cls = 'ind-sprint';
+      if (/sprint/i.test(gymType))                              cls = 'ind-sprint';
       else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) cls = 'ind-kondisjon';
+      else if (/rehab/i.test(gymType))                          cls = 'ind-kondisjon';
       chips.push({ cls, label: _weekStripLabel(gymType) || 'Styrke' });
     }
 
@@ -780,7 +807,7 @@ function toggleFokusItem(id) {
   if (_lastFokusData) renderDailyFokus(_lastFokusData);
 }
 
-function _buildFokusList({ sleepData, kneeData, sessionData }) {
+function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
   const items = [];
   const isRest   = !!sessionData?.isRest;
   const isSprint = sessionData?.cls === 'power';
@@ -801,6 +828,26 @@ function _buildFokusList({ sleepData, kneeData, sessionData }) {
     items.push({ id: 'knee-warning', priority: 2, cat: 'warning', type: 'info',
       text: isSprint ? t('dash.focus_careful_sprint') : t('dash.focus_no_push'),
       subtext: t('dash.focus_pain_after', {n: lastPain}) });
+  }
+
+  // ── Rehab-specific checks ─────────────────────────────────────────────
+  if (rehabData) {
+    const { daysSince, lastKnee } = rehabData;
+    const rehabDayAfterMissing = lastKnee && daysSince === 1 &&
+      (lastKnee.day_after_score === null || lastKnee.day_after_score === undefined);
+    if (rehabDayAfterMissing) {
+      items.push({ id: 'rehab-dayafter', priority: 1, cat: 'rehab', type: 'actionable',
+        text: t('dash.focus_rehab_dayafter') });
+    }
+    if (lastKnee?.day_after_score > 3) {
+      items.push({ id: 'rehab-pain-warning', priority: 2, cat: 'warning', type: 'info',
+        text: t('dash.focus_rehab_pain_warning'),
+        subtext: t('dash.focus_pain_after', { n: lastKnee.day_after_score }) });
+    }
+    if (daysSince >= 3 && !isRest) {
+      items.push({ id: 'rehab-overdue', priority: 5, cat: 'rehab', type: 'actionable',
+        text: t('dash.focus_rehab_overdue') });
+    }
   }
 
   // ── Priority 2-3: Sleep ───────────────────────────────────────────────
@@ -1080,15 +1127,16 @@ async function loadCalendar() {
   await autoCleanTodos().catch(() => {});
 
   // Hvert kort har egen feilhåndtering — én feil stopper ikke resten
-  const [sleepData, kneeData] = await Promise.all([
+  const [sleepData, kneeData, rehabData] = await Promise.all([
     loadSleep().catch(e => { console.error('sleep', e); return null; }),
     loadKnee().catch(e  => { console.error('knee', e);  return null; }),
+    loadRehabData().catch(() => null),
     loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = '<div class="empty">Kunne ikke laste gjøremål</div>'; }),
     loadCalendar().catch(() => {}),
     renderWeekStrip().catch(() => {}),
   ]);
 
-  renderDailyFokus({ sleepData, kneeData, sessionData });
+  renderDailyFokus({ sleepData, kneeData, sessionData, rehabData });
 })();
 </script>
 </body>

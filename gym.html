@@ -398,8 +398,12 @@
       .gym-sidebar { position: static; max-height: none; }
     }
 
-    body[data-day="rehab"] .wh-cta { display: none !important; }
-    body[data-day="rehab"] .ws-idle { display: none !important; }
+    /* Day-after rehab banner */
+    .day-after-banner {
+      background: rgba(242,192,99,0.05) !important;
+      border-color: rgba(242,192,99,0.25) !important;
+    }
+    .day-after-banner .done-title { color: var(--warning); }
   </style>
 </head>
 <body data-ws="idle">
@@ -456,6 +460,20 @@
       <div>
         <div class="done-title">Økt fullført!</div>
         <div class="done-sub" id="doneStats">Lagre i sidepanelet →</div>
+      </div>
+    </div>
+
+    <!-- Day-after rehab pain reminder -->
+    <div id="dayAfterBanner" class="done-banner day-after-banner" style="display:none;flex-wrap:wrap;gap:10px">
+      <div class="done-icon">🦵</div>
+      <div style="flex:1;min-width:180px">
+        <div class="done-title" data-i18n="gym.day_after_title">Registrer smerte dagen etter</div>
+        <div class="done-sub" id="dayAfterBannerSub"></div>
+        <div id="dayAfterPainBtns" class="mini-pain-row" style="margin-top:8px;gap:3px"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;flex-shrink:0">
+        <button class="btn btn-success btn-sm" onclick="saveDayAfterPain()" style="min-width:58px">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="dismissDayAfterBanner()">Avvis</button>
       </div>
     </div>
 
@@ -644,7 +662,9 @@ let allExercises = {};
 let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
-let _isSavingLog  = false;
+let _isSavingLog      = false;
+let _dayAfterSession  = null;  // { gymId, kneeId, date, sessionType }
+let _dayAfterScore    = null;
 let workoutState  = 'idle';
 let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
@@ -825,6 +845,7 @@ async function init() {
   });
 
   await loadGymHistory();
+  await checkDayAfterRehab();
   applyLang();
 }
 
@@ -1051,7 +1072,7 @@ function renderRehab() {
       <span class="sec-divider"></span>
       <span class="sec-count">${exs.length} øvelser</span>
     </div>
-    ${exs.map((ex, i) => renderExRow(ex, 'rehab', i + 1, true)).join('')}
+    ${exs.map((ex, i) => renderExRow(ex, 'rehab', i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
       <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
       <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
@@ -1735,7 +1756,7 @@ async function saveLog() {
   const btn = document.getElementById('saveLogBtn');
   if (btn) btn.disabled = true;
   try {
-    const labels = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power') };
+    const labels = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power'), rehab: 'Rehab' };
     const notes  = document.getElementById('sessionNotes').value.trim();
     const date   = document.getElementById('logDate').value || today();
     const [kRes, gRes] = await Promise.all([
@@ -2085,6 +2106,76 @@ function playTimerDone() {
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try { new Notification('Hviletimer ferdig', { body: 'Tid for neste sett!', silent: true }); } catch(e) {}
   }
+}
+
+// ── Day-after rehab pain reminder ────────────────────────────────
+async function checkDayAfterRehab() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yDate = yesterday.toLocaleDateString('sv');
+
+  const { data: sessions } = await db.from('gym_log')
+    .select('id, session_type, date')
+    .eq('date', yDate)
+    .ilike('session_type', '%rehab%')
+    .limit(1);
+
+  if (!sessions?.length) return;
+  const gym = sessions[0];
+
+  const { data: kneeRows } = await db.from('knee_pain')
+    .select('id, day_after_score')
+    .eq('date', yDate)
+    .ilike('session_type', '%rehab%')
+    .limit(1);
+
+  const knee = kneeRows?.[0];
+  if (knee?.day_after_score !== null && knee?.day_after_score !== undefined) return;
+
+  _dayAfterSession = { gymId: gym.id, kneeId: knee?.id || null, date: yDate, sessionType: gym.session_type };
+  _dayAfterScore = null;
+
+  const banner  = document.getElementById('dayAfterBanner');
+  const subEl   = document.getElementById('dayAfterBannerSub');
+  const btnsEl  = document.getElementById('dayAfterPainBtns');
+  if (!banner) return;
+
+  if (subEl) subEl.textContent = `Rehab ${yDate}`;
+  if (btnsEl) btnsEl.innerHTML = [...Array(11)].map((_,i) =>
+    `<button class="mini-pain-btn" data-da-score="${i}" onclick="selectDayAfterPain(${i})">${i}</button>`
+  ).join('');
+
+  banner.style.display = '';
+}
+
+function selectDayAfterPain(score) {
+  _dayAfterScore = score;
+  document.querySelectorAll('[data-da-score]').forEach(b => {
+    b.className = 'mini-pain-btn' + (parseInt(b.dataset.daScore) === score ? ' ' + painClass(score) : '');
+  });
+}
+
+async function saveDayAfterPain() {
+  if (_dayAfterScore === null || !_dayAfterSession) { toast('Velg smertescore 0–10', 'err'); return; }
+  const { date, sessionType, kneeId } = _dayAfterSession;
+  if (kneeId) {
+    const { error } = await db.from('knee_pain').update({ day_after_score: _dayAfterScore }).eq('id', kneeId);
+    if (error) { toast(t('gym.save_error'), 'err'); return; }
+  } else {
+    const { data, error } = await db.from('knee_pain')
+      .insert({ date, session_type: sessionType, day_after_score: _dayAfterScore })
+      .select('id').single();
+    if (error) { toast(t('gym.save_error'), 'err'); return; }
+    if (data?.id) _dayAfterSession.kneeId = String(data.id);
+  }
+  toast(t('gym.day_after_saved'));
+  dismissDayAfterBanner();
+  await loadGymHistory();
+}
+
+function dismissDayAfterBanner() {
+  const banner = document.getElementById('dayAfterBanner');
+  if (banner) banner.style.display = 'none';
 }
 
 // ── Autosave knee pain in history panel ───────────────────────────
