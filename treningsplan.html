@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Treningsoversikt</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Hero band ──────────────────────────────────────────── */
@@ -428,16 +428,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"        class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"  class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"        class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html" class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"       class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"    class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"      class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"  class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -446,7 +447,7 @@
   <!-- Hero band -->
   <div class="hero-band">
     <div class="hero-main">
-      <div class="hero-eyebrow" id="heroEyebrow">I dag — laster…</div>
+      <div class="hero-eyebrow" id="heroEyebrow" data-i18n="tp.hero_loading">I dag — laster…</div>
       <div class="hero-session" id="heroSession">—</div>
       <div class="hero-next" id="heroNext"></div>
     </div>
@@ -494,7 +495,7 @@
       </div>
 
       <div class="detail-field">
-        <div class="detail-field-label">Notater</div>
+        <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
         <textarea class="input-sm detail-input" id="detailNotes" rows="3"
           placeholder="Mål, teknikk, kommentarer…" style="resize:vertical"></textarea>
       </div>
@@ -544,11 +545,14 @@
   <!-- Session history -->
   <div class="hist-section">
     <div class="hist-section-hd">
-      <span class="hist-section-title">Øktlogg</span>
+      <span class="hist-section-title" data-i18n="tp.history">Øktlogg</span>
       <span id="painTrendBadge" class="trend-badge trend-neutral" style="display:none"></span>
+      <button onclick="openActModal()" style="display:flex;align-items:center;gap:5px;background:rgba(107,227,164,0.08);border:1px solid rgba(107,227,164,0.2);border-radius:7px;padding:4px 10px;cursor:pointer;color:#6BE3A4;font-family:var(--font-mono);font-size:10px;transition:background 0.15s" onmouseover="this.style.background='rgba(107,227,164,0.16)'" onmouseout="this.style.background='rgba(107,227,164,0.08)'">
+        <span style="font-size:14px;line-height:1">+</span> <span data-i18n="tp.add_activity">Aktivitet</span>
+      </button>
     </div>
     <div id="sessionGrid" class="sess-grid">
-      <div class="loading">Laster øktlogg…</div>
+      <div class="loading" data-i18n="tp.loading_log">Laster øktlogg…</div>
     </div>
   </div>
 
@@ -559,24 +563,18 @@
         <span class="act-modal-title">Logg aktivitet</span>
         <button class="act-modal-close" onclick="closeActModal()">✕</button>
       </div>
-      <div class="act-field-row" style="margin-bottom:12px">
-        <div>
-          <div class="act-field-label">Dato</div>
-          <input class="input-sm" id="actDate" type="date" style="width:100%;box-sizing:border-box">
-        </div>
-        <div>
-          <div class="act-field-label">Varighet (min)</div>
-          <input class="input-sm" id="actDuration" type="number" min="1" max="600" placeholder="60" style="width:100%;box-sizing:border-box">
-        </div>
+      <div style="margin-bottom:12px">
+        <div class="act-field-label">Dato</div>
+        <input class="input-sm" id="actDate" type="date" style="width:200px">
       </div>
       <div class="act-field-label" style="margin-bottom:7px">Aktivitet</div>
       <div class="act-type-grid" id="actTypeGrid">
-        <button class="act-type-btn" data-type="Soccer" onclick="selectActType(this)">⚽ Soccer</button>
-        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)">🏓 Padel</button>
-        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)">🏊 Svømming</button>
-        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)">🚴 Sykling</button>
-        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)">🥾 Turgåing</button>
-        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)">✏️ Annet</button>
+        <button class="act-type-btn" data-type="Fotball" onclick="selectActType(this)">Fotball</button>
+        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)">Padel</button>
+        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)">Svømming</button>
+        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)">Sykling</button>
+        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)">Turgåing</button>
+        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)">Annet</button>
       </div>
       <div id="actCustomWrap" style="display:none;margin-bottom:12px">
         <div class="act-field-label">Beskriv aktivitet</div>
@@ -863,13 +861,13 @@ async function saveDay() {
     { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
     { onConflict: 'user_id,day_index' }
   );
-  if (error) { toast('Feil ved lagring', 'err'); return; }
+  if (error) { toast(t('tp.save_error'), 'err'); return; }
 
   renderHero();
   renderDayStrip();
   renderDetail();
   renderSidebar();
-  toast('Lagret');
+  toast(t('tp.saved'));
 }
 
 async function clearDay() {
@@ -885,7 +883,7 @@ async function clearDay() {
   renderDayStrip();
   renderDetail();
   renderSidebar();
-  toast('Dag tømt');
+  toast(t('tp.day_cleared'));
 }
 
 // ── Week navigation ────────────────────────────────────────────────────────
@@ -933,6 +931,11 @@ let _openDetail = null;
 let _actData    = [];   // activity_log rows
 let _actType    = null; // valgt type i modal
 
+function distLabel(d) {
+  if (!d) return d;
+  return d.includes('_') ? d.replace('_', ' (') + ')' : d;
+}
+
 function painColorClass(score) {
   if (score === null || score === undefined) return '';
   if (score <= 3) return 'pain-low';
@@ -946,9 +949,9 @@ function calcPainTrend(kneeSessions) {
   const half   = Math.ceil(scored.length / 2);
   const avg    = arr => arr.reduce((s, k) => s + k.after_score, 0) / arr.length;
   const delta  = avg(scored.slice(0, half)) - avg(scored.slice(half));
-  if (delta < -0.6) return { text: '↓ Knesmerte forbedres', type: 'good' };
-  if (delta >  0.6) return { text: '↑ Knesmerte øker',     type: 'bad' };
-  return { text: '— Knesmerte stabil', type: 'neutral' };
+  if (delta < -0.6) return { text: t('tp.trend_up'),     type: 'good' };
+  if (delta >  0.6) return { text: t('tp.trend_down'),   type: 'bad' };
+  return { text: t('tp.trend_stable'), type: 'neutral' };
 }
 
 async function loadSessionHistory() {
@@ -963,7 +966,13 @@ async function loadSessionHistory() {
   _actData    = actRaw    || [];
 
   if (!_sessData.length && !_sprintData.length && !_actData.length) {
-    el.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px 0">Ingen loggede økter ennå</div>';
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:20px 0">${t('tp.no_sessions')}</div>`;
+    const addCard = document.createElement('div');
+    addCard.id = 'addActCard';
+    addCard.className = 'add-activity-card';
+    addCard.onclick = openActModal;
+    addCard.innerHTML = `<div class="add-activity-plus">+</div><span class="add-activity-label">${t('tp.add_activity')}</span>`;
+    el.appendChild(addCard);
     return;
   }
 
@@ -995,9 +1004,9 @@ async function loadSessionHistory() {
 
 function buildPainSummary(knee) {
   const vals = [
-    { l: 'Før',    v: knee?.before_score },
-    { l: 'Under',  v: knee?.during_score },
-    { l: 'Etter',  v: knee?.after_score },
+    { l: t('knee.before'),    v: knee?.before_score },
+    { l: t('knee.during'),  v: knee?.during_score },
+    { l: t('knee.after'),  v: knee?.after_score },
     { l: 'D.etter',v: knee?.day_after_score },
   ];
   if (!vals.some(x => x.v != null)) return '';
@@ -1009,7 +1018,7 @@ function buildPainSummary(knee) {
 function renderSessionGrid() {
   const el = document.getElementById('sessionGrid');
   if (!_sessData.length && !_sprintData.length) {
-    el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return;
+    el.innerHTML = `<div class="empty">${t('tp.no_sessions')}</div>`; return;
   }
 
   // Build sprint sessions grouped by date
@@ -1034,6 +1043,10 @@ function renderSessionGrid() {
     groups[groups.length - 1].sessions.push(entry);
   }
 
+  // fjern gammelt add-card så det ikke dobles
+  const oldCard = document.getElementById('addActCard');
+  if (oldCard) oldCard.remove();
+
   el.innerHTML = groups.map(grp => {
     const d       = new Date(grp.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long' });
@@ -1048,7 +1061,7 @@ function renderSessionGrid() {
             style="border-top-color:rgba(107,227,164,0.3)"
             onclick="toggleSessionDetail('${g.id}')">
             <div class="sess-name">${escHtml(g.session_type || 'Økt')}</div>
-            <div class="sess-meta">${buildPainSummary(knee)}<span class="sess-tag">✓ Gym</span></div>
+            <div class="sess-meta">${buildPainSummary(knee)}<span class="sess-tag">${t('tp.gym_badge')}</span></div>
             ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
           </div>
           ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
@@ -1057,12 +1070,12 @@ function renderSessionGrid() {
         const sid = 'sprint-' + s.date;
         const knee   = _kneeSprint[s.date] || null;
         const isOpen = _openDetail === sid;
-        const distSummary = [...new Set(s.runs.map(r => r.distance))].join(' / ');
+        const distSummary = [...new Set(s.runs.map(r => distLabel(r.distance)))].join(' / ');
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${sid}"
             style="border-top-color:rgba(91,164,245,0.3)"
             onclick="toggleSessionDetail('${sid}')">
             <div class="sess-name">Sprint · ${escHtml(distSummary)}</div>
-            <div class="sess-meta">${buildPainSummary(knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">⚡ Sprint</span></div>
+            <div class="sess-meta">${buildPainSummary(knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span></div>
             ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
           </div>
           ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
@@ -1074,13 +1087,13 @@ function renderSessionGrid() {
         const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
         const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
         const hasPain = [a.knee_before, a.knee_during, a.knee_after, a.knee_day_after].some(v => v != null);
-        const actEmoji = { Soccer:'⚽', Padel:'🏓', Svømming:'🏊', Sykling:'🚴', Turgåing:'🥾' }[a.activity_type] || '✏️';
-        const metaExtra = a.duration_min ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">${a.duration_min} min</span>` : '';
+        const actEmoji = '';
+        const metaExtra = '';
         const rpeExtra  = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
             style="border-top-color:rgba(242,192,99,0.3)"
             onclick="toggleSessionDetail('${aid}')">
-            <div class="sess-name">${actEmoji} ${escHtml(label)}</div>
+            <div class="sess-name">${escHtml(label)}</div>
             <div class="sess-meta">${hasPain ? buildPainSummary(kneeAct) : ''}<span class="act-tag">${escHtml(a.activity_type)}</span>${metaExtra}${rpeExtra}</div>
             ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
           </div>
@@ -1094,11 +1107,19 @@ function renderSessionGrid() {
     </div>`;
   }).join('');
 
-  // + legg til aktivitet kort nederst
-  el.innerHTML += `<div class="add-activity-card" onclick="openActModal()">
-    <div class="add-activity-plus">+</div>
-    <span class="add-activity-label">Logg annen aktivitet</span>
-  </div>`;
+}
+
+// Separat funksjon for å vise + kortet (kalles fra HTML)
+function renderAddCard() {
+  const existing = document.getElementById('addActCard');
+  if (existing) return;
+  const el = document.getElementById('sessionGrid');
+  const card = document.createElement('div');
+  card.id = 'addActCard';
+  card.className = 'add-activity-card';
+  card.onclick = openActModal;
+  card.innerHTML = '<div class="add-activity-plus">+</div><span class="add-activity-label">Logg aktivitet</span>';
+  el.appendChild(card);
 }
 
 function buildDetailHtml(g, knee) {
@@ -1107,10 +1128,10 @@ function buildDetailHtml(g, knee) {
   const kneeid  = knee?.id || '';
 
   const cpSteps = [
-    { label: 'Før',        val: knee?.before_score },
-    { label: 'Under',      val: knee?.during_score },
-    { label: 'Etter',      val: knee?.after_score },
-    { label: 'Dagen etter',val: knee?.day_after_score },
+    { label: t('knee.before'),   val: knee?.before_score },
+    { label: t('knee.during'),   val: knee?.during_score },
+    { label: t('knee.after'),    val: knee?.after_score },
+    { label: t('knee.dayafter'), val: knee?.day_after_score },
   ];
   const checkpointHtml = `<div class="pain-checkpoint">${
     cpSteps.map((s, i) => `
@@ -1123,10 +1144,10 @@ function buildDetailHtml(g, knee) {
 
   const painEditsHtml = `<div class="sess-edit-row">${
     [
-      { label: 'Før',        field: 'before_score',    val: knee?.before_score },
-      { label: 'Under',      field: 'during_score',    val: knee?.during_score },
-      { label: 'Etter',      field: 'after_score',     val: knee?.after_score },
-      { label: 'Dagen etter',field: 'day_after_score', val: knee?.day_after_score },
+      { label: t('knee.before'),        field: 'before_score',    val: knee?.before_score },
+      { label: t('knee.during'),      field: 'during_score',    val: knee?.during_score },
+      { label: t('knee.after'),      field: 'after_score',     val: knee?.after_score },
+      { label: t('knee.dayafter'),field: 'day_after_score', val: knee?.day_after_score },
     ].map(p => `<div>
       <div class="sess-edit-lbl">${p.label}</div>
       <input type="number" min="0" max="10" class="sess-edit-input"
@@ -1144,15 +1165,15 @@ function buildDetailHtml(g, knee) {
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
     </div>
     <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Knesmerte</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.knee')}</div>
       ${checkpointHtml}
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Rediger smerteverdier</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('tp.edit_pain')}</div>
       ${painEditsHtml}
     </div>
     <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveSessionNotes('${g.id}',this.value)">${escHtml(g.session_notes || '')}</textarea>
     </div>
@@ -1175,10 +1196,10 @@ function buildSprintDetailHtml(s, knee) {
     </div>`).join('');
 
   const cpSteps = [
-    { label:'Før',         val: knee?.before_score },
-    { label:'Under',       val: knee?.during_score },
-    { label:'Etter',       val: knee?.after_score },
-    { label:'Dagen etter', val: knee?.day_after_score },
+    { label: t('knee.before'),         val: knee?.before_score },
+    { label: t('knee.during'),       val: knee?.during_score },
+    { label: t('knee.after'),       val: knee?.after_score },
+    { label: t('knee.dayafter'), val: knee?.day_after_score },
   ];
   const checkpointHtml = `<div class="pain-checkpoint">${
     cpSteps.map((step, i) => `
@@ -1191,10 +1212,10 @@ function buildSprintDetailHtml(s, knee) {
 
   const painEditsHtml = `<div class="sess-edit-row">${
     [
-      { label:'Før',         field:'before_score',    val: knee?.before_score },
-      { label:'Under',       field:'during_score',    val: knee?.during_score },
-      { label:'Etter',       field:'after_score',     val: knee?.after_score },
-      { label:'Dagen etter', field:'day_after_score', val: knee?.day_after_score },
+      { label: t('knee.before'),         field:'before_score',    val: knee?.before_score },
+      { label: t('knee.during'),       field:'during_score',    val: knee?.during_score },
+      { label: t('knee.after'),       field:'after_score',     val: knee?.after_score },
+      { label: t('knee.dayafter'), field:'day_after_score', val: knee?.day_after_score },
     ].map(p => `<div>
       <div class="sess-edit-lbl">${p.label}</div>
       <input type="number" min="0" max="10" class="sess-edit-input"
@@ -1212,7 +1233,7 @@ function buildSprintDetailHtml(s, knee) {
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')">✕</button>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Løp (${s.runs.length})</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('tp.runs', {n: s.runs.length})}</div>
       ${runsHtml}
     </div>
     <div style="margin-bottom:12px">
@@ -1222,15 +1243,15 @@ function buildSprintDetailHtml(s, knee) {
         onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
     </div>
     <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Knesmerte</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.knee')}</div>
       ${checkpointHtml}
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Rediger smerteverdier</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('tp.edit_pain')}</div>
       ${painEditsHtml}
     </div>
     <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveSprintField('${s.date}','notes',this.value)">${escHtml(s.notes || '')}</textarea>
     </div>
@@ -1287,13 +1308,13 @@ function buildActDetailHtml(a) {
   const d       = new Date(a.date + 'T12:00:00');
   const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const label   = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
-  const actEmoji = { Soccer:'⚽', Padel:'🏓', Svømming:'🏊', Sykling:'🚴', Turgåing:'🥾' }[a.activity_type] || '✏️';
+  const actEmoji = { Fotball:'', Padel:'', Svømming:'', Sykling:'', Turgåing:'' }[a.activity_type] || '';
 
   const cpSteps = [
-    { label:'Før',         val: a.knee_before    },
-    { label:'Under',       val: a.knee_during    },
-    { label:'Etter',       val: a.knee_after     },
-    { label:'Dagen etter', val: a.knee_day_after },
+    { label: t('knee.before'),         val: a.knee_before    },
+    { label: t('knee.during'),       val: a.knee_during    },
+    { label: t('knee.after'),       val: a.knee_after     },
+    { label: t('knee.dayafter'), val: a.knee_day_after },
   ];
   const checkpointHtml = `<div class="pain-checkpoint">${
     cpSteps.map((s, i) => `
@@ -1306,10 +1327,10 @@ function buildActDetailHtml(a) {
 
   const painEditsHtml = `<div class="sess-edit-row">${
     [
-      { label:'Før',         field:'knee_before',    val: a.knee_before    },
-      { label:'Under',       field:'knee_during',    val: a.knee_during    },
-      { label:'Etter',       field:'knee_after',     val: a.knee_after     },
-      { label:'Dagen etter', field:'knee_day_after', val: a.knee_day_after },
+      { label: t('knee.before'),         field:'knee_before',    val: a.knee_before    },
+      { label: t('knee.during'),       field:'knee_during',    val: a.knee_during    },
+      { label: t('knee.after'),       field:'knee_after',     val: a.knee_after     },
+      { label: t('knee.dayafter'), field:'knee_day_after', val: a.knee_day_after },
     ].map(p => `<div>
       <div class="sess-edit-lbl">${p.label}</div>
       <input type="number" min="0" max="10" class="sess-edit-input"
@@ -1319,14 +1340,14 @@ function buildActDetailHtml(a) {
   }</div>`;
 
   const statsHtml = [
-    a.duration_min ? `<div class="sess-detail-block"><div class="sess-detail-lbl">Varighet</div><div class="sess-detail-val">${a.duration_min} min</div></div>` : '',
+
     a.rpe          ? `<div class="sess-detail-block"><div class="sess-detail-lbl">RPE</div><div class="sess-detail-val">${a.rpe}</div></div>` : '',
   ].filter(Boolean).join('');
 
   return `<div class="sess-detail open" id="sess-detail-${aid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div>
-        <div class="sess-detail-title">${actEmoji} ${escHtml(label)}</div>
+        <div class="sess-detail-title">${escHtml(label)}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -1337,15 +1358,15 @@ function buildActDetailHtml(a) {
     </div>
     ${statsHtml ? `<div class="sess-detail-grid" style="margin-bottom:12px">${statsHtml}</div>` : ''}
     <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Knesmerte</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.knee')}</div>
       ${checkpointHtml}
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Rediger smerteverdier</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('tp.edit_pain')}</div>
       ${painEditsHtml}
     </div>
     <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveActField('${a.id}','notes',this.value)">${escHtml(a.notes || '')}</textarea>
     </div>
@@ -1356,7 +1377,7 @@ function buildActDetailHtml(a) {
 function openActModal() {
   document.getElementById('actModal').classList.remove('hidden');
   document.getElementById('actDate').value = today();
-  document.getElementById('actDuration').value = '';
+
   document.getElementById('actRpe').value = '';
   document.getElementById('actNotes').value = '';
   document.getElementById('actKneeBefore').value = '';
@@ -1380,12 +1401,12 @@ function selectActType(btn) {
 }
 
 async function saveActivity() {
-  if (!_actType) { toast('Velg aktivitetstype', 'err'); return; }
+  if (!_actType) { toast(t('tp.select_activity'), 'err'); return; }
   const date = document.getElementById('actDate').value;
-  if (!date) { toast('Velg dato', 'err'); return; }
+  if (!date) { toast(t('tp.select_date'), 'err'); return; }
 
   const actLabel   = _actType === 'Annet' ? (document.getElementById('actCustomLabel').value.trim() || null) : null;
-  const duration   = parseInt(document.getElementById('actDuration').value) || null;
+  const duration   = null;
   const rpe        = parseInt(document.getElementById('actRpe').value) || null;
   const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);
   const kneeDuring = document.getElementById('actKneeDuring').value === '' ? null : Number(document.getElementById('actKneeDuring').value);
@@ -1400,12 +1421,12 @@ async function saveActivity() {
     notes,
   }).select().single();
 
-  if (error) { toast('Feil ved lagring', 'err'); console.error(error); return; }
+  if (error) { toast(t('tp.save_error'), 'err'); console.error(error); return; }
 
   _actData.unshift(data);
   closeActModal();
   renderSessionGrid();
-  toast('Aktivitet lagret');
+  toast(t('tp.activity_saved'));
 }
 
 async function autoSaveActField(actId, field, value) {
@@ -1419,11 +1440,11 @@ async function autoSaveActField(actId, field, value) {
 async function deleteActivity(actId) {
   if (!confirm('Slett denne aktiviteten?')) return;
   const { error } = await db.from('activity_log').delete().eq('id', actId);
-  if (error) { toast('Feil ved sletting', 'err'); return; }
+  if (error) { toast(t('tp.delete_error'), 'err'); return; }
   _actData = _actData.filter(a => String(a.id) !== String(actId));
   _openDetail = null;
   renderSessionGrid();
-  toast('Aktivitet slettet');
+  toast(t('tp.activity_deleted'));
 }
 
 async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
@@ -1474,6 +1495,7 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
   loggedDates = new Set((data || []).map(r => r.date));
   currentWeekLoggedDates = new Set(loggedDates);
 
+  applyLang();
   renderHero();
   renderWeekNav();
   renderDayStrip();
