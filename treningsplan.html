@@ -539,6 +539,16 @@
         <div id="weekLoadLabel" class="wbar-load-label" style="margin-top:8px"></div>
       </div>
 
+      <!-- Edit weekly plan -->
+      <button onclick="openEditWeeklyPlan()"
+        style="width:100%;padding:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+               border-radius:8px;color:var(--text-secondary);font-size:11px;font-family:var(--font-mono);
+               cursor:pointer;transition:background 0.15s;text-align:center"
+        onmouseover="this.style.background='rgba(255,255,255,0.07)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+        ✎ Rediger ukeplan
+      </button>
+
     </div>
   </div>
 
@@ -599,6 +609,18 @@
     </div>
   </div>
 
+  <!-- Weekly plan modal -->
+  <div class="act-modal-overlay hidden" id="weeklyPlanModal" onclick="if(event.target===this)closeEditWeeklyPlan()">
+    <div class="act-modal" style="max-width:400px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title">Rediger ukeplan</span>
+        <button class="act-modal-close" onclick="closeEditWeeklyPlan()">✕</button>
+      </div>
+      <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      <button class="act-save-btn" onclick="saveWeeklyPlan()">Lagre plan</button>
+    </div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -624,7 +646,8 @@ function fullDay(i) {
 
 // ── State ──────────────────────────────────────────────────────────────────
 let userId               = null;
-let plan                 = {};   // { 0: 'Sprint', notes_0: '...', ... }
+let plan                 = {};   // training_plan overrides { 0: 'Sprint', notes_0: '...', ... }
+let weeklyPlan           = {};   // weekly_plan global defaults { 0: 'Sprint', ... }
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
 let selectedIdx          = todayIdx();
@@ -661,7 +684,68 @@ async function loadPlanFromDb() {
   });
 }
 
-function planText(i)  { return (plan[i]             || '').trim(); }
+async function loadWeeklyPlan() {
+  const { data } = await db.from('weekly_plan').select('day,session_type');
+  weeklyPlan = {};
+  (data || []).forEach(r => { weeklyPlan[r.day] = r.session_type; });
+
+  // Auto-seed from training_plan on first use
+  if (!Object.keys(weeklyPlan).length) {
+    const rows = [0,1,2,3,4,5,6].map(d => ({
+      user_id: userId,
+      day: d,
+      session_type: plan[d] || '',
+    }));
+    await db.from('weekly_plan').upsert(rows, { onConflict: 'user_id,day' });
+    rows.forEach(r => { weeklyPlan[r.day] = r.session_type; });
+  }
+}
+
+// ── Weekly plan editor ─────────────────────────────────────────────────────
+const _WP_DAY_NAMES = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+
+function openEditWeeklyPlan() {
+  const el = document.getElementById('weeklyPlanRows');
+  if (!el) return;
+  el.innerHTML = [0,1,2,3,4,5,6].map(d => `
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${_WP_DAY_NAMES[d]}</div>
+      <input class="input-sm" id="wp-day-${d}" type="text" placeholder="Hvile"
+        value="${escHtml(weeklyPlan[d] || '')}"
+        style="flex:1" onkeydown="if(event.key==='Enter')saveWeeklyPlan()">
+    </div>`).join('');
+  document.getElementById('weeklyPlanModal').classList.remove('hidden');
+  document.getElementById('wp-day-0')?.focus();
+}
+
+function closeEditWeeklyPlan() {
+  document.getElementById('weeklyPlanModal').classList.add('hidden');
+}
+
+async function saveWeeklyPlan() {
+  const rows = [0,1,2,3,4,5,6].map(d => ({
+    user_id: userId,
+    day: d,
+    session_type: document.getElementById(`wp-day-${d}`)?.value.trim() || '',
+  }));
+  const { error } = await db.from('weekly_plan').upsert(rows, { onConflict: 'user_id,day' });
+  if (error) { toast(t('tp.save_error'), 'err'); return; }
+  rows.forEach(r => { weeklyPlan[r.day] = r.session_type; });
+
+  // Remove training_plan session_text overrides so the new global plan shows through
+  const { error: e2 } = await db.from('training_plan')
+    .update({ session_text: null })
+    .eq('user_id', userId);
+  if (!e2) {
+    [0,1,2,3,4,5,6].forEach(d => { delete plan[d]; });
+  }
+
+  closeEditWeeklyPlan();
+  renderHero(); renderDayStrip(); renderDetail(); renderSidebar();
+  toast(t('tp.plan_saved'));
+}
+
+function planText(i)  { return (plan[i] || weeklyPlan[i] || '').trim(); }
 function notesText(i) { return (plan[`notes_${i}`]  || '').trim(); }
 
 function isRest(i) {
@@ -1489,6 +1573,7 @@ async function autoSaveKneePainField(gymId, date, sessionType, field, value) {
   }
 
   await loadPlanFromDb();
+  await loadWeeklyPlan();
 
   const mon = getMonday();
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
