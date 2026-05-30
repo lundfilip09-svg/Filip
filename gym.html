@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Gym — Styrketrening</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     .gym-shell {
@@ -362,6 +362,9 @@
     .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
     .hist-row:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
+    .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
+    .gym-history-item:hover .gym-del-btn { opacity: 1; }
+    .gym-del-btn:hover { color: var(--danger); }
     .knee-edit-panel { display: none; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; }
     .knee-edit-panel.open { display: block; }
     .knee-edit-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
@@ -404,16 +407,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"           class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"     class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"           class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -586,7 +590,7 @@
 
     <!-- DONE: save log -->
     <div class="sb-sec ws-done">
-      <div class="sb-hd">Lagre økt</div>
+      <div class="sb-hd" data-i18n="gym.log_session">Lagre økt</div>
       <div class="form-group" style="margin-bottom:10px">
         <label class="form-label">Dato</label>
         <input type="date" id="logDate" class="input-sm" style="width:100%;box-sizing:border-box">
@@ -609,14 +613,14 @@
         <textarea id="sessionNotes" class="input-sm" rows="2" style="width:100%;resize:vertical;box-sizing:border-box"></textarea>
       </div>
       <div style="display:flex;gap:6px">
-        <button id="saveLogBtn" class="btn btn-success btn-sm" onclick="saveLog()" style="flex:1">Lagre økt</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearLog()">Nullstill</button>
+        <button id="saveLogBtn" class="btn btn-success btn-sm" onclick="saveLog()" style="flex:1" data-i18n="gym.log_session">Lagre økt</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearLog()" data-i18n="gym.reset">Nullstill</button>
       </div>
     </div>
 
     <!-- ALWAYS: history -->
     <div class="sb-sec">
-      <div class="sb-hd">Økthistorikk</div>
+      <div class="sb-hd" data-i18n="gym.history">Økthistorikk</div>
       <div id="gymHistory" style="max-height:260px;overflow-y:auto">
         <div class="loading">Laster…</div>
       </div>
@@ -803,7 +807,7 @@ async function init() {
       const pb = document.getElementById('restPauseBtn');
       if (pb) { pb.textContent = '⏸'; pb.disabled = false; }
     }
-    toast('Økt gjenopprettet');
+    toast(t('gym.session_saved'));
   } else {
     restoreDraft();   // populates setData + kneePain before rendering
     renderAll();
@@ -821,6 +825,7 @@ async function init() {
   });
 
   await loadGymHistory();
+  applyLang();
 }
 
 async function loadData() {
@@ -885,7 +890,7 @@ function setDay(day) {
   document.querySelectorAll('.day-pill').forEach(t =>
     t.classList.toggle('active', t.dataset.day === day)
   );
-  const titles = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power', rehab:'Daglig Rehab' };
+  const titles = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power'), rehab: t('session.daily_rehab') };
   document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
   renderAll();
   saveDraft();
@@ -1497,7 +1502,7 @@ function addSetToActive() {
 function jumpToNext() {
   const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
   if (next) openDrawer(next.id);
-  else toast('Alle øvelser fullført');
+  else toast(t('gym.session_saved'));
 }
 
 // ── Tool toggle ────────────────────────────────────────────────────
@@ -1662,7 +1667,7 @@ async function addExercise(day, section, formId) {
   const { data, error } = await db.from('workout_program').insert(
     { day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1 }
   ).select().single();
-  if (error) { toast('Feil ved lagring', 'err'); return; }
+  if (error) { toast(t('gym.save_error'), 'err'); return; }
   if (!allExercises[day]) allExercises[day] = {};
   if (!allExercises[day][section]) allExercises[day][section] = [];
   allExercises[day][section].push(data);
@@ -1698,7 +1703,7 @@ async function saveExMeta(id) {
       if (ex) { if (name) ex.exercise_name = name; ex.sets = sets; ex.reps = reps; }
     }
   renderAll();
-  toast('Oppdatert');
+  toast(t('gm.saved'));
 }
 
 async function autoSaveExField(id, field, value) {
@@ -1730,7 +1735,7 @@ async function saveLog() {
   const btn = document.getElementById('saveLogBtn');
   if (btn) btn.disabled = true;
   try {
-    const labels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+    const labels = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power') };
     const notes  = document.getElementById('sessionNotes').value.trim();
     const date   = document.getElementById('logDate').value || today();
     const [kRes, gRes] = await Promise.all([
@@ -1741,10 +1746,10 @@ async function saveLog() {
       }),
       db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
     ]);
-    if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
+    if (kRes.error || gRes.error) { toast(t('gym.save_error'), 'err'); return; }
     clearSession();
     clearDraft();
-    toast('Økt lagret!');
+    toast(t('gym.session_saved'));
     await loadGymHistory();
   } finally {
     _isSavingLog = false;
@@ -1793,7 +1798,7 @@ async function loadGymHistory() {
   }
 
   if (!sessions.length) {
-    el.innerHTML = '<div class="empty">Ingen loggede økter ennå</div>'; return;
+    el.innerHTML = `<div class="empty">${t('gym.no_history')}</div>`; return;
   }
 
   const _wds = ['søn','man','tir','ons','tor','fre','lør'];
@@ -1822,7 +1827,7 @@ async function loadGymHistory() {
       `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`
     ).join(' · ');
 
-    return `<div id="hist-wrap-${g.id}">
+    return `<div id="hist-wrap-${g.id}" class="gym-history-item">
       <div class="hist-row" style="align-items:flex-start;padding:8px 0">
         <div style="flex:1;min-width:0">
           <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:2px">${fmtSessDate(g.date)}</div>
@@ -1830,6 +1835,7 @@ async function loadGymHistory() {
           <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
+        <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="Slett økt">✕</button>
       </div>
       <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
         <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
@@ -1855,7 +1861,17 @@ async function loadGymHistory() {
   }).join('') +
   `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
     font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
-    text-align:center">Se full øktlogg →</a>`;
+    text-align:center">${t('gym.full_log')}</a>`;
+}
+
+async function deleteGymSession(gymId, kneePainId) {
+  if (!confirm('Slett denne økten?')) return;
+  const ops = [db.from('gym_log').delete().eq('id', gymId)];
+  if (kneePainId) ops.push(db.from('knee_pain').delete().eq('id', kneePainId));
+  const results = await Promise.all(ops);
+  if (results.some(r => r.error)) { toast(t('gym.delete_error'), 'err'); return; }
+  toast(t('gym.deleted'));
+  await loadGymHistory();
 }
 
 function toggleKneeEdit(gymId) {
@@ -1875,7 +1891,7 @@ async function saveKneeEdit(gymId, kneeId, date, sessionType) {
   };
   if (kneeId) await db.from('knee_pain').update(payload).eq('id', kneeId);
   else await db.from('knee_pain').insert({ date, session_type: sessionType, ...payload });
-  toast('Knesmerte oppdatert');
+  toast(t('sprint.knee_updated'));
   await loadGymHistory();
 }
 
