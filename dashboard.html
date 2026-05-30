@@ -537,7 +537,7 @@ async function loadWeekPlan() {
 // Date label
 const _now = new Date();
 document.getElementById('dateLabel').textContent =
-  _now.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  _now.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
 // ── Auto-clean todos ───────────────────────────────────────────────────────
 async function autoCleanTodos() {
@@ -962,8 +962,8 @@ function _calFmtTime(start) {
 function _calFmtDate(start) {
   const d = new Date(start.dateTime || start.date);
   const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1);
-  if (d.toDateString() === tmrw.toDateString()) return 'I morgen';
-  return d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (d.toDateString() === tmrw.toDateString()) return t('dash.tomorrow');
+  return d.toLocaleDateString(fmtLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 function _calIsToday(start) {
   return new Date(start.dateTime || start.date).toDateString() === new Date().toDateString();
@@ -998,18 +998,18 @@ function renderNextEvent(upcoming) {
     const d = new Date(next.start.dateTime);
     const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1);
     const dayLabel = d.toDateString() === tmrw.toDateString()
-      ? 'I morgen'
-      : d.toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
-    whenStr = `${dayLabel} · ${d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`;
+      ? t('dash.tomorrow')
+      : d.toLocaleDateString(fmtLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
+    whenStr = `${dayLabel} · ${d.toLocaleTimeString(fmtLocale(), { hour: '2-digit', minute: '2-digit' })}`;
   } else {
-    whenStr = new Date(next.start.date + 'T12:00:00').toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+    whenStr = new Date(next.start.date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
   el.innerHTML = `
     <div class="next-evt">
       <div class="next-evt-dot" style="background:${color}"></div>
       <div>
-        <div class="next-evt-title">${escHtml(next.summary || '(uten tittel)')}</div>
+        <div class="next-evt-title">${escHtml(next.summary || t('dash.untitled'))}</div>
         <div class="next-evt-when">${whenStr}</div>
       </div>
     </div>`;
@@ -1039,12 +1039,12 @@ async function loadCalendar() {
     _calUpcoming = upcoming;
 
     elToday.innerHTML = todayEvts.length
-      ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || '(uten tittel)', !e.start.dateTime)).join('')
+      ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
       : '<p class="cal-empty">Ingen hendelser i dag</p>';
 
     const future = upcoming.filter(e => !_calIsToday(e.start));
     elUpcoming.innerHTML = future.length
-      ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || '(uten tittel)', !e.start.dateTime)).join('')
+      ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
       : '<p class="cal-empty">Ingenting planlagt</p>';
 
     renderNextEvent(upcoming);
@@ -1072,6 +1072,7 @@ async function loadCalendar() {
     return;
   }
 
+  applyLang();
   await loadWeekPlan().catch(() => {});
   const sessionData = loadSession();
 
