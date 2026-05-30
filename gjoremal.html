@@ -819,11 +819,19 @@ async function deleteList(name) {
 
 // ── Todos ─────────────────────────────────────────────────────────────────
 async function loadTodos() {
-  const { data } = await db.from('todos')
+  let { data, error } = await db.from('todos')
     .select('*').order('important', { ascending: false })
     .order('sort_order', { ascending: true, nullsLast: true })
     .order('due_date', { ascending: true, nullsLast: true })
     .order('created_at', { ascending: false });
+  if (error) {
+    // sort_order column missing (migration 010 not yet run) — fall back
+    const fb = await db.from('todos')
+      .select('*').order('important', { ascending: false })
+      .order('due_date', { ascending: true, nullsLast: true })
+      .order('created_at', { ascending: false });
+    data = fb.data;
+  }
   allTodos = data || [];
   // Seed localStorage from DB sort_order so order works cross-device
   const byList = {};
