@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Sprint — Rekorder & logg</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     .knee-log-row { display: flex; flex-direction: column; gap: 6px; }
@@ -137,16 +137,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"        class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html" class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"       class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"    class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"      class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"  class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"        class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html" class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"       class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"    class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"      class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"  class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"  class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -154,23 +155,23 @@
 
   <!-- PB Board -->
   <div class="card">
-    <div class="section-title">Personlige rekorder</div>
-    <div class="grid-4" id="pbGrid"><div class="loading">Laster…</div></div>
+    <div class="section-title" data-i18n="sprint.personal_records">Personlige rekorder</div>
+    <div class="grid-4" id="pbGrid"><div class="loading" data-i18n="loading">Laster…</div></div>
   </div>
 
   <!-- Sprint goals -->
   <div class="card">
-    <div class="section-title">Sprintmål</div>
-    <div id="sprintGoals"><div class="loading">Laster…</div></div>
+    <div class="section-title" data-i18n="sprint.goals">Sprintmål</div>
+    <div id="sprintGoals"><div class="loading" data-i18n="loading">Laster…</div></div>
   </div>
 
   <!-- Log form -->
   <div class="card">
-    <div class="section-title">Logg økt</div>
+    <div class="section-title" data-i18n="sprint.log">Logg økt</div>
 
     <!-- Dato (felles for hele økten) -->
     <div class="form-group" style="max-width:180px;margin-bottom:18px">
-      <label class="form-label">Dato</label>
+      <label class="form-label" data-i18n="date">Dato</label>
       <input type="date" id="logDate">
     </div>
 
@@ -178,7 +179,7 @@
     <div class="eval-label">Løp</div>
     <div class="add-run-row">
       <div class="form-group">
-        <label class="form-label">Distanse</label>
+        <label class="form-label" data-i18n="sprint.distance">Distanse</label>
         <select id="logDist">
           <option value="60m">60m</option>
           <option value="60m_celler">60m (celler)</option>
@@ -193,7 +194,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Type</label>
+        <label class="form-label" data-i18n="sprint.type">Type</label>
         <select id="logType">
           <option value="Trening">Trening</option>
           <option value="Stevne">Stevne</option>
@@ -201,12 +202,12 @@
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Tid (sek)</label>
+        <label class="form-label" data-i18n="sprint.time">Tid (sek)</label>
         <input type="number" id="logTime" step="0.01" placeholder="11.52"
           onkeydown="if(event.key==='Enter')addRun()">
       </div>
       <div style="padding-bottom:1px">
-        <button class="btn btn-ghost btn-sm" onclick="addRun()" style="white-space:nowrap">+ Legg til løp</button>
+        <button class="btn btn-ghost btn-sm" onclick="addRun()" style="white-space:nowrap" data-i18n="sprint.add_run">+ Legg til løp</button>
       </div>
     </div>
 
@@ -215,81 +216,81 @@
 
     <!-- Evaluering -->
     <hr class="session-divider">
-    <div class="eval-label">Evaluering</div>
+    <div class="eval-label" data-i18n="sprint.evaluation">Evaluering</div>
 
     <div class="form-group" style="max-width:180px;margin-bottom:14px">
-      <label class="form-label">RPE (1–10)</label>
+      <label class="form-label" data-i18n="sprint.rpe">RPE (1–10)</label>
       <input type="number" id="logRpe" min="1" max="10" placeholder="7">
     </div>
 
     <div style="margin-bottom:12px">
-      <div class="form-label" style="margin-bottom:8px">Knesmerte (0–10)</div>
+      <div class="form-label" style="margin-bottom:8px" data-i18n="knee.pain_0_10">Knesmerte (0–10)</div>
       <div class="knee-log-row">
         <div class="knee-row-item">
-          <span class="knee-row-label">Før økt</span>
+          <span class="knee-row-label" data-i18n="knee.before_session">Før økt</span>
           <div class="pain-row" id="sk-before"></div>
         </div>
         <div class="knee-row-item">
-          <span class="knee-row-label">Under økt</span>
+          <span class="knee-row-label" data-i18n="knee.during_session">Under økt</span>
           <div class="pain-row" id="sk-during"></div>
         </div>
         <div class="knee-row-item">
-          <span class="knee-row-label">Etter økt</span>
+          <span class="knee-row-label" data-i18n="knee.after_session">Etter økt</span>
           <div class="pain-row" id="sk-after"></div>
         </div>
         <div class="knee-row-item">
-          <span class="knee-row-label">Dagen etter</span>
+          <span class="knee-row-label" data-i18n="knee.dayafter">Dagen etter</span>
           <div class="pain-row" id="sk-dayafter"></div>
         </div>
       </div>
     </div>
 
     <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Notater</label>
+      <label class="form-label" data-i18n="notes">Notater</label>
       <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…"></textarea>
     </div>
-    <button id="sprintSaveBtn" class="btn btn-success" onclick="logSession()">Logg økt</button>
+    <button id="sprintSaveBtn" class="btn btn-success" onclick="logSession()" data-i18n="sprint.log_btn">Logg økt</button>
   </div>
 
   <!-- Knee trend -->
   <div class="card">
-    <div class="section-title">Knesmerte — siste 5 økter</div>
-    <div id="kneeTrend"><div class="loading">Laster…</div></div>
+    <div class="section-title" data-i18n="sprint.history">Knesmerte — siste 5 økter</div>
+    <div id="kneeTrend"><div class="loading" data-i18n="loading">Laster…</div></div>
     <div id="kneeEditPanel" style="display:none;margin-top:12px;padding:12px;
       background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07)">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);
         text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px">
-        Rediger knesmerte — <span id="kneeEditDate"></span>
+        <span data-i18n="sprint.edit_knee">Rediger knesmerte — </span><span id="kneeEditDate"></span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
         <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">FØR</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.before_short">FØR</div>
           <input type="number" id="kneeEditBefore" min="0" max="10" class="input-sm" style="width:100%">
         </div>
         <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">UNDER</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.during_short">UNDER</div>
           <input type="number" id="kneeEditDuring" min="0" max="10" class="input-sm" style="width:100%">
         </div>
         <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">ETTER</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.after_short">ETTER</div>
           <input type="number" id="kneeEditAfter" min="0" max="10" class="input-sm" style="width:100%">
         </div>
         <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">DAGEN ETTER</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.dayafter_short">DAGEN ETTER</div>
           <input type="number" id="kneeEditDayAfter" min="0" max="10" class="input-sm" style="width:100%">
         </div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-success btn-sm" onclick="saveKneeInline()">Lagre</button>
-        <button class="btn btn-ghost btn-sm" onclick="closeKneeEdit()">Avbryt</button>
+        <button class="btn btn-success btn-sm" onclick="saveKneeInline()" data-i18n="save">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeKneeEdit()" data-i18n="cancel">Avbryt</button>
       </div>
     </div>
   </div>
 
   <!-- History -->
   <div class="card">
-    <div class="section-title">Økthistorikk</div>
-    <div id="historyList"><div class="loading">Laster…</div></div>
+    <div class="section-title" data-i18n="tp.history">Økthistorikk</div>
+    <div id="historyList"><div class="loading" data-i18n="loading">Laster…</div></div>
   </div>
 
 </main>
@@ -395,7 +396,7 @@ function addRun() {
   const dist = document.getElementById('logDist').value;
   const type = document.getElementById('logType').value;
   const time = parseFloat(document.getElementById('logTime').value);
-  if (!dist || isNaN(time) || time <= 0) { toast('Fyll inn distanse og tid', 'err'); return; }
+  if (!dist || isNaN(time) || time <= 0) { toast(t('sprint.fill_fields'), 'err'); return; }
   runs.push({ distance: dist, type, time });
   document.getElementById('logTime').value = '';
   document.getElementById('logTime').focus();
@@ -505,7 +506,7 @@ function renderSprintGoals(best) {
 // ── Log session ───────────────────────────────────────────────────────────
 async function logSession() {
   if (_isSavingLog) return;
-  if (!runs.length) { toast('Legg til minst ett løp før du lagrer', 'err'); return; }
+  if (!runs.length) { toast(t('sprint.add_first'), 'err'); return; }
   _isSavingLog = true;
   const btn = document.getElementById('sprintSaveBtn');
   if (btn) btn.disabled = true;
@@ -536,8 +537,8 @@ async function logSession() {
       }),
     ]);
 
-    if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
-    if (kneeRes.error) { toast('Knesmerte ikke lagret: ' + kneeRes.error.message, 'err'); }
+    if (logRes.error)  { toast(t('sprint.save_error', {msg: logRes.error.message}), 'err'); return; }
+    if (kneeRes.error) { toast(t('sprint.knee_error', {msg: kneeRes.error.message}), 'err'); }
 
     // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
     const newPBs = [];
@@ -560,7 +561,7 @@ async function logSession() {
       }
     }
 
-    toast(newPBs.length ? `Ny PB! ${newPBs.join(', ')}` : `${runs.length} løp lagret!`);
+    toast(newPBs.length ? t('sprint.new_pb', {pbs: newPBs.join(', ')}) : t('sprint.runs_saved', {n: runs.length}));
     clearDraft();
 
     // Reset
@@ -716,9 +717,9 @@ async function saveHistField(date, field, valueStr) {
     if (s === '') { value = null; }
     else {
       const n = Number(s);
-      if (isNaN(n)) { toast('Ugyldig verdi', 'err'); return; }
-      if (field === 'rpe' && (n < 1 || n > 10)) { toast('RPE må være 1–10', 'err'); return; }
-      if (field !== 'rpe' && (n < 0 || n > 10)) { toast('Smerte må være 0–10', 'err'); return; }
+      if (isNaN(n)) { toast(t('sprint.invalid'), 'err'); return; }
+      if (field === 'rpe' && (n < 1 || n > 10)) { toast(t('sprint.rpe_range'), 'err'); return; }
+      if (field !== 'rpe' && (n < 0 || n > 10)) { toast(t('sprint.pain_range'), 'err'); return; }
       value = n;
     }
   }
@@ -727,10 +728,10 @@ async function saveHistField(date, field, valueStr) {
   // Informer bruker om at kne-verdier gjelder alle løp på denne datoen
   const kneeFields = ['knee_before','knee_during','knee_after','knee_day_after'];
   if (kneeFields.includes(field) && ids.length > 1 && value !== null) {
-    toast(`Oppdaterer alle ${ids.length} løp på denne datoen`, 'ok');
+    toast(t('sprint.updating', {n: ids.length}), 'ok');
   }
   const { error } = await db.from('sprint_log').update({ [field]: value }).in('id', ids);
-  if (error) { toast('Lagringsfeil', 'err'); return; }
+  if (error) { toast(t('sprint.save_fail'), 'err'); return; }
   sprintLog.filter(r => r.date === date).forEach(r => { r[field] = value; });
   refreshHistCard(date);
   if (['knee_before','knee_during','knee_after','knee_day_after'].includes(field)) {
@@ -749,7 +750,7 @@ async function deleteSprintDate(date) {
   if (!confirm('Slett alle løp fra ' + date + '?')) return;
   await db.from('sprint_log').delete().eq('date', date);
   await loadHistory();
-  toast('Økt slettet');
+  toast(t('sprint.deleted'));
 }
 
 // ── Knee trend — reads from knee_pain (before_score/during_score/...) ─────
@@ -853,10 +854,10 @@ async function saveKneeInline() {
     day_after_score: dayafter !== '' ? Number(dayafter) : null,
   }).eq('id', d.id);
 
-  if (error) { toast('Feil ved lagring: ' + error.message, 'err'); return; }
+  if (error) { toast(t('sprint.knee_save_error', {msg: error.message}), 'err'); return; }
   closeKneeEdit();
   await loadKneeTrend();
-  toast('Knesmerte oppdatert');
+  toast(t('sprint.knee_updated'));
 }
 
 
@@ -878,6 +879,7 @@ async function saveKneeInline() {
       </div>`;
     return;
   }
+  applyLang();
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();
 </script>
