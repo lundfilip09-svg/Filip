@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Kalender</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
@@ -438,16 +438,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"           class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"     class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"           class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -457,13 +458,13 @@
     <div class="kal-month-label" id="headerLabel">Mai<span>2026</span></div>
     <div class="kal-header-right">
       <div class="view-toggle">
-        <button class="vt-btn active" id="vtAgenda"    onclick="setView('agenda')">Agenda</button>
-        <button class="vt-btn"        id="vtTimeline"  onclick="setView('timeline')">Tidslinje</button>
+        <button class="vt-btn active" id="vtAgenda"    onclick="setView('agenda')"   data-i18n="kal.agenda_view">Agenda</button>
+        <button class="vt-btn"        id="vtTimeline"  onclick="setView('timeline')" data-i18n="kal.week_view">Tidslinje</button>
       </div>
       <div class="kal-nav">
-        <button class="kal-nav-btn" onclick="shiftWeek(-1)">‹</button>
-        <button class="kal-today-btn" onclick="goToday()">I dag</button>
-        <button class="kal-nav-btn" onclick="shiftWeek(1)">›</button>
+        <button class="kal-nav-btn" onclick="shiftWeek(-1)" data-i18n="kal.prev">‹</button>
+        <button class="kal-today-btn" onclick="goToday()" data-i18n="kal.today">I dag</button>
+        <button class="kal-nav-btn" onclick="shiftWeek(1)" data-i18n="kal.next">›</button>
       </div>
     </div>
   </div>
@@ -487,7 +488,7 @@
       </div>
 
       <div class="upcoming-card">
-        <div class="section-title" style="margin-bottom:9px;font-size:11px">Kommende</div>
+        <div class="section-title" style="margin-bottom:9px;font-size:11px" data-i18n="dash.upcoming">Kommende</div>
         <div id="upcomingList"></div>
       </div>
 
@@ -496,7 +497,7 @@
     <div class="kal-right">
 
       <div class="rp-card">
-        <div class="rp-label">Rask legg til</div>
+        <div class="rp-label" data-i18n="kal.new_event">Rask legg til</div>
         <div class="qa-input-wrap">
           <input class="qa-input" id="qaInput" type="text"
             placeholder="Sprint torsdag 17:00…"
@@ -510,21 +511,21 @@
       </div>
 
       <div class="rp-card" id="evDetailCard" style="display:none;position:relative">
-        <div class="rp-label">Hendelse</div>
+        <div class="rp-label" data-i18n="kal.add_event">Hendelse</div>
         <button class="ev-detail-close" onclick="closeEvent()" title="Lukk">✕</button>
         <div id="evDetailContent"></div>
       </div>
 
       <div class="rp-card">
-        <div class="rp-label">I dag</div>
+        <div class="rp-label" data-i18n="kal.today">I dag</div>
         <div class="focus-stats">
           <div class="focus-stat">
             <div class="focus-stat-val" id="ds-sleep">–</div>
-            <div class="focus-stat-lbl">Søvn</div>
+            <div class="focus-stat-lbl" data-i18n="nav.sovn">Søvn</div>
           </div>
           <div class="focus-stat">
             <div class="focus-stat-val" id="ds-knee">–</div>
-            <div class="focus-stat-lbl">Kne</div>
+            <div class="focus-stat-lbl" data-i18n="knee.pain">Kne</div>
           </div>
           <div class="focus-stat">
             <div class="focus-stat-val" id="ds-events">–</div>
@@ -860,7 +861,7 @@ function agRow(e) {
   const c        = getEventColor(e);
   const isActive = e.id === activeEventId;
   const catLabel = e.source === 'gcal' ? 'GCal' : (CAT_LABELS[e.category] || 'Annet');
-  const timeStr  = e.allDay ? 'Heldags' : (e.startTime || '–');
+  const timeStr  = e.allDay ? t('kal.whole_day') : (e.startTime || '–');
   const style    = isActive ? `background:${hexAlpha(c,0.07)};border-left-color:${c}` : '';
 
   return `<div class="agenda-row${isActive ? ' active' : ''}" style="${style}" onclick="openEvent('${e.id}')">
@@ -956,7 +957,7 @@ function renderEventDetail() {
       <div class="ev-detail">
         <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px">${escHtml(ev.title)}</div>
         <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:10px">
-          ${ev.allDay ? 'Heldagsarrangement' : (ev.startTime + (ev.endTime ? ' – ' + ev.endTime : ''))} · ${ev.date}
+          ${ev.allDay ? t('kal.all_day') : (ev.startTime + (ev.endTime ? ' – ' + ev.endTime : ''))} · ${ev.date}
         </div>
         <div class="ev-gcal-notice">Google Calendar · skrivebeskyttet</div>
       </div>`;
@@ -1060,7 +1061,7 @@ function renderUpcoming() {
     const d        = new Date(dateStr + 'T12:00:00');
     const isToday  = dateStr === todayD;
     const dow      = (d.getDay() + 6) % 7;
-    const dayLabel = isToday ? 'I dag'
+    const dayLabel = isToday ? t('kal.today')
       : `${NO_DAYS_SHORT[dow === 6 ? 0 : dow + 1] || NO_DAYS_SHORT[dow]} ${d.getDate()}. ${NO_MONTHS_SHORT[d.getMonth()]}`;
 
     const rows = evts.map(e => {
@@ -1107,7 +1108,7 @@ function renderNextCard() {
   const c        = getEventColor(next);
   const isToday  = next.date === todayStr;
   const dow      = (d.getDay() + 6) % 7;
-  const dateLabel = isToday ? 'I dag'
+  const dateLabel = isToday ? t('kal.today')
     : `${NO_DAYS_SHORT[dow === 6 ? 0 : dow + 1] || NO_DAYS_SHORT[dow]} ${d.getDate()}. ${NO_MONTHS_SHORT[d.getMonth()]}`;
 
   el.innerHTML = `
@@ -1158,26 +1159,26 @@ async function saveActiveEvent() {
   const startTime = document.getElementById('ef-start')?.value || null;
   const endTime   = document.getElementById('ef-end')?.value   || null;
   const notes     = document.getElementById('ef-notes')?.value.trim() || null;
-  if (!title) { toast('Tittel er påkrevd', 'err'); return; }
+  if (!title) { toast(t('gm.save_error'), 'err'); return; }
 
   const payload = { title, date, start_time: startTime, end_time: endTime, all_day: !startTime, category: ev.category, notes };
   const { error } = await db.from('calendar_events').update(payload).eq('id', ev.dbId);
-  if (error) { toast('Feil ved lagring', 'err'); return; }
+  if (error) { toast(t('kal.save_error'), 'err'); return; }
 
   Object.assign(ev, { title, date, startTime, endTime, notes, allDay: !startTime });
-  toast('Lagret');
+  toast(t('kal.updated'));
   renderAll();
 }
 
 async function deleteActiveEvent() {
   const ev = customEvents.find(e => e.id === activeEventId);
   if (!ev) return;
-  if (!confirm(`Slett "${ev.title}"?`)) return;
+  if (!confirm(`${t('kal.del_confirm')} "${ev.title}"`)) return;
   const { error } = await db.from('calendar_events').delete().eq('id', ev.dbId);
-  if (error) { toast('Feil ved sletting', 'err'); return; }
+  if (error) { toast(t('kal.del_error'), 'err'); return; }
   customEvents = customEvents.filter(e => e.id !== activeEventId);
   activeEventId = null;
-  toast('Slettet');
+  toast(t('kal.deleted'));
   renderAll();
 }
 
@@ -1211,7 +1212,7 @@ async function createEvent(data) {
   activeEventId = ev.id;
   if (ev.date !== toLocalStr(selectedDate)) selectDay(ev.date);
   else renderAll();
-  toast('Lagt til: ' + ev.title);
+  toast(t('kal.added') + ': ' + ev.title);
 }
 
 // ── Quick add ──────────────────────────────────────────────────────────────
@@ -1327,6 +1328,7 @@ async function loadDailyStats() {
     return;
   }
 
+  applyLang();
   await Promise.all([loadGCalRange(), loadCustomEvents(), loadDailyStats()]);
   renderAll();
 
