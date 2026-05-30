@@ -291,6 +291,7 @@ const VERCEL_DOMAIN = 'https://filip-vita.vercel.app';
 // ─────────────────────────────────────────────────────────────────────────
 
 let todayEntry   = null;
+let lastSyncAt   = null;
 let chartData    = [];
 let chartInstance = null;
 let chartMetric  = 'sleep';
@@ -308,8 +309,16 @@ function sleepHoursStr(h) {
 }
 
 // ── Smart insights ─────────────────────────────────────────────────────────
+function fmtSyncTime(ts) {
+  if (!ts) return null;
+  return new Date(ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+}
+
 function getHeroText(d) {
-  if (!d) return { main:'Ingen søvndata', sub:'Synces kl. 07:00', color:'var(--text-tertiary)' };
+  const syncTime = fmtSyncTime(d?.timestamp ?? lastSyncAt);
+  const syncLabel = syncTime ? `Synkronisert kl. ${syncTime}` : 'Synces automatisk';
+
+  if (!d) return { main:'Ingen søvndata', sub: syncLabel, color:'var(--text-tertiary)' };
   const sc = d.sleep_score;
   if (!sc) {
     return { main:'Sover videre?', sub: d.sleep_hours ? `Registrert ${sleepHoursStr(d.sleep_hours)}` : 'Venter på data', color:'var(--text-secondary)' };
@@ -356,9 +365,11 @@ function renderHero(d) {
   const chips = [];
   if (d?.sleep_hours) chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
   if (d?.rhr)         chips.push(`❤️ ${d.rhr} bpm`);
-  if (d?.hrv)         chips.push(`⚡ HRV ${d.hrv}ms`);
+  if (d?.hrv != null) chips.push(`⚡ HRV ${d.hrv}ms`);
   if (d?.sleep_start) chips.push(`🛌 ${d.sleep_start}`);
   if (d?.sleep_end)   chips.push(`⏰ ${d.sleep_end}`);
+  const st = fmtSyncTime(d?.timestamp);
+  if (st) chips.push(`🔄 ${st}`);
 
   const noData = !d || !d.sleep_score;
   el.innerHTML = `
@@ -596,9 +607,18 @@ function renderStats(d) {
 
 // ── Today ──────────────────────────────────────────────────────────────────
 async function loadToday() {
+  // Use local date (not UTC) so midnight-to-02:00 in Norway doesn't fetch yesterday's row
+  const localToday = new Date().toLocaleDateString('sv'); // 'sv' → YYYY-MM-DD in local tz
   const { data } = await db.from('health_data')
-    .select('*').eq('date', today()).order('timestamp', { ascending: false }).limit(1);
+    .select('*').eq('date', localToday).order('timestamp', { ascending: false }).limit(1);
   todayEntry = data?.[0] || null;
+  lastSyncAt = todayEntry?.timestamp || null;
+  if (!lastSyncAt) {
+    // No data for today — find when last sync happened across any date
+    const { data: recent } = await db.from('health_data')
+      .select('timestamp').order('timestamp', { ascending: false }).limit(1);
+    lastSyncAt = recent?.[0]?.timestamp || null;
+  }
   renderStats(todayEntry);
 }
 
