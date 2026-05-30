@@ -158,6 +158,28 @@ const TRANSLATIONS = {
     'sovn.leg_deep': 'Dyp søvn', 'sovn.leg_rem': 'REM', 'sovn.leg_light': 'Lett søvn',
     'sovn.leg_hrv': 'HRV (ms)', 'sovn.leg_rhr': 'Hvilepuls (bpm)',
     'sovn.leg_score': 'Søvnscore (0–100)',
+    'sovn.hrv_advice_optimal': 'Nervesystemet er restituert. Grønt lys for sprint og høy intensitet i dag.',
+    'sovn.hrv_advice_good': 'God restitusjon. Moderat til høy intensitet fungerer fint.',
+    'sovn.hrv_advice_low': 'HRV under normalen. Hold intensiteten moderat — unngå maksøkter og rep til failure i dag.',
+    'sovn.hrv_advice_critical': 'HRV svært lav. Kroppen er under stress. Lett aktivitet eller hviledag — ellers risikerer du overtrening.',
+    'sovn.hrv_advice_alarm': '⚠️ Ekstremt lav HRV. Hvil i dag. Sjekk om du er syk, dehydrert eller sover for lite.',
+    'sovn.rhr_advice_peak': 'Svært lav hvilepuls — tegn på god kondisjon og full restitusjon. Grønt lys for hard trening.',
+    'sovn.rhr_advice_excellent': 'Optimal hvilepuls for sprinter. Kroppen er godt restituert.',
+    'sovn.rhr_advice_normal': 'Normal hvilepuls. Ingenting å bekymre seg for.',
+    'sovn.rhr_advice_elevated': 'Lett forhøyet hvilepuls. Kan indikere stress, dårlig søvn eller tidlig sykdom. Vurder roligere økt.',
+    'sovn.rhr_advice_high': 'Forhøyet hvilepuls. Kroppen er under press — hvil eller lett økt i dag.',
+    'sovn.rhr_advice_alarm': '⚠️ Høy hvilepuls. Ikke tren intensivt. Kan indikere sykdom eller alvorlig underrestitusjon.',
+    'sovn.sleep_advice_optimal': 'Optimal søvnlengde. Kroppen har fått det den trenger for full restitusjon.',
+    'sovn.sleep_advice_good': 'Tilstrekkelig søvn. Litt under idealet, men bra nok for de fleste dager.',
+    'sovn.sleep_advice_little': 'Under anbefalt søvnmengde. Legg deg 30–60 min tidligere i kveld. Unngå hard trening sent på dagen.',
+    'sovn.sleep_advice_critical': '⚠️ Kritisk lite søvn. Ingen høyintensitetsøkt i dag. Prioriter søvn over alt annet i kveld.',
+    'sovn.score_advice_excellent': 'Fremragende søvnkvalitet. Kroppen har restituert optimalt.',
+    'sovn.score_advice_good': 'God søvnkvalitet. Du er godt restituert.',
+    'sovn.score_advice_ok': 'Søvnkvaliteten kan forbedres. Unngå skjerm og koffein siste 2t før legging.',
+    'sovn.score_advice_bad': 'Dårlig søvnkvalitet. Prioriter søvnhygiene: fast leggetid, mørkt rom, ingen koffein etter kl 14.',
+    'sovn.you_slept': 'Du sov ',
+    'sovn.score_sub': 'Søvnscore',
+    'sovn.copy_prompt': 'Kopier kommandoen under:',
     // Gjøremål
     'gm.title': 'Gjøremål', 'gm.sub': 'Oppgaver & mål',
     'gm.active': 'Aktive', 'gm.important': 'Viktige',
@@ -386,6 +408,28 @@ const TRANSLATIONS = {
     'sovn.leg_deep': 'Deep sleep', 'sovn.leg_rem': 'REM', 'sovn.leg_light': 'Light sleep',
     'sovn.leg_hrv': 'HRV (ms)', 'sovn.leg_rhr': 'Resting HR (bpm)',
     'sovn.leg_score': 'Sleep score (0–100)',
+    'sovn.hrv_advice_optimal': 'Nervous system is recovered. Green light for sprint and high intensity today.',
+    'sovn.hrv_advice_good': 'Good recovery. Moderate to high intensity is fine.',
+    'sovn.hrv_advice_low': 'HRV below normal. Keep intensity moderate — avoid max sessions and failure reps today.',
+    'sovn.hrv_advice_critical': 'HRV very low. Body is under stress. Light activity or rest day — otherwise you risk overtraining.',
+    'sovn.hrv_advice_alarm': '⚠️ Extremely low HRV. Rest today. Check if you are sick, dehydrated or sleeping too little.',
+    'sovn.rhr_advice_peak': 'Very low resting HR — sign of good fitness and full recovery. Green light for hard training.',
+    'sovn.rhr_advice_excellent': 'Optimal resting HR for a sprinter. Body is well recovered.',
+    'sovn.rhr_advice_normal': 'Normal resting HR. Nothing to worry about.',
+    'sovn.rhr_advice_elevated': 'Slightly elevated resting HR. May indicate stress, poor sleep or early illness. Consider an easier session.',
+    'sovn.rhr_advice_high': 'Elevated resting HR. Body is under pressure — rest or easy session today.',
+    'sovn.rhr_advice_alarm': '⚠️ High resting HR. Do not train intensively. May indicate illness or serious under-recovery.',
+    'sovn.sleep_advice_optimal': 'Optimal sleep duration. Body has received what it needs for full recovery.',
+    'sovn.sleep_advice_good': 'Sufficient sleep. Slightly below ideal, but good enough for most days.',
+    'sovn.sleep_advice_little': 'Below recommended sleep amount. Go to bed 30–60 min earlier tonight. Avoid hard training late in the day.',
+    'sovn.sleep_advice_critical': '⚠️ Critically little sleep. No high-intensity session today. Prioritize sleep above all else tonight.',
+    'sovn.score_advice_excellent': 'Outstanding sleep quality. Body has recovered optimally.',
+    'sovn.score_advice_good': 'Good sleep quality. You are well recovered.',
+    'sovn.score_advice_ok': 'Sleep quality could be improved. Avoid screens and caffeine in the last 2h before bed.',
+    'sovn.score_advice_bad': 'Poor sleep quality. Prioritize sleep hygiene: fixed bedtime, dark room, no caffeine after 2pm.',
+    'sovn.you_slept': 'You slept ',
+    'sovn.score_sub': 'Sleep score',
+    'sovn.copy_prompt': 'Copy the command below:',
     // Gjøremål
     'gm.title': 'Tasks', 'gm.sub': 'Tasks & goals',
     'gm.active': 'Active', 'gm.important': 'Important',
@@ -547,3 +591,18 @@ async function getConfig() {
   sessionStorage.setItem('app_config', JSON.stringify(cfg));
   return cfg;
 }
+
+// ── Page transition on nav clicks ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('a.nav-tab[href]').forEach(a => {
+    a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript')) return;
+      e.preventDefault();
+      document.body.style.transition = 'opacity 0.13s ease, transform 0.13s ease';
+      document.body.style.opacity = '0';
+      document.body.style.transform = 'translateY(-3px)';
+      setTimeout(() => { window.location.href = href; }, 130);
+    });
+  });
+});
