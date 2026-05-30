@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Gjøremål</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Nav slim ── */
@@ -564,16 +564,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"           class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html"    class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"          class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"       class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"         class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"     class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"           class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html"    class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"          class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"       class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"         class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -583,28 +584,29 @@
   <aside class="gm-sidebar">
 
     <div class="gm-sb-head">
-      <span class="gm-sb-title">Gjøremål</span>
-      <span class="gm-sb-sub">Oppgaver & mål</span>
+      <span class="gm-sb-title" data-i18n="gm.title">Gjøremål</span>
+      <span class="gm-sb-sub" data-i18n="gm.sub">Oppgaver & mål</span>
     </div>
 
     <div class="gm-sb-stats">
       <div class="gm-ss">
         <div class="gm-ss-val" id="sbActive">–</div>
-        <div class="gm-ss-lbl">Aktive</div>
+        <div class="gm-ss-lbl" data-i18n="gm.active">Aktive</div>
       </div>
       <div class="gm-ss">
         <div class="gm-ss-val warning" id="sbImportant">–</div>
-        <div class="gm-ss-lbl">Viktige</div>
+        <div class="gm-ss-lbl" data-i18n="gm.important">Viktige</div>
       </div>
     </div>
 
-    <div class="gm-sb-section">Lister</div>
+    <div class="gm-sb-section" data-i18n="gm.lists">Lister</div>
     <div class="gm-list-nav" id="listsBar">
       <div class="loading">Laster…</div>
     </div>
 
     <div class="gm-new-list-wrap">
       <input type="text" id="newListName" placeholder="Ny liste…"
+             data-i18n-placeholder="gm.new_list"
              onkeydown="if(event.key==='Enter')addList()">
       <button class="btn btn-ghost btn-sm" onclick="addList()">+</button>
     </div>
@@ -618,7 +620,7 @@
     <div class="gm-header">
       <div>
         <h1 class="gm-page-title" id="listHeading">Generelt</h1>
-        <p class="gm-page-sub">Gjøremål for i dag og fremover</p>
+        <p class="gm-page-sub" data-i18n="gm.sub_tasks">Gjøremål for i dag og fremover</p>
       </div>
       <div class="gm-header-date" id="headerDate"></div>
     </div>
@@ -627,19 +629,19 @@
     <div class="gm-stat-row">
       <div class="gm-sc">
         <div class="gm-sc-val blue"    id="statActive">–</div>
-        <div class="gm-sc-lbl">Aktive</div>
+        <div class="gm-sc-lbl" data-i18n="gm.stats_active">Aktive</div>
       </div>
       <div class="gm-sc">
         <div class="gm-sc-val warning" id="statImportant">–</div>
-        <div class="gm-sc-lbl">Viktige</div>
+        <div class="gm-sc-lbl" data-i18n="gm.stats_important">Viktige</div>
       </div>
       <div class="gm-sc">
         <div class="gm-sc-val success" id="statDone">–</div>
-        <div class="gm-sc-lbl">Fullført i dag</div>
+        <div class="gm-sc-lbl" data-i18n="gm.stats_done">Fullført i dag</div>
       </div>
       <div class="gm-sc">
         <div class="gm-sc-val danger"  id="statOverdue">–</div>
-        <div class="gm-sc-lbl">Forfalt</div>
+        <div class="gm-sc-lbl" data-i18n="gm.stats_overdue">Forfalt</div>
       </div>
     </div>
 
@@ -648,14 +650,15 @@
       <div class="gm-add-top">
         <div class="gm-add-ghost-cb"></div>
         <input type="text" id="todoTitle" placeholder="Legg til gjøremål…"
+               data-i18n-placeholder="gm.add_placeholder"
                onkeydown="if(event.key==='Enter')addTodo()"
                oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
       </div>
       <div class="gm-add-bottom">
         <input type="date" id="todoDue">
-        <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" title="Viktig">☆</button>
+        <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" data-i18n-title="gm.important_btn" title="Viktig">☆</button>
         <div class="gm-add-spacer"></div>
-        <button class="btn btn-primary btn-sm" onclick="addTodo()">Legg til</button>
+        <button class="btn btn-primary btn-sm" onclick="addTodo()" data-i18n="gm.add_btn">Legg til</button>
       </div>
     </div>
 
@@ -663,14 +666,14 @@
     <div class="gm-list-block">
       <div class="gm-list-toolbar">
         <div class="filter-row">
-          <button class="filter-btn active" data-filter="active"    onclick="setFilter('active')">Aktive</button>
-          <button class="filter-btn"        data-filter="all"       onclick="setFilter('all')">Alle</button>
-          <button class="filter-btn"        data-filter="important" onclick="setFilter('important')">Viktige</button>
-          <button class="filter-btn"        data-filter="done"      onclick="setFilter('done')">Fullførte</button>
+          <button class="filter-btn active" data-filter="active"    onclick="setFilter('active')"    data-i18n="gm.filter_active">Aktive</button>
+          <button class="filter-btn"        data-filter="all"       onclick="setFilter('all')"       data-i18n="gm.filter_all">Alle</button>
+          <button class="filter-btn"        data-filter="important" onclick="setFilter('important')" data-i18n="gm.filter_important">Viktige</button>
+          <button class="filter-btn"        data-filter="done"      onclick="setFilter('done')"      data-i18n="gm.filter_done">Fullførte</button>
         </div>
         <span class="gm-count-text" id="todoCount"></span>
       </div>
-      <div id="todoList"><div class="empty">Ingen gjøremål</div></div>
+      <div id="todoList"><div class="empty" data-i18n="gm.no_todos_empty">Ingen gjøremål</div></div>
     </div>
 
   </main>
@@ -687,7 +690,7 @@ document.querySelector('[data-p="gjoremal"]').classList.add('active');
 // Set header date
 (function() {
   const el = document.getElementById('headerDate');
-  if (el) el.textContent = new Date().toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (el) el.textContent = new Date().toLocaleDateString(fmtLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
 })();
 
 // ── State ─────────────────────────────────────────────────────────────────
@@ -804,14 +807,14 @@ async function addList() {
 }
 
 async function deleteList(name) {
-  if (!confirm(`Slett listen "${name}" og alle dens gjøremål?`)) return;
+  if (!confirm(t('gm.delete_list', {n: name}))) return;
   await db.from('todos').delete().eq('list_name', name);
   localStorage.removeItem('gm_order_' + name);
   lists = lists.filter(l => l !== name);
   if (activeList === name) activeList = lists[0] || 'Generelt';
   renderListsBar();
   await loadTodos();
-  toast(`"${name}" slettet`);
+  toast(t('gm.list_deleted', {n: name}));
 }
 
 // ── Todos ─────────────────────────────────────────────────────────────────
@@ -843,10 +846,10 @@ function renderTodos() {
 
   const activeCount = items.filter(t => !t.completed).length;
   document.getElementById('todoCount').textContent =
-    items.length ? `${activeCount} aktive` : '';
+    items.length ? t('gm.active_count', {n: activeCount}) : '';
 
   if (!items.length) {
-    el.innerHTML = '<div class="empty">Ingen gjøremål her</div>';
+    el.innerHTML = `<div class="empty">${t('gm.no_todos')}</div>`;
   } else {
     el.innerHTML = items.map(t => {
       const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
@@ -857,11 +860,11 @@ function renderTodos() {
         <span class="drag-handle">⠿</span>
         <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
         <div class="todo-body">
-          <div class="todo-text ${t.completed?'done-text':''}"${!t.completed?` onclick="startEditTitle('${t.id}')" title="Klikk for å redigere"`:''}>${escHtml(t.title)}</div>
+          <div class="todo-text ${t.completed?'done-text':''}"${!t.completed?` onclick="startEditTitle('${t.id}')" title="${t('gm.click_edit')}"`:''}>${escHtml(t.title)}</div>
           <div class="todo-meta">
             ${t.due_date
-              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${t.id}')" title="Endre forfallsdato">${isOverdue?'⚠ ':''}${fmtDate(t.due_date)}</span>`
-              : `<span class="todo-add-date" onclick="startEditDue('${t.id}')">+ dato</span>`
+              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${t.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(t.due_date)}</span>`
+              : `<span class="todo-add-date" onclick="startEditDue('${t.id}')">${t('gm.add_date')}</span>`
             }
           </div>
         </div>
@@ -905,7 +908,7 @@ async function addTodo() {
   const { data, error } = await db.from('todos').insert({
     title, list_name: activeList, due_date: due, important: newImportant,
   }).select().single();
-  if (error) { toast('Feil ved lagring', 'err'); return; }
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
 
   allTodos.unshift(data);
   const _ord = getOrder(activeList) || [];
@@ -917,7 +920,7 @@ async function addTodo() {
   document.getElementById('newImportant').textContent = '☆';
   document.getElementById('newImportant').style.color = '';
   renderTodos();
-  toast('Lagt til');
+  toast(t('gm.added'));
 }
 
 // ── Toggle complete ───────────────────────────────────────────────────────
@@ -945,7 +948,7 @@ async function deleteTodo(id) {
   await db.from('todos').delete().eq('id', id);
   allTodos = allTodos.filter(x => x.id !== id);
   renderTodos();
-  toast('Slettet');
+  toast(t('gm.deleted'));
 }
 
 // ── Inline edit: title ────────────────────────────────────────────────────
@@ -969,8 +972,8 @@ function startEditTitle(todoId) {
     const newTitle = input.value.trim();
     if (newTitle && newTitle !== todo.title) {
       const { error } = await db.from('todos').update({ title: newTitle }).eq('id', todoId);
-      if (!error) { todo.title = newTitle; toast('Lagret'); }
-      else toast('Feil ved lagring', 'err');
+      if (!error) { todo.title = newTitle; toast(t('gm.saved')); }
+      else toast(t('gm.save_error'), 'err');
     }
     renderTodos();
   };
@@ -1006,8 +1009,8 @@ function startEditDue(todoId) {
     const newDate = input.value || null;
     if (newDate !== todo.due_date) {
       const { error } = await db.from('todos').update({ due_date: newDate }).eq('id', todoId);
-      if (!error) { todo.due_date = newDate; toast('Lagret'); }
-      else toast('Feil ved lagring', 'err');
+      if (!error) { todo.due_date = newDate; toast(t('gm.saved')); }
+      else toast(t('gm.save_error'), 'err');
     }
     renderTodos();
   };
@@ -1071,6 +1074,7 @@ function startEditDue(todoId) {
       </div>`;
     return;
   }
+  applyLang();
   await Promise.all([autoClean(), loadLists()]);
   await loadTodos();
 
