@@ -785,7 +785,7 @@ function renderListsBar() {
     return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}" onclick="selectList(this.dataset.list)">
       <span class="gm-li-name">${escHtml(l)}</span>
       ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
-      ${l !== 'Generelt' ? `<button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="Slett">✕</button>` : ''}
+      <button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="Slett" style="${l==='Generelt'?'visibility:hidden;pointer-events:none':''}">✕</button>
     </div>`;
   }).join('');
 }
