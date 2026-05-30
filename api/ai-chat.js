@@ -83,7 +83,16 @@ export default async function handler(req, res) {
       'select=*&order=date.desc&limit=5'),
   ]);
 
-  const context = `[SØVN + HRV + PULS — SISTE 14 DAGER]
+  const now = new Date();
+  const osloDate = now.toLocaleDateString('no-NO', {
+    timeZone: 'Europe/Oslo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const osloDateISO = now.toLocaleDateString('sv', { timeZone: 'Europe/Oslo' }); // YYYY-MM-DD
+
+  const context = `[DAGENS DATO]
+${osloDate} (${osloDateISO})
+
+[SØVN + HRV + PULS — SISTE 14 DAGER]
 ${JSON.stringify(healthData, null, 2)}
 
 [SPRINT-LOGGER — SISTE 10]
