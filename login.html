@@ -23,27 +23,31 @@
 <main class="page">
   <div class="card login-wrap">
     <div class="login-title">Filip's Dashboard</div>
-    <div class="login-sub">Logg inn for å fortsette</div>
+    <div class="login-sub" data-i18n="login.sub">Logg inn for å fortsette</div>
     <div class="form-group">
-      <label class="form-label">E-post</label>
+      <label class="form-label" data-i18n="login.email">E-post</label>
       <input type="email" id="email" placeholder="din@epost.no"
+        data-i18n-placeholder="login.email_ph"
         onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
     </div>
     <div class="form-group">
-      <label class="form-label">Passord</label>
+      <label class="form-label" data-i18n="login.password">Passord</label>
       <input type="password" id="password" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')signIn()">
     </div>
     <div class="login-error" id="loginError"></div>
-    <button class="btn btn-primary" onclick="signIn()" id="loginBtn" style="width:100%;margin-top:12px">
+    <button class="btn btn-primary" onclick="signIn()" id="loginBtn" style="width:100%;margin-top:12px" data-i18n="login.btn">
       Logg inn
     </button>
   </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="utils.js"></script>
 <script>
 let db;
+
+applyLang();
 
 (async () => {
   try {
@@ -67,16 +71,16 @@ async function signIn() {
   const btn      = document.getElementById('loginBtn');
 
   errEl.textContent = '';
-  if (!email || !password) { errEl.textContent = 'Fyll inn e-post og passord'; return; }
+  if (!email || !password) { errEl.textContent = t('login.empty'); return; }
 
   btn.disabled = true;
-  btn.textContent = 'Logger inn…';
+  btn.textContent = t('login.loading');
 
   const { error } = await db.auth.signInWithPassword({ email, password });
   if (error) {
     errEl.textContent = error.message;
     btn.disabled = false;
-    btn.textContent = 'Logg inn';
+    btn.textContent = t('login.btn');
     return;
   }
 
