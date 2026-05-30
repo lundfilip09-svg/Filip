@@ -632,6 +632,14 @@ function parseQuickAdd(text) {
   const lower = text.toLowerCase().trim();
   let date = toLocalStr(selectedDate), time = null, endTime = null, remaining = text.trim();
 
+  // ISO date: YYYY-MM-DD (strip before time matching to avoid digits interfering)
+  const isoDateMatch = remaining.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (isoDateMatch) {
+    date = isoDateMatch[1];
+    remaining = remaining.replace(isoDateMatch[0], '').trim();
+  }
+
+  // First HH:MM → startTime
   const timeMatch  = remaining.match(/\b(\d{1,2}):(\d{2})\b/);
   const timeMatchH = !timeMatch && remaining.match(/\b(\d{1,2})\b(?=\s*$|\s+[a-z])/);
   if (timeMatch) {
@@ -642,7 +650,17 @@ function parseQuickAdd(text) {
     remaining = remaining.replace(timeMatchH[0], '').trim();
   }
 
-  const durMatch = remaining.match(/\b(\d+(?:[.,]\d+)?)\s*t(?:imer?)?\b/i);
+  // Second HH:MM → endTime (must come before duration check so explicit end wins)
+  if (time) {
+    const endTimeMatch = remaining.match(/\b(\d{1,2}):(\d{2})\b/);
+    if (endTimeMatch) {
+      endTime = `${pad(+endTimeMatch[1])}:${pad(+endTimeMatch[2])}`;
+      remaining = remaining.replace(endTimeMatch[0], '').trim();
+    }
+  }
+
+  // Duration fallback: "2t" / "1,5t" etc. — only if no explicit endTime yet
+  const durMatch = !endTime && remaining.match(/\b(\d+(?:[.,]\d+)?)\s*t(?:imer?)?\b/i);
   if (durMatch && time) {
     const hrs = parseFloat(durMatch[1].replace(',','.'));
     const [hh, mm] = time.split(':').map(Number);

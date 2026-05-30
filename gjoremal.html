@@ -495,6 +495,59 @@
       .gm-add-bottom { padding: 8px 14px; }
       .gm-page-title { font-size: 20px; }
     }
+
+    /* ── Inline editing ── */
+    .todo-text:not(.done-text) { cursor: text; }
+    .todo-text:not(.done-text):hover {
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin: -1px -5px;
+    }
+    .todo-due { cursor: pointer; }
+    .todo-due:hover {
+      background: rgba(255,255,255,0.07);
+      border-radius: 3px;
+      padding: 1px 4px;
+      margin: -1px -4px;
+    }
+    .todo-add-date {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      opacity: 0;
+      cursor: pointer;
+      transition: opacity 0.12s;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .todo-item:hover .todo-add-date { opacity: 0.4; }
+    .todo-add-date:hover { opacity: 1 !important; color: var(--accent-blue); }
+    .todo-edit-input {
+      background: rgba(255,255,255,0.06) !important;
+      border: 1px solid rgba(91,164,245,0.35) !important;
+      border-radius: 4px !important;
+      color: var(--text-primary) !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      font-family: inherit !important;
+      padding: 2px 6px !important;
+      outline: none !important;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 0 0 2px rgba(91,164,245,0.08) !important;
+    }
+    .todo-edit-date {
+      background: rgba(255,255,255,0.06) !important;
+      border: 1px solid rgba(91,164,245,0.35) !important;
+      border-radius: 3px !important;
+      color: var(--text-tertiary) !important;
+      font-size: 10px !important;
+      font-family: var(--font-mono) !important;
+      padding: 1px 5px !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(91,164,245,0.08) !important;
+    }
   </style>
 </head>
 <body>
@@ -780,10 +833,13 @@ function renderTodos() {
         <span class="drag-handle">⠿</span>
         <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
         <div class="todo-body">
-          <div class="todo-text ${t.completed?'done-text':''}">${escHtml(t.title)}</div>
-          ${t.due_date ? `<div class="todo-meta">
-            <span class="todo-due ${isOverdue?'overdue':''}">${isOverdue?'⚠ ':''}${fmtDate(t.due_date)}</span>
-          </div>` : ''}
+          <div class="todo-text ${t.completed?'done-text':''}"${!t.completed?` onclick="startEditTitle('${t.id}')" title="Klikk for å redigere"`:''}>${escHtml(t.title)}</div>
+          <div class="todo-meta">
+            ${t.due_date
+              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${t.id}')" title="Endre forfallsdato">${isOverdue?'⚠ ':''}${fmtDate(t.due_date)}</span>`
+              : `<span class="todo-add-date" onclick="startEditDue('${t.id}')">+ dato</span>`
+            }
+          </div>
         </div>
         <div class="todo-actions">
           <button class="star-btn ${t.important?'active':''}" onclick="toggleImportant('${t.id}',${t.important})" title="Viktig">
@@ -866,6 +922,83 @@ async function deleteTodo(id) {
   allTodos = allTodos.filter(x => x.id !== id);
   renderTodos();
   toast('Slettet');
+}
+
+// ── Inline edit: title ────────────────────────────────────────────────────
+function startEditTitle(todoId) {
+  const item = document.querySelector(`.todo-item[data-id="${todoId}"]`);
+  if (!item) return;
+  const textEl = item.querySelector('.todo-text');
+  const todo = allTodos.find(t => String(t.id) === String(todoId));
+  if (!todo || todo.completed || !textEl) return;
+
+  item.setAttribute('draggable', 'false');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = todo.title;
+  input.className = 'todo-edit-input';
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newTitle = input.value.trim();
+    if (newTitle && newTitle !== todo.title) {
+      const { error } = await db.from('todos').update({ title: newTitle }).eq('id', todoId);
+      if (!error) { todo.title = newTitle; toast('Lagret'); }
+      else toast('Feil ved lagring', 'err');
+    }
+    renderTodos();
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { saved = true; renderTodos(); }
+  });
+  input.addEventListener('blur', save);
+
+  textEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+// ── Inline edit: due date ─────────────────────────────────────────────────
+function startEditDue(todoId) {
+  const item = document.querySelector(`.todo-item[data-id="${todoId}"]`);
+  if (!item) return;
+  const todo = allTodos.find(t => String(t.id) === String(todoId));
+  if (!todo) return;
+
+  item.setAttribute('draggable', 'false');
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = todo.due_date || '';
+  input.className = 'todo-edit-date';
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newDate = input.value || null;
+    if (newDate !== todo.due_date) {
+      const { error } = await db.from('todos').update({ due_date: newDate }).eq('id', todoId);
+      if (!error) { todo.due_date = newDate; toast('Lagret'); }
+      else toast('Feil ved lagring', 'err');
+    }
+    renderTodos();
+  };
+
+  input.addEventListener('change', () => { input.blur(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { saved = true; renderTodos(); }
+  });
+  input.addEventListener('blur', save);
+
+  const target = item.querySelector('.todo-due') || item.querySelector('.todo-add-date');
+  if (target) target.replaceWith(input);
+  input.focus();
+  try { input.showPicker(); } catch(e) {}
 }
 
 // ── Container drag listeners ──────────────────────────────────────────────

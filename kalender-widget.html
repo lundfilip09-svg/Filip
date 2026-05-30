@@ -1,0 +1,239 @@
+<!--
+  KALENDER-WIDGET for filip-vita/dashboard.html
+  ─────────────────────────────────────────────
+  Erstatt hele <section class="card" id="kalender"> (eller hva den heter)
+  med denne blokken. CSS-variablene er allerede definert i dashbordet ditt,
+  men fallback-verdier er inkludert slik at widgeten også virker isolert.
+
+  Forutsetter at /api/google-calendar returnerer { today: [...], upcoming: [...] }
+  som beskrevet i oppsett-guiden.
+-->
+
+<style>
+  /* ── Kalender-seksjon ── */
+  #cal-section {
+    background: var(--card-bg, #1e1a17);
+    border: 1px solid var(--card-border, rgba(255,255,255,0.08));
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .cal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .cal-header-line {
+    height: 1px;
+    background: var(--card-border, rgba(255,255,255,0.08));
+    flex: 1;
+  }
+  .cal-header-label {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--text-muted, rgba(255,255,255,0.35));
+    white-space: nowrap;
+  }
+
+  /* Grid: to kolonner */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 640px) {
+    .cal-grid { grid-template-columns: 1fr; }
+  }
+
+  .cal-col-title {
+    font-family: 'Courier New', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--accent, #4caf82);
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  /* Enkelt event */
+  .cal-event {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .cal-event:last-child { border-bottom: none; }
+
+  .cal-event-time {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: var(--accent, #4caf82);
+    min-width: 3.2rem;
+    flex-shrink: 0;
+  }
+  .cal-event-title {
+    font-size: 0.82rem;
+    color: var(--text-primary, rgba(255,255,255,0.85));
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-event-title.allday {
+    color: var(--text-muted, rgba(255,255,255,0.45));
+    font-style: italic;
+  }
+
+  .cal-empty {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted, rgba(255,255,255,0.3));
+    padding: 0.5rem 0;
+  }
+
+  /* Loading-puls */
+  .cal-loading {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 0.5rem 0;
+  }
+  .cal-loading span {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent, #4caf82);
+    opacity: 0.4;
+    animation: calPulse 1.2s ease-in-out infinite;
+  }
+  .cal-loading span:nth-child(2) { animation-delay: 0.2s; }
+  .cal-loading span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes calPulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50%       { transform: scale(1.4); opacity: 1; }
+  }
+
+  /* Feil-melding */
+  .cal-error {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: #e06c75;
+    padding: 0.5rem 0;
+  }
+</style>
+
+<!-- ── KALENDER-SEKSJON ── -->
+<section id="cal-section">
+
+  <!-- Header (samme stil som resten av dashbordet) -->
+  <div class="cal-header">
+    <div class="cal-header-line"></div>
+    <span class="cal-header-label">KALENDER — DENNE UKEN</span>
+    <div class="cal-header-line"></div>
+  </div>
+
+  <!-- To-kolonners grid -->
+  <div class="cal-grid">
+
+    <!-- Venstre: i dag -->
+    <div>
+      <p class="cal-col-title">I dag</p>
+      <div id="cal-today">
+        <div class="cal-loading">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Høyre: kommende (neste 7 dager) -->
+    <div>
+      <p class="cal-col-title">Kommende</p>
+      <div id="cal-upcoming">
+        <div class="cal-loading">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+(async function loadCalendar() {
+  try {
+    const res = await fetch('/api/google-calendar');
+    if (!res.ok) throw new Error('API svarte ' + res.status);
+    const { today = [], upcoming = [] } = await res.json();
+
+    renderToday(today);
+    renderUpcoming(upcoming);
+  } catch (err) {
+    console.error('Kalender-feil:', err);
+    document.getElementById('cal-today').innerHTML =
+      `<p class="cal-error">Kunne ikke laste kalender</p>`;
+    document.getElementById('cal-upcoming').innerHTML = '';
+  }
+})();
+
+function fmtTime(start) {
+  if (!start.dateTime) return 'Heldags';
+  return new Date(start.dateTime).toLocaleTimeString('nb-NO', {
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function fmtDate(start) {
+  const d = new Date(start.dateTime || start.date);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (d.toDateString() === tomorrow.toDateString()) return 'I morgen';
+  return d.toLocaleDateString('nb-NO', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+}
+
+function isToday(start) {
+  const d = new Date(start.dateTime || start.date);
+  return d.toDateString() === new Date().toDateString();
+}
+
+function eventHTML(timeLabel, title, allDay = false) {
+  return `
+    <div class="cal-event">
+      <span class="cal-event-time">${timeLabel}</span>
+      <span class="cal-event-title${allDay ? ' allday' : ''}">${escHtml(title)}</span>
+    </div>`;
+}
+
+function renderToday(events) {
+  const el = document.getElementById('cal-today');
+  if (!events.length) {
+    el.innerHTML = '<p class="cal-empty">Ingen hendelser i dag</p>';
+    return;
+  }
+  el.innerHTML = events.map(e =>
+    eventHTML(fmtTime(e.start), e.summary || '(uten tittel)', !e.start.dateTime)
+  ).join('');
+}
+
+function renderUpcoming(events) {
+  const el = document.getElementById('cal-upcoming');
+  const future = events.filter(e => !isToday(e.start));
+  if (!future.length) {
+    el.innerHTML = '<p class="cal-empty">Ingenting planlagt</p>';
+    return;
+  }
+  el.innerHTML = future.slice(0, 8).map(e =>
+    eventHTML(fmtDate(e.start), e.summary || '(uten tittel)', !e.start.dateTime)
+  ).join('');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>

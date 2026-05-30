@@ -325,9 +325,19 @@
     .pain-phase-pill.active { background: rgba(255,255,255,0.09); color: var(--text-secondary); border-color: rgba(255,255,255,0.14); }
 
     /* Rest timer */
-    .rest-display { font-size: 30px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); line-height: 1; margin-bottom: 8px; letter-spacing: -0.02em; }
+    .rest-display { font-size: 30px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
     .rest-display.running { color: var(--warning); }
     .rest-display.done { color: var(--success); }
+    .rest-timer-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .rest-pause-btn {
+      width: 30px; height: 30px; flex-shrink: 0;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; color: var(--text-secondary); font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .rest-pause-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+    .rest-pause-btn:disabled { opacity: 0.28; cursor: default; }
     .rest-presets { display: flex; gap: 4px; }
     .rest-preset { flex: 1; padding: 5px 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; cursor: pointer; transition: all 0.12s; }
     .rest-preset:hover { background: rgba(255,255,255,0.09); color: var(--text-secondary); }
@@ -518,7 +528,10 @@
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-rest">
-        <div id="restDisplay" class="rest-display">—</div>
+        <div class="rest-timer-row">
+          <div id="restDisplay" class="rest-display">—</div>
+          <button id="restPauseBtn" class="rest-pause-btn" onclick="toggleRestPause()" disabled>⏸</button>
+        </div>
         <div class="rest-presets">
           <button class="rest-preset" onclick="startRest(180)">3:00</button>
           <button class="rest-preset" onclick="startRest(210)">3:30</button>
@@ -627,9 +640,11 @@ let completedSets = {};     // exId -> Set of done set indices
 let setData       = {};     // exId -> [{ done, weight, reps, notes }]
 let activeDrawer  = null;
 let activeExId    = null;
-let restTimerInt  = null;
-let restStartedAt = null;   // timestamp (ms) — persisted
-let restDuration  = 0;      // total seconds — persisted
+let restTimerInt        = null;
+let restStartedAt       = null;   // timestamp (ms) — persisted
+let restDuration        = 0;      // total seconds — persisted
+let restPaused          = false;
+let restPausedRemaining = 0;
 let sbKneePhase   = 'during';
 
 const SESSION_KEY = 'gym_session_v2';
@@ -710,11 +725,14 @@ function resumeRestTimer() {
     updateRestDisplay();
     if (rem <= 0) {
       clearInterval(restTimerInt); restTimerInt = null; restStartedAt = null;
+      restPaused = false;
       playTimerDone();
       const e = document.getElementById('restDisplay');
       if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
       const rv = document.getElementById('restVal');
       if (rv) rv.textContent = 'Klar!';
+      const pb = document.getElementById('restPauseBtn');
+      if (pb) { pb.textContent = '⏸'; pb.disabled = true; }
     }
   }, 500);
 }
@@ -772,7 +790,11 @@ async function init() {
       const el = document.getElementById('sidebarNotes');
       if (el) { el.value = saved.notes; updateNotesCount(); }
     }
-    if (getRestRemaining() > 0) resumeRestTimer();
+    if (getRestRemaining() > 0) {
+      resumeRestTimer();
+      const pb = document.getElementById('restPauseBtn');
+      if (pb) { pb.textContent = '⏸'; pb.disabled = false; }
+    }
     toast('Økt gjenopprettet');
   } else {
     restoreDraft();   // populates setData + kneePain before rendering
@@ -805,7 +827,10 @@ async function loadData() {
     allExercises[ex.day][ex.section].push(ex);
   });
   weights = {};
-  (wts.data || []).forEach(w => { weights[w.exercise_name] = w.weight_kg; });
+  (wts.data || []).forEach(w => {
+    if (w.exercise_id) weights[w.exercise_id] = w.weight_kg;
+    else if (w.exercise_name) weights[w.exercise_name] = w.weight_kg;
+  });
   _applyLocalExOrders();
   console.log('[loadData] warmup:', allExercises['warmup']);
   console.log('[loadData] friday_warmup:', allExercises['friday_warmup']);
@@ -1174,12 +1199,13 @@ function renderExRow(ex, day, num, isWarmup) {
             onclick="event.stopPropagation()"
             onblur="autoSaveExField('${ex.id}','reps',this.value)">
           ${!isWarmup ? `<span style="color:rgba(255,255,255,0.18);font-family:var(--font-mono);margin:0 2px">·</span>
-          <input class="ex-inline-input" type="number" step="2.5" min="0" placeholder="—"
-            value="${weights[ex.exercise_name] !== undefined ? weights[ex.exercise_name] : ''}"
+          <input class="ex-inline-input weight-inp" type="number" step="2.5" min="0" placeholder="—"
+            value="${weights[ex.id] !== undefined ? weights[ex.id] : (weights[ex.exercise_name] !== undefined ? weights[ex.exercise_name] : '')}"
             style="width:42px"
-            data-exname="${escHtml(ex.exercise_name)}"
+            data-exercise-id="${ex.id}"
             onclick="event.stopPropagation()"
-            onblur="saveWeight(this.dataset.exname, this.value)">
+            onblur="saveWeight(this.dataset.exerciseId, this.value)"
+            onchange="saveWeight(this.dataset.exerciseId, this.value)">
           <span style="color:var(--text-tertiary);font-family:var(--font-mono)">kg</span>` : ''}
         </div>
       </div>
@@ -1227,7 +1253,7 @@ function initSetData(exId) {
   const prevDone = completedSets[exId] || new Set();
   setData[exId] = [...Array(ex.sets)].map((_, i) => ({
     done:   prevDone.has(i),
-    weight: weights[ex.exercise_name] ?? '',
+    weight: weights[exId] ?? weights[ex.exercise_name] ?? '',
     reps:   ex.reps,
     notes:  '',
   }));
@@ -1300,15 +1326,14 @@ function addSet(exId) {
   const d = setData[exId];
   const last = d.length ? d[d.length - 1] : null;
   const i = d.length;
-  d.push({ done: false, weight: last?.weight ?? (weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
+  d.push({ done: false, weight: last?.weight ?? (weights[exId] ?? weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
   document.getElementById(`drawer-body-${exId}`)?.insertAdjacentHTML('beforeend', drawerRow(exId, i, d[i]));
 }
 
 async function saveSetWeights(exId) {
-  const ex = findExById(exId);
-  if (!ex || !setData[exId]) return;
+  if (!setData[exId]) return;
   const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
-  if (s) await saveWeight(ex.exercise_name, s.weight);
+  if (s) await saveWeight(exId, s.weight);
 }
 
 async function completeExercise(exId) {
@@ -1318,7 +1343,7 @@ async function completeExercise(exId) {
   if (!completedSets[exId]) completedSets[exId] = new Set();
   setData[exId].forEach((s, i) => { s.done = true; completedSets[exId].add(i); });
   const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
-  if (s) await saveWeight(ex.exercise_name, s.weight);
+  if (s) await saveWeight(exId, s.weight);
   closeDrawer();
   updateExRowStatus(exId);
   updateProgress();
@@ -1500,10 +1525,13 @@ function startRest(seconds) {
   stopRest();
   restStartedAt = Date.now();
   restDuration  = seconds;
+  restPaused    = false;
   saveSession();
   resumeRestTimer();
   const rv = document.getElementById('restVal');
   if (rv) rv.textContent = fmtRest(seconds);
+  const pb = document.getElementById('restPauseBtn');
+  if (pb) { pb.textContent = '⏸'; pb.disabled = false; }
   const tb = document.getElementById('tb-rest');
   if (tb && tb.style.display !== 'block') toggleTool('rest');
 }
@@ -1511,10 +1539,32 @@ function startRest(seconds) {
 function stopRest() {
   clearInterval(restTimerInt); restTimerInt = null;
   restStartedAt = null; restDuration = 0;
+  restPaused = false; restPausedRemaining = 0;
   const el = document.getElementById('restDisplay');
   if (el) { el.textContent = '—'; el.className = 'rest-display'; }
   const rv = document.getElementById('restVal');
   if (rv) rv.textContent = 'Ikke i drift';
+  const pb = document.getElementById('restPauseBtn');
+  if (pb) { pb.textContent = '⏸'; pb.disabled = true; }
+}
+
+function toggleRestPause() {
+  if (!restDuration && !restPaused) return;
+  const btn = document.getElementById('restPauseBtn');
+  const el  = document.getElementById('restDisplay');
+  if (restPaused) {
+    restStartedAt = Date.now() - (restDuration - restPausedRemaining) * 1000;
+    restPaused = false;
+    if (el) { el.classList.add('running'); el.classList.remove('done'); }
+    if (btn) btn.textContent = '⏸';
+    resumeRestTimer();
+  } else {
+    restPausedRemaining = getRestRemaining();
+    clearInterval(restTimerInt); restTimerInt = null;
+    restPaused = true;
+    if (el) el.classList.remove('running');
+    if (btn) btn.textContent = '▶';
+  }
 }
 
 function updateRestDisplay() {
@@ -1590,16 +1640,17 @@ function setSbPhase(phase) {
 }
 
 // ── Weight ─────────────────────────────────────────────────────────
-async function saveWeight(name, val) {
-  if (val === '' || val === null || val === undefined) return;
+async function saveWeight(exId, val) {
+  if (!exId || val === '' || val === null || val === undefined) return;
   const kg = parseFloat(val);
   if (isNaN(kg)) return;
-  weights[name] = kg;
+  weights[exId] = kg;
+  const ex = findExById(exId);
   const { error } = await db.from('exercise_weights').upsert(
-    { exercise_name: name, weight_kg: kg, updated_at: new Date().toISOString() },
-    { onConflict: 'exercise_name' }
+    { exercise_id: exId, weight_kg: kg, updated_at: new Date().toISOString() },
+    { onConflict: 'exercise_id' }
   );
-  if (!error) toast(`${name}: ${kg} kg lagret`);
+  if (!error) toast(`${ex?.exercise_name ?? exId}: ${kg} kg lagret`);
 }
 
 // ── CRUD ───────────────────────────────────────────────────────────
