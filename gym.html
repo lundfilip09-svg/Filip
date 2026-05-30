@@ -1460,6 +1460,7 @@ function startWorkout() {
 
 function finishWorkout() {
   clearInterval(elapsedTimer);
+  workoutStart = null;
   stopRest();
   if (activeDrawer) closeDrawer();
   const sbNotes = document.getElementById('sidebarNotes')?.value || '';
@@ -1759,15 +1760,15 @@ async function saveLog() {
     const labels = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power'), rehab: 'Rehab' };
     const notes  = document.getElementById('sessionNotes').value.trim();
     const date   = document.getElementById('logDate').value || today();
-    const [kRes, gRes] = await Promise.all([
-      db.from('knee_pain').insert({
-        date, session_type: labels[activeDay] || activeDay,
-        before_score: kneePain['before'], during_score: kneePain['during'],
-        after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
-      }),
-      db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
-    ]);
-    if (kRes.error || gRes.error) { toast(t('gym.save_error'), 'err'); return; }
+    const sessionType = labels[activeDay] || activeDay;
+    const kRes = await db.from('knee_pain').insert({
+      date, session_type: sessionType,
+      before_score: kneePain['before'], during_score: kneePain['during'],
+      after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
+    });
+    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes });
+    if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
+    if (kRes.error) toast(`Knesmerte ikke lagret: ${kRes.error.message}`, 'err');
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
