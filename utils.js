@@ -233,6 +233,7 @@ const TRANSLATIONS = {
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
+    'ai.sub_pre': 'Personlig assistent', 'ai.sub_post': 'Søvn · Sprint · Rehab',
     'ai.clear': 'Tøm samtale', 'ai.cleared': 'Samtale tømt',
     'ai.empty_title': 'Klar til analyse',
     'ai.empty_sub': 'Spør om trening, knesmerte, søvn eller form.\nHenter data automatisk fra alle logger.',
@@ -483,6 +484,7 @@ const TRANSLATIONS = {
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
+    'ai.sub_pre': 'Personal assistant', 'ai.sub_post': 'Sleep · Sprint · Rehab',
     'ai.clear': 'Clear chat', 'ai.cleared': 'Chat cleared',
     'ai.empty_title': 'Ready to analyze',
     'ai.empty_sub': 'Ask about training, knee pain, sleep or form.\nFetches data automatically from all logs.',

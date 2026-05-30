@@ -200,16 +200,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"            class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html"     class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"           class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"        class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"          class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"      class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"      class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html"  class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"            class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html"     class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"           class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"        class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"          class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"      class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"      class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html"  class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -217,25 +218,25 @@
   <div class="ai-header">
     <div>
       <div class="ai-title">AI Overseer</div>
-      <div class="ai-subtitle">Personlig assistent · <span>claude-sonnet-4</span> · Søvn · Sprint · Rehab</div>
+      <div class="ai-subtitle"><span data-i18n="ai.sub_pre">Personlig assistent</span> · <span>claude-sonnet-4</span> · <span data-i18n="ai.sub_post">Søvn · Sprint · Rehab</span></div>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;flex-shrink:0;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">Tøm samtale</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;flex-shrink:0;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
   </div>
 
   <div class="chat-card">
     <div class="quick-prompts" id="quickPrompts">
-      <button class="qp-btn" onclick="quickPrompt('Hvordan ser formen mi ut denne uken?')">Ukens form</button>
-      <button class="qp-btn" onclick="quickPrompt('Analyser knesmerten min de siste dagene')">Knesmerte-analyse</button>
-      <button class="qp-btn" onclick="quickPrompt('Hva bør jeg fokusere på i neste økt?')">Neste økt</button>
-      <button class="qp-btn" onclick="quickPrompt('Se etter mønstre mellom søvn og knesmerte')">Søvn vs kne</button>
-      <button class="qp-btn" onclick="quickPrompt('Er HRV-en min god nok til hard trening nå?')">HRV-status</button>
+      <button class="qp-btn" onclick="quickPrompt(t('ai.quick1_prompt'))" data-i18n="ai.quick1">Ukens form</button>
+      <button class="qp-btn" onclick="quickPrompt(t('ai.quick2_prompt'))" data-i18n="ai.quick2">Knesmerte-analyse</button>
+      <button class="qp-btn" onclick="quickPrompt(t('ai.quick3_prompt'))" data-i18n="ai.quick3">Neste økt</button>
+      <button class="qp-btn" onclick="quickPrompt(t('ai.quick4_prompt'))" data-i18n="ai.quick4">Søvn vs kne</button>
+      <button class="qp-btn" onclick="quickPrompt(t('ai.quick5_prompt'))" data-i18n="ai.quick5">HRV-status</button>
     </div>
 
     <div class="chat-history" id="chatHistory">
       <div class="chat-empty" id="chatEmpty">
         <div class="chat-empty-icon">🤖</div>
-        <div class="chat-empty-title">Klar til analyse</div>
-        <div class="chat-empty-sub">Spør om trening, knesmerte, søvn eller form.<br>Henter data automatisk fra alle logger.</div>
+        <div class="chat-empty-title" data-i18n="ai.empty_title">Klar til analyse</div>
+        <div class="chat-empty-sub" data-i18n="ai.empty_sub">Spør om trening, knesmerte, søvn eller form.<br>Henter data automatisk fra alle logger.</div>
       </div>
     </div>
 
@@ -245,6 +246,7 @@
           class="chat-textarea"
           id="chatInput"
           placeholder="Skriv en melding…"
+          data-i18n-placeholder="ai.placeholder"
           rows="1"
           onkeydown="handleKey(event)"
           oninput="autoResize(this); localStorage.setItem('ai_draft', this.value)"
@@ -253,7 +255,7 @@
           ↑
         </button>
       </div>
-      <div class="chat-hint">Enter sender · Shift+Enter ny linje</div>
+      <div class="chat-hint" data-i18n="ai.hint">Enter sender · Shift+Enter ny linje</div>
     </div>
   </div>
 </div>
@@ -296,11 +298,11 @@ function appendMessage(role, content, isError = false) {
 
   if (role === 'user') {
     div.innerHTML = `
-      <div class="msg-label">Du</div>
+      <div class="msg-label">${t('ai.you')}</div>
       <div class="msg-bubble">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`;
   } else {
     div.innerHTML = `
-      <div class="msg-label">AI Overseer</div>
+      <div class="msg-label">${t('ai.title')}</div>
       <div class="msg-bubble"><p>${mdToHtml(content)}</p></div>`;
   }
 
@@ -363,10 +365,10 @@ async function clearChat() {
   document.getElementById('chatHistory').innerHTML = `
     <div class="chat-empty" id="chatEmpty">
       <div class="chat-empty-icon">🤖</div>
-      <div class="chat-empty-title">Klar til analyse</div>
-      <div class="chat-empty-sub">Spør om trening, knesmerte, søvn eller form.<br>Henter data automatisk fra alle logger.</div>
+      <div class="chat-empty-title">${t('ai.empty_title')}</div>
+      <div class="chat-empty-sub">${t('ai.empty_sub').replace('\n', '<br>')}</div>
     </div>`;
-  toast('Samtale tømt');
+  toast(t('ai.cleared'));
 }
 
 function historyForApi() {
@@ -439,8 +441,8 @@ async function sendMessage() {
   } catch (e) {
     hideLoading();
     const msg = e.name === 'AbortError'
-      ? 'Forespørselen tok for lang tid (30s) — prøv igjen'
-      : 'Nettverksfeil — sjekk tilkobling og prøv igjen';
+      ? t('ai.err_timeout')
+      : t('ai.err_network');
     appendMessage('ai', msg, true);
   } finally {
     isSending = false;
@@ -521,6 +523,7 @@ function autoResize(el) {
       autoResize(inp);
     }
 
+    applyLang();
     document.getElementById('chatInput').focus();
   } catch (err) {
     document.querySelector('.chat-card').innerHTML =
