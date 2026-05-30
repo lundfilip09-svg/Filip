@@ -851,28 +851,28 @@ function renderTodos() {
   if (!items.length) {
     el.innerHTML = `<div class="empty">${t('gm.no_todos')}</div>`;
   } else {
-    el.innerHTML = items.map(t => {
-      const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
-      const isOverdue = due && due < new Date() && !t.completed;
-      return `<div class="todo-item ${t.important?'important':''} ${t.completed?'done':''}"
-          data-id="${t.id}" draggable="true"
-          ondragstart="onDragStart(event,'${t.id}')" ondragend="onDragEnd()">
+    el.innerHTML = items.map(todo => {
+      const due = todo.due_date ? new Date(todo.due_date + 'T12:00:00') : null;
+      const isOverdue = due && due < new Date() && !todo.completed;
+      return `<div class="todo-item ${todo.important?'important':''} ${todo.completed?'done':''}"
+          data-id="${todo.id}" draggable="true"
+          ondragstart="onDragStart(event,'${todo.id}')" ondragend="onDragEnd()">
         <span class="drag-handle">⠿</span>
-        <div class="todo-cb ${t.completed?'checked':''}" onclick="toggleTodo('${t.id}',${t.completed})"></div>
+        <div class="todo-cb ${todo.completed?'checked':''}" onclick="toggleTodo('${todo.id}',${todo.completed})"></div>
         <div class="todo-body">
-          <div class="todo-text ${t.completed?'done-text':''}"${!t.completed?` onclick="startEditTitle('${t.id}')" title="${t('gm.click_edit')}"`:''}>${escHtml(t.title)}</div>
+          <div class="todo-text ${todo.completed?'done-text':''}"${!todo.completed?` onclick="startEditTitle('${todo.id}')" title="${t('gm.click_edit')}"`:''}>${escHtml(todo.title)}</div>
           <div class="todo-meta">
-            ${t.due_date
-              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${t.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(t.due_date)}</span>`
-              : `<span class="todo-add-date" onclick="startEditDue('${t.id}')">${t('gm.add_date')}</span>`
+            ${todo.due_date
+              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${todo.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(todo.due_date)}</span>`
+              : `<span class="todo-add-date" onclick="startEditDue('${todo.id}')">${t('gm.add_date')}</span>`
             }
           </div>
         </div>
         <div class="todo-actions">
-          <button class="star-btn ${t.important?'active':''}" onclick="toggleImportant('${t.id}',${t.important})" title="Viktig">
-            ${t.important ? '★' : '☆'}
+          <button class="star-btn ${todo.important?'active':''}" onclick="toggleImportant('${todo.id}',${todo.important})" title="Viktig">
+            ${todo.important ? '★' : '☆'}
           </button>
-          <button class="todo-del" onclick="deleteTodo('${t.id}')">✕</button>
+          <button class="todo-del" onclick="deleteTodo('${todo.id}')">✕</button>
         </div>
       </div>`;
     }).join('');
