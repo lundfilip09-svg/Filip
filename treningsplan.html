@@ -687,7 +687,7 @@ function renderHero() {
     sessionEl.textContent = txt;
     sessionEl.className   = 'hero-session';
   } else {
-    sessionEl.textContent = 'Hviledag';
+    sessionEl.textContent = 'Hvile og rehab';
     sessionEl.className   = 'hero-session is-rest';
   }
 
@@ -743,7 +743,7 @@ function renderDayStrip() {
       </div>
       ${preview
         ? `<div class="day-card-plan">${escHtml(preview)}</div>`
-        : `<div class="day-card-rest">Hvile</div>`
+        : `<div class="day-card-rest">Hvile & rehab</div>`
       }
     </div>`;
   }).join('');
@@ -767,7 +767,7 @@ function renderDetail() {
     titleEl.textContent = txt;
     titleEl.className   = 'detail-day-title';
   } else {
-    titleEl.textContent = 'Ingen plan';
+    titleEl.textContent = 'Hvile og rehab';
     titleEl.className   = 'detail-day-title is-empty';
   }
 
@@ -871,6 +871,7 @@ async function saveDay() {
 }
 
 async function clearDay() {
+  if (!confirm('Tøm planen for denne dagen?')) return;
   delete plan[selectedIdx];
   delete plan[`notes_${selectedIdx}`];
 

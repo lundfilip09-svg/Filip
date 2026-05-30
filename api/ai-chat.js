@@ -72,7 +72,7 @@ export default async function handler(req, res) {
   if (!authCheck.ok) return res.status(401).json({ error: 'Ikke autentisert' });
 
   // Fetch training data
-  const [healthData, sprintData, gymData, kneePainData] = await Promise.all([
+  const [healthData, sprintData, gymData, kneePainData, activityData] = await Promise.all([
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=14'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
@@ -81,6 +81,8 @@ export default async function handler(req, res) {
       'select=*&order=date.desc&limit=10'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'knee_pain',
       'select=*&order=date.desc&limit=5'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'activity_log',
+      'select=*&order=date.desc&limit=10'),
   ]);
 
   const now = new Date();
@@ -102,7 +104,10 @@ ${JSON.stringify(sprintData, null, 2)}
 ${JSON.stringify(gymData, null, 2)}
 
 [KNESMERTE-LOGGER — SISTE 5]
-${JSON.stringify(kneePainData, null, 2)}`;
+${JSON.stringify(kneePainData, null, 2)}
+
+[ANDRE AKTIVITETER — SISTE 10 (fotball, padel, svømming osv)]
+${JSON.stringify(activityData, null, 2)}`;
 
   const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -113,7 +118,7 @@ ${JSON.stringify(kneePainData, null, 2)}`;
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
+      max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [
         ...safeHistory,

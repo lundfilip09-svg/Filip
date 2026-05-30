@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard">
-  <title>Dashboard — Oversikt</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Hero ── */
@@ -288,16 +288,17 @@
 <nav class="main-nav">
   <div class="nav-inner">
     <div class="nav-tabs">
-      <a href="ai.html"            class="nav-tab" data-p="ai">AI</a>
-      <a href="dashboard.html"     class="nav-tab" data-p="dashboard">Dashboard</a>
-      <a href="gym.html"           class="nav-tab" data-p="gym">Gym</a>
-      <a href="sprint.html"        class="nav-tab" data-p="sprint">Sprint</a>
-      <a href="sovn.html"          class="nav-tab" data-p="sovn">Søvn</a>
-      <a href="gjoremal.html"      class="nav-tab" data-p="gjoremal">Gjøremål</a>
-      <a href="kalender.html"      class="nav-tab" data-p="kalender">Kalender</a>
-      <a href="treningsplan.html"  class="nav-tab" data-p="treningsplan">Treningsoversikt</a>
+      <a href="ai.html"            class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
+      <a href="dashboard.html"     class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
+      <a href="gym.html"           class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
+      <a href="sprint.html"        class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
+      <a href="sovn.html"          class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
+      <a href="gjoremal.html"      class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
+      <a href="kalender.html"      class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
+      <a href="treningsplan.html"  class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:8px">Logg ut</button>
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
 </nav>
 
@@ -315,13 +316,13 @@
   <!-- ══════════════════  STATUS  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot"></div>
-    <div class="os-label-text">Status</div>
+    <div class="os-label-text" data-i18n="dash.status">Status</div>
     <div class="os-label-line"></div>
   </div>
   <div class="status-row">
 
     <div class="card card-sleep">
-      <div class="section-title">Søvn</div>
+      <div class="section-title" data-i18n="dash.sleep">Søvn</div>
       <div id="sleepCard">
         <div class="sk-row" style="margin-bottom:10px">
           <span class="sk sk-block" style="width:44px;height:38px;border-radius:6px"></span>
@@ -340,7 +341,7 @@
     </div>
 
     <div class="card card-knee">
-      <div class="section-title">Knesmerte</div>
+      <div class="section-title" data-i18n="dash.knee">Knesmerte</div>
       <div id="kneeCard">
         <div class="sk-row" style="justify-content:space-between">
           <div class="sk-col" style="align-items:center;flex:1">
@@ -365,7 +366,7 @@
     </div>
 
     <div class="card card-session">
-      <div class="section-title">Dagens økt</div>
+      <div class="section-title" data-i18n="dash.session">Dagens økt</div>
       <div id="sessionCard">
         <div class="sk-row" style="margin-bottom:8px">
           <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
@@ -381,14 +382,14 @@
   <!-- ══════════════════  FOKUS  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text">Fokus</div>
+    <div class="os-label-text" data-i18n="dash.focus">Fokus</div>
     <div class="os-label-line"></div>
   </div>
   <div class="fokus-grid">
 
     <!-- Dagens fokus -->
     <div class="card">
-      <div class="section-title">Dagens fokus</div>
+      <div class="section-title" data-i18n="dash.daily_focus">Dagens fokus</div>
       <div id="dailyFokus">
         <div class="sk-row" style="margin-bottom:8px">
           <span class="sk sk-block" style="width:28px;height:28px;border-radius:6px;flex-shrink:0"></span>
@@ -418,7 +419,7 @@
     <div class="fokus-right">
       <div class="card">
         <div class="todos-header">
-          <div class="section-title" style="margin-bottom:0">Gjøremål</div>
+          <div class="section-title" style="margin-bottom:0" data-i18n="dash.tasks">Gjøremål</div>
           <div class="todos-progress" id="todosProgress"></div>
         </div>
         <div id="importantTodos">
@@ -437,7 +438,7 @@
         </div>
       </div>
       <div class="card" id="nextEventCard">
-        <div class="section-title">Neste hendelse</div>
+        <div class="section-title" data-i18n="dash.next_event">Neste hendelse</div>
         <div id="nextEvent">
           <div class="next-evt">
             <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px"></span>
@@ -455,25 +456,25 @@
   <!-- ══════════════════  OVERSIKT  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(107,227,164,0.55);box-shadow:0 0 7px rgba(107,227,164,0.3)"></div>
-    <div class="os-label-text">Oversikt</div>
+    <div class="os-label-text" data-i18n="dash.overview">Oversikt</div>
     <div class="os-label-line"></div>
   </div>
 
   <!-- Week strip -->
   <div class="card">
-    <div class="section-title">Denne uken</div>
+    <div class="section-title" data-i18n="dash.this_week">Denne uken</div>
     <div class="week-strip" id="weekStrip"></div>
     <div class="oversikt-footer">
-      <a href="treningsplan.html" class="link-ghost">Full treningsoversikt <span>→</span></a>
+      <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
     </div>
   </div>
 
   <!-- Calendar -->
   <div class="card">
-    <div class="section-title">Kalender</div>
+    <div class="section-title" data-i18n="nav.kalender">Kalender</div>
     <div class="cal-grid">
       <div>
-        <p class="cal-col-title">I dag</p>
+        <p class="cal-col-title" data-i18n="kal.today">I dag</p>
         <div id="cal-today">
           <div class="sk-row" style="margin-bottom:8px;align-items:center">
             <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
@@ -488,7 +489,7 @@
         </div>
       </div>
       <div>
-        <p class="cal-col-title">Kommende</p>
+        <p class="cal-col-title" data-i18n="dash.upcoming">Kommende</p>
         <div id="cal-upcoming">
           <div class="sk-row" style="margin-bottom:8px;align-items:center">
             <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
@@ -517,7 +518,7 @@
   background:rgba(255,107,107,0.12);border-bottom:1px solid rgba(255,107,107,0.3);
   padding:8px 16px;text-align:center;font-size:11px;font-family:var(--font-mono);
   color:var(--danger);letter-spacing:0.04em">
-  Ingen nettverkstilkobling — data kan være utdatert
+  <span data-i18n="dash.offline">Ingen nettverkstilkobling — data kan være utdatert</span>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -555,7 +556,7 @@ async function loadSleep() {
     .select('*').order('date', { ascending: false }).order('timestamp', { ascending: false }).limit(1);
   const el = document.getElementById('sleepCard');
   if (!data?.length) {
-    el.innerHTML = `<div class="empty">Ingen data</div>`; return null;
+    el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null;
   }
   const d = data[0];
   const sc   = d.sleep_score > 0  ? d.sleep_score  : null;
@@ -566,7 +567,7 @@ async function loadSleep() {
   const rem  = d.rem_sleep_minutes  > 0 ? d.rem_sleep_minutes  : null;
   const clr  = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
   const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
-  const dataAge = daysAgo === 0 ? 'I natt' : daysAgo === 1 ? 'I går' : daysAgo != null ? `${daysAgo} dager siden` : '';
+  const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
   const ageColor = daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
 
   // Formater timer som "7t 50m"
@@ -581,7 +582,7 @@ async function loadSleep() {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div style="font-size:32px;font-weight:800;font-family:var(--font-mono);letter-spacing:-0.03em;color:${clr};line-height:1">${sc ?? '–'}</div>
         <div>
-          <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">Søvnscore</div>
+          <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">${t('dash.sleep_score')}</div>
           <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px">${fmtHours(hrs)}</div>
           ${dataAge ? `<div style="font-size:9px;font-family:var(--font-mono);color:${ageColor};margin-top:3px">${dataAge}</div>` : ''}
         </div>
@@ -614,14 +615,14 @@ async function loadKnee() {
     .select('*').order('date', { ascending: false }).order('id', { ascending: false }).limit(1);
   const el = document.getElementById('kneeCard');
   if (!data?.length) {
-    el.innerHTML = `<div class="empty">Ingen smertelogg</div>`; return null;
+    el.innerHTML = `<div class="empty">${t('dash.no_pain')}</div>`; return null;
   }
   const d = data[0];
   const phases = [
-    { label: 'Før',    val: d.before_score },
-    { label: 'Under',  val: d.during_score },
-    { label: 'Etter',  val: d.after_score },
-    { label: 'D.etter',val: d.day_after_score },
+    { label: t('knee.before'),   val: d.before_score },
+    { label: t('knee.during'),   val: d.during_score },
+    { label: t('knee.after'),    val: d.after_score },
+    { label: t('knee.dayafter'), val: d.day_after_score },
   ];
   el.innerHTML = `
     <a href="sprint.html" style="text-decoration:none;color:inherit;display:block">
@@ -644,13 +645,13 @@ function loadSession() {
   const el = document.getElementById('sessionCard');
   const planIndex = (new Date().getDay() + 6) % 7;
   const planText = (weekPlan[planIndex] || '').trim();
-  const isRest = !planText || /^hvile/i.test(planText);
+  const isRest = !planText || /^hvile/i.test(planText) || /^fri$/i.test(planText);
 
   if (isRest) {
     el.innerHTML = `
-      <span class="session-badge hvile">Hviledag</span>
-      <div class="session-name-big" style="color:var(--text-secondary)">Restitusjonsdag</div>
-      <div class="session-meta-sm">Ingen planlagt økt i dag</div>`;
+      <span class="session-badge hvile">${t('session.rest_day')}</span>
+      <div class="session-name-big" style="color:var(--text-secondary)">${t('dash.recovery_day')}</div>
+      <div class="session-meta-sm">${t('dash.no_session')}</div>`;
     return { isRest: true };
   }
 
@@ -658,15 +659,15 @@ function loadSession() {
   if (/sprint/i.test(planText)) cls = 'power';
   else if (/kondisjon|sirkulasjon|mobilitet/i.test(planText)) cls = 'kondisjon';
 
-  const badgeLabels = { styrke: 'Styrke', kondisjon: 'Kondisjon', power: 'Sprint' };
-  const dayNow = new Date().toLocaleDateString('no-NO', { weekday: 'long' });
+  const badgeLabels = { styrke: t('dash.badge_styrke'), kondisjon: t('dash.badge_kondisjon'), power: 'Sprint' };
+  const dayNow = new Date().toLocaleDateString(fmtLocale(), { weekday: 'long' });
   const ctaHref  = cls === 'power' ? 'sprint.html' : 'gym.html';
-  const ctaLabel = cls === 'power' ? 'Åpne Sprint' : 'Åpne Gym';
+  const ctaLabel = cls === 'power' ? t('dash.open_sprint') : t('dash.open_gym');
 
   el.innerHTML = `
     <span class="session-badge ${cls}">${badgeLabels[cls]}</span>
     <div class="session-name-big">${escHtml(planText)}</div>
-    <div class="session-meta-sm">Fra ukeplanen · ${dayNow}</div>
+    <div class="session-meta-sm">${t('dash.from_plan')} · ${dayNow}</div>
     <a href="${ctaHref}" class="session-cta">${ctaLabel} <span class="cta-arrow">→</span></a>`;
   return { isRest: false, planText, cls };
 }
@@ -736,7 +737,7 @@ async function renderWeekStrip() {
     // Plan-based chip for days with no logged session
     if (!chips.length) {
       const txt = (weekPlan[i] || '').trim();
-      if (txt && !/^hvile/i.test(txt) && !/^fri/i.test(txt)) {
+      if (txt && !/^hvile/i.test(txt) && !/^fri$/i.test(txt)) {
         const t = txt.toLowerCase();
         let cls = 'ind-styrke';
         if (/sprint/.test(t)) cls = 'ind-sprint';
@@ -793,25 +794,24 @@ function _buildFokusList({ sleepData, kneeData, sessionData }) {
   // ── Priority 1-2: Urgent / blocking ──────────────────────────────────
   if (dayAfterMissing) {
     items.push({ id: 'knee-dayafter', priority: 1, cat: 'rehab', type: 'actionable',
-      text: 'Registrer knesmerte fra forrige økt' });
+      text: t('dash.focus_knee_dayafter') });
   }
 
   if (lastPain !== null && lastPain >= 3) {
     items.push({ id: 'knee-warning', priority: 2, cat: 'warning', type: 'info',
-      text: isSprint ? 'Vær forsiktig med høy toppfart i dag'
-                     : 'Ikke push gjennom smerte i dag',
-      subtext: `Smerte etter siste økt: ${lastPain}/10` });
+      text: isSprint ? t('dash.focus_careful_sprint') : t('dash.focus_no_push'),
+      subtext: t('dash.focus_pain_after', {n: lastPain}) });
   }
 
   // ── Priority 2-3: Sleep ───────────────────────────────────────────────
   if (sleepHours > 0 && sleepHours < 7) {
     items.push({ id: 'sleep-critical', priority: 2, cat: 'sovn', type: 'info',
-      text: 'Vurder redusert belastning i dag',
-      subtext: `${sleepHours}t søvn sist natt` });
+      text: t('dash.focus_reduced_load'),
+      subtext: t('dash.focus_sleep_sub', {h: sleepHours}) });
   } else if (sleepHours > 0 && sleepHours < 8) {
     items.push({ id: 'sleep-under8', priority: 4, cat: 'sovn', type: 'info',
-      text: 'Du sov under 8 timer i natt',
-      subtext: `${sleepHours}t registrert` });
+      text: t('dash.focus_under8'),
+      subtext: t('dash.focus_under8_sub', {h: sleepHours}) });
   }
 
   // ── Priority 2-3: Calendar ────────────────────────────────────────────
@@ -829,46 +829,46 @@ function _buildFokusList({ sleepData, kneeData, sessionData }) {
   });
   if (compTomorrow) {
     items.push({ id: 'cal-comp', priority: 2, cat: 'kalender', type: 'info',
-      text: 'Prioriter restitusjon — stevne i morgen' });
+      text: t('dash.focus_restitusjon') });
     items.push({ id: 'cal-sleep-early', priority: 3, cat: 'kalender', type: 'info',
-      text: 'Sov tidlig i kveld' });
+      text: t('dash.focus_sleep_early') });
   } else if (heavyTomorrow) {
     items.push({ id: 'cal-heavy', priority: 7, cat: 'kalender', type: 'info',
-      text: 'Tung økt i morgen — prioriter søvn' });
+      text: t('dash.focus_heavy_tmrw') });
   }
 
   // ── Priority 5-8: Training-day specific ──────────────────────────────
   if (isRest) {
     items.push({ id: 'rehab', priority: 5, cat: 'rehab', type: 'actionable',
-      text: 'Fullfør rehabiliteringsøvelser' });
+      text: t('dash.focus_rehab') });
     items.push({ id: 'active-rest', priority: 8, cat: 'recovery', type: 'info',
-      text: 'Aktiv restitusjon anbefales' });
+      text: t('dash.focus_active_rest') });
   }
 
   if (isStyrke) {
     items.push({ id: 'warmup-styrke', priority: 6, cat: 'styrke', type: 'info',
-      text: 'Prioriter god oppvarming' });
+      text: t('dash.focus_warmup') });
     items.push({ id: 'knee-log-session', priority: 6, cat: 'styrke', type: 'actionable',
-      text: 'Logg knesmerte etter økten',
+      text: t('dash.focus_knee_log'),
       autoDone: kneeData?.date === today() });
   }
 
   if (isSprint) {
     items.push({ id: 'sprint-warmup', priority: 6, cat: 'sprint', type: 'info',
-      text: 'Full sprintoppvarming før maksdrag' });
+      text: t('dash.focus_sprint_warmup') });
     items.push({ id: 'sprint-log', priority: 6, cat: 'sprint', type: 'actionable',
-      text: 'Logg sprintdata etter økten' });
+      text: t('dash.focus_sprint_log') });
     items.push({ id: 'sprint-intensity', priority: 7, cat: 'sprint', type: 'info',
-      text: 'Hold deg innen planlagt intensitet' });
+      text: t('dash.focus_intensity') });
   }
 
   return items.sort((a, b) => a.priority - b.priority).slice(0, 5);
 }
 
-const _FOKUS_CAT_LABELS = {
-  styrke: 'Styrke', sprint: 'Sprint', rehab: 'Rehab',
-  recovery: 'Recovery', sovn: 'Søvn', warning: 'OBS', kalender: 'Kalender',
-};
+function _FOKUS_CAT_LABELS() { return {
+  styrke: t('dash.cat_styrke'), sprint: t('dash.cat_sprint'), rehab: t('dash.cat_rehab'),
+  recovery: t('dash.cat_recovery'), sovn: t('dash.cat_sovn'), warning: t('dash.cat_warning'), kalender: t('dash.cat_kalender'),
+}; }
 
 function _renderFokusItem(item) {
   const manualDone  = item.type === 'actionable' && !item.autoDone && _isFokusDone(item.id);
@@ -882,7 +882,7 @@ function _renderFokusItem(item) {
       <div class="fokus-text">${escHtml(item.text)}</div>
       ${item.subtext ? `<div class="fokus-subtext">${escHtml(item.subtext)}</div>` : ''}
     </div>
-    <span class="fokus-badge fokus-badge--${item.cat}">${_FOKUS_CAT_LABELS[item.cat] || item.cat}</span>
+    <span class="fokus-badge fokus-badge--${item.cat}">${_FOKUS_CAT_LABELS()[item.cat] || item.cat}</span>
     ${isCheckable ? '<div class="fokus-check"></div>' : ''}
   </div>`;
 }
@@ -902,7 +902,7 @@ function renderDailyFokus(data) {
   const el    = document.getElementById('dailyFokus');
   const items = _buildFokusList(data);
   if (!items.length) {
-    el.innerHTML = `<div class="empty" style="padding:2px 0">Alt ser bra ut i dag</div>`;
+    el.innerHTML = `<div class="empty" style="padding:2px 0">${t('dash.all_ok')}</div>`;
     return;
   }
   el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
@@ -919,10 +919,10 @@ async function loadTodos() {
   const progressEl = document.getElementById('todosProgress');
   if (!data?.length) {
     if (progressEl) progressEl.textContent = '';
-    el.innerHTML = `<div class="empty">Ingen viktige gjøremål</div>`;
+    el.innerHTML = `<div class="empty">${t('dash.no_imp_todos')}</div>`;
     return;
   }
-  if (progressEl) progressEl.textContent = `${data.length} aktive`;
+  if (progressEl) progressEl.textContent = t('dash.active_tasks', {n: data.length});
   el.innerHTML = data.map(t => {
     const due = t.due_date ? new Date(t.due_date + 'T12:00:00') : null;
     const isOverdue = due && due < new Date();
@@ -941,7 +941,7 @@ async function completeTodo(id, cbEl) {
   const { error } = await db.from('todos').update({ completed: true, completed_at: new Date().toISOString() }).eq('id', id);
   if (error) {
     item.classList.remove('completing');
-    toast('Kunne ikke fullføre gjøremål', 'err');
+    toast(t('dash.todo_err'), 'err');
     return;
   }
   setTimeout(() => {
@@ -949,14 +949,14 @@ async function completeTodo(id, cbEl) {
     const progressEl = document.getElementById('todosProgress');
     if (progressEl) {
       const remaining = document.querySelectorAll('#importantTodos .todo-item').length;
-      progressEl.textContent = remaining > 0 ? `${remaining} aktive` : '';
+      progressEl.textContent = remaining > 0 ? t('dash.active_tasks', {n: remaining}) : '';
     }
   }, 350);
 }
 
 // ── Calendar helpers ───────────────────────────────────────────────────────
 function _calFmtTime(start) {
-  if (!start.dateTime) return 'Heldags';
+  if (!start.dateTime) return t('kal.whole_day');
   return new Date(start.dateTime).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
 }
 function _calFmtDate(start) {

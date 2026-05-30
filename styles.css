@@ -329,3 +329,12 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   .grid-3 { grid-template-columns: 1fr; }
   .day-tabs { overflow-x: auto; padding-bottom: 2px; }
 }
+
+/* ── Page fade transition ──────────────────────────────────────── */
+body { animation: pageFadeIn 0.18s ease; }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-tab { transition: opacity 0.1s; }
+.nav-tab:active { opacity: 0.6; }
