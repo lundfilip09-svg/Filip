@@ -342,85 +342,6 @@
       font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
       letter-spacing: 0.1em; text-align: right;
     }
-
-    /* ── Aktivitet modal ────────────────────────────────────────── */
-    .act-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1000; backdrop-filter: blur(4px);
-    }
-    .act-modal-overlay.hidden { display: none; }
-    .act-modal {
-      background: #0e0e10; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px; padding: 24px 28px; width: 100%; max-width: 480px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
-    }
-    .act-modal-hd {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .act-modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-    .act-modal-close {
-      background: none; border: none; color: var(--text-tertiary);
-      font-size: 16px; cursor: pointer; padding: 2px 6px; line-height: 1;
-    }
-    .act-type-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 16px;
-    }
-    .act-type-btn {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px; padding: 9px 6px; cursor: pointer; text-align: center;
-      font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary);
-      transition: background 0.12s, border-color 0.12s;
-    }
-    .act-type-btn:hover { background: rgba(255,255,255,0.08); }
-    .act-type-btn.selected {
-      background: rgba(242,192,99,0.12); border-color: rgba(242,192,99,0.5);
-      color: #F2C063;
-    }
-    .act-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    .act-field-label {
-      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;
-    }
-    .act-pain-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-bottom: 12px; }
-    .act-save-btn {
-      width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer;
-      background: rgba(242,192,99,0.15); color: #F2C063;
-      font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-      border: 1px solid rgba(242,192,99,0.3);
-      transition: background 0.15s;
-    }
-    .act-save-btn:hover { background: rgba(242,192,99,0.25); }
-
-    /* ── Aktivitet kort i øktlogg ───────────────────────────────── */
-    .act-tag {
-      font-size: 9px; font-family: var(--font-mono);
-      padding: 2px 7px; border-radius: 10px;
-      background: rgba(242,192,99,0.1); color: #F2C063;
-      border: 1px solid rgba(242,192,99,0.25);
-    }
-    .add-activity-card {
-      background: rgba(107,227,164,0.03);
-      border: 1px dashed rgba(107,227,164,0.2);
-      border-radius: 10px; padding: 13px 16px;
-      cursor: pointer; display: flex; align-items: center; gap: 10px;
-      transition: background 0.15s, border-color 0.15s;
-      margin-top: 6px;
-    }
-    .add-activity-card:hover {
-      background: rgba(107,227,164,0.07);
-      border-color: rgba(107,227,164,0.4);
-    }
-    .add-activity-plus {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(107,227,164,0.15); color: #6BE3A4;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; line-height: 1; flex-shrink: 0;
-    }
-    .add-activity-label {
-      font-size: 11px; font-family: var(--font-mono); color: #6BE3A4;
-    }
   </style>
 </head>
 <body>
@@ -549,55 +470,6 @@
     </div>
     <div id="sessionGrid" class="sess-grid">
       <div class="loading">Laster øktlogg…</div>
-    </div>
-  </div>
-
-  <!-- Aktivitet modal -->
-  <div class="act-modal-overlay hidden" id="actModal" onclick="if(event.target===this)closeActModal()">
-    <div class="act-modal">
-      <div class="act-modal-hd">
-        <span class="act-modal-title">Logg aktivitet</span>
-        <button class="act-modal-close" onclick="closeActModal()">✕</button>
-      </div>
-      <div class="act-field-row" style="margin-bottom:12px">
-        <div>
-          <div class="act-field-label">Dato</div>
-          <input class="input-sm" id="actDate" type="date" style="width:100%;box-sizing:border-box">
-        </div>
-        <div>
-          <div class="act-field-label">Varighet (min)</div>
-          <input class="input-sm" id="actDuration" type="number" min="1" max="600" placeholder="60" style="width:100%;box-sizing:border-box">
-        </div>
-      </div>
-      <div class="act-field-label" style="margin-bottom:7px">Aktivitet</div>
-      <div class="act-type-grid" id="actTypeGrid">
-        <button class="act-type-btn" data-type="Soccer" onclick="selectActType(this)">⚽ Soccer</button>
-        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)">🏓 Padel</button>
-        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)">🏊 Svømming</button>
-        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)">🚴 Sykling</button>
-        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)">🥾 Turgåing</button>
-        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)">✏️ Annet</button>
-      </div>
-      <div id="actCustomWrap" style="display:none;margin-bottom:12px">
-        <div class="act-field-label">Beskriv aktivitet</div>
-        <input class="input-sm" id="actCustomLabel" type="text" placeholder="F.eks. Volleyball" style="width:100%;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:12px">
-        <div class="act-field-label" style="margin-bottom:6px">RPE (1–10)</div>
-        <input class="input-sm" id="actRpe" type="number" min="1" max="10" placeholder="—" style="width:80px">
-      </div>
-      <div class="act-field-label" style="margin-bottom:6px">Knesmerte</div>
-      <div class="act-pain-row">
-        <div><div class="act-field-label">Før</div><input class="input-sm" id="actKneeBefore" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">Under</div><input class="input-sm" id="actKneeDuring" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">Etter</div><input class="input-sm" id="actKneeAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">D. etter</div><input class="input-sm" id="actKneeDayAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-      </div>
-      <div style="margin-bottom:16px">
-        <div class="act-field-label" style="margin-bottom:5px">Notater</div>
-        <textarea class="input-sm" id="actNotes" rows="2" placeholder="Kommentarer, inntrykk…" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
-      </div>
-      <button class="act-save-btn" onclick="saveActivity()">Lagre aktivitet</button>
     </div>
   </div>
 
@@ -930,8 +802,6 @@ let _sprintData = [];
 let _kneeMap    = {};
 let _kneeSprint = {}; // date → knee_pain for sprint sessions
 let _openDetail = null;
-let _actData    = [];   // activity_log rows
-let _actType    = null; // valgt type i modal
 
 function painColorClass(score) {
   if (score === null || score === undefined) return '';
@@ -953,16 +823,14 @@ function calcPainTrend(kneeSessions) {
 
 async function loadSessionHistory() {
   const el = document.getElementById('sessionGrid');
-  const [{ data: gymData }, { data: sprintRaw }, { data: actRaw }] = await Promise.all([
+  const [{ data: gymData }, { data: sprintRaw }] = await Promise.all([
     db.from('gym_log').select('*').order('date', { ascending: false }).limit(30),
     db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30),
-    db.from('activity_log').select('*').order('date', { ascending: false }).limit(30),
   ]);
   _sessData   = gymData   || [];
   _sprintData = sprintRaw || [];
-  _actData    = actRaw    || [];
 
-  if (!_sessData.length && !_sprintData.length && !_actData.length) {
+  if (!_sessData.length && !_sprintData.length) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px 0">Ingen loggede økter ennå</div>';
     return;
   }
@@ -1023,7 +891,6 @@ function renderSessionGrid() {
   const combined = [
     ..._sessData.map(g => ({ type: 'gym', date: g.date, item: g })),
     ...Object.values(sprintByDate).map(s => ({ type: 'sprint', date: s.date, item: s })),
-    ..._actData.map(a => ({ type: 'activity', date: a.date, item: a })),
   ].sort((a, b) => b.date.localeCompare(a.date));
 
   // Group by date
@@ -1052,7 +919,7 @@ function renderSessionGrid() {
             ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
           </div>
           ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
-      } else if (entry.type === 'sprint') {
+      } else {
         const s   = entry.item;
         const sid = 'sprint-' + s.date;
         const knee   = _kneeSprint[s.date] || null;
@@ -1066,25 +933,6 @@ function renderSessionGrid() {
             ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
           </div>
           ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
-      } else {
-        // activity_log
-        const a   = entry.item;
-        const aid = 'act-' + a.id;
-        const isOpen = _openDetail === aid;
-        const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
-        const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
-        const hasPain = [a.knee_before, a.knee_during, a.knee_after, a.knee_day_after].some(v => v != null);
-        const actEmoji = { Soccer:'⚽', Padel:'🏓', Svømming:'🏊', Sykling:'🚴', Turgåing:'🥾' }[a.activity_type] || '✏️';
-        const metaExtra = a.duration_min ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">${a.duration_min} min</span>` : '';
-        const rpeExtra  = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
-        return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
-            style="border-top-color:rgba(242,192,99,0.3)"
-            onclick="toggleSessionDetail('${aid}')">
-            <div class="sess-name">${actEmoji} ${escHtml(label)}</div>
-            <div class="sess-meta">${hasPain ? buildPainSummary(kneeAct) : ''}<span class="act-tag">${escHtml(a.activity_type)}</span>${metaExtra}${rpeExtra}</div>
-            ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
-          </div>
-          ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
       }
     }).join('');
 
@@ -1093,12 +941,6 @@ function renderSessionGrid() {
       <div class="hist-sessions">${sessHtml}</div>
     </div>`;
   }).join('');
-
-  // + legg til aktivitet kort nederst
-  el.innerHTML += `<div class="add-activity-card" onclick="openActModal()">
-    <div class="add-activity-plus">+</div>
-    <span class="add-activity-label">Logg annen aktivitet</span>
-  </div>`;
 }
 
 function buildDetailHtml(g, knee) {
@@ -1280,150 +1122,6 @@ async function autoSaveSessionNotes(gymId, value) {
   const notes = value.trim() || null;
   const { error } = await db.from('gym_log').update({ session_notes: notes }).eq('id', gymId);
   if (!error) g.session_notes = notes;
-}
-
-function buildActDetailHtml(a) {
-  const aid     = 'act-' + a.id;
-  const d       = new Date(a.date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('no-NO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const label   = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
-  const actEmoji = { Soccer:'⚽', Padel:'🏓', Svømming:'🏊', Sykling:'🚴', Turgåing:'🥾' }[a.activity_type] || '✏️';
-
-  const cpSteps = [
-    { label:'Før',         val: a.knee_before    },
-    { label:'Under',       val: a.knee_during    },
-    { label:'Etter',       val: a.knee_after     },
-    { label:'Dagen etter', val: a.knee_day_after },
-  ];
-  const checkpointHtml = `<div class="pain-checkpoint">${
-    cpSteps.map((s, i) => `
-      <div class="pain-cp-step">
-        <span class="pain-cp-label">${s.label}:</span>
-        <span class="pain-cp-val ${painColorClass(s.val)}">${s.val ?? '—'}</span>
-      </div>${i < cpSteps.length - 1 ? '<span class="pain-cp-arrow">→</span>' : ''}`
-    ).join('')
-  }</div>`;
-
-  const painEditsHtml = `<div class="sess-edit-row">${
-    [
-      { label:'Før',         field:'knee_before',    val: a.knee_before    },
-      { label:'Under',       field:'knee_during',    val: a.knee_during    },
-      { label:'Etter',       field:'knee_after',     val: a.knee_after     },
-      { label:'Dagen etter', field:'knee_day_after', val: a.knee_day_after },
-    ].map(p => `<div>
-      <div class="sess-edit-lbl">${p.label}</div>
-      <input type="number" min="0" max="10" class="sess-edit-input"
-        value="${p.val ?? ''}" placeholder="—"
-        onblur="autoSaveActField('${a.id}','${p.field}',this.value)">
-    </div>`).join('')
-  }</div>`;
-
-  const statsHtml = [
-    a.duration_min ? `<div class="sess-detail-block"><div class="sess-detail-lbl">Varighet</div><div class="sess-detail-val">${a.duration_min} min</div></div>` : '',
-    a.rpe          ? `<div class="sess-detail-block"><div class="sess-detail-lbl">RPE</div><div class="sess-detail-val">${a.rpe}</div></div>` : '',
-  ].filter(Boolean).join('');
-
-  return `<div class="sess-detail open" id="sess-detail-${aid}" onclick="event.stopPropagation()">
-    <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">${actEmoji} ${escHtml(label)}</div>
-        <div class="sess-detail-date">${dateStr}</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
-          onclick="event.stopPropagation();deleteActivity('${a.id}')">Slett</button>
-        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')">✕</button>
-      </div>
-    </div>
-    ${statsHtml ? `<div class="sess-detail-grid" style="margin-bottom:12px">${statsHtml}</div>` : ''}
-    <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Knesmerte</div>
-      ${checkpointHtml}
-    </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Rediger smerteverdier</div>
-      ${painEditsHtml}
-    </div>
-    <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
-      <textarea class="sess-edit-textarea"
-        onblur="autoSaveActField('${a.id}','notes',this.value)">${escHtml(a.notes || '')}</textarea>
-    </div>
-  </div>`;
-}
-
-// ── Modal-funksjoner ───────────────────────────────────────────────────────
-function openActModal() {
-  document.getElementById('actModal').classList.remove('hidden');
-  document.getElementById('actDate').value = today();
-  document.getElementById('actDuration').value = '';
-  document.getElementById('actRpe').value = '';
-  document.getElementById('actNotes').value = '';
-  document.getElementById('actKneeBefore').value = '';
-  document.getElementById('actKneeDuring').value = '';
-  document.getElementById('actKneeAfter').value = '';
-  document.getElementById('actKneeDayAfter').value = '';
-  document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('actCustomWrap').style.display = 'none';
-  _actType = null;
-}
-
-function closeActModal() {
-  document.getElementById('actModal').classList.add('hidden');
-}
-
-function selectActType(btn) {
-  document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  _actType = btn.dataset.type;
-  document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
-}
-
-async function saveActivity() {
-  if (!_actType) { toast('Velg aktivitetstype', 'err'); return; }
-  const date = document.getElementById('actDate').value;
-  if (!date) { toast('Velg dato', 'err'); return; }
-
-  const actLabel   = _actType === 'Annet' ? (document.getElementById('actCustomLabel').value.trim() || null) : null;
-  const duration   = parseInt(document.getElementById('actDuration').value) || null;
-  const rpe        = parseInt(document.getElementById('actRpe').value) || null;
-  const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);
-  const kneeDuring = document.getElementById('actKneeDuring').value === '' ? null : Number(document.getElementById('actKneeDuring').value);
-  const kneeAfter  = document.getElementById('actKneeAfter').value === '' ? null : Number(document.getElementById('actKneeAfter').value);
-  const kneeDayAfter = document.getElementById('actKneeDayAfter').value === '' ? null : Number(document.getElementById('actKneeDayAfter').value);
-  const notes      = document.getElementById('actNotes').value.trim() || null;
-
-  const { data, error } = await db.from('activity_log').insert({
-    user_id: userId, date, activity_type: _actType, activity_label: actLabel,
-    duration_min: duration, rpe,
-    knee_before: kneeBefore, knee_during: kneeDuring, knee_after: kneeAfter, knee_day_after: kneeDayAfter,
-    notes,
-  }).select().single();
-
-  if (error) { toast('Feil ved lagring', 'err'); console.error(error); return; }
-
-  _actData.unshift(data);
-  closeActModal();
-  renderSessionGrid();
-  toast('Aktivitet lagret');
-}
-
-async function autoSaveActField(actId, field, value) {
-  const row = _actData.find(a => String(a.id) === String(actId));
-  if (!row) return;
-  const val = field === 'notes' ? (value.trim() || null) : (value === '' ? null : Number(value));
-  const { error } = await db.from('activity_log').update({ [field]: val }).eq('id', actId);
-  if (!error) row[field] = val;
-}
-
-async function deleteActivity(actId) {
-  if (!confirm('Slett denne aktiviteten?')) return;
-  const { error } = await db.from('activity_log').delete().eq('id', actId);
-  if (error) { toast('Feil ved sletting', 'err'); return; }
-  _actData = _actData.filter(a => String(a.id) !== String(actId));
-  _openDetail = null;
-  renderSessionGrid();
-  toast('Aktivitet slettet');
 }
 
 async function autoSaveKneePainField(gymId, date, sessionType, field, value) {

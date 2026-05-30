@@ -1,7 +1,15 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/dashboard.html" },
-    { "source": "/sovn", "destination": "/sovn.html" }
+    { "source": "/",             "destination": "/dashboard.html" },
+    { "source": "/dashboard",    "destination": "/dashboard.html" },
+    { "source": "/gym",          "destination": "/gym.html" },
+    { "source": "/sprint",       "destination": "/sprint.html" },
+    { "source": "/sovn",         "destination": "/sovn.html" },
+    { "source": "/gjoremal",     "destination": "/gjoremal.html" },
+    { "source": "/kalender",     "destination": "/kalender.html" },
+    { "source": "/treningsplan", "destination": "/treningsplan.html" },
+    { "source": "/ai",           "destination": "/ai.html" },
+    { "source": "/login",        "destination": "/login.html" }
   ],
   "crons": [
     {

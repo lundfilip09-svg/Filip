@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>Gjøremål</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -697,7 +704,13 @@ let _dragEl = null;
 function getOrder(ln) {
   try { return JSON.parse(localStorage.getItem('gm_order_' + ln) || 'null') || null; } catch(e) { return null; }
 }
-function saveOrder(ln, ids) { localStorage.setItem('gm_order_' + ln, JSON.stringify(ids)); }
+function saveOrder(ln, ids) {
+  localStorage.setItem('gm_order_' + ln, JSON.stringify(ids));
+  // Persist to Supabase so order survives cross-device (fire-and-forget)
+  Promise.all(ids.map((id, index) =>
+    db.from('todos').update({ sort_order: index }).eq('id', id)
+  )).catch(() => {});
+}
 function applyOrder(container, ln) {
   const order = getOrder(ln);
   if (!order || !order.length) return;
@@ -805,9 +818,18 @@ async function deleteList(name) {
 async function loadTodos() {
   const { data } = await db.from('todos')
     .select('*').order('important', { ascending: false })
+    .order('sort_order', { ascending: true, nullsLast: true })
     .order('due_date', { ascending: true, nullsLast: true })
     .order('created_at', { ascending: false });
   allTodos = data || [];
+  // Seed localStorage from DB sort_order so order works cross-device
+  const byList = {};
+  for (const t of allTodos) {
+    (byList[t.list_name] = byList[t.list_name] || []).push(String(t.id));
+  }
+  for (const [ln, ids] of Object.entries(byList)) {
+    localStorage.setItem('gm_order_' + ln, JSON.stringify(ids));
+  }
   renderTodos();
 }
 
@@ -1044,7 +1066,7 @@ function startEditDue(todoId) {
       `<div class="card" style="text-align:center;padding:40px;grid-column:1/-1">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
         <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
+          Sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler i Vercel.
         </div>
       </div>`;
     return;

@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>Dashboard — Oversikt</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -1059,7 +1066,7 @@ async function loadCalendar() {
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
         <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
+          Sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler i Vercel.
         </div>
       </div>`;
     return;

@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>Gym — Styrketrening</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -602,7 +609,7 @@
         <textarea id="sessionNotes" class="input-sm" rows="2" style="width:100%;resize:vertical;box-sizing:border-box"></textarea>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-success btn-sm" onclick="saveLog()" style="flex:1">Lagre økt</button>
+        <button id="saveLogBtn" class="btn btn-success btn-sm" onclick="saveLog()" style="flex:1">Lagre økt</button>
         <button class="btn btn-ghost btn-sm" onclick="clearLog()">Nullstill</button>
       </div>
     </div>
@@ -633,6 +640,7 @@ let allExercises = {};
 let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
+let _isSavingLog  = false;
 let workoutState  = 'idle';
 let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
@@ -832,8 +840,6 @@ async function loadData() {
     else if (w.exercise_name) weights[w.exercise_name] = w.weight_kg;
   });
   _applyLocalExOrders();
-  console.log('[loadData] warmup:', allExercises['warmup']);
-  console.log('[loadData] friday_warmup:', allExercises['friday_warmup']);
   await seedRehabIfEmpty();
   await migrateWarmupData();
 }
@@ -950,7 +956,6 @@ async function migrateWarmupData() {
     /sirkul|sykkel/i.test(sec) || exs.some(e => /sykkel/i.test(e.exercise_name))
   );
   if (!hasMondaySykkel) {
-    console.log('[migrateWarmup] Seeding Monday sykkel');
     const { data, error } = await db.from('workout_program').insert({
       day: 'warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
       sets: 1, reps: '8–10 min', sort_order: 0,
@@ -967,7 +972,6 @@ async function migrateWarmupData() {
   for (const [sec, exs] of Object.entries(allExercises['warmup'] || {})) {
     for (const ex of exs) {
       if (/5.?8\s*min/i.test(ex.reps)) {
-        console.log('[migrateWarmup] Fixing sykkel duration on warmup:', ex.exercise_name, ex.reps);
         const { error } = await db.from('workout_program').update({ reps: '8–10 min' }).eq('id', ex.id);
         if (!error) { ex.reps = '8–10 min'; log.fixed.push(ex.exercise_name); }
       }
@@ -979,7 +983,6 @@ async function migrateWarmupData() {
   for (const [sec, exs] of Object.entries(allExercises['warmup'] || {})) {
     for (const ex of [...exs]) {
       if (!fridayOnlyRE.test(ex.exercise_name)) continue;
-      console.log('[migrateWarmup] Moving to friday_warmup:', ex.exercise_name);
       const { error } = await db.from('workout_program').update({ day: 'friday_warmup' }).eq('id', ex.id);
       if (!error) {
         if (!allExercises['friday_warmup']) allExercises['friday_warmup'] = {};
@@ -997,7 +1000,6 @@ async function migrateWarmupData() {
     /sirkul|sykkel/i.test(sec) || exs.some(e => /sykkel/i.test(e.exercise_name))
   );
   if (!hasFriSykkel) {
-    console.log('[migrateWarmup] Seeding Friday sykkel');
     const { data, error } = await db.from('workout_program').insert({
       day: 'friday_warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
       sets: 1, reps: '5–8 min', sort_order: 0,
@@ -1019,7 +1021,6 @@ async function migrateWarmupData() {
   ];
   for (const s of extras) {
     if (friNames.some(n => n.includes(s.name.toLowerCase().split(' ')[0]))) continue;
-    console.log('[migrateWarmup] Seeding Friday extra:', s.name);
     const { data, error } = await db.from('workout_program').insert({
       day: 'friday_warmup', section: s.section, exercise_name: s.name,
       sets: s.sets, reps: s.reps, sort_order: s.sort_order,
@@ -1032,8 +1033,6 @@ async function migrateWarmupData() {
   }
 
   const total = log.fixed.length + log.moved.length + log.seeded.length;
-  if (total) console.log('[migrateWarmup] Done:', log);
-  else console.log('[migrateWarmup] No migrations needed');
 }
 
 function renderRehab() {
@@ -1659,7 +1658,6 @@ async function addExercise(day, section, formId) {
   const sets = parseInt(document.getElementById(`${formId}-sets`).value) || 3;
   const reps = document.getElementById(`${formId}-reps`).value.trim() || '8–10';
   if (!name) return;
-  console.log('[addExercise] payload:', { day, section, exercise_name: name, sets, reps });
   const maxSort = Math.max(0, ...((allExercises[day]?.[section] || []).map(e => e.sort_order)));
   const { data, error } = await db.from('workout_program').insert(
     { day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1 }
@@ -1727,22 +1725,31 @@ async function autoSaveExField(id, field, value) {
 
 // ── Log ────────────────────────────────────────────────────────────
 async function saveLog() {
-  const labels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
-  const notes  = document.getElementById('sessionNotes').value.trim();
-  const date   = document.getElementById('logDate').value || today();
-  const [kRes, gRes] = await Promise.all([
-    db.from('knee_pain').insert({
-      date, session_type: labels[activeDay] || activeDay,
-      before_score: kneePain['before'], during_score: kneePain['during'],
-      after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
-    }),
-    db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
-  ]);
-  if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
-  clearSession();
-  clearDraft();
-  toast('Økt lagret!');
-  await loadGymHistory();
+  if (_isSavingLog) return;
+  _isSavingLog = true;
+  const btn = document.getElementById('saveLogBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const labels = { monday:'Styrke Kapasitet', wednesday:'Sirkulasjon & Mobilitet', friday:'Styrke Power' };
+    const notes  = document.getElementById('sessionNotes').value.trim();
+    const date   = document.getElementById('logDate').value || today();
+    const [kRes, gRes] = await Promise.all([
+      db.from('knee_pain').insert({
+        date, session_type: labels[activeDay] || activeDay,
+        before_score: kneePain['before'], during_score: kneePain['during'],
+        after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
+      }),
+      db.from('gym_log').insert({ date, session_type: labels[activeDay] || activeDay, session_notes: notes }),
+    ]);
+    if (kRes.error || gRes.error) { toast('Feil ved lagring', 'err'); return; }
+    clearSession();
+    clearDraft();
+    toast('Økt lagret!');
+    await loadGymHistory();
+  } finally {
+    _isSavingLog = false;
+    if (btn) btn.disabled = false;
+  }
 }
 
 function clearLog() {
@@ -1762,7 +1769,6 @@ async function loadGymHistory() {
   // Primary source: gym_log
   const { data: gymData, error: gymErr } = await db.from('gym_log')
     .select('*').order('date', { ascending: false }).limit(10);
-  console.log('[gymHistory] gym_log →', gymData, gymErr);
 
   let sessions = gymData || [];
   let kneeMap  = {};
@@ -1771,7 +1777,6 @@ async function loadGymHistory() {
     const dates = [...new Set(sessions.map(g => g.date))];
     const { data: kneeData, error: kneeErr } = await db.from('knee_pain')
       .select('*').in('date', dates);
-    console.log('[gymHistory] knee_pain join →', kneeData, kneeErr);
     (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
   } else {
     // Fallback: build from knee_pain for non-sprint sessions
@@ -1780,7 +1785,6 @@ async function loadGymHistory() {
       .not('session_type', 'ilike', 'Sprint%')
       .order('date', { ascending: false })
       .limit(10);
-    console.log('[gymHistory] knee_pain fallback →', kneeData, kneeErr);
     if (kneeData?.length) {
       sessions = kneeData.map(k => ({
         id: k.id, date: k.date, session_type: k.session_type, session_notes: null, _knee: k,

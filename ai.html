@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>AI</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -15,7 +22,7 @@
     }
 
     /* ── Header ── */
-    .ai-header { padding-bottom: 18px; flex-shrink: 0; }
+    .ai-header { padding-bottom: 18px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
     .ai-title {
       font-size: 24px; font-weight: 700; letter-spacing: -0.03em;
       background: linear-gradient(135deg, #fff 0%, #c8c5be 100%);
@@ -208,8 +215,11 @@
 
 <div class="ai-page">
   <div class="ai-header">
-    <div class="ai-title">AI Overseer</div>
-    <div class="ai-subtitle">Personlig assistent · <span>claude-sonnet-4</span> · Søvn · Sprint · Rehab</div>
+    <div>
+      <div class="ai-title">AI Overseer</div>
+      <div class="ai-subtitle">Personlig assistent · <span>claude-sonnet-4</span> · Søvn · Sprint · Rehab</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;flex-shrink:0;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">Tøm samtale</button>
   </div>
 
   <div class="chat-card">
@@ -324,8 +334,39 @@ function hideLoading() {
 let isSending = false;
 let chatHistory = []; // {role:'user'|'assistant', content:string}[]
 
-function saveHistory() {
+async function saveHistory() {
   localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+  // Persist last user+assistant pair to Supabase (fire-and-forget)
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return;
+    const lastTwo = chatHistory.slice(-2);
+    if (lastTwo.length === 2 && lastTwo[0].role === 'user' && lastTwo[1].role === 'assistant') {
+      await db.from('ai_chat_history').insert(lastTwo.map(m => ({
+        user_id: session.user.id,
+        role: m.role,
+        content: m.content,
+      })));
+    }
+  } catch { /* silent — localStorage still valid */ }
+}
+
+async function clearChat() {
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+      await db.from('ai_chat_history').delete().eq('user_id', session.user.id);
+    }
+  } catch { /* silent */ }
+  chatHistory = [];
+  localStorage.removeItem('ai_chat_history');
+  document.getElementById('chatHistory').innerHTML = `
+    <div class="chat-empty" id="chatEmpty">
+      <div class="chat-empty-icon">🤖</div>
+      <div class="chat-empty-title">Klar til analyse</div>
+      <div class="chat-empty-sub">Spør om trening, knesmerte, søvn eller form.<br>Henter data automatisk fra alle logger.</div>
+    </div>`;
+  toast('Samtale tømt');
 }
 
 function historyForApi() {
@@ -444,14 +485,33 @@ function autoResize(el) {
     }
     localStorage.setItem('ai_user_id', session.user.id);
 
-    // Restore persisted history
+    // Load history: Supabase first, localStorage fallback
     try {
-      const stored = localStorage.getItem('ai_chat_history');
-      if (stored) {
-        chatHistory = JSON.parse(stored);
+      const { data: sbData, error } = await db.from('ai_chat_history')
+        .select('role, content')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: true })
+        .limit(20);
+      if (!error && sbData?.length) {
+        chatHistory = sbData.map(m => ({ role: m.role, content: m.content }));
         chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+        localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+      } else {
+        const stored = localStorage.getItem('ai_chat_history');
+        if (stored) {
+          chatHistory = JSON.parse(stored);
+          chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+        }
       }
-    } catch { chatHistory = []; }
+    } catch {
+      try {
+        const stored = localStorage.getItem('ai_chat_history');
+        if (stored) {
+          chatHistory = JSON.parse(stored);
+          chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+        }
+      } catch { chatHistory = []; }
+    }
 
     // Restore draft input
     const draft = localStorage.getItem('ai_draft');

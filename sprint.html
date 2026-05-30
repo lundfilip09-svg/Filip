@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>Sprint — Rekorder & logg</title>
   <link rel="stylesheet" href="styles.css">
   <style>
@@ -241,7 +248,7 @@
       <label class="form-label">Notater</label>
       <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…"></textarea>
     </div>
-    <button class="btn btn-success" onclick="logSession()">Logg økt</button>
+    <button id="sprintSaveBtn" class="btn btn-success" onclick="logSession()">Logg økt</button>
   </div>
 
   <!-- Knee trend -->
@@ -301,6 +308,7 @@ function distLabel(d) {
 }
 
 const skKnee = { before: null, during: null, after: null, dayafter: null };
+let _isSavingLog = false;
 let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
 
@@ -496,72 +504,80 @@ function renderSprintGoals(best) {
 
 // ── Log session ───────────────────────────────────────────────────────────
 async function logSession() {
+  if (_isSavingLog) return;
   if (!runs.length) { toast('Legg til minst ett løp før du lagrer', 'err'); return; }
+  _isSavingLog = true;
+  const btn = document.getElementById('sprintSaveBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const date  = document.getElementById('logDate').value || today();
+    const rpe   = parseInt(document.getElementById('logRpe').value) || null;
+    const notes = document.getElementById('logNotes').value.trim();
 
-  const date  = document.getElementById('logDate').value || today();
-  const rpe   = parseInt(document.getElementById('logRpe').value) || null;
-  const notes = document.getElementById('logNotes').value.trim();
+    const inserts = runs.map(r => ({
+      date, distance: r.distance, type: r.type, time_seconds: r.time,
+      rpe, notes,
+      knee_before:    skKnee.before,
+      knee_during:    skKnee.during,
+      knee_after:     skKnee.after,
+      knee_day_after: skKnee.dayafter,
+    }));
 
-  const inserts = runs.map(r => ({
-    date, distance: r.distance, type: r.type, time_seconds: r.time,
-    rpe, notes,
-    knee_before:    skKnee.before,
-    knee_during:    skKnee.during,
-    knee_after:     skKnee.after,
-    knee_day_after: skKnee.dayafter,
-  }));
+    const distList = [...new Set(runs.map(r => r.distance))].join('/');
+    const [logRes, kneeRes] = await Promise.all([
+      db.from('sprint_log').insert(inserts).select(),
+      db.from('knee_pain').insert({
+        date, session_type: `Sprint ${distList} ${runs[0].type}`,
+        before_score:    skKnee.before,
+        during_score:    skKnee.during,
+        after_score:     skKnee.after,
+        day_after_score: skKnee.dayafter,
+        notes,
+      }),
+    ]);
 
-  const distList = [...new Set(runs.map(r => r.distance))].join('/');
-  const [logRes, kneeRes] = await Promise.all([
-    db.from('sprint_log').insert(inserts).select(),
-    db.from('knee_pain').insert({
-      date, session_type: `Sprint ${distList} ${runs[0].type}`,
-      before_score:    skKnee.before,
-      during_score:    skKnee.during,
-      after_score:     skKnee.after,
-      day_after_score: skKnee.dayafter,
-      notes,
-    }),
-  ]);
+    if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
+    if (kneeRes.error) { toast('Knesmerte ikke lagret: ' + kneeRes.error.message, 'err'); }
 
-  if (logRes.error)  { toast('Feil ved lagring av økt: ' + logRes.error.message, 'err'); return; }
-  if (kneeRes.error) { toast('Knesmerte ikke lagret: '  + kneeRes.error.message, 'err'); console.error('knee_pain insert:', kneeRes.error); }
-
-  // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
-  const newPBs = [];
-  for (const r of runs) {
-    if (r.distance === '60m_flying') continue;
-    const countsForPB = r.distance === '60m_celler'
-      ? r.type === 'Trening'
-      : r.type === 'Stevne';
-    if (!countsForPB) continue;
-    const { data: rec } = await db.from('sprint_records')
-      .select('best_time').eq('distance', r.distance).single();
-    if (!rec || r.time < rec.best_time) {
-      await db.from('sprint_records').upsert(
-        { distance: r.distance, best_time: r.time, date },
-        { onConflict: 'distance' }
-      );
-      newPBs.push(`${r.distance} ${r.time.toFixed(2)}s`);
-      const cell = document.getElementById(`pb-${r.distance}`);
-      if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 600); }
+    // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
+    const newPBs = [];
+    for (const r of runs) {
+      if (r.distance === '60m_flying') continue;
+      const countsForPB = r.distance === '60m_celler'
+        ? r.type === 'Trening'
+        : r.type === 'Stevne';
+      if (!countsForPB) continue;
+      const { data: rec } = await db.from('sprint_records')
+        .select('best_time').eq('distance', r.distance).single();
+      if (!rec || r.time < rec.best_time) {
+        await db.from('sprint_records').upsert(
+          { distance: r.distance, best_time: r.time, date },
+          { onConflict: 'distance' }
+        );
+        newPBs.push(`${r.distance} ${r.time.toFixed(2)}s`);
+        const cell = document.getElementById(`pb-${r.distance}`);
+        if (cell) { cell.classList.add('pb-pulse'); setTimeout(() => cell.classList.remove('pb-pulse'), 600); }
+      }
     }
+
+    toast(newPBs.length ? `Ny PB! ${newPBs.join(', ')}` : `${runs.length} løp lagret!`);
+    clearDraft();
+
+    // Reset
+    runs = [];
+    renderRuns();
+    document.getElementById('logRpe').value   = '';
+    document.getElementById('logNotes').value = '';
+    Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
+    ['before','during','after','dayafter'].forEach(p =>
+      document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn')
+    );
+
+    await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
+  } finally {
+    _isSavingLog = false;
+    if (btn) btn.disabled = false;
   }
-
-  toast(newPBs.length ? `Ny PB! ${newPBs.join(', ')}` : `${runs.length} løp lagret!`);
-  clearDraft();
-
-  // Reset
-  runs = [];
-  renderRuns();
-  document.getElementById('logRpe').value   = '';
-  document.getElementById('logNotes').value = '';
-  Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
-  ['before','during','after','dayafter'].forEach(p =>
-    document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn')
-  );
-
-  await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 }
 
 // ── History ───────────────────────────────────────────────────────────────
@@ -569,7 +585,6 @@ async function loadHistory() {
   const { data, error } = await db.from('sprint_log').select('*')
     .order('date', { ascending: false })
     .limit(60);
-  console.log('[sprintHistory] sprint_log →', data, error);
   sprintLog = data || [];
   renderHistory();
   await loadKneeTrend();
@@ -858,7 +873,7 @@ async function saveKneeInline() {
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
         <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Deploy til Netlify og sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler.
+          Sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler i Vercel.
         </div>
       </div>`;
     return;
