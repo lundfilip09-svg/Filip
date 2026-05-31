@@ -692,8 +692,9 @@ async function loadPlanFromDb() {
   const { data } = await db.from('training_plan').select('day_index,session_text,notes');
   plan = {};
   (data || []).forEach(r => {
-    if (r.session_text) plan[r.day_index]           = r.session_text;
-    if (r.notes)        plan[`notes_${r.day_index}`] = r.notes;
+    // null = "no override, use weekly plan"; '' = explicitly cleared (must take priority)
+    if (r.session_text !== null) plan[r.day_index] = r.session_text;
+    if (r.notes)                 plan[`notes_${r.day_index}`] = r.notes;
   });
 }
 
@@ -722,8 +723,9 @@ async function loadPlanForWeek() {
     .eq('week_monday', weekMonday);
   planWeekly = {};
   (data || []).forEach(r => {
-    if (r.session_text) planWeekly[r.day_index]              = r.session_text;
-    if (r.notes)        planWeekly[`notes_${r.day_index}`]   = r.notes;
+    // session_text is NOT NULL in training_plan_weekly — always store ('' = explicitly cleared)
+    planWeekly[r.day_index]              = r.session_text;
+    if (r.notes) planWeekly[`notes_${r.day_index}`] = r.notes;
   });
 }
 
@@ -772,11 +774,12 @@ async function saveWeeklyPlan() {
 }
 
 // Always today's plan regardless of viewed week (used by hero)
-function todayPlanText(i) { return (plan[i] || weeklyPlan[i] || '').trim(); }
+// Use `i in plan` so an explicitly-cleared day (plan[i]==='') doesn't fall through to weeklyPlan
+function todayPlanText(i) { return (i in plan ? plan[i] : (weeklyPlan[i] || '')).trim(); }
 
 function planText(i)  {
-  if (weekOffset === 0) return (plan[i] || weeklyPlan[i] || '').trim();
-  return (planWeekly[i] || weeklyPlan[i] || '').trim();
+  if (weekOffset === 0) return (i in plan      ? plan[i]      : (weeklyPlan[i] || '')).trim();
+  return                       (i in planWeekly ? planWeekly[i] : (weeklyPlan[i] || '')).trim();
 }
 function notesText(i) {
   if (weekOffset === 0) return (plan[`notes_${i}`] || '').trim();
@@ -977,22 +980,18 @@ async function saveDay() {
 
   let error;
   if (weekOffset === 0) {
-    if (txt) plan[selectedIdx] = txt;
-    else     delete plan[selectedIdx];
-    if (notes) plan[`notes_${selectedIdx}`] = notes;
-    else       delete plan[`notes_${selectedIdx}`];
+    plan[selectedIdx]              = txt;    // '' = explicit empty (must not fall back to weeklyPlan)
+    plan[`notes_${selectedIdx}`]   = notes;
     ({ error } = await db.from('training_plan').upsert(
       { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
       { onConflict: 'user_id,day_index' }
     ));
   } else {
     const weekMonday = localISODate(getMondayForOffset(weekOffset));
-    if (txt) planWeekly[selectedIdx] = txt;
-    else     delete planWeekly[selectedIdx];
-    if (notes) planWeekly[`notes_${selectedIdx}`] = notes;
-    else       delete planWeekly[`notes_${selectedIdx}`];
+    planWeekly[selectedIdx]             = txt;
+    planWeekly[`notes_${selectedIdx}`]  = notes;
     ({ error } = await db.from('training_plan_weekly').upsert(
-      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: txt || '', notes: notes || '' },
+      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: txt, notes },
       { onConflict: 'user_id,week_monday,day_index' }
     ));
   }
@@ -1010,22 +1009,21 @@ async function clearDay() {
 
   let clearError;
   if (weekOffset === 0) {
-    delete plan[selectedIdx];
-    delete plan[`notes_${selectedIdx}`];
-    const { error } = await db.from('training_plan')
-      .delete()
-      .eq('user_id', userId)
-      .eq('day_index', selectedIdx);
+    plan[selectedIdx]             = '';   // explicit empty — don't fall back to weeklyPlan
+    plan[`notes_${selectedIdx}`]  = '';
+    const { error } = await db.from('training_plan').upsert(
+      { user_id: userId, day_index: selectedIdx, session_text: '', notes: '' },
+      { onConflict: 'user_id,day_index' }
+    );
     clearError = error;
   } else {
     const weekMonday = localISODate(getMondayForOffset(weekOffset));
-    delete planWeekly[selectedIdx];
-    delete planWeekly[`notes_${selectedIdx}`];
-    const { error } = await db.from('training_plan_weekly')
-      .delete()
-      .eq('user_id', userId)
-      .eq('week_monday', weekMonday)
-      .eq('day_index', selectedIdx);
+    planWeekly[selectedIdx]            = '';
+    planWeekly[`notes_${selectedIdx}`] = '';
+    const { error } = await db.from('training_plan_weekly').upsert(
+      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: '', notes: '' },
+      { onConflict: 'user_id,week_monday,day_index' }
+    );
     clearError = error;
   }
   if (clearError) { console.error('clearDay error:', clearError); }
