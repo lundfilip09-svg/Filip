@@ -749,7 +749,7 @@ async function saveWeeklyPlan() {
     session_type: document.getElementById(`wp-day-${d}`)?.value.trim() || '',
   }));
   const { error } = await db.from('weekly_plan').upsert(rows, { onConflict: 'user_id,day' });
-  if (error) { toast(t('tp.save_error'), 'err'); return; }
+  if (error) { console.error('saveWeeklyPlan error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
   rows.forEach(r => { weeklyPlan[r.day] = r.session_type; });
 
   // Remove training_plan session_text overrides so the new global plan shows through
@@ -992,7 +992,7 @@ async function saveDay() {
       { onConflict: 'user_id,week_monday,day_index' }
     ));
   }
-  if (error) { toast(t('tp.save_error'), 'err'); return; }
+  if (error) { console.error('saveDay error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
 
   renderHero();
   renderDayStrip();
@@ -1004,23 +1004,27 @@ async function saveDay() {
 async function clearDay() {
   if (!confirm('Tøm planen for denne dagen?')) return;
 
+  let clearError;
   if (weekOffset === 0) {
     delete plan[selectedIdx];
     delete plan[`notes_${selectedIdx}`];
-    await db.from('training_plan')
+    const { error } = await db.from('training_plan')
       .delete()
       .eq('user_id', userId)
       .eq('day_index', selectedIdx);
+    clearError = error;
   } else {
     const weekMonday = localISODate(getMondayForOffset(weekOffset));
     delete planWeekly[selectedIdx];
     delete planWeekly[`notes_${selectedIdx}`];
-    await db.from('training_plan_weekly')
+    const { error } = await db.from('training_plan_weekly')
       .delete()
       .eq('user_id', userId)
       .eq('week_monday', weekMonday)
       .eq('day_index', selectedIdx);
+    clearError = error;
   }
+  if (clearError) { console.error('clearDay error:', clearError); }
 
   renderHero();
   renderDayStrip();
@@ -1583,7 +1587,7 @@ async function saveActivity() {
     notes,
   }).select().single();
 
-  if (error) { toast(t('tp.save_error'), 'err'); console.error(error); return; }
+  if (error) { console.error('saveActivity error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
 
   _actData.unshift(data);
   closeActModal();
