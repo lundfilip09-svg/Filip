@@ -51,10 +51,7 @@ applyLang();
 
 (async () => {
   try {
-    const r = await fetch('/api/config');
-    if (!r.ok) throw new Error('Config-tjeneste svarte ' + r.status);
-    const cfg = await r.json();
-    if (cfg.error) throw new Error(cfg.error);
+    const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
 
     const { data: { session } } = await db.auth.getSession();
@@ -71,6 +68,7 @@ async function signIn() {
   const btn      = document.getElementById('loginBtn');
 
   errEl.textContent = '';
+  if (!db) { errEl.textContent = t('login.loading'); return; }
   if (!email || !password) { errEl.textContent = t('login.empty'); return; }
 
   btn.disabled = true;

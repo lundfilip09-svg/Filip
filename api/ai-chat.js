@@ -20,6 +20,10 @@ TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes 
 
 NAKKE/RYGG (sekundært): Høyre indre rygg svakere pga telefon/dominant høyrehånd. Stiv rygg → skuldre fremover → nakkesmerter. Tiltak: Rows med strikk for midtre rygg.
 
+ANDRE IDRETTER: Filip kan drive andre idretter enn sprint og styrke (f.eks. fotball/soccer, basket, padel). Disse ligger i aktivitetsloggen og ukeplanen. Ballidrett med mye retningsendring, hopp og akselerasjon gir ekstra belastning på patellarsenen — vurder total ukesbelastning på tvers av ALT Filip faktisk har gjort, ikke bare sprint og styrke. Les hva han faktisk trener fra dataene; ikke anta. Hvis Filip skriver på engelsk, svar på engelsk.
+
+ROLIG DAG: I aktivitetsloggen kan activity_type være "Rolig dag". Det betyr at Filip tok det rolig istedenfor en planlagt økt — activity_label sier hvilken økt det erstattet og hvorfor (f.eks. "Sprint — hamstring"). Behandle dette som en bevisst nedtrapping, ikke en uteblitt økt, og ta hensyn til årsaken når du gir råd.
+
 Smerteskala 0-10 brukes konsekvent i alle logger. Se etter mønstre mellom søvn, HRV, belastning og knesmerte. Vær direkte og kortfattet. Du har tilgang til Filips faktiske treningsdata som sendes med hver melding.`;
 
 async function sbFetch(supabaseUrl, anonKey, token, table, params) {
@@ -43,7 +47,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message, history } = req.body || {};
+  const { message, history, localDate, tz } = req.body || {};
   const authHeader = req.headers.authorization;
 
   if (!message || !authHeader) {
@@ -72,42 +76,79 @@ export default async function handler(req, res) {
   if (!authCheck.ok) return res.status(401).json({ error: 'Ikke autentisert' });
 
   // Fetch training data
-  const [healthData, sprintData, gymData, kneePainData, activityData] = await Promise.all([
+  const [healthData, sprintData, gymData, kneePainData, activityData,
+         sprintRecords, weeklyPlan, planOverrides] = await Promise.all([
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=14'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
-      'select=*&order=date.desc&limit=10'),
+      'select=*&order=date.desc&limit=15'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'gym_log',
-      'select=*&order=date.desc&limit=10'),
+      'select=*&order=date.desc&limit=15'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'knee_pain',
-      'select=*&order=date.desc&limit=5'),
+      'select=*&order=date.desc&limit=8'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'activity_log',
-      'select=*&order=date.desc&limit=10'),
+      'select=*&order=date.desc&limit=15'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_records',
+      'select=distance,best_time,date&order=distance.asc'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'weekly_plan',
+      'select=day,session_type&order=day.asc'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'training_plan',
+      'select=day_index,session_text,notes&order=day_index.asc'),
   ]);
 
-  const now = new Date();
-  const osloDate = now.toLocaleDateString('no-NO', {
-    timeZone: 'Europe/Oslo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  // Slå sammen ukeplan: weekly_plan = global standard, training_plan = override per dag.
+  const DAYS_NO = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+  const planByDay = {};
+  (Array.isArray(weeklyPlan) ? weeklyPlan : []).forEach(r => {
+    if (r.session_type) planByDay[r.day] = r.session_type;
   });
-  const osloDateISO = now.toLocaleDateString('sv', { timeZone: 'Europe/Oslo' }); // YYYY-MM-DD
+  (Array.isArray(planOverrides) ? planOverrides : []).forEach(r => {
+    if (r.session_text) planByDay[r.day_index] = r.session_text;
+    if (r.notes) planByDay[`notes_${r.day_index}`] = r.notes;
+  });
+  const weekPlanReadable = DAYS_NO.map((navn, i) =>
+    `${navn}: ${planByDay[i] || 'Hvile'}${planByDay[`notes_${i}`] ? ` (${planByDay[`notes_${i}`]})` : ''}`
+  ).join('\n');
+
+  const now = new Date();
+  // Bruk brukerens tidssone hvis sendt (funker når Filip er i USA), ellers Europe/Oslo.
+  const userTz = (typeof tz === 'string' && tz) ? tz : 'Europe/Oslo';
+  let osloDate, osloDateISO;
+  try {
+    osloDate = now.toLocaleDateString('no-NO', {
+      timeZone: userTz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+    osloDateISO = (typeof localDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(localDate))
+      ? localDate
+      : now.toLocaleDateString('sv', { timeZone: userTz }); // YYYY-MM-DD
+  } catch {
+    osloDate = now.toLocaleDateString('no-NO', { timeZone: 'Europe/Oslo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    osloDateISO = now.toLocaleDateString('sv', { timeZone: 'Europe/Oslo' });
+  }
 
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
+[UKEPLAN — hva som er planlagt per ukedag]
+${weekPlanReadable}
+
+[PERSONLIGE REKORDER (PB) — sprint]
+${JSON.stringify(sprintRecords)}
+
 [SØVN + HRV + PULS — SISTE 14 DAGER]
-${JSON.stringify(healthData, null, 2)}
+${JSON.stringify(healthData)}
 
-[SPRINT-LOGGER — SISTE 10]
-${JSON.stringify(sprintData, null, 2)}
+[SPRINT-LOGGER — SISTE 15]
+${JSON.stringify(sprintData)}
 
-[GYM-LOGGER — SISTE 10]
-${JSON.stringify(gymData, null, 2)}
+[GYM-LOGGER — SISTE 15]
+${JSON.stringify(gymData)}
 
-[KNESMERTE-LOGGER — SISTE 5]
-${JSON.stringify(kneePainData, null, 2)}
+[KNESMERTE-LOGGER — SISTE 8]
+${JSON.stringify(kneePainData)}
 
-[ANDRE AKTIVITETER — SISTE 10 (fotball, padel, svømming osv)]
-${JSON.stringify(activityData, null, 2)}`;
+[ANDRE AKTIVITETER — SISTE 15 (fotball, basket, padel, svømming, rolig dag osv)]
+${JSON.stringify(activityData)}`;
 
   const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -140,5 +181,5 @@ ${JSON.stringify(activityData, null, 2)}`;
   }
 
   const data = await anthropicRes.json();
-  return res.status(200).json({ reply: data.content[0].text });
+  return res.status(200).json({ reply: data.content?.[0]?.text || 'Tomt svar fra AI.' });
 }

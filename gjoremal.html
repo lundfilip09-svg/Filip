@@ -938,7 +938,7 @@ async function toggleTodo(id, isDone) {
     completed: newDone,
     completed_at: newDone ? new Date().toISOString() : null,
   }).eq('id', id);
-  if (error) { toast('❌ Kunne ikke oppdatere'); return; }
+  if (error) { toast(t('gm.update_error'), 'err'); return; }
   const td = allTodos.find(x => x.id === id);
   if (td) { td.completed = newDone; td.completed_at = newDone ? new Date().toISOString() : null; }
   renderTodos();
@@ -947,7 +947,7 @@ async function toggleTodo(id, isDone) {
 // ── Toggle important ──────────────────────────────────────────────────────
 async function toggleImportant(id, isImportant) {
   const { error } = await db.from('todos').update({ important: !isImportant }).eq('id', id);
-  if (error) { toast('❌ Kunne ikke oppdatere'); return; }
+  if (error) { toast(t('gm.update_error'), 'err'); return; }
   const td = allTodos.find(x => x.id === id);
   if (td) td.important = !isImportant;
   renderTodos();
@@ -956,7 +956,7 @@ async function toggleImportant(id, isImportant) {
 // ── Delete ────────────────────────────────────────────────────────────────
 async function deleteTodo(id) {
   const { error } = await db.from('todos').delete().eq('id', id);
-  if (error) { toast('❌ Kunne ikke slette'); return; }
+  if (error) { toast(t('gm.delete_error'), 'err'); return; }
   allTodos = allTodos.filter(x => x.id !== id);
   renderTodos();
   toast(t('gm.deleted'));

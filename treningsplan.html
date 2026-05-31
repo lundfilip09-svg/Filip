@@ -453,11 +453,11 @@
     </div>
     <div class="hero-kpi">
       <div class="hero-kpi-val" id="kpiDone">—</div>
-      <div class="hero-kpi-label">Treninger<br>denne uke</div>
+      <div class="hero-kpi-label" data-i18n-html="tp.kpi_sessions">Treninger<br>denne uke</div>
     </div>
     <div class="hero-kpi">
       <div class="hero-kpi-val" id="kpiLeft">—</div>
-      <div class="hero-kpi-label">Planlagte<br>igjen</div>
+      <div class="hero-kpi-label" data-i18n-html="tp.kpi_left">Planlagte<br>igjen</div>
     </div>
   </div>
 
@@ -465,11 +465,11 @@
   <div style="display:flex;align-items:center;justify-content:space-between;
     padding:6px 2px;margin-bottom:4px">
     <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
-      style="font-family:var(--font-mono);font-size:11px">← Forrige uke</button>
+      style="font-family:var(--font-mono);font-size:11px" data-i18n="tp.prev_week">← Forrige uke</button>
     <span id="weekNavLabel" style="font-size:11px;font-family:var(--font-mono);
-      color:var(--text-tertiary)">Uke —</span>
+      color:var(--text-tertiary)" data-i18n="tp.week_lbl">Uke —</span>
     <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
-      style="font-family:var(--font-mono);font-size:11px">Neste uke →</button>
+      style="font-family:var(--font-mono);font-size:11px" data-i18n="tp.next_week">Neste uke →</button>
   </div>
 
   <!-- Day strip -->
@@ -483,26 +483,26 @@
       <div class="detail-header">
         <div>
           <div class="detail-day-meta" id="detailMeta">—</div>
-          <div class="detail-day-title" id="detailTitle">Velg en dag</div>
+          <div class="detail-day-title" id="detailTitle" data-i18n="tp.select_day">Velg en dag</div>
         </div>
         <div id="detailLoggedBadge"></div>
       </div>
 
       <div class="detail-field">
-        <div class="detail-field-label">Økt / Aktivitet</div>
+        <div class="detail-field-label" data-i18n="tp.session_activity">Økt / Aktivitet</div>
         <input class="input-sm detail-input" id="detailPlan" type="text"
-          placeholder="Legg inn økt…" onkeydown="if(event.key==='Enter')saveDay()">
+          placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder" onkeydown="if(event.key==='Enter')saveDay()">
       </div>
 
       <div class="detail-field">
         <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
         <textarea class="input-sm detail-input" id="detailNotes" rows="3"
-          placeholder="Mål, teknikk, kommentarer…" style="resize:vertical"></textarea>
+          placeholder="Mål, teknikk, kommentarer…" data-i18n-placeholder="tp.notes_placeholder" style="resize:vertical"></textarea>
       </div>
 
       <div class="detail-actions">
-        <button class="btn btn-success btn-sm" onclick="saveDay()">Lagre</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearDay()">Tøm dag</button>
+        <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
       </div>
     </div>
 
@@ -511,30 +511,30 @@
 
       <!-- Stats -->
       <div class="card">
-        <div class="widget-label">Denne uken</div>
+        <div class="widget-label" data-i18n="tp.this_week">Denne uken</div>
         <div class="stat-quad">
           <div class="stat-block">
             <div class="stat-block-val" id="sbLogged">—</div>
-            <div class="stat-block-lbl">Fullførte</div>
+            <div class="stat-block-lbl" data-i18n="tp.stat_done">Fullførte</div>
           </div>
           <div class="stat-block">
             <div class="stat-block-val" id="sbPlanned">—</div>
-            <div class="stat-block-lbl">Planlagte</div>
+            <div class="stat-block-lbl" data-i18n="tp.stat_planned">Planlagte</div>
           </div>
           <div class="stat-block">
             <div class="stat-block-val" id="sbPct">—</div>
-            <div class="stat-block-lbl">Konsistens</div>
+            <div class="stat-block-lbl" data-i18n="tp.stat_consistency">Konsistens</div>
           </div>
           <div class="stat-block">
             <div class="stat-block-val" id="sbRest">—</div>
-            <div class="stat-block-lbl">Hviledager</div>
+            <div class="stat-block-lbl" data-i18n="tp.stat_rest">Hviledager</div>
           </div>
         </div>
       </div>
 
       <!-- Week bar chart -->
       <div class="card">
-        <div class="widget-label">Ukens belastning</div>
+        <div class="widget-label" data-i18n="tp.week_load">Ukens belastning</div>
         <div class="week-bars" id="weekBars"></div>
         <div id="weekLoadLabel" class="wbar-load-label" style="margin-top:8px"></div>
       </div>
@@ -546,7 +546,7 @@
                cursor:pointer;transition:background 0.15s;text-align:center"
         onmouseover="this.style.background='rgba(255,255,255,0.07)'"
         onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-        ✎ Rediger ukeplan
+        <span data-i18n="tp.edit_plan">✎ Rediger ukeplan</span>
       </button>
 
     </div>
@@ -570,42 +570,48 @@
   <div class="act-modal-overlay hidden" id="actModal" onclick="if(event.target===this)closeActModal()">
     <div class="act-modal">
       <div class="act-modal-hd">
-        <span class="act-modal-title">Logg aktivitet</span>
+        <span class="act-modal-title" data-i18n="tp.log_activity">Logg aktivitet</span>
         <button class="act-modal-close" onclick="closeActModal()">✕</button>
       </div>
       <div style="margin-bottom:12px">
-        <div class="act-field-label">Dato</div>
+        <div class="act-field-label" data-i18n="tp.date">Dato</div>
         <input class="input-sm" id="actDate" type="date" style="width:200px">
       </div>
-      <div class="act-field-label" style="margin-bottom:7px">Aktivitet</div>
+      <div class="act-field-label" style="margin-bottom:7px" data-i18n="tp.activity">Aktivitet</div>
       <div class="act-type-grid" id="actTypeGrid">
-        <button class="act-type-btn" data-type="Fotball" onclick="selectActType(this)">Fotball</button>
+        <button class="act-type-btn" data-type="Fotball" onclick="selectActType(this)" data-i18n="tp.act_soccer">Fotball</button>
         <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)">Padel</button>
-        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)">Svømming</button>
-        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)">Sykling</button>
-        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)">Turgåing</button>
-        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)">Annet</button>
+        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)" data-i18n="tp.act_swim">Svømming</button>
+        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)" data-i18n="tp.act_cycle">Sykling</button>
+        <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)">Basketball</button>
+        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)" data-i18n="tp.act_walk">Turgåing</button>
+        <button class="act-type-btn" data-type="Rolig dag" onclick="selectActType(this)" data-i18n="tp.act_easy">Rolig dag</button>
+        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>
       </div>
       <div id="actCustomWrap" style="display:none;margin-bottom:12px">
-        <div class="act-field-label">Beskriv aktivitet</div>
-        <input class="input-sm" id="actCustomLabel" type="text" placeholder="F.eks. Volleyball" style="width:100%;box-sizing:border-box">
+        <div class="act-field-label" data-i18n="tp.describe_activity">Beskriv aktivitet</div>
+        <input class="input-sm" id="actCustomLabel" type="text" placeholder="F.eks. Volleyball" data-i18n-placeholder="tp.act_custom_ph" style="width:100%;box-sizing:border-box">
+      </div>
+      <div id="actReplacedWrap" style="display:none;margin-bottom:12px">
+        <div class="act-field-label" data-i18n="tp.act_replaced">Erstattet planlagt økt (valgfritt)</div>
+        <input class="input-sm" id="actReplacedLabel" type="text" placeholder="F.eks. Sprint — tok det rolig pga hamstring" data-i18n-placeholder="tp.act_replaced_ph" style="width:100%;box-sizing:border-box">
       </div>
       <div style="margin-bottom:12px">
         <div class="act-field-label" style="margin-bottom:6px">RPE (1–10)</div>
         <input class="input-sm" id="actRpe" type="number" min="1" max="10" placeholder="—" style="width:80px">
       </div>
-      <div class="act-field-label" style="margin-bottom:6px">Knesmerte</div>
+      <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.knee">Knesmerte</div>
       <div class="act-pain-row">
-        <div><div class="act-field-label">Før</div><input class="input-sm" id="actKneeBefore" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">Under</div><input class="input-sm" id="actKneeDuring" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">Etter</div><input class="input-sm" id="actKneeAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label">D. etter</div><input class="input-sm" id="actKneeDayAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
+        <div><div class="act-field-label" data-i18n="tp.knee_before">Før</div><input class="input-sm" id="actKneeBefore" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
+        <div><div class="act-field-label" data-i18n="tp.knee_during">Under</div><input class="input-sm" id="actKneeDuring" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
+        <div><div class="act-field-label" data-i18n="tp.knee_after">Etter</div><input class="input-sm" id="actKneeAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
+        <div><div class="act-field-label" data-i18n="tp.knee_dayafter">D. etter</div><input class="input-sm" id="actKneeDayAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
       </div>
       <div style="margin-bottom:16px">
-        <div class="act-field-label" style="margin-bottom:5px">Notater</div>
-        <textarea class="input-sm" id="actNotes" rows="2" placeholder="Kommentarer, inntrykk…" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+        <div class="act-field-label" style="margin-bottom:5px" data-i18n="tp.notes">Notater</div>
+        <textarea class="input-sm" id="actNotes" rows="2" placeholder="Kommentarer, inntrykk…" data-i18n-placeholder="tp.act_notes_ph" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
       </div>
-      <button class="act-save-btn" onclick="saveActivity()">Lagre aktivitet</button>
+      <button class="act-save-btn" onclick="saveActivity()" data-i18n="tp.save_activity">Lagre aktivitet</button>
     </div>
   </div>
 
@@ -613,11 +619,11 @@
   <div class="act-modal-overlay hidden" id="weeklyPlanModal" onclick="if(event.target===this)closeEditWeeklyPlan()">
     <div class="act-modal" style="max-width:400px">
       <div class="act-modal-hd">
-        <span class="act-modal-title">Rediger ukeplan</span>
+        <span class="act-modal-title" data-i18n="tp.edit_weekly_plan">Rediger ukeplan</span>
         <button class="act-modal-close" onclick="closeEditWeeklyPlan()">✕</button>
       </div>
       <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
-      <button class="act-save-btn" onclick="saveWeeklyPlan()">Lagre plan</button>
+      <button class="act-save-btn" onclick="saveWeeklyPlan()" data-i18n="tp.save_plan">Lagre plan</button>
     </div>
   </div>
 
@@ -710,7 +716,7 @@ function openEditWeeklyPlan() {
   el.innerHTML = [0,1,2,3,4,5,6].map(d => `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${_WP_DAY_NAMES[d]}</div>
-      <input class="input-sm" id="wp-day-${d}" type="text" placeholder="Hvile"
+      <input class="input-sm" id="wp-day-${d}" type="text" placeholder="${t('tp.wp_placeholder')}"
         value="${escHtml(weeklyPlan[d] || '')}"
         style="flex:1" onkeydown="if(event.key==='Enter')saveWeeklyPlan()">
     </div>`).join('');
@@ -830,7 +836,7 @@ function renderDayStrip() {
       </div>
       ${preview
         ? `<div class="day-card-plan">${escHtml(preview)}</div>`
-        : `<div class="day-card-rest">Hvile & rehab</div>`
+        : `<div class="day-card-rest">${t('tp.rest_rehab')}</div>`
       }
     </div>`;
   }).join('');
@@ -1206,7 +1212,7 @@ function renderAddCard() {
   card.id = 'addActCard';
   card.className = 'add-activity-card';
   card.onclick = openActModal;
-  card.innerHTML = '<div class="add-activity-plus">+</div><span class="add-activity-label">Logg aktivitet</span>';
+  card.innerHTML = `<div class="add-activity-plus">+</div><span class="add-activity-label">${t('tp.log_activity')}</span>`;
   el.appendChild(card);
 }
 
@@ -1440,7 +1446,7 @@ function buildActDetailHtml(a) {
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
-          onclick="event.stopPropagation();deleteActivity('${a.id}')">Slett</button>
+          onclick="event.stopPropagation();deleteActivity('${a.id}')">${t('tp.delete')}</button>
         <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')">✕</button>
       </div>
     </div>
@@ -1474,6 +1480,8 @@ function openActModal() {
   document.getElementById('actKneeDayAfter').value = '';
   document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('actCustomWrap').style.display = 'none';
+  const rw = document.getElementById('actReplacedWrap');
+  if (rw) { rw.style.display = 'none'; document.getElementById('actReplacedLabel').value = ''; }
   _actType = null;
 }
 
@@ -1486,6 +1494,20 @@ function selectActType(btn) {
   btn.classList.add('selected');
   _actType = btn.dataset.type;
   document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
+
+  // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
+  const replacedWrap = document.getElementById('actReplacedWrap');
+  const isEasy = _actType === 'Rolig dag';
+  replacedWrap.style.display = isEasy ? 'block' : 'none';
+  if (isEasy) {
+    const replInput = document.getElementById('actReplacedLabel');
+    if (!replInput.value) {
+      const dateVal = document.getElementById('actDate').value || today();
+      const di = (new Date(dateVal + 'T12:00:00').getDay() + 6) % 7; // 0=man
+      const planned = planText(di);
+      if (planned) replInput.value = planned;
+    }
+  }
 }
 
 async function saveActivity() {
@@ -1493,7 +1515,9 @@ async function saveActivity() {
   const date = document.getElementById('actDate').value;
   if (!date) { toast(t('tp.select_date'), 'err'); return; }
 
-  const actLabel   = _actType === 'Annet' ? (document.getElementById('actCustomLabel').value.trim() || null) : null;
+  let actLabel = null;
+  if (_actType === 'Annet')      actLabel = document.getElementById('actCustomLabel').value.trim() || null;
+  else if (_actType === 'Rolig dag') actLabel = document.getElementById('actReplacedLabel').value.trim() || null;
   const duration   = null;
   const rpe        = parseInt(document.getElementById('actRpe').value) || null;
   const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);

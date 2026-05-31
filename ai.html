@@ -411,7 +411,12 @@ async function sendMessage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ message: msg, history: historyForApi() }),
+        body: JSON.stringify({
+          message: msg,
+          history: historyForApi(),
+          localDate: today(),                                   // brukerens lokale dato (YYYY-MM-DD), funker i USA
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone, // brukerens tidssone
+        }),
         signal: controller.signal,
       });
     } finally {
@@ -492,10 +497,11 @@ function autoResize(el) {
       const { data: sbData, error } = await db.from('ai_chat_history')
         .select('role, content')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(20);
       if (!error && sbData?.length) {
-        chatHistory = sbData.map(m => ({ role: m.role, content: m.content }));
+        // Hentet nyeste 20 i synkende rekkefølge — snu til kronologisk for visning
+        chatHistory = sbData.reverse().map(m => ({ role: m.role, content: m.content }));
         chatHistory.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
         localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
       } else {

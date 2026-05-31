@@ -3,7 +3,7 @@
 # Cron: kl. 07:45 norsk tid (05:45 UTC) hver dag.
 #
 # Logikk:
-#   - Søvndata hentes fra IGÅR (Garmin lagrer søvn under datoen du la deg)
+#   - Søvndata hentes fra I DAG (datoen du våknet — Garmin lagrer søvn under oppvåkningsdato)
 #   - Daglig statistikk (RHR, HRV, skritt, body battery) hentes fra I DAG
 #   - Alt lagres under dagens dato
 #   - Støtter ?date=YYYY-MM-DD for manuell kjøring på spesifikk dato

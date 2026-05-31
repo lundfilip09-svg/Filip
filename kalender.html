@@ -500,7 +500,7 @@
         <div class="rp-label" data-i18n="kal.new_event">Rask legg til</div>
         <div class="qa-input-wrap">
           <input class="qa-input" id="qaInput" type="text"
-            placeholder="Sprint torsdag 17:00…"
+            placeholder="Sprint torsdag 17:00…" data-i18n-placeholder="kal.quick_add_ph"
             oninput="onQaInput()" onkeydown="onQaKey(event)">
           <button class="qa-send" onclick="qaSubmit()">↵</button>
         </div>
@@ -529,13 +529,13 @@
           </div>
           <div class="focus-stat">
             <div class="focus-stat-val" id="ds-events">–</div>
-            <div class="focus-stat-lbl">Events</div>
+            <div class="focus-stat-lbl" data-i18n="kal.events">Events</div>
           </div>
         </div>
       </div>
 
       <div class="rp-card" id="nextEventCard">
-        <div class="rp-label">Neste hendelse</div>
+        <div class="rp-label" data-i18n="kal.next_event">Neste hendelse</div>
         <div class="next-ev-row" id="nextEvContent">
           <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary)">Laster…</div>
         </div>
@@ -820,7 +820,7 @@ function renderAgenda(dateStr) {
   const evts = eventsForDate(dateStr);
 
   if (!evts.length) {
-    el.innerHTML = `<div class="agenda-empty">Ingen hendelser<br>Bruk «Rask legg til» →</div>`;
+    el.innerHTML = `<div class="agenda-empty">${t('kal.no_events_use_quick')}</div>`;
     return;
   }
 
@@ -848,7 +848,7 @@ function renderAgenda(dateStr) {
   }
 
   if (noTime.length) {
-    if (timed.length || allDay.length) html += `<div class="agenda-section-label">Uten tid</div>`;
+    if (timed.length || allDay.length) html += `<div class="agenda-section-label">${t('kal.no_time')}</div>`;
     html += `<div class="agenda-list">`;
     html += noTime.map(e => agRow(e)).join('');
     html += `</div>`;
@@ -959,7 +959,7 @@ function renderEventDetail() {
         <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:10px">
           ${ev.allDay ? t('kal.all_day') : (ev.startTime + (ev.endTime ? ' – ' + ev.endTime : ''))} · ${ev.date}
         </div>
-        <div class="ev-gcal-notice">Google Calendar · skrivebeskyttet</div>
+        <div class="ev-gcal-notice" data-i18n="kal.gcal_readonly">Google Calendar · skrivebeskyttet</div>
       </div>`;
     return;
   }
@@ -974,33 +974,33 @@ function renderEventDetail() {
   el.innerHTML = `
     <div class="ev-detail">
       <div class="ev-field">
-        <div class="ev-field-label">Tittel</div>
+        <div class="ev-field-label" data-i18n="kal.title_lbl">Tittel</div>
         <input class="ev-input" id="ef-title" value="${escHtml(ev.title)}">
       </div>
       <div class="ev-field">
-        <div class="ev-field-label">Dato</div>
+        <div class="ev-field-label" data-i18n="date">Dato</div>
         <input class="ev-input ev-input-sm" id="ef-date" type="date" value="${ev.date}">
       </div>
       <div class="ev-row2">
         <div class="ev-field">
-          <div class="ev-field-label">Start</div>
+          <div class="ev-field-label" data-i18n="kal.start">Start</div>
           <input class="ev-input ev-input-sm" id="ef-start" type="time" value="${ev.startTime || ''}">
         </div>
         <div class="ev-field">
-          <div class="ev-field-label">Slutt</div>
+          <div class="ev-field-label" data-i18n="kal.end">Slutt</div>
           <input class="ev-input ev-input-sm" id="ef-end" type="time" value="${ev.endTime || ''}">
         </div>
       </div>
       <div class="ev-field">
-        <div class="ev-field-label">Kategori</div>
+        <div class="ev-field-label" data-i18n="kal.category">Kategori</div>
         <div class="ev-cat-grid">${catBtns}</div>
       </div>
       <div class="ev-field">
-        <div class="ev-field-label">Notater</div>
+        <div class="ev-field-label" data-i18n="notes">Notater</div>
         <textarea class="ev-input ev-input-sm" id="ef-notes" style="min-height:48px;resize:vertical">${escHtml(ev.notes || '')}</textarea>
       </div>
       <div class="ev-actions">
-        <button class="ev-save-btn" onclick="saveActiveEvent()">Lagre</button>
+        <button class="ev-save-btn" onclick="saveActiveEvent()" data-i18n="save">Lagre</button>
         <button class="ev-del-btn" onclick="deleteActiveEvent()" title="Slett">🗑</button>
       </div>
     </div>`;
@@ -1307,8 +1307,15 @@ async function loadDailyStats() {
   ]);
   const sleep = sleepRes.data?.[0]?.sleep_hours;
   const knee  = kneeRes.data?.[0]?.after_score;
-  document.getElementById('ds-sleep').textContent = sleep != null ? sleep + 't' : '–';
+  document.getElementById('ds-sleep').textContent = sleep != null ? fmtSleepHM(sleep) : '–';
   document.getElementById('ds-knee').textContent  = knee  != null ? knee        : '–';
+}
+
+// Formater desimaltimer (f.eks. 8.61) som "8t 37m"
+function fmtSleepHM(hours) {
+  const totalMin = Math.round(hours * 60);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  return m > 0 ? `${h}t ${m}m` : `${h}t`;
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

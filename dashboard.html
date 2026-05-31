@@ -112,6 +112,8 @@
     .session-badge.kondisjon { background: rgba(107,227,164,0.12); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2); }
     .session-badge.power     { background: rgba(91,164,245,0.12);  color: #5BA4F5; border: 1px solid rgba(91,164,245,0.2); }
     .session-badge.hvile     { background: rgba(255,255,255,0.04); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
+    .session-badge.soccer    { background: rgba(124,111,212,0.12); color: #9D93E8; border: 1px solid rgba(124,111,212,0.2); }
+    .session-badge.rehab     { background: rgba(242,130,60,0.12);  color: #F2823C; border: 1px solid rgba(242,130,60,0.2); }
     .session-name-big { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; line-height: 1.35; }
     .session-meta-sm  { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 16px; letter-spacing: 0.04em; }
     .session-cta {
@@ -183,6 +185,10 @@
     /* ── Todos ── */
     .todos-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .todos-progress { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); letter-spacing: 0.08em; }
+    .dash-todo-add { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .dash-todo-add input { flex: 1; min-width: 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 10px; color: var(--text-primary); font-size: 12px; font-family: inherit; }
+    .dash-todo-add input:focus { outline: none; border-color: var(--accent-blue); }
+    .dash-todo-add input:disabled { opacity: 0.5; }
     .todo-item { transition: opacity 0.32s ease, transform 0.32s ease; }
     .todo-item.completing { opacity: 0.15 !important; transform: translateX(8px); pointer-events: none; }
 
@@ -436,6 +442,12 @@
             <span class="sk sk-block" style="width:55%;height:12px"></span>
           </div>
         </div>
+        <div class="dash-todo-add">
+          <input id="dashTodoInput" type="text" data-i18n-placeholder="dash.add_todo_ph"
+            placeholder="Legg til viktig gjøremål…"
+            onkeydown="if(event.key==='Enter')addDashTodo()">
+          <button class="btn btn-primary btn-sm" onclick="addDashTodo()" data-i18n="add">Legg til</button>
+        </div>
       </div>
       <div class="card" id="nextEventCard">
         <div class="section-title" data-i18n="dash.next_event">Neste hendelse</div>
@@ -682,15 +694,23 @@ function loadSession() {
 
   let cls = 'styrke';
   if (/sprint/i.test(planText)) cls = 'power';
+  else if (/fotball|soccer|basket/i.test(planText)) cls = 'soccer';
+  else if (/rehab/i.test(planText)) cls = 'rehab';
   else if (/kondisjon|sirkulasjon|mobilitet/i.test(planText)) cls = 'kondisjon';
 
-  const badgeLabels = { styrke: t('dash.badge_styrke'), kondisjon: t('dash.badge_kondisjon'), power: 'Sprint' };
+  const badgeLabels = {
+    styrke: t('dash.badge_styrke'), kondisjon: t('dash.badge_kondisjon'), power: 'Sprint',
+    soccer: t('dash.badge_soccer'), rehab: t('dash.cat_rehab'),
+  };
   const dayNow = new Date().toLocaleDateString(fmtLocale(), { weekday: 'long' });
-  const ctaHref  = cls === 'power' ? 'sprint.html' : 'gym.html';
-  const ctaLabel = cls === 'power' ? t('dash.open_sprint') : t('dash.open_gym');
+  // Soccer/basket har ingen egen logg-side → send til treningsoversikt; rehab/kondisjon/styrke → gym
+  const ctaHref  = cls === 'power' ? 'sprint.html' : cls === 'soccer' ? 'treningsplan.html' : 'gym.html';
+  const ctaLabel = cls === 'power' ? t('dash.open_sprint')
+                 : cls === 'soccer' ? t('dash.full_overview')
+                 : t('dash.open_gym');
 
   el.innerHTML = `
-    <span class="session-badge ${cls}">${badgeLabels[cls]}</span>
+    <span class="session-badge ${cls}">${badgeLabels[cls] || planText}</span>
     <div class="session-name-big">${escHtml(planText)}</div>
     <div class="session-meta-sm">${t('dash.from_plan')} · ${dayNow}</div>
     <a href="${ctaHref}" class="session-cta">${ctaLabel} <span class="cta-arrow">→</span></a>`;
@@ -703,6 +723,8 @@ function _localDateStr(d) {
 }
 function _weekStripLabel(txt) {
   if (/sprint/i.test(txt))    return 'Sprint';
+  if (/fotball|soccer/i.test(txt)) return 'Fotball';
+  if (/basket/i.test(txt))    return 'Basket';
   if (/sirk/i.test(txt))      return 'Sirk.';
   if (/mobil/i.test(txt))     return 'Mobil.';
   if (/kondi/i.test(txt))     return 'Kondi.';
@@ -811,7 +833,9 @@ function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
   const items = [];
   const isRest   = !!sessionData?.isRest;
   const isSprint = sessionData?.cls === 'power';
-  const isStyrke = !isRest && !isSprint;
+  const isSoccer = sessionData?.cls === 'soccer';
+  const isRehabSession = sessionData?.cls === 'rehab';
+  const isStyrke = !isRest && !isSprint && !isSoccer && !isRehabSession;
 
   const sleepHours      = sleepData?.sleep_hours || 0;
   const lastPain        = kneeData?.after_score ?? null;
@@ -898,6 +922,23 @@ function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
     items.push({ id: 'knee-log-session', priority: 6, cat: 'styrke', type: 'actionable',
       text: t('dash.focus_knee_log'),
       autoDone: kneeData?.date === today() });
+  }
+
+  if (isRehabSession) {
+    items.push({ id: 'rehab-day', priority: 5, cat: 'rehab', type: 'actionable',
+      text: t('dash.focus_rehab') });
+    items.push({ id: 'rehab-knee-log', priority: 6, cat: 'rehab', type: 'actionable',
+      text: t('dash.focus_knee_log'),
+      autoDone: kneeData?.date === today() });
+  }
+
+  if (isSoccer) {
+    items.push({ id: 'soccer-warmup', priority: 6, cat: 'sprint', type: 'info',
+      text: t('dash.focus_soccer_warmup') });
+    items.push({ id: 'soccer-knee-care', priority: 6, cat: 'warning', type: 'info',
+      text: t('dash.focus_soccer_knee') });
+    items.push({ id: 'soccer-log', priority: 7, cat: 'sprint', type: 'actionable',
+      text: t('dash.focus_soccer_log') });
   }
 
   if (isSprint) {
@@ -1001,6 +1042,23 @@ async function completeTodo(id, cbEl) {
   }, 350);
 }
 
+// ── Legg til viktig gjøremål fra forsiden (havner i "Generelt") ─────────────
+async function addDashTodo() {
+  const input = document.getElementById('dashTodoInput');
+  const title = input.value.trim();
+  if (!title) return;
+  input.disabled = true;
+  const { error } = await db.from('todos').insert({
+    title, list_name: 'Generelt', important: true, completed: false,
+  });
+  input.disabled = false;
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  input.value = '';
+  input.focus();
+  toast(t('gm.added'));
+  await loadTodos().catch(() => {});
+}
+
 // ── Calendar helpers ───────────────────────────────────────────────────────
 function _calFmtTime(start) {
   if (!start.dateTime) return t('kal.whole_day');
@@ -1087,16 +1145,16 @@ async function loadCalendar() {
 
     elToday.innerHTML = todayEvts.length
       ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
-      : '<p class="cal-empty">Ingen hendelser i dag</p>';
+      : `<p class="cal-empty">${t('dash.no_today')}</p>`;
 
     const future = upcoming.filter(e => !_calIsToday(e.start));
     elUpcoming.innerHTML = future.length
       ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
-      : '<p class="cal-empty">Ingenting planlagt</p>';
+      : `<p class="cal-empty">${t('dash.cal_nothing_planned')}</p>`;
 
     renderNextEvent(upcoming);
   } catch {
-    elToday.innerHTML    = '<p class="cal-error">Kalender ikke tilkoblet</p>';
+    elToday.innerHTML    = `<p class="cal-error">${t('dash.cal_not_connected')}</p>`;
     elUpcoming.innerHTML = '';
   }
 }

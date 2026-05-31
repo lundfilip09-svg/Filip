@@ -434,10 +434,10 @@
     <div class="wh">
       <div class="wh-row1">
         <div class="day-pills">
-          <button class="day-pill" data-day="monday"    onclick="setDay('monday')">Mandag</button>
-          <button class="day-pill" data-day="wednesday" onclick="setDay('wednesday')">Onsdag</button>
-          <button class="day-pill" data-day="friday"    onclick="setDay('friday')">Fredag</button>
-          <button class="day-pill" data-day="rehab"     onclick="setDay('rehab')">Rehab</button>
+          <button class="day-pill" data-day="monday"    onclick="setDay('monday')" data-i18n="gym.monday">Mandag</button>
+          <button class="day-pill" data-day="wednesday" onclick="setDay('wednesday')" data-i18n="gym.wednesday">Onsdag</button>
+          <button class="day-pill" data-day="friday"    onclick="setDay('friday')" data-i18n="gym.friday">Fredag</button>
+          <button class="day-pill" data-day="rehab"     onclick="setDay('rehab')" data-i18n="dash.cat_rehab">Rehab</button>
         </div>
         <div class="wh-cta">
           <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px">▷ Start økt</button>
@@ -448,7 +448,7 @@
           <button class="btn btn-ghost btn-sm ws-done" onclick="resetWorkout()">↺ Ny økt</button>
         </div>
       </div>
-      <div class="wh-title" id="workoutTitle">Økt</div>
+      <div class="wh-title" id="workoutTitle" data-i18n="gym.session">Økt</div>
       <div class="wh-meta">
         <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
         <div class="wh-meta-item">◈ <span id="whExCount">— øvelser</span></div>
@@ -458,8 +458,8 @@
     <div class="done-banner ws-done">
       <div class="done-icon">✓</div>
       <div>
-        <div class="done-title">Økt fullført!</div>
-        <div class="done-sub" id="doneStats">Lagre i sidepanelet →</div>
+        <div class="done-title" data-i18n="gym.session_done">Økt fullført!</div>
+        <div class="done-sub" id="doneStats" data-i18n="gym.save_in_sidebar">Lagre i sidepanelet →</div>
       </div>
     </div>
 
@@ -472,14 +472,14 @@
         <div id="dayAfterPainBtns" class="mini-pain-row" style="margin-top:8px;gap:3px"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;flex-shrink:0">
-        <button class="btn btn-success btn-sm" onclick="saveDayAfterPain()" style="min-width:58px">Lagre</button>
-        <button class="btn btn-ghost btn-sm" onclick="dismissDayAfterBanner()">Avvis</button>
+        <button class="btn btn-success btn-sm" onclick="saveDayAfterPain()" style="min-width:58px" data-i18n="save">Lagre</button>
+        <button class="btn btn-ghost btn-sm" onclick="dismissDayAfterBanner()" data-i18n="gym.dismiss">Avvis</button>
       </div>
     </div>
 
     <div class="wm-wrap open" id="warmupWrap">
       <button class="wm-toggle" onclick="document.getElementById('warmupWrap').classList.toggle('open')">
-        <span class="wm-label">Oppvarming</span>
+        <span class="wm-label" data-i18n="gym.warmup">Oppvarming</span>
         <span class="wm-badge" id="warmupBadge">—</span>
         <span class="wm-chevron">▾</span>
       </button>
@@ -497,19 +497,19 @@
 
     <!-- IDLE: pre-workout -->
     <div class="sb-sec ws-idle">
-      <div class="sb-hd">Dagens økt</div>
+      <div class="sb-hd" data-i18n="gym.today_session">Dagens økt</div>
       <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-bottom:12px">Velg dag og trykk start når du er klar.</div>
       <button class="btn btn-success" style="width:100%;padding:10px;font-size:12px" onclick="startWorkout()">▷ Start økt</button>
     </div>
 
     <div class="sb-sec ws-idle">
-      <div class="sb-hd">Knesmerte — Før økt</div>
+      <div class="sb-hd" data-i18n="gym.knee_before_session">Knesmerte — Før økt</div>
       <div class="pain-row" id="knee-before"></div>
     </div>
 
     <!-- ACTIVE: ring status -->
     <div class="sb-sec ws-active">
-      <div class="sb-hd">Øktstatus</div>
+      <div class="sb-hd" data-i18n="gym.session_status">Øktstatus</div>
       <div class="ring-wrap">
         <div class="ring-center">
           <svg class="ring-svg" viewBox="0 0 72 72">
@@ -531,16 +531,16 @@
 
     <!-- ACTIVE: active exercise -->
     <div class="sb-sec ws-active">
-      <div class="sb-hd">Aktiv øvelse</div>
+      <div class="sb-hd" data-i18n="gym.active_exercise">Aktiv øvelse</div>
       <div class="sb-ex-card" id="sbActiveCard">
-        <div class="sb-ex-empty">Ingen aktiv øvelse</div>
-        <div class="sb-ex-hint">Trykk på en øvelse for å begynne</div>
+        <div class="sb-ex-empty" data-i18n="gym.no_active_exercise">Ingen aktiv øvelse</div>
+        <div class="sb-ex-hint" data-i18n="gym.tap_exercise">Trykk på en øvelse for å begynne</div>
       </div>
     </div>
 
     <!-- ACTIVE: next exercise -->
     <div class="sb-sec ws-active">
-      <div class="sb-hd">Neste øvelse</div>
+      <div class="sb-hd" data-i18n="gym.next_exercise">Neste øvelse</div>
       <div class="sb-ex-card" id="sbNextCard">
         <div class="sb-ex-empty">—</div>
       </div>
@@ -548,12 +548,12 @@
 
     <!-- ACTIVE: verktøy -->
     <div class="sb-sec ws-active">
-      <div class="sb-hd">Verktøy</div>
+      <div class="sb-hd" data-i18n="gym.tools">Verktøy</div>
 
       <div class="tool-item" id="ti-rest" onclick="toggleTool('rest')">
         <div class="tool-icon">⏱</div>
-        <div class="tool-name">Hviletimer</div>
-        <div class="tool-val" id="restVal">Ikke i drift</div>
+        <div class="tool-name" data-i18n="gym.rest_timer">Hviletimer</div>
+        <div class="tool-val" id="restVal" data-i18n="gym.not_running">Ikke i drift</div>
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-rest">
@@ -570,28 +570,28 @@
 
       <div class="tool-item" id="ti-notes" onclick="toggleTool('notes')">
         <div class="tool-icon">📋</div>
-        <div class="tool-name">Notater</div>
+        <div class="tool-name" data-i18n="gym.notes">Notater</div>
         <div class="tool-val" id="notesVal">0 notater</div>
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-notes">
-        <textarea id="sidebarNotes" class="input-sm" rows="3" placeholder="Kommentarer…"
+        <textarea id="sidebarNotes" class="input-sm" rows="3" placeholder="Kommentarer…" data-i18n-placeholder="gym.notes_ph"
           style="width:100%;resize:none;box-sizing:border-box"
           oninput="updateNotesCount()"></textarea>
       </div>
 
       <div class="tool-item" id="ti-knee" onclick="toggleTool('knee')">
         <div class="tool-icon">🦵</div>
-        <div class="tool-name">Knesmerte</div>
-        <div class="tool-val" id="kneeVal">Registrer smerte</div>
+        <div class="tool-name" data-i18n="knee.pain">Knesmerte</div>
+        <div class="tool-val" id="kneeVal" data-i18n="gym.register_pain">Registrer smerte</div>
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-knee">
         <div class="mini-pain-row" id="sbKneeButtons" style="margin-bottom:6px"></div>
         <div class="pain-phase-pills">
-          <button class="pain-phase-pill" id="pp-before"    onclick="setSbPhase('before')">Før</button>
-          <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')">Under</button>
-          <button class="pain-phase-pill" id="pp-after"     onclick="setSbPhase('after')">Etter</button>
+          <button class="pain-phase-pill" id="pp-before"    onclick="setSbPhase('before')" data-i18n="knee.before">Før</button>
+          <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')" data-i18n="knee.during">Under</button>
+          <button class="pain-phase-pill" id="pp-after"     onclick="setSbPhase('after')" data-i18n="knee.after">Etter</button>
           <button class="pain-phase-pill" id="pp-day-after" onclick="setSbPhase('day-after')">D.etter</button>
         </div>
       </div>
@@ -600,9 +600,9 @@
     <!-- ACTIVE: shortcuts -->
     <div class="sb-sec ws-active">
       <div class="shortcut-bar">
-        <button class="sc-btn" onclick="addSetToActive()">Legg til<br>sett</button>
-        <button class="sc-btn" onclick="jumpToNext()">Hopp til<br>neste</button>
-        <button class="sc-btn accent" onclick="finishWorkout()">Fullfør<br>økt</button>
+        <button class="sc-btn" onclick="addSetToActive()" data-i18n-html="gym.add_set_br">Legg til<br>sett</button>
+        <button class="sc-btn" onclick="jumpToNext()" data-i18n-html="gym.jump_next_br">Hopp til<br>neste</button>
+        <button class="sc-btn accent" onclick="finishWorkout()" data-i18n-html="gym.finish_br">Fullfør<br>økt</button>
       </div>
     </div>
 
@@ -610,24 +610,24 @@
     <div class="sb-sec ws-done">
       <div class="sb-hd" data-i18n="gym.log_session">Lagre økt</div>
       <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Dato</label>
+        <label class="form-label" data-i18n="date">Dato</label>
         <input type="date" id="logDate" class="input-sm" style="width:100%;box-sizing:border-box">
       </div>
       <div style="margin-bottom:10px">
         <div style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.12em;color:var(--text-tertiary);margin-bottom:7px">Knesmerte</div>
         <div class="knee-grid" style="margin-bottom:4px">
           <div>
-            <div class="knee-phase-label">Etter økt</div>
+            <div class="knee-phase-label" data-i18n="knee.after_session">Etter økt</div>
             <div class="pain-row" id="knee-after" style="flex-wrap:wrap"></div>
           </div>
           <div>
-            <div class="knee-phase-label">Dagen etter</div>
+            <div class="knee-phase-label" data-i18n="knee.dayafter">Dagen etter</div>
             <div class="pain-row" id="knee-day-after" style="flex-wrap:wrap"></div>
           </div>
         </div>
       </div>
       <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Notater</label>
+        <label class="form-label" data-i18n="notes">Notater</label>
         <textarea id="sessionNotes" class="input-sm" rows="2" style="width:100%;resize:vertical;box-sizing:border-box"></textarea>
       </div>
       <div style="display:flex;gap:6px">
@@ -682,6 +682,41 @@ let sbKneePhase   = 'during';
 const SESSION_KEY = 'gym_session_v2';
 const DRAFT_KEY   = 'gym_form_draft';
 
+// ── Cross-device aktiv-økt-sync (Supabase) ────────────────────────────
+let _uid = null;            // settes i bootstrap
+let _remoteSaveTimer = null;
+
+// Speil økt-bloben til Supabase (debounced, fire-and-forget)
+function syncSessionToCloud(blob) {
+  if (!_uid || !db) return;
+  clearTimeout(_remoteSaveTimer);
+  _remoteSaveTimer = setTimeout(async () => {
+    try {
+      await db.from('active_session').upsert({
+        user_id: _uid, kind: 'gym', state: blob, updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    } catch (e) { /* stille — localStorage er fortsatt gyldig */ }
+  }, 1500);
+}
+
+// Slett skyøkta (når økt fullføres/avbrytes)
+async function clearCloudSession() {
+  if (!_uid || !db) return;
+  clearTimeout(_remoteSaveTimer);
+  try { await db.from('active_session').delete().eq('user_id', _uid).eq('kind', 'gym'); }
+  catch (e) { /* stille */ }
+}
+
+// Hent skyøkt og bruk den hvis den er nyere enn lokal kopi
+async function fetchCloudSession() {
+  if (!_uid || !db) return null;
+  try {
+    const { data } = await db.from('active_session')
+      .select('state, updated_at').eq('user_id', _uid).eq('kind', 'gym').maybeSingle();
+    return data || null;
+  } catch (e) { return null; }
+}
+
 function saveDraft() {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
@@ -725,23 +760,26 @@ function setWS(s) { workoutState = s; document.body.dataset.ws = s; }
 // ── Session persistence ────────────────────────────────────────────
 function saveSession() {
   if (workoutState !== 'active') return;
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
-      workoutStartedAt: workoutStart,
-      activeDay,
-      completedSets: Object.fromEntries(
-        Object.entries(completedSets).map(([k, v]) => [k, [...v]])
-      ),
-      setData,
-      kneePain: { ...kneePain },
-      restStartedAt,
-      restDuration,
-      notes: document.getElementById('sidebarNotes')?.value || '',
-    }));
-  } catch(e) {}
+  const blob = {
+    workoutStartedAt: workoutStart,
+    activeDay,
+    completedSets: Object.fromEntries(
+      Object.entries(completedSets).map(([k, v]) => [k, [...v]])
+    ),
+    setData,
+    kneePain: { ...kneePain },
+    restStartedAt,
+    restDuration,
+    notes: document.getElementById('sidebarNotes')?.value || '',
+  };
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(blob)); } catch(e) {}
+  syncSessionToCloud(blob);
 }
 
-function clearSession() { localStorage.removeItem(SESSION_KEY); }
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+  clearCloudSession();
+}
 
 function getRestRemaining() {
   if (!restStartedAt || !restDuration) return 0;
@@ -1069,15 +1107,15 @@ function renderRehab() {
   el.innerHTML = `<div class="ex-section" data-day="rehab" data-section="Rehab"
     ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
     <div class="sec-hd">
-      <span class="sec-label">Daglig Rehab</span>
+      <span class="sec-label" data-i18n="gym.daily_rehab">Daglig Rehab</span>
       <span class="sec-divider"></span>
       <span class="sec-count">${exs.length} øvelser</span>
     </div>
     ${exs.map((ex, i) => renderExRow(ex, 'rehab', i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
-      <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
-      <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
-      <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
+      <input class="input-sm" placeholder="${t('gym.exercise_ph')}" id="${addId}-name">
+      <input class="input-sm w-short" type="number" placeholder="${t('gym.sets_ph')}" id="${addId}-sets">
+      <input class="input-sm w-short" placeholder="${t('gym.reps_ph')}" id="${addId}-reps">
       <button class="btn btn-success btn-sm" onclick="addExercise('rehab','Rehab','${addId}')">+</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
     </div>
@@ -1145,9 +1183,9 @@ function renderWarmup() {
   const wmAddDay = isFri ? 'friday_warmup' : 'warmup';
   const addId = `add-${wmAddDay}-Prepøvelser`;
   const addHtml = `<div class="add-ex-form" id="${addId}">
-    <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
-    <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
-    <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
+    <input class="input-sm" placeholder="${t('gym.exercise_ph')}" id="${addId}-name">
+    <input class="input-sm w-short" type="number" placeholder="${t('gym.sets_ph')}" id="${addId}-sets">
+    <input class="input-sm w-short" placeholder="${t('gym.reps_ph')}" id="${addId}-reps">
     <button class="btn btn-success btn-sm" onclick="addExercise('${wmAddDay}','Prepøvelser','${addId}')">+</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
   </div>
@@ -1158,7 +1196,7 @@ function renderWarmup() {
         ondragover="wmDragOver(event)" ondragleave="wmDragLeave(event)" ondrop="wmDrop(event)">
         ${zoneHtml}
       </div>${addHtml}`
-    : `<div class="empty">Ingen oppvarmingsdata</div>${addHtml}`;
+    : `<div class="empty">${t('gym.no_warmup_data')}</div>${addHtml}`;
 }
 
 // ── Workout ────────────────────────────────────────────────────────
@@ -1166,7 +1204,7 @@ function renderWorkout() {
   const el  = document.getElementById('workoutBlocks');
   const day = allExercises[activeDay] || {};
   if (!Object.keys(day).length) {
-    el.innerHTML = '<div class="loading" style="padding:20px 2px">Laster øvelser…</div>'; return;
+    el.innerHTML = `<div class="loading" style="padding:20px 2px">${t('gym.loading_exercises')}</div>`; return;
   }
   el.innerHTML = Object.entries(day).map(([sec, exs]) => renderSectionBlock(sec, exs, activeDay)).join('');
 }
@@ -1184,9 +1222,9 @@ function renderSectionBlock(label, exs, day) {
     </div>
     ${exs.map((ex, i) => renderExRow(ex, day, i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
-      <input class="input-sm" placeholder="Øvelse" id="${addId}-name">
-      <input class="input-sm w-short" type="number" placeholder="Sett" id="${addId}-sets">
-      <input class="input-sm w-short" placeholder="Reps" id="${addId}-reps">
+      <input class="input-sm" placeholder="${t('gym.exercise_ph')}" id="${addId}-name">
+      <input class="input-sm w-short" type="number" placeholder="${t('gym.sets_ph')}" id="${addId}-sets">
+      <input class="input-sm w-short" placeholder="${t('gym.reps_ph')}" id="${addId}-reps">
       <button class="btn btn-success btn-sm" onclick="addExercise('${day}','${escHtml(label)}','${addId}')">+</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
     </div>
@@ -1299,7 +1337,7 @@ function renderDrawer(exId) {
     </div>
     <table class="drawer-table">
       <thead><tr>
-        <th style="width:28px">Sett</th><th>Reps</th><th>Vekt (kg)</th>
+        <th style="width:28px">${t('gym.col_sets')}</th><th>${t('gym.col_reps')}</th><th>${t('gym.col_weight')}</th>
         <th style="width:32px">✓</th><th>Notater</th>
       </tr></thead>
       <tbody id="drawer-body-${exId}">
@@ -1310,7 +1348,7 @@ function renderDrawer(exId) {
       <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ Sett</button>
       <span class="drawer-spacer"></span>
       <button class="btn btn-ghost btn-sm" onclick="saveSetWeights('${exId}')">Lagre</button>
-      <button class="btn btn-success btn-sm" onclick="completeExercise('${exId}')">Fullfør øvelse</button>
+      <button class="btn btn-success btn-sm" onclick="completeExercise('${exId}')">${t('gym.complete_exercise')}</button>
     </div>`;
   el.classList.add('open');
 }
@@ -1418,7 +1456,7 @@ function updateSbActiveEx(exId) {
   const el = document.getElementById('sbActiveCard');
   if (!el) return;
   if (!exId) {
-    el.innerHTML = '<div class="sb-ex-empty">Ingen aktiv øvelse</div><div class="sb-ex-hint">Trykk på en øvelse for å begynne</div>';
+    el.innerHTML = `<div class="sb-ex-empty">${t('gym.no_active_exercise')}</div><div class="sb-ex-hint">${t('gym.tap_exercise')}</div>`;
     return;
   }
   const ex   = findExById(exId);
@@ -1435,7 +1473,7 @@ function updateNextEx() {
   const next = getSortedMainExercises().find(e =>
     e.id !== activeExId && (completedSets[e.id]?.size || 0) < e.sets
   );
-  if (!next) { el.innerHTML = '<div class="sb-ex-empty">Alle øvelser fullført ✓</div>'; return; }
+  if (!next) { el.innerHTML = `<div class="sb-ex-empty">${t('gym.all_done')}</div>`; return; }
   el.innerHTML = `<div class="sb-ex-name">${escHtml(next.exercise_name)}</div>
     <div class="sb-ex-vol">${next.sets} × ${escHtml(next.reps)}</div>`;
 }
@@ -1450,6 +1488,7 @@ function startWorkout() {
   activeDrawer  = null;
   activeExId    = null;
   setWS('active');
+  clearInterval(elapsedTimer);
   elapsedTimer = setInterval(() => { updateElapsed(); updateRingTimer(); }, 1000);
   renderAll();
   setSbPhase('during');
@@ -1516,7 +1555,7 @@ function updateProgress() {
 
 // ── Shortcuts ──────────────────────────────────────────────────────
 function addSetToActive() {
-  if (!activeDrawer) { toast('Velg en øvelse først', 'err'); return; }
+  if (!activeDrawer) { toast(t('gym.select_exercise_first'), 'err'); return; }
   addSet(activeDrawer);
   const tb = document.getElementById('tb-rest');
   if (tb && !tb.classList.contains('open')) tb.style.display = 'none';
@@ -1677,7 +1716,7 @@ async function saveWeight(exId, val) {
     { exercise_id: exId, weight_kg: kg, updated_at: new Date().toISOString() },
     { onConflict: 'exercise_id' }
   );
-  if (!error) toast(`${ex?.exercise_name ?? exId}: ${kg} kg lagret`);
+  if (!error) toast(t('gym.weight_saved', { name: ex?.exercise_name ?? exId, kg }));
 }
 
 // ── CRUD ───────────────────────────────────────────────────────────
@@ -1697,7 +1736,7 @@ async function addExercise(day, section, formId) {
   document.getElementById(formId).classList.remove('open');
   document.getElementById(`${formId}-name`).value = '';
   renderAll();
-  toast(`${name} lagt til`);
+  toast(t('gym.exercise_added', { name }));
 }
 
 async function deleteExercise(id) {
@@ -1707,7 +1746,7 @@ async function deleteExercise(id) {
     for (const s of Object.keys(allExercises[d]))
       allExercises[d][s] = allExercises[d][s].filter(e => e.id !== id);
   renderAll();
-  toast('Øvelse slettet');
+  toast(t('gym.exercise_deleted'));
 }
 
 function toggleEditEx(id) { document.getElementById(`edit-form-${id}`)?.classList.toggle('open'); }
@@ -1716,7 +1755,7 @@ async function saveExMeta(id) {
   const name = document.getElementById(`edit-name-${id}`)?.value.trim();
   const sets = parseInt(document.getElementById(`edit-sets-${id}`).value);
   const reps = document.getElementById(`edit-reps-${id}`).value.trim();
-  if (!sets || !reps) { toast('Fyll inn sett og reps', 'err'); return; }
+  if (!sets || !reps) { toast(t('gym.fill_sets_reps'), 'err'); return; }
   const upd = { sets, reps };
   if (name) upd.exercise_name = name;
   await db.from('workout_program').update(upd).eq('id', id);
@@ -1762,14 +1801,14 @@ async function saveLog() {
     const notes  = document.getElementById('sessionNotes').value.trim();
     const date   = document.getElementById('logDate').value || today();
     const sessionType = labels[activeDay] || activeDay;
+    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes });
+    if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
     const kRes = await db.from('knee_pain').insert({
       date, session_type: sessionType,
       before_score: kneePain['before'], during_score: kneePain['during'],
       after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
     });
-    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes });
-    if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
-    if (kRes.error) toast(`Knesmerte ikke lagret: ${kRes.error.message}`, 'err');
+    if (kRes.error) toast(t('gym.knee_not_saved', { msg: kRes.error.message }), 'err');
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
@@ -2155,7 +2194,7 @@ function selectDayAfterPain(score) {
 }
 
 async function saveDayAfterPain() {
-  if (_dayAfterScore === null || !_dayAfterSession) { toast('Velg smertescore 0–10', 'err'); return; }
+  if (_dayAfterScore === null || !_dayAfterSession) { toast(t('gym.select_pain_score'), 'err'); return; }
   const { date, sessionType, kneeId } = _dayAfterSession;
   if (kneeId) {
     const { error } = await db.from('knee_pain').update({ day_after_score: _dayAfterScore }).eq('id', kneeId);
@@ -2206,6 +2245,7 @@ async function autoSaveKnee(gymId, date, sessionType) {
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
+    _uid = session.user.id;
   } catch (err) {
     document.querySelector('.page').innerHTML =
       `<div class="card" style="text-align:center;padding:40px">
@@ -2213,6 +2253,20 @@ async function autoSaveKnee(gymId, date, sessionType) {
       </div>`;
     return;
   }
+
+  // Cross-device: hvis en aktiv økt finnes i skyen og er nyere enn lokal,
+  // seed localStorage fra skyen før init() leser den.
+  try {
+    const cloud = await fetchCloudSession();
+    if (cloud?.state?.workoutStartedAt) {
+      let local = null;
+      try { local = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
+      const cloudNewer = !local?.workoutStartedAt ||
+        cloud.state.workoutStartedAt >= local.workoutStartedAt;
+      if (cloudNewer) localStorage.setItem(SESSION_KEY, JSON.stringify(cloud.state));
+    }
+  } catch (e) { /* stille — lokal kopi brukes */ }
+
   await init();
 })();
 </script>

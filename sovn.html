@@ -587,7 +587,7 @@ function renderArch(d) {
   const hasFaser = d?.deep_sleep_minutes || d?.rem_sleep_minutes || d?.light_sleep_minutes;
 
   if (!d || !hasFaser) {
-    el.innerHTML = `<div class="card-lbl">Søvnarkitektur</div><div class="empty-state">Ingen fasedata for i dag</div>`;
+    el.innerHTML = `<div class="card-lbl">${t('sovn.architecture')}</div><div class="empty-state">${t('sovn.no_phase')}</div>`;
     return;
   }
 
@@ -634,7 +634,7 @@ function renderReadiness(d) {
   const indicators = [];
   if (d?.sleep_score) {
     const sc = d.sleep_score;
-    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.hrv_low'), color: sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
+    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
   }
   if (d?.hrv) {
     const hrv = d.hrv;
@@ -701,6 +701,7 @@ function updateChartLegend(metric) {
       <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#7C6FD4"></div>${t('sovn.leg_deep')}</div>
       <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8"></div>${t('sovn.leg_rem')}</div>
       <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#6BE3A4"></div>${t('sovn.leg_light')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:rgba(255,255,255,0.3)"></div>${t('sovn.awake')}</div>
       <div class="chart-leg-item"><div class="chart-leg-line"></div>${t('sovn.goal_8h')}</div>`,
     hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8;border-radius:50%"></div>${t('sovn.leg_hrv')}</div>`,
     rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#FF6B6B;border-radius:50%"></div>${t('sovn.leg_rhr')}</div>`,
@@ -738,11 +739,13 @@ function renderChart(metric, days) {
       if (e.sleep_hours && !e.deep_sleep_minutes) return e.sleep_hours;
       return null;
     });
+    const awakeV = dates.map(ds => { const e=find(ds); return e?.awake_minutes ? minToH(e.awake_minutes) : null; });
     datasets = [
-      { label:'Dyp søvn',  data:deepV,  backgroundColor:'rgba(124,111,212,0.82)', borderColor:'#7C6FD4', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:'REM',       data:remV,   backgroundColor:'rgba(74,158,232,0.82)',  borderColor:'#4A9EE8', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:'Lett søvn', data:lightV, backgroundColor:'rgba(107,227,164,0.55)', borderColor:'#6BE3A4', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
-      { label:'8t mål', data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.2)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
+      { label:t('sovn.leg_deep'),  data:deepV,  backgroundColor:'rgba(124,111,212,0.82)', borderColor:'#7C6FD4', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_rem'),   data:remV,   backgroundColor:'rgba(74,158,232,0.82)',  borderColor:'#4A9EE8', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_light'), data:lightV, backgroundColor:'rgba(107,227,164,0.55)', borderColor:'#6BE3A4', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.awake'),     data:awakeV, backgroundColor:'rgba(255,255,255,0.18)', borderColor:'rgba(255,255,255,0.3)', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
+      { label:t('sovn.goal_8h'), data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.2)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
     ];
     yMax = 12; yLabel = t('sovn.hours');
 

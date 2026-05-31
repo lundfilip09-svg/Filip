@@ -176,7 +176,7 @@
     </div>
 
     <!-- Legg til løp -->
-    <div class="eval-label">Løp</div>
+    <div class="eval-label" data-i18n="sprint.runs">Løp</div>
     <div class="add-run-row">
       <div class="form-group">
         <label class="form-label" data-i18n="sprint.distance">Distanse</label>
@@ -196,9 +196,9 @@
       <div class="form-group">
         <label class="form-label" data-i18n="sprint.type">Type</label>
         <select id="logType">
-          <option value="Trening">Trening</option>
-          <option value="Stevne">Stevne</option>
-          <option value="Trening (ute)">Trening (ute)</option>
+          <option value="Trening" data-i18n="sprint.training">Trening</option>
+          <option value="Stevne" data-i18n="sprint.competition">Stevne</option>
+          <option value="Trening (ute)" data-i18n="sprint.training_outdoor">Trening (ute)</option>
         </select>
       </div>
       <div class="form-group">
@@ -418,7 +418,7 @@ function renderRuns() {
   }
   el.innerHTML = runs.map((r, i) => `
     <div class="run-row">
-      <span class="run-num">Løp ${i + 1}</span>
+      <span class="run-num">${t('sprint.run_num', { n: i + 1 })}</span>
       <span class="run-dist">${escHtml(distLabel(r.distance))}</span>
       <span class="run-time">${r.time.toFixed(2)}s</span>
       <span class="run-type">${escHtml(r.type)}</span>
@@ -676,7 +676,7 @@ function _buildSessCard(date, runs, isOpen) {
       >${notes ? escHtml(notes) : ''}</textarea>
     </div>
     <div style="display:flex;justify-content:flex-end">
-      <button class="btn-del-session" onclick="event.stopPropagation();deleteSprintDate('${date}')">Slett økt</button>
+      <button class="btn-del-session" onclick="event.stopPropagation();deleteSprintDate('${date}')">${t('sprint.delete_session')}</button>
     </div>
   </div>` : `<div class="sess-detail" id="sess-detail-${date}"></div>`;
 
@@ -685,7 +685,7 @@ function _buildSessCard(date, runs, isOpen) {
 
 function renderHistory() {
   const el = document.getElementById('historyList');
-  if (!sprintLog.length) { el.innerHTML = '<div class="empty">Ingen loggede økter</div>'; return; }
+  if (!sprintLog.length) { el.innerHTML = `<div class="empty">${t('sprint.no_sessions')}</div>`; return; }
 
   const groups = new Map();
   for (const s of sprintLog) {
@@ -778,7 +778,7 @@ let _editingKneeIdx = null;
 function renderKneeTrend(data) {
   _kneeTrendData = data;
   const el = document.getElementById('kneeTrend');
-  if (!data.length) { el.innerHTML = '<div class="empty">Ingen data ennå</div>'; return; }
+  if (!data.length) { el.innerHTML = `<div class="empty">${t('sprint.no_data_yet')}</div>`; return; }
 
   const phases = [
     { key: 'before_score',    label: 'Før' },
