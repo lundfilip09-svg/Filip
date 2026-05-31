@@ -81,7 +81,7 @@
     .warn-advice { color: var(--text-secondary); margin-top: 1px; font-size: 11px; }
 
     /* ── Metrics ── */
-    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
     .metric-card {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
       border-radius: 12px; padding: 14px 14px 12px; transition: all 0.14s;
@@ -205,6 +205,7 @@
 
     /* ── Responsive ── */
     @media (max-width: 820px) { .mid-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(3,1fr); } }
     @media (max-width: 640px) {
       .metrics-grid { grid-template-columns: repeat(2,1fr); }
       .hero-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
@@ -305,6 +306,23 @@ let chartInstance = null;
 let chartMetric  = 'sleep';
 let chartDays    = parseInt(localStorage.getItem('sovn_chart_days') || '7', 10);
 
+// Date navigation
+let viewDate = new Date().toLocaleDateString('sv'); // YYYY-MM-DD local
+
+function offsetViewDate(delta) {
+  const d = new Date(viewDate + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const next = d.toLocaleDateString('sv');
+  const today = new Date().toLocaleDateString('sv');
+  if (next > today) return; // can't go into the future
+  viewDate = next;
+  loadViewDate();
+}
+
+function isViewingToday() {
+  return viewDate === new Date().toLocaleDateString('sv');
+}
+
 function minToHM(min) {
   if (!min) return '–';
   const h = Math.floor(min / 60), m = min % 60;
@@ -371,13 +389,33 @@ function renderHero(d) {
   const cls = !sc ? '' : sc >= 80 ? ' score-good' : sc >= 60 ? ' score-ok' : ' score-bad';
 
   const chips = [];
-  if (d?.sleep_hours) chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
-  if (d?.rhr)         chips.push(`❤️ ${d.rhr} bpm`);
-  if (d?.hrv != null) chips.push(`⚡ HRV ${d.hrv}ms`);
-  if (d?.sleep_start) chips.push(`🛌 ${d.sleep_start}`);
-  if (d?.sleep_end)   chips.push(`⏰ ${d.sleep_end}`);
+  if (d?.sleep_hours)    chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
+  if (d?.rhr)            chips.push(`❤️ ${d.rhr} bpm`);
+  if (d?.hrv != null)    chips.push(`⚡ HRV ${d.hrv}ms`);
+  if (d?.awake_minutes)  chips.push(`👁 Våken ${d.awake_minutes}min`);
+  if (d?.sleep_start)    chips.push(`🛌 ${d.sleep_start}`);
+  if (d?.sleep_end)      chips.push(`⏰ ${d.sleep_end}`);
   const st = fmtSyncTime(d?.timestamp);
-  if (st) chips.push(`🔄 ${st}`);
+  if (st && isViewingToday()) chips.push(`🔄 ${st}`);
+
+  // Build tagline — include awake context
+  let tagline = '';
+  if (d?.sleep_hours) {
+    tagline = t('sovn.you_slept') + sleepHoursStr(d.sleep_hours);
+    if (d.awake_minutes) {
+      const aw = d.awake_minutes;
+      const awCtx = aw <= 5 ? ' · nesten ingen avbrudd' : aw <= 19 ? ` · ${aw} min våken (bra)` : aw <= 30 ? ` · ${aw} min våken (akseptabelt)` : aw <= 50 ? ` · ${aw} min våken – litt urolig` : ` · ${aw} min våken – fragmentert`;
+      tagline += awCtx;
+    }
+    if (txt.sub) tagline += ' · ' + txt.sub;
+  } else {
+    tagline = txt.sub;
+  }
+
+  // Date nav
+  const today = new Date().toLocaleDateString('sv');
+  const isToday = viewDate === today;
+  const dispDate = new Date(viewDate + 'T12:00:00').toLocaleDateString(fmtLocale(), {weekday:'long', day:'numeric', month:'long'});
 
   const noData = !d || !d.sleep_score;
   el.innerHTML = `
@@ -387,11 +425,15 @@ function renderHero(d) {
         <div class="hero-score-lbl">${t('sovn.score_sub')}</div>
       </div>
       <div class="hero-right">
-        <div class="hero-date">${new Date().toLocaleDateString(fmtLocale(), {weekday:'long',day:'numeric',month:'long'})}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <button onclick="offsetViewDate(-1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-tertiary);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Forrige dag">‹</button>
+          <div class="hero-date" style="margin:0">${dispDate}${isToday ? ' · I DAG' : ''}</div>
+          <button onclick="offsetViewDate(1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:${isToday ? 'rgba(255,255,255,0.12)' : 'var(--text-tertiary)'};border-radius:6px;width:24px;height:24px;cursor:${isToday ? 'default' : 'pointer'};font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Neste dag" ${isToday ? 'disabled' : ''}>›</button>
+        </div>
         <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
-        <div class="hero-tagline">${d?.sleep_hours ? t('sovn.you_slept') + sleepHoursStr(d.sleep_hours) + (txt.sub ? ' · ' + txt.sub : '') : txt.sub}</div>
+        <div class="hero-tagline">${tagline}</div>
         ${chips.length ? `<div class="hero-chips">${chips.map(c => `<div class="hero-chip">${c}</div>`).join('')}</div>` : ''}
-        ${noData ? `
+        ${noData && isToday ? `
         <button onclick="copySyncCommand(this)" style="
           margin-top:14px; display:inline-flex; align-items:center; gap:7px;
           background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.11);
@@ -468,6 +510,20 @@ function analyzeMetrics(d) {
     else              results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'danger', badge: t('sovn.score_bad'),       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice: t('sovn.score_advice_bad') });
   }
 
+  // Awake time (WASO — wakefulness after sleep onset)
+  // Reference: healthy young adults <20 min (Sleep Foundation). High-training athletes
+  // average 30–48 min WASO (PMC8343120). Optimal target for a sprinter/lifter is <20 min.
+  // <5 min = exceptional (deep uninterrupted sleep), 5–19 = solid, 20–30 = acceptable for
+  // an athlete with high training load, 31–50 = starting to fragment, >50 = flag it.
+  if (d?.awake_minutes != null) {
+    const v = d.awake_minutes;
+    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Eksepsjonelt', color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:'Under 5 min er eksepsjonelt. Nesten ingen avbrudd – søvnen var sammenhengende og effektiv.' });
+    else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Bra',          color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:`${v} min er under referansegrensen på 20 min for unge friske voksne. Solid søvnkontinuitet.` });
+    else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Akseptabelt',  color:'var(--text-secondary)', glow:'', advice:`${v} min er akseptabelt for en idrettsutøver med høy treningsbelastning – studier viser snitt 30–48 min WASO hos unge styrke/sprint-utøvere. Men mål mot under 20 min.` });
+    else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'warn',   badge:'Litt urolig',  color:'#F2C063', glow:'rgba(242,192,99,0.1)',   advice:`${v} min våken fragmenterer søvnen. Vanlige årsaker: sen skjermbruk, prosjektjag eller skolepress rett før leggetid. Prøv å koble av 30–45 min før du legger deg.` });
+    else              results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'danger', badge:'Fragmentert',  color:'#FF6B6B', glow:'rgba(255,107,107,0.12)', advice:`${v} min våken er for mye. Sannsynlig årsak: stress (skole/prosjekt) eller sen skjermeksponering holder nervesystemet aktivert. Fragmentert søvn saboterer restitusjon selv om totaltiden ser bra ut – HRV og RHR vil lide.` });
+  }
+
   return results;
 }
 
@@ -505,12 +561,13 @@ function renderMetrics(d) {
   const byKey = {};
   metrics.forEach(m => byKey[m.key] = m);
 
-  // Alltid vis alle 4 kort i fast rekkefølge
+  // Alltid vis alle 5 kort i fast rekkefølge
   const cards = [
     byKey['score'] || { key:'score', val:'–', label: t('sovn.score_lbl'), unit:'/100', level:'none', badge:'', color:'', glow:'', advice:'' },
     byKey['sleep'] || { key:'sleep', val:'–', label: t('sovn.total'),     level:'none', badge:'', color:'#5BA4F5', glow:'', advice:'' },
     byKey['rhr']   || { key:'rhr',   val:'–', label: t('sovn.rhr'),       unit:'bpm',  level:'none', badge:'', color:'', glow:'', advice:'' },
     byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV',                unit:'ms',   level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['awake'] || { key:'awake', val:'–', label:'Våken',              unit:'min',  level:'none', badge:'', color:'', glow:'', advice:'' },
   ];
 
   el.innerHTML = cards.map(m => `
@@ -613,21 +670,27 @@ function renderStats(d) {
   renderReadiness(d);
 }
 
-// ── Today ──────────────────────────────────────────────────────────────────
-async function loadToday() {
-  // Use local date (not UTC) so midnight-to-02:00 in Norway doesn't fetch yesterday's row
-  const localToday = new Date().toLocaleDateString('sv'); // 'sv' → YYYY-MM-DD in local tz
+// ── Load for viewed date ───────────────────────────────────────────────────
+async function loadViewDate() {
   const { data } = await db.from('health_data')
-    .select('*').eq('date', localToday).order('timestamp', { ascending: false }).limit(1);
-  todayEntry = data?.[0] || null;
-  lastSyncAt = todayEntry?.timestamp || null;
-  if (!lastSyncAt) {
-    // No data for today — find when last sync happened across any date
-    const { data: recent } = await db.from('health_data')
-      .select('timestamp').order('timestamp', { ascending: false }).limit(1);
-    lastSyncAt = recent?.[0]?.timestamp || null;
+    .select('*').eq('date', viewDate).order('timestamp', { ascending: false }).limit(1);
+  const entry = data?.[0] || null;
+  if (isViewingToday()) {
+    todayEntry = entry;
+    lastSyncAt = entry?.timestamp || null;
+    if (!lastSyncAt) {
+      const { data: recent } = await db.from('health_data')
+        .select('timestamp').order('timestamp', { ascending: false }).limit(1);
+      lastSyncAt = recent?.[0]?.timestamp || null;
+    }
   }
-  renderStats(todayEntry);
+  renderStats(entry);
+}
+
+// Keep old name as alias for init
+async function loadToday() {
+  viewDate = new Date().toLocaleDateString('sv');
+  await loadViewDate();
 }
 
 // ── Chart ──────────────────────────────────────────────────────────────────
