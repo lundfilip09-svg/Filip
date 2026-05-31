@@ -654,10 +654,11 @@ function fullDay(i) {
 let userId               = null;
 let plan                 = {};   // training_plan overrides { 0: 'Sprint', notes_0: '...', ... }
 let weeklyPlan           = {};   // weekly_plan global defaults { 0: 'Sprint', ... }
+let planWeekly           = {};   // training_plan_weekly for displayed week (when weekOffset !== 0)
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
 let selectedIdx          = todayIdx();
-let weekOffset           = 0;    // 0 = this week, -1 = last week, etc.
+let weekOffset           = 0;    // 0 = this week, -1 = last week, +1 = next week, etc.
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function todayIdx() { return (new Date().getDay() + 6) % 7; }
@@ -707,6 +708,19 @@ async function loadWeeklyPlan() {
   }
 }
 
+async function loadPlanForWeek() {
+  if (weekOffset === 0) { planWeekly = {}; return; }
+  const weekMonday = localISODate(getMondayForOffset(weekOffset));
+  const { data } = await db.from('training_plan_weekly')
+    .select('day_index, session_text, notes')
+    .eq('week_monday', weekMonday);
+  planWeekly = {};
+  (data || []).forEach(r => {
+    if (r.session_text) planWeekly[r.day_index]              = r.session_text;
+    if (r.notes)        planWeekly[`notes_${r.day_index}`]   = r.notes;
+  });
+}
+
 // ── Weekly plan editor ─────────────────────────────────────────────────────
 const _WP_DAY_NAMES = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
 
@@ -751,8 +765,17 @@ async function saveWeeklyPlan() {
   toast(t('tp.plan_saved'));
 }
 
-function planText(i)  { return (plan[i] || weeklyPlan[i] || '').trim(); }
-function notesText(i) { return (plan[`notes_${i}`]  || '').trim(); }
+// Always today's plan regardless of viewed week (used by hero)
+function todayPlanText(i) { return (plan[i] || weeklyPlan[i] || '').trim(); }
+
+function planText(i)  {
+  if (weekOffset === 0) return (plan[i] || weeklyPlan[i] || '').trim();
+  return (planWeekly[i] || weeklyPlan[i] || '').trim();
+}
+function notesText(i) {
+  if (weekOffset === 0) return (plan[`notes_${i}`] || '').trim();
+  return (planWeekly[`notes_${i}`] || '').trim();
+}
 
 function isRest(i) {
   const t = planText(i).toLowerCase();
@@ -774,7 +797,7 @@ function renderHero() {
   document.getElementById('heroEyebrow').textContent =
     t('tp.today') + ' — ' + now.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' }).toUpperCase();
 
-  const txt = planText(ti);
+  const txt = todayPlanText(ti);
   const sessionEl = document.getElementById('heroSession');
   if (txt && !isRest(ti)) {
     sessionEl.textContent = txt;
@@ -787,7 +810,7 @@ function renderHero() {
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
     const ni = (ti + d) % 7;
-    if (!isRest(ni)) { nextStr = `${t('tp.next')}: ${fullDay(ni)} — ${planText(ni)}`; break; }
+    if (!isRest(ni)) { nextStr = `${t('tp.next')}: ${fullDay(ni)} — ${todayPlanText(ni)}`; break; }
   }
   document.getElementById('heroNext').textContent = nextStr;
 
@@ -799,7 +822,10 @@ function renderHero() {
     if (currentWeekLoggedDates.has(localISODate(d))) logged++;
   }
   let daysLeft = 0;
-  for (let i = ti + 1; i < 7; i++) { if (!isRest(i)) daysLeft++; }
+  for (let i = ti + 1; i < 7; i++) {
+    const tp = todayPlanText(i).toLowerCase();
+    if (tp && !tp.startsWith('hvile') && !tp.startsWith('fri')) daysLeft++;
+  }
 
   document.getElementById('kpiDone').textContent = `${logged}`;
   document.getElementById('kpiLeft').textContent = `${daysLeft}`;
@@ -945,15 +971,27 @@ async function saveDay() {
   const txt   = document.getElementById('detailPlan').value.trim();
   const notes = document.getElementById('detailNotes').value.trim();
 
-  if (txt) plan[selectedIdx] = txt;
-  else     delete plan[selectedIdx];
-  if (notes) plan[`notes_${selectedIdx}`] = notes;
-  else       delete plan[`notes_${selectedIdx}`];
-
-  const { error } = await db.from('training_plan').upsert(
-    { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
-    { onConflict: 'user_id,day_index' }
-  );
+  let error;
+  if (weekOffset === 0) {
+    if (txt) plan[selectedIdx] = txt;
+    else     delete plan[selectedIdx];
+    if (notes) plan[`notes_${selectedIdx}`] = notes;
+    else       delete plan[`notes_${selectedIdx}`];
+    ({ error } = await db.from('training_plan').upsert(
+      { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
+      { onConflict: 'user_id,day_index' }
+    ));
+  } else {
+    const weekMonday = localISODate(getMondayForOffset(weekOffset));
+    if (txt) planWeekly[selectedIdx] = txt;
+    else     delete planWeekly[selectedIdx];
+    if (notes) planWeekly[`notes_${selectedIdx}`] = notes;
+    else       delete planWeekly[`notes_${selectedIdx}`];
+    ({ error } = await db.from('training_plan_weekly').upsert(
+      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: txt || '', notes: notes || '' },
+      { onConflict: 'user_id,week_monday,day_index' }
+    ));
+  }
   if (error) { toast(t('tp.save_error'), 'err'); return; }
 
   renderHero();
@@ -965,13 +1003,24 @@ async function saveDay() {
 
 async function clearDay() {
   if (!confirm('Tøm planen for denne dagen?')) return;
-  delete plan[selectedIdx];
-  delete plan[`notes_${selectedIdx}`];
 
-  await db.from('training_plan')
-    .delete()
-    .eq('user_id', userId)
-    .eq('day_index', selectedIdx);
+  if (weekOffset === 0) {
+    delete plan[selectedIdx];
+    delete plan[`notes_${selectedIdx}`];
+    await db.from('training_plan')
+      .delete()
+      .eq('user_id', userId)
+      .eq('day_index', selectedIdx);
+  } else {
+    const weekMonday = localISODate(getMondayForOffset(weekOffset));
+    delete planWeekly[selectedIdx];
+    delete planWeekly[`notes_${selectedIdx}`];
+    await db.from('training_plan_weekly')
+      .delete()
+      .eq('user_id', userId)
+      .eq('week_monday', weekMonday)
+      .eq('day_index', selectedIdx);
+  }
 
   renderHero();
   renderDayStrip();
@@ -989,26 +1038,27 @@ function renderWeekNav() {
   document.getElementById('weekNavLabel').textContent =
     `${t('tp.week')} ${wn} · ${mon.toLocaleDateString(fmtLocale(), opts)} – ${sun.toLocaleDateString(fmtLocale(), opts)}`;
   const nextBtn = document.getElementById('weekNavNext');
-  nextBtn.disabled      = weekOffset >= 0;
-  nextBtn.style.opacity = weekOffset >= 0 ? '0.35' : '';
-  nextBtn.style.cursor  = weekOffset >= 0 ? 'default' : '';
+  nextBtn.disabled      = false;
+  nextBtn.style.opacity = '';
+  nextBtn.style.cursor  = '';
 }
 
 async function changeWeek(delta) {
   const next = weekOffset + delta;
-  if (next > 0) return;          // ikke fremover fra nåværende uke
-  if (next < -52) return;        // ikke lenger bak enn 1 år
+  if (next > 52) return;         // ikke mer enn 1 år frem
+  if (next < -52) return;        // ikke mer enn 1 år bak
   weekOffset = next;
-  // Bevar valgt ukedag om mulig, reset til mandag kun ved hopp langt bakover
   if (weekOffset === 0) selectedIdx = todayIdx();
-  // else: behold selectedIdx slik at samme ukedag vises i ny uke
 
   const mon = getMondayForOffset(weekOffset);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  const { data } = await db.from('gym_log').select('date')
-    .gte('date', localISODate(mon))
-    .lte('date', localISODate(sun));
-  loggedDates = new Set((data || []).map(r => r.date));
+  const [{ data: logData }] = await Promise.all([
+    db.from('gym_log').select('date')
+      .gte('date', localISODate(mon))
+      .lte('date', localISODate(sun)),
+    loadPlanForWeek(),
+  ]);
+  loggedDates = new Set((logData || []).map(r => r.date));
 
   renderWeekNav();
   renderDayStrip();

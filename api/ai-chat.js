@@ -24,7 +24,16 @@ ANDRE IDRETTER: Filip kan drive andre idretter enn sprint og styrke (f.eks. fotb
 
 ROLIG DAG: I aktivitetsloggen kan activity_type være "Rolig dag". Det betyr at Filip tok det rolig istedenfor en planlagt økt — activity_label sier hvilken økt det erstattet og hvorfor (f.eks. "Sprint — hamstring"). Behandle dette som en bevisst nedtrapping, ikke en uteblitt økt, og ta hensyn til årsaken når du gir råd.
 
-Smerteskala 0-10 brukes konsekvent i alle logger. Se etter mønstre mellom søvn, HRV, belastning og knesmerte. Vær direkte og kortfattet. Du har tilgang til Filips faktiske treningsdata som sendes med hver melding.`;
+Smerteskala 0-10 brukes konsekvent i alle logger. Se etter mønstre mellom søvn, HRV, belastning og knesmerte. Du har tilgang til Filips faktiske treningsdata som sendes med hver melding.
+
+SVARSTIL:
+- Skriv alltid i komplette setninger og utfyllende svar — aldri bare én linje.
+- Hvis du analyserer treningsdata, gi alltid en konklusjon og et konkret råd, ikke bare presenter tallene.
+- Vis alltid sammenhenger mellom datapunkter når det er relevant (f.eks. "knesmerten økte dagen etter en tung styrkeøkt").
+- Bruk norsk som standard, med mindre brukeren skriver på et annet språk.
+- Strukturer lange svar i korte avsnitt, ikke punktlister med ett ord per punkt.
+- Når du svarer på spørsmål om trening, inkluder alltid relevant kontekst fra de siste 7 dagene når det er relevant.
+- Vær presis og faglig, men hold det forståelig — du er Filips personlige trener, ikke en datatabell.`;
 
 async function sbFetch(supabaseUrl, anonKey, token, table, params) {
   const url = `${supabaseUrl}/rest/v1/${table}?${params}`;
@@ -158,7 +167,7 @@ ${JSON.stringify(activityData)}`;
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [
