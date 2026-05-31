@@ -638,7 +638,7 @@ function renderReadiness(d) {
   }
   if (d?.hrv) {
     const hrv = d.hrv;
-    indicators.push({ label:'HRV', val:`${hrv}ms`, status: hrv >= 50 ? t('sovn.rhr_high') : hrv >= 35 ? t('sovn.rhr_normal') : t('sovn.hrv_low'), color: hrv >= 50 ? '#6BE3A4' : hrv >= 35 ? 'var(--text-secondary)' : '#F2C063' });
+    indicators.push({ label:'HRV', val:`${hrv}ms`, status: hrv >= 50 ? t('sovn.hrv_good') : hrv >= 35 ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: hrv >= 50 ? '#6BE3A4' : hrv >= 35 ? '#F2C063' : '#FF6B6B' });
   }
   if (d?.rhr) {
     const rhr = d.rhr;

@@ -1302,7 +1302,7 @@ function getISOWeek(d) {
 async function loadDailyStats() {
   if (!db) return;
   const [sleepRes, kneeRes] = await Promise.all([
-    db.from('sleep_log').select('sleep_hours').order('date',{ascending:false}).limit(1),
+    db.from('health_data').select('sleep_hours').order('date',{ascending:false}).limit(1),
     db.from('knee_pain').select('after_score').order('date',{ascending:false}).order('id',{ascending:false}).limit(1),
   ]);
   const sleep = sleepRes.data?.[0]?.sleep_hours;

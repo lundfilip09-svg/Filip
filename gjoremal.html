@@ -835,8 +835,8 @@ async function loadTodos() {
   allTodos = data || [];
   // Seed localStorage from DB sort_order so order works cross-device
   const byList = {};
-  for (const t of allTodos) {
-    (byList[t.list_name] = byList[t.list_name] || []).push(String(t.id));
+  for (const td of allTodos) {
+    (byList[td.list_name] = byList[td.list_name] || []).push(String(td.id));
   }
   for (const [ln, ids] of Object.entries(byList)) {
     localStorage.setItem('gm_order_' + ln, JSON.stringify(ids));
@@ -934,26 +934,29 @@ async function addTodo() {
 // ── Toggle complete ───────────────────────────────────────────────────────
 async function toggleTodo(id, isDone) {
   const newDone = !isDone;
-  await db.from('todos').update({
+  const { error } = await db.from('todos').update({
     completed: newDone,
     completed_at: newDone ? new Date().toISOString() : null,
   }).eq('id', id);
-  const t = allTodos.find(x => x.id === id);
-  if (t) { t.completed = newDone; t.completed_at = newDone ? new Date().toISOString() : null; }
+  if (error) { toast('❌ Kunne ikke oppdatere'); return; }
+  const td = allTodos.find(x => x.id === id);
+  if (td) { td.completed = newDone; td.completed_at = newDone ? new Date().toISOString() : null; }
   renderTodos();
 }
 
 // ── Toggle important ──────────────────────────────────────────────────────
 async function toggleImportant(id, isImportant) {
-  await db.from('todos').update({ important: !isImportant }).eq('id', id);
-  const t = allTodos.find(x => x.id === id);
-  if (t) t.important = !isImportant;
+  const { error } = await db.from('todos').update({ important: !isImportant }).eq('id', id);
+  if (error) { toast('❌ Kunne ikke oppdatere'); return; }
+  const td = allTodos.find(x => x.id === id);
+  if (td) td.important = !isImportant;
   renderTodos();
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────
 async function deleteTodo(id) {
-  await db.from('todos').delete().eq('id', id);
+  const { error } = await db.from('todos').delete().eq('id', id);
+  if (error) { toast('❌ Kunne ikke slette'); return; }
   allTodos = allTodos.filter(x => x.id !== id);
   renderTodos();
   toast(t('gm.deleted'));
