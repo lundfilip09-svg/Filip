@@ -1483,11 +1483,6 @@ function buildActDetailHtml(a) {
     </div>`).join('')
   }</div>`;
 
-  const statsHtml = [
-
-    a.rpe          ? `<div class="sess-detail-block"><div class="sess-detail-lbl">RPE</div><div class="sess-detail-val">${a.rpe}</div></div>` : '',
-  ].filter(Boolean).join('');
-
   return `<div class="sess-detail open" id="sess-detail-${aid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div>
@@ -1500,7 +1495,12 @@ function buildActDetailHtml(a) {
         <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')">✕</button>
       </div>
     </div>
-    ${statsHtml ? `<div class="sess-detail-grid" style="margin-bottom:12px">${statsHtml}</div>` : ''}
+    <div style="margin-bottom:12px">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+      <input type="number" min="1" max="10" class="sess-edit-input"
+        value="${a.rpe ?? ''}" placeholder="—"
+        onblur="autoSaveActField('${a.id}','rpe',this.value)">
+    </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.knee')}</div>
       ${checkpointHtml}
