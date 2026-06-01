@@ -345,7 +345,9 @@
     }
     .rest-pause-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
     .rest-pause-btn:disabled { opacity: 0.28; cursor: default; }
-    .rest-presets { display: flex; gap: 4px; }
+    .rest-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+    .rest-custom { display: flex; gap: 4px; margin-top: 6px; }
+    .rest-custom-input { width: 60px; padding: 4px 6px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; }
     .rest-preset { flex: 1; padding: 5px 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; cursor: pointer; transition: all 0.12s; }
     .rest-preset:hover { background: rgba(255,255,255,0.09); color: var(--text-secondary); }
 
@@ -562,9 +564,17 @@
           <button id="restPauseBtn" class="rest-pause-btn" onclick="toggleRestPause()" disabled>⏸</button>
         </div>
         <div class="rest-presets">
+          <button class="rest-preset" onclick="startRest(120)">2:00</button>
+          <button class="rest-preset" onclick="startRest(150)">2:30</button>
           <button class="rest-preset" onclick="startRest(180)">3:00</button>
           <button class="rest-preset" onclick="startRest(210)">3:30</button>
           <button class="rest-preset" onclick="startRest(240)">4:00</button>
+          <button class="rest-preset" onclick="startRest(270)">4:30</button>
+        </div>
+        <div class="rest-custom">
+          <input type="number" id="restCustomMin" class="rest-custom-input" min="0" max="10" placeholder="min">
+          <input type="number" id="restCustomSec" class="rest-custom-input" min="0" max="59" placeholder="sek">
+          <button class="rest-preset" onclick="startCustomRest()">Start</button>
         </div>
       </div>
 
@@ -1587,6 +1597,13 @@ function updateNotesCount() {
 }
 
 // ── Rest timer (timestamp-based — survives refresh/lock) ───────────
+function startCustomRest() {
+  const min = parseInt(document.getElementById('restCustomMin').value, 10) || 0;
+  const sec = parseInt(document.getElementById('restCustomSec').value, 10) || 0;
+  const total = min * 60 + sec;
+  if (total < 5 || total > 600) { alert('Velg mellom 5 sek og 10 min'); return; }
+  startRest(total);
+}
 function startRest(seconds) {
   stopRest();
   restStartedAt = Date.now();

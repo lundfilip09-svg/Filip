@@ -64,12 +64,12 @@ export default async function handler(req, res) {
   }
 
   // Sanitise history: must be alternating user/assistant messages
-  const safeHistory = Array.isArray(history)
+  const safeHistory = (Array.isArray(history)
     ? history.filter(m => m
         && (m.role === 'user' || m.role === 'assistant')
         && typeof m.content === 'string'
         && m.content.length < 8000)
-    : [];
+    : []).slice(-4);
 
   const token = authHeader.replace('Bearer ', '').trim();
   const { SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY } = process.env;
@@ -88,15 +88,15 @@ export default async function handler(req, res) {
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides] = await Promise.all([
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'health_data',
-      'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=14'),
+      'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
-      'select=*&order=date.desc&limit=15'),
+      'select=*&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'gym_log',
-      'select=*&order=date.desc&limit=15'),
+      'select=*&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'knee_pain',
-      'select=*&order=date.desc&limit=8'),
+      'select=*&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'activity_log',
-      'select=*&order=date.desc&limit=15'),
+      'select=*&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_records',
       'select=distance,best_time,date&order=distance.asc'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'weekly_plan',
@@ -135,6 +135,11 @@ export default async function handler(req, res) {
     osloDateISO = now.toLocaleDateString('sv', { timeZone: 'Europe/Oslo' });
   }
 
+  // Fjern interne felter (user_id/id/created_at) for å spare tokens.
+  const stripMeta = (rows) => Array.isArray(rows)
+    ? rows.map(r => { const { user_id, id, created_at, ...rest } = r; return rest; })
+    : rows;
+
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
@@ -142,22 +147,22 @@ ${osloDate} (${osloDateISO})
 ${weekPlanReadable}
 
 [PERSONLIGE REKORDER (PB) — sprint]
-${JSON.stringify(sprintRecords)}
+${JSON.stringify(stripMeta(sprintRecords))}
 
-[SØVN + HRV + PULS — SISTE 14 DAGER]
-${JSON.stringify(healthData)}
+[SØVN + HRV + PULS — SISTE 7 DAGER]
+${JSON.stringify(stripMeta(healthData))}
 
-[SPRINT-LOGGER — SISTE 15]
-${JSON.stringify(sprintData)}
+[SPRINT-LOGGER — SISTE 7]
+${JSON.stringify(stripMeta(sprintData))}
 
-[GYM-LOGGER — SISTE 15]
-${JSON.stringify(gymData)}
+[GYM-LOGGER — SISTE 7]
+${JSON.stringify(stripMeta(gymData))}
 
-[KNESMERTE-LOGGER — SISTE 8]
-${JSON.stringify(kneePainData)}
+[KNESMERTE-LOGGER — SISTE 7]
+${JSON.stringify(stripMeta(kneePainData))}
 
-[ANDRE AKTIVITETER — SISTE 15 (fotball, basket, padel, svømming, rolig dag osv)]
-${JSON.stringify(activityData)}`;
+[ANDRE AKTIVITETER — SISTE 7 (fotball, basket, padel, svømming, rolig dag osv)]
+${JSON.stringify(stripMeta(activityData))}`;
 
   const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -167,8 +172,8 @@ ${JSON.stringify(activityData)}`;
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
       system: SYSTEM_PROMPT,
       messages: [
         ...safeHistory,
