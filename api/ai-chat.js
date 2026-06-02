@@ -32,7 +32,13 @@ SVARSTIL (token-effektiv — Filip har stramt API-budsjett):
 - Pek på sammenhenger når de finnes (f.eks. "knesmerten økte dagen etter tung styrke"), men bare de relevante — ikke ramse opp alt.
 - Ikke gjenta data Filip allerede ser i appen. Hopp rett til tolkning.
 - Norsk som standard; svar på engelsk hvis Filip skriver engelsk.
-- Korte avsnitt, ingen fyllord, ingen punktlister med ett ord per punkt. Du er Filips trener, ikke en datatabell.`;
+- Korte avsnitt, ingen fyllord, ingen punktlister med ett ord per punkt. Du er Filips trener, ikke en datatabell.
+
+NØKKELTALL: Du får forhåndsberegnede tall (ACWR, snittsøvn/HRV, dager siden smerte). Bruk dem direkte — ikke regn dem på nytt fra rådataene.
+
+HUKOMMELSE: Hvis du gir et råd det er verdt å huske til senere (f.eks. "foreslo deload", "anbefalte å droppe spenst denne uka"), avslutt svaret med en EGEN linje på formatet:
+[NOTAT: kort oppsummering av rådet]
+Linjen vises ikke til Filip — den lagres så du husker rådet ditt neste gang. Bruk den sparsomt (maks ett notat per svar, kun når det er noe verdt å huske).`;
 
 async function sbFetch(supabaseUrl, anonKey, token, table, params) {
   const url = `${supabaseUrl}/rest/v1/${table}?${params}`;
@@ -85,7 +91,8 @@ export default async function handler(req, res) {
 
   // Fetch training data
   const [healthData, sprintData, gymData, kneePainData, activityData,
-         sprintRecords, weeklyPlan, planOverrides] = await Promise.all([
+         sprintRecords, weeklyPlan, planOverrides,
+         knee28, sprint28, gym28, act28, aiNotesData] = await Promise.all([
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
@@ -102,7 +109,61 @@ export default async function handler(req, res) {
       'select=day,session_type&order=day.asc'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'training_plan',
       'select=day_index,session_text,notes&order=day_index.asc'),
+    // B6: 28-dagers vinduer for forhåndsberegnede nøkkeltall (ACWR, smertefri-dager)
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'knee_pain',
+      'select=date,before_score,during_score,after_score,day_after_score&order=date.desc&limit=60'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
+      'select=date,rpe&order=date.desc&limit=120'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'gym_log',
+      'select=date&order=date.desc&limit=120'),
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'activity_log',
+      'select=date,rpe,duration_min&order=date.desc&limit=120'),
+    // B6: AI-ens egne notater (siste 8) for å huske tidligere råd
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'ai_notes',
+      'select=date,note&order=created_at.desc&limit=8'),
   ]);
+
+
+  // ── B6: forhåndsberegnede nøkkeltall ──────────────────────────────
+  // Sendes som korte tall så modellen slipper å regne fra rådata hver gang.
+  const _now = new Date(osloDateISO + 'T12:00:00');
+  const _daysAgo = (ds) => Math.floor((_now - new Date(ds + 'T12:00:00')) / 86400000);
+  const _avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+  // ACWR: akutt (siste 7 d) vs kronisk (siste 28 d, ukesnitt) treningsbelastning.
+  // Belastning ≈ antall økter (sprint+gym+aktivitet) vektet med RPE der den finnes.
+  const _loadEvents = [
+    ...(Array.isArray(sprint28) ? sprint28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
+    ...(Array.isArray(gym28) ? gym28 : []).map(r => ({ date: r.date, load: 6 })),
+    ...(Array.isArray(act28) ? act28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
+  ].filter(e => e.date && _daysAgo(e.date) >= 0);
+  const acute   = _loadEvents.filter(e => _daysAgo(e.date) < 7).reduce((a, e) => a + e.load, 0);
+  const chronic = _loadEvents.filter(e => _daysAgo(e.date) < 28).reduce((a, e) => a + e.load, 0) / 4;
+  const acwr = chronic > 0 ? (acute / chronic) : null;
+
+  // Dager siden siste smertefrie dag (maks smerte ≤ 2) og siden siste smerte (> 2)
+  const _kneeMax = (k) => Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0, k.day_after_score ?? 0);
+  const knee60 = Array.isArray(knee28) ? knee28 : [];
+  const lastPainDay = knee60.filter(k => _kneeMax(k) > 2).map(k => k.date).sort().pop() || null;
+  const daysSincePain = lastPainDay ? _daysAgo(lastPainDay) : null;
+
+  const avgSleep = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.sleep_score).filter(v => v != null));
+  const avgHrv   = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.hrv).filter(v => v != null));
+  const avgRhr   = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.rhr).filter(v => v != null));
+
+  const metricsBlock = `[FORHÅNDSBEREGNEDE NØKKELTALL — bruk disse, ikke regn på nytt]
+ACWR (akutt:kronisk belastning, 7d vs 28d): ${acwr != null ? acwr.toFixed(2) : 'for lite data'}${acwr != null && acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}
+Dager siden siste knesmerte (>2): ${daysSincePain != null ? daysSincePain : 'ingen smerte registrert nylig'}
+Snitt søvnscore (7d): ${avgSleep != null ? Math.round(avgSleep) : '–'}
+Snitt HRV (7d): ${avgHrv != null ? Math.round(avgHrv) : '–'} ms
+Snitt hvilepuls (7d): ${avgRhr != null ? Math.round(avgRhr) : '–'}`;
+
+  // B6: AI-ens egne tidligere notater
+  const notesArr = Array.isArray(aiNotesData) ? aiNotesData : [];
+  const notesBlock = notesArr.length
+    ? `[DINE TIDLIGERE NOTATER — råd du har gitt før, nyeste først]
+${notesArr.map(n => `- (${n.date}) ${n.note}`).join('\n')}`
+    : '';
 
   // Slå sammen ukeplan: weekly_plan = global standard, training_plan = override per dag.
   const DAYS_NO = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
@@ -141,6 +202,10 @@ export default async function handler(req, res) {
 
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
+
+${metricsBlock}
+
+${notesBlock}
 
 [UKEPLAN — hva som er planlagt per ukedag]
 ${weekPlanReadable}
@@ -198,5 +263,29 @@ ${JSON.stringify(stripMeta(activityData))}`;
   }
 
   const data = await anthropicRes.json();
-  return res.status(200).json({ reply: data.content?.[0]?.text || 'Tomt svar fra AI.' });
+  let reply = data.content?.[0]?.text || 'Tomt svar fra AI.';
+
+  // B6: trekk ut og lagre evt. [NOTAT: ...] fra svaret, og fjern det fra det
+  // brukeren ser. Fire-and-forget — feiler det, fortsetter vi uten å blokkere.
+  const noteMatch = reply.match(/\[NOTAT:\s*([\s\S]*?)\]\s*$/i);
+  if (noteMatch) {
+    const note = noteMatch[1].trim().slice(0, 500);
+    reply = reply.replace(/\[NOTAT:[\s\S]*?\]\s*$/i, '').trim();
+    if (note) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/ai_notes`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ date: osloDateISO, note }),
+        });
+      } catch { /* stille — notat er sekundært */ }
+    }
+  }
+
+  return res.status(200).json({ reply });
 }

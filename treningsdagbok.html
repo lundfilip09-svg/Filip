@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treningsdagbok — Eksport</title>
+<!--
+  B7: Treningsdagbok / PDF-eksport.
+  Selvstendig side (egne stiler + egne oversettelser) for å unngå kollisjon med
+  andre filer. Ren HVIT PDF via window.print() — ingen eksterne bibliotek.
+  Innhold: økter (gym_log) + sprintøkter (sprint_log) + knesmerte + RPE +
+  notater + dato, for valgt periode (default siste 4 uker). Norsk/engelsk-switch.
+-->
+<style>
+  :root { --ink:#1a1a1a; --muted:#666; --line:#ddd; --accent:#2b5fb0; --bg:#fff; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #f2f3f5; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  /* Kontrollpanel (skjules ved print) */
+  .controls {
+    position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--line);
+    padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  }
+  .controls .field { display: flex; flex-direction: column; gap: 3px; }
+  .controls label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .controls input, .controls select {
+    padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; background: #fff; color: var(--ink);
+  }
+  .btn {
+    padding: 8px 16px; border-radius: 7px; border: 1px solid var(--accent); background: var(--accent);
+    color: #fff; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  .btn.ghost { background: #fff; color: var(--accent); }
+  .btn.link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 8px 4px; }
+  /* Selve dokumentet */
+  .page {
+    background: var(--bg); max-width: 800px; margin: 22px auto; padding: 40px 44px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+  }
+  .doc-head { border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 22px; }
+  .doc-title { font-size: 24px; font-weight: 700; margin: 0; }
+  .doc-sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
+  .doc-meta { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  h2.sec { font-size: 16px; margin: 26px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px;
+       text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pain { font-weight: 700; }
+  .pain.lo { color: #2e9e5b; } .pain.mid { color: #c79a2e; } .pain.hi { color: #c0392b; }
+  .notes { color: #444; font-style: italic; }
+  .empty { color: var(--muted); padding: 8px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .sum-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .sum-num { font-size: 22px; font-weight: 700; }
+  .sum-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); }
+  @media print {
+    body { background: #fff; }
+    .controls { display: none !important; }
+    .page { box-shadow: none; margin: 0; max-width: none; padding: 0 6mm; }
+    h2.sec { break-after: avoid; }
+    tr { break-inside: avoid; }
+    @page { margin: 14mm; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <div class="field">
+    <label data-i18n="from">Fra</label>
+    <input type="date" id="fromDate">
+  </div>
+  <div class="field">
+    <label data-i18n="to">Til</label>
+    <input type="date" id="toDate">
+  </div>
+  <button class="btn ghost" onclick="loadReport()" data-i18n="update">Oppdater</button>
+  <button class="btn" onclick="window.print()" data-i18n="save_pdf">Lagre som PDF</button>
+  <button class="btn link" onclick="setLang(_lang==='no'?'en':'no')" id="langBtn">🇺🇸 English</button>
+  <button class="btn link" onclick="location.href='sprint.html'" data-i18n="back">← Tilbake</button>
+</div>
+
+<div class="page" id="doc">
+  <div class="loading" data-i18n="loading">Laster…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ── Egne oversettelser (selvstendig side) ──────────────────────────
+const TR = {
+  no: {
+    from:'Fra', to:'Til', update:'Oppdater', save_pdf:'Lagre som PDF', back:'← Tilbake',
+    loading:'Laster…', title:'Treningsdagbok', subtitle:'Filip Lund — sprinter (100/200m) & styrke',
+    period:'Periode', generated:'Generert', athlete:'Utøver',
+    sec_summary:'Sammendrag', sec_gym:'Styrke- & treningsøkter', sec_sprint:'Sprintøkter',
+    s_sessions:'Økter', s_sprints:'Sprintløp', s_avg_rpe:'Snitt RPE', s_pain_free:'Smertefrie dager',
+    th_date:'Dato', th_type:'Type', th_notes:'Notater', th_pain:'Knesmerte (f/u/e)',
+    th_dist:'Distanse', th_kind:'Type', th_time:'Tid', th_rpe:'RPE',
+    none_gym:'Ingen økter i perioden.', none_sprint:'Ingen sprintøkter i perioden.',
+    langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)'
+  },
+  en: {
+    from:'From', to:'To', update:'Update', save_pdf:'Save as PDF', back:'← Back',
+    loading:'Loading…', title:'Training Diary', subtitle:'Filip Lund — sprinter (100/200m) & strength',
+    period:'Period', generated:'Generated', athlete:'Athlete',
+    sec_summary:'Summary', sec_gym:'Strength & training sessions', sec_sprint:'Sprint sessions',
+    s_sessions:'Sessions', s_sprints:'Sprint runs', s_avg_rpe:'Avg RPE', s_pain_free:'Pain-free days',
+    th_date:'Date', th_type:'Type', th_notes:'Notes', th_pain:'Knee pain (b/d/a)',
+    th_dist:'Distance', th_kind:'Type', th_time:'Time', th_rpe:'RPE',
+    none_gym:'No sessions in this period.', none_sprint:'No sprint sessions in this period.',
+    langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)'
+  }
+};
+let _lang = localStorage.getItem('lang') || 'no';
+function t(k){ return (TR[_lang] && TR[_lang][k]) || TR.no[k] || k; }
+function setLang(l){ _lang = l; localStorage.setItem('lang', l); applyLang(); loadReport(); }
+function applyLang(){
+  document.documentElement.lang = _lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+}
+
+let db, _data = null;
+
+function fmtD(ds){
+  if(!ds) return '';
+  const d = new Date(ds+'T12:00:00');
+  const loc = _lang==='en' ? 'en-GB' : 'nb-NO';
+  return d.toLocaleDateString(loc, { day:'2-digit', month:'short', year:'numeric' });
+}
+function painCls(s){ if(s==null) return ''; return s<=3?'lo':s<=5?'mid':'hi'; }
+function painCell(b,d,a){
+  const fmt = v => v==null ? '–' : `<span class="pain ${painCls(v)}">${v}</span>`;
+  return `${fmt(b)} / ${fmt(d)} / ${fmt(a)}`;
+}
+
+async function init(){
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  } catch(e){
+    document.getElementById('doc').innerHTML = `<div class="empty">Config-feil: ${e.message}</div>`;
+    return;
+  }
+  // Default: siste 4 uker
+  const to = new Date(); const from = new Date(); from.setDate(from.getDate()-28);
+  document.getElementById('toDate').value   = to.toISOString().slice(0,10);
+  document.getElementById('fromDate').value = from.toISOString().slice(0,10);
+  applyLang();
+  await loadReport();
+}
+
+async function loadReport(){
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if(!from || !to) return;
+  document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
+  const [gym, knee, sprint] = await Promise.all([
+    db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
+    db.from('knee_pain').select('*').gte('date', from).lte('date', to),
+    db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
+  ]);
+  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], from, to };
+  render();
+}
+
+function render(){
+  const { gym, knee, sprint, from, to } = _data;
+  // Knesmerte koblet til dato (for gym-rader)
+  const kneeByDate = {};
+  knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
+
+  // Sammendrag
+  const allRpe = [...gym.map(()=>null), ...sprint.map(s=>s.rpe)].filter(v=>v!=null);
+  const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a,b)=>a+b,0)/allRpe.length) : null;
+  const painFree = knee.filter(k => [k.before_score,k.during_score,k.after_score].every(v=>v==null||v<=2)).length;
+
+  let html = `
+    <div class="doc-head">
+      <h1 class="doc-title">${t('title')}</h1>
+      <div class="doc-sub">${t('subtitle')}</div>
+      <div class="doc-meta">${t('period')}: ${fmtD(from)} – ${fmtD(to)} · ${t('generated')}: ${fmtD(new Date().toISOString().slice(0,10))}</div>
+    </div>
+
+    <h2 class="sec">${t('sec_summary')}</h2>
+    <div class="summary-grid">
+      <div class="sum-box"><div class="sum-num">${gym.length}</div><div class="sum-lbl">${t('s_sessions')}</div></div>
+      <div class="sum-box"><div class="sum-num">${sprint.length}</div><div class="sum-lbl">${t('s_sprints')}</div></div>
+      <div class="sum-box"><div class="sum-num">${avgRpe ?? '–'}</div><div class="sum-lbl">${t('s_avg_rpe')} ${t('rpe_scale')}</div></div>
+      <div class="sum-box"><div class="sum-num">${painFree}</div><div class="sum-lbl">${t('s_pain_free')}</div></div>
+    </div>
+
+    <h2 class="sec">${t('sec_gym')}</h2>`;
+
+  if(gym.length){
+    html += `<table><thead><tr>
+      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
+    </tr></thead><tbody>`;
+    gym.forEach(g => {
+      const k = kneeByDate[g.date];
+      html += `<tr>
+        <td class="num">${fmtD(g.date)}</td>
+        <td>${esc(g.session_type||'')}</td>
+        <td class="num">${k ? painCell(k.before_score,k.during_score,k.after_score) : '–'}</td>
+        <td class="notes">${esc(g.session_notes || k?.notes || '')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else html += `<div class="empty">${t('none_gym')}</div>`;
+
+  html += `<h2 class="sec">${t('sec_sprint')}</h2>`;
+  if(sprint.length){
+    html += `<table><thead><tr>
+      <th>${t('th_date')}</th><th>${t('th_dist')}</th><th>${t('th_kind')}</th>
+      <th>${t('th_time')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
+    </tr></thead><tbody>`;
+    sprint.forEach(s => {
+      html += `<tr>
+        <td class="num">${fmtD(s.date)}</td>
+        <td>${esc(s.distance||'')}</td>
+        <td>${esc(s.type||'')}</td>
+        <td class="num">${s.time_seconds!=null ? s.time_seconds.toFixed(2)+'s' : '–'}</td>
+        <td class="num">${s.rpe!=null ? s.rpe : '–'}</td>
+        <td class="num">${painCell(s.knee_before,s.knee_during,s.knee_after)}</td>
+        <td class="notes">${esc(s.notes||'')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else html += `<div class="empty">${t('none_sprint')}</div>`;
+
+  document.getElementById('doc').innerHTML = html;
+}
+
+function esc(s){ return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+init();
+</script>
+</body>
+</html>

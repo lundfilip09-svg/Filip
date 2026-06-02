@@ -184,7 +184,7 @@
     }
     .allday-strip:empty::before {
       content: 'Ingen heldagshendelser'; font-size: 10px;
-      font-family: var(--font-mono); color: rgba(255,255,255,0.11);
+      font-family: var(--font-mono); color: rgba(255,255,255,0.35);
     }
     .allday-pill {
       padding: 3px 9px; border-radius: 20px; font-size: 11px;
@@ -593,6 +593,8 @@ function DAYS_FULL()   { return _names({ weekday: 'long'  }, 7, i => new Date(20
 function MONTHS_SHORT() { return _names({ month: 'short' }, 12, i => new Date(2024, i, 1)); }
 function MONTHS_FULL()  { return _names({ month: 'long'  }, 12, i => new Date(2024, i, 1)); }
 function _cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+applyLang();
 
 // ── State ──────────────────────────────────────────────────────────────────
 let db             = null;

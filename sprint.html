@@ -130,6 +130,14 @@
     .goal-vals span { color: var(--text-primary); }
     .goal-bar-bg { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
     .goal-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .btn-reset-baseline { background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; color: var(--text-tertiary); cursor: pointer; font-size: 9px; font-family: var(--font-mono); padding: 2px 8px; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+    .btn-reset-baseline:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.25); }
+    .pb-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 9px; font-family: var(--font-mono); padding: 0; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.15s; line-height: 1; }
+    .pb-edit-btn:hover { color: var(--text-primary); }
+    .pb-edit-wrap { margin-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+    .pb-edit-inp { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; padding: 3px 6px; width: 100%; box-sizing: border-box; text-align: center; }
+    .pb-edit-inp:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+    .pb-edit-actions { display: flex; gap: 4px; }
   </style>
 </head>
 <body>
@@ -146,6 +154,8 @@
       <a href="kalender.html"  class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
+    <!-- B7: lenke til treningsdagbok/PDF-eksport. Selvtranslerende, rører ikke utils.js. -->
+    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
@@ -219,8 +229,8 @@
     <div class="eval-label" data-i18n="sprint.evaluation">Evaluering</div>
 
     <div class="form-group" style="max-width:180px;margin-bottom:14px">
-      <label class="form-label" data-i18n="sprint.rpe">RPE (1–10)</label>
-      <input type="number" id="logRpe" min="1" max="10" placeholder="7">
+      <label class="form-label" data-i18n="sprint.rpe">RPE (1–100)</label>
+      <input type="number" id="logRpe" min="1" max="100" placeholder="70">
     </div>
 
     <div style="margin-bottom:12px">
@@ -302,6 +312,7 @@
 <script>
 let db;
 document.querySelector('[data-p="sprint"]').classList.add('active');
+applyLang();
 
 function distLabel(d) {
   const map = { '60m_celler': '60m (celler)', '60m_flying': '60m (flying)' };
@@ -312,6 +323,9 @@ const skKnee = { before: null, during: null, after: null, dayafter: null };
 let _isSavingLog = false;
 let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
+let _pbData = {};          // distance → { best_time, date }
+let _lastGoalBest = {};    // distance → best_time (for re-render on lang change)
+let _goalBaselines = {};   // distance → baseline_time (override from sprint_records)
 
 const DRAFT_KEY = 'sprint_form_draft';
 
@@ -451,17 +465,53 @@ async function loadPBs() {
     delete byDist['60m_celler'];
   }
 
+  _pbData = byDist;
+
   el.innerHTML = dOrder.map(d => {
     const r = byDist[d];
     const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
     const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
+    const editable = d !== '60m_celler';
+    const editBtn  = editable ? `<button class="pb-edit-btn" onclick="editPB('${d}')">${t('sprint.edit_pb')}</button>` : '';
     return `<div class="pb-cell" id="pb-${d}">
-      <div class="pb-dist">${distLabel(d)}</div>
-      <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
-      <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
+      <div class="pb-dist" style="display:flex;align-items:center;justify-content:space-between;gap:4px">${distLabel(d)}${editBtn}</div>
+      <div id="pb-display-${d}">
+        <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
+        <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
+      </div>
+      ${editable ? `<div id="pb-edit-${d}" style="display:none" class="pb-edit-wrap">
+        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" value="${r?.best_time != null ? r.best_time.toFixed(2) : ''}">
+        <input class="pb-edit-inp" id="pb-inp-date-${d}" type="date" value="${r?.date || ''}">
+        <div class="pb-edit-actions">
+          <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="savePB('${d}')">${t('save')}</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cancelPBEdit('${d}')">${t('cancel')}</button>
+        </div>
+      </div>` : ''}
       <div class="pb-bar" style="background:${barClr}"></div>
     </div>`;
   }).join('');
+}
+
+function editPB(dist) {
+  document.getElementById(`pb-display-${dist}`).style.display = 'none';
+  document.getElementById(`pb-edit-${dist}`).style.display = '';
+}
+
+function cancelPBEdit(dist) {
+  document.getElementById(`pb-edit-${dist}`).style.display = 'none';
+  document.getElementById(`pb-display-${dist}`).style.display = '';
+}
+
+async function savePB(dist) {
+  const timeVal = parseFloat(document.getElementById(`pb-inp-time-${dist}`).value);
+  const dateVal = document.getElementById(`pb-inp-date-${dist}`).value;
+  if (!timeVal || timeVal <= 0 || isNaN(timeVal)) { toast(t('sprint.pb_invalid'), 'err'); return; }
+  const rec = { distance: dist, best_time: timeVal };
+  if (dateVal) rec.date = dateVal;
+  const { error } = await db.from('sprint_records').upsert(rec, { onConflict: 'distance' });
+  if (error) { toast(error.message, 'err'); return; }
+  toast(t('sprint.pb_saved'));
+  await Promise.all([loadPBs(), loadSprintGoals()]);
 }
 
 // ── Sprint goals ──────────────────────────────────────────────────────────
@@ -472,35 +522,52 @@ const GOALS = [
 
 async function loadSprintGoals() {
   const { data } = await db.from('sprint_records')
-    .select('distance,best_time')
+    .select('distance,best_time,baseline_time')
     .in('distance', ['100m','200m']);
   const best = {};
-  (data || []).forEach(r => { best[r.distance] = r.best_time; });
+  (data || []).forEach(r => {
+    best[r.distance] = r.best_time;
+    if (r.baseline_time != null) _goalBaselines[r.distance] = r.baseline_time;
+  });
+  _lastGoalBest = best;
   renderSprintGoals(best);
 }
 
 function renderSprintGoals(best) {
+  _lastGoalBest = best;
   const el = document.getElementById('sprintGoals');
   el.innerHTML = GOALS.map(g => {
-    const pb  = best[g.dist] ?? g.start;
-    const pct = Math.min(100, Math.max(0, (g.start - pb) / (g.start - g.goal) * 100));
-    const delta    = pb - g.goal;
-    const deltaStr = delta <= 0 ? '✓ Mål nådd!' : `${delta.toFixed(2)}s fra mål`;
+    const pb    = best[g.dist] ?? g.start;
+    const start = _goalBaselines[g.dist] ?? g.start;
+    const pct   = Math.min(100, Math.max(0, (start - pb) / (start - g.goal) * 100));
+    const delta = pb - g.goal;
+    const deltaStr  = delta <= 0 ? t('sprint.goal_reached') : t('sprint.from_goal', { n: delta.toFixed(2) });
     const deltaColor = delta <= 0 ? 'var(--success)' : 'var(--text-tertiary)';
     return `<div class="goal-row">
       <div class="goal-header">
         <span class="goal-name">${g.dist}</span>
         <div class="goal-vals">
           PB: <span>${pb.toFixed(2)}s</span>
-          &nbsp;·&nbsp; Mål: <span>${g.goal.toFixed(2)}s</span>
+          &nbsp;·&nbsp; ${t('sprint.goal')}: <span>${g.goal.toFixed(2)}s</span>
           &nbsp;·&nbsp; <span style="color:${deltaColor}">${deltaStr}</span>
         </div>
+        <button class="btn-reset-baseline" onclick="resetBaseline('${g.dist}')">${t('sprint.reset_baseline')}</button>
       </div>
       <div class="goal-bar-bg">
         <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${g.color}"></div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function resetBaseline(dist) {
+  const pb = _lastGoalBest?.[dist];
+  if (pb == null) return;
+  const { error } = await db.from('sprint_records').upsert({ distance: dist, baseline_time: pb }, { onConflict: 'distance' });
+  if (error) { toast(error.message, 'err'); return; }
+  _goalBaselines[dist] = pb;
+  renderSprintGoals(_lastGoalBest);
+  toast(t('sprint.baseline_reset', { time: pb.toFixed(2) }));
 }
 
 // ── Log session ───────────────────────────────────────────────────────────
@@ -648,11 +715,11 @@ function _buildSessCard(date, runs, isOpen) {
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">RPE</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="number" min="1" max="10" class="sess-edit-input" style="max-width:60px"
+        <input type="number" min="1" max="100" class="sess-edit-input" style="max-width:60px"
           value="${rpe ?? ''}" placeholder="–"
           onblur="saveHistField('${date}','rpe',this.value)"
           onkeydown="if(event.key==='Enter')this.blur()">
-        <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">1–10</span>
+        <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">1–100</span>
       </div>
     </div>
     <div style="margin-bottom:14px">
@@ -718,7 +785,7 @@ async function saveHistField(date, field, valueStr) {
     else {
       const n = Number(s);
       if (isNaN(n)) { toast(t('sprint.invalid'), 'err'); return; }
-      if (field === 'rpe' && (n < 1 || n > 10)) { toast(t('sprint.rpe_range'), 'err'); return; }
+      if (field === 'rpe' && (n < 1 || n > 100)) { toast(t('sprint.rpe_range'), 'err'); return; }
       if (field !== 'rpe' && (n < 0 || n > 10)) { toast(t('sprint.pain_range'), 'err'); return; }
       value = n;
     }
@@ -879,7 +946,7 @@ async function saveKneeInline() {
       </div>`;
     return;
   }
-  onLangChange = () => { renderHistory(); applyLang(); };
+  onLangChange = () => { renderHistory(); renderSprintGoals(_lastGoalBest); loadPBs(); applyLang(); };
   applyLang();
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();

@@ -280,6 +280,19 @@
     .stat-quad {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
+    /* B3 — kne-dashboard */
+    .kd-spark { display: flex; align-items: flex-end; gap: 3px; height: 38px; margin-bottom: 12px; }
+    .kd-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; transition: height 0.2s; }
+    .kd-bar.lo  { background: #6BE3A4; }
+    .kd-bar.mid { background: var(--warning); }
+    .kd-bar.hi  { background: #FF6B6B; }
+    .kd-bar.none { background: rgba(255,255,255,0.06); }
+    .kd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kd-stat { background: rgba(255,255,255,0.025); border-radius: 8px; padding: 11px 12px; }
+    .kd-stat-val { font-size: 20px; font-weight: 700; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); }
+    .kd-stat-val.good { color: #6BE3A4; }
+    .kd-stat-lbl { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 5px; }
+    .kd-streak-fire { font-size: 13px; }
     .stat-block {
       background: rgba(255,255,255,0.025); border-radius: 8px; padding: 12px;
     }
@@ -545,6 +558,14 @@
         <div id="weekLoadLabel" class="wbar-load-label" style="margin-top:8px"></div>
       </div>
 
+      <!-- B3: Kne & rehab-dashboard -->
+      <div class="card" id="kneeDashCard">
+        <div class="widget-label" data-i18n="tp.knee_dash">Kne & rehab</div>
+        <div id="kneeDashBody">
+          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+        </div>
+      </div>
+
       <!-- Edit weekly plan -->
       <button onclick="openEditWeeklyPlan()"
         style="width:100%;padding:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
@@ -586,10 +607,10 @@
       <div class="act-field-label" style="margin-bottom:7px" data-i18n="tp.activity">Aktivitet</div>
       <div class="act-type-grid" id="actTypeGrid">
         <button class="act-type-btn" data-type="Fotball" onclick="selectActType(this)" data-i18n="tp.act_soccer">Fotball</button>
-        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)">Padel</button>
+        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)" data-i18n="tp.act_padel">Padel</button>
         <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)" data-i18n="tp.act_swim">Svømming</button>
         <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)" data-i18n="tp.act_cycle">Sykling</button>
-        <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)">Basketball</button>
+        <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)" data-i18n="tp.act_basketball">Basketball</button>
         <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)" data-i18n="tp.act_walk">Turgåing</button>
         <button class="act-type-btn" data-type="Rolig dag" onclick="selectActType(this)" data-i18n="tp.act_easy">Rolig dag</button>
         <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>
@@ -603,8 +624,8 @@
         <input class="input-sm" id="actReplacedLabel" type="text" placeholder="F.eks. Sprint — tok det rolig pga hamstring" data-i18n-placeholder="tp.act_replaced_ph" style="width:100%;box-sizing:border-box">
       </div>
       <div style="margin-bottom:12px">
-        <div class="act-field-label" style="margin-bottom:6px">RPE (1–10)</div>
-        <input class="input-sm" id="actRpe" type="number" min="1" max="10" placeholder="—" style="width:80px">
+        <div class="act-field-label" style="margin-bottom:6px">RPE (1–100)</div>
+        <input class="input-sm" id="actRpe" type="number" min="1" max="100" placeholder="—" style="width:80px">
       </div>
       <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.knee">Knesmerte</div>
       <div class="act-pain-row">
@@ -642,6 +663,7 @@
 <script>
 let db;
 document.querySelector('[data-p="treningsplan"]').classList.add('active');
+applyLang();
 
 function localISODate(d) {
   return d.getFullYear() + '-' +
@@ -1131,6 +1153,7 @@ async function loadSessionHistory() {
     ..._sprintData.map(s => s.date),
   ])];
   const { data: kneeData } = await db.from('knee_pain').select('*').in('date', allDates);
+  _allKnee    = kneeData || [];   // B3: brukes av kne-dashboardet
   _kneeMap    = {};
   _kneeSprint = {};
   (kneeData || []).forEach(k => {
@@ -1150,6 +1173,88 @@ async function loadSessionHistory() {
   }
 
   renderSessionGrid();
+  renderKneeDash();
+}
+
+// ── B3: Kne & rehab-dashboard ───────────────────────────────────────
+let _allKnee = [];
+
+function _maxPain(k) {
+  // høyeste smerteverdi i en knee_pain-rad (smerte = "har hatt smerte i dag")
+  return Math.max(
+    k.before_score ?? 0, k.during_score ?? 0,
+    k.after_score ?? 0, k.day_after_score ?? 0
+  );
+}
+function _painClass(v) { return v == null ? 'none' : v <= 3 ? 'lo' : v <= 5 ? 'mid' : 'hi'; }
+
+function renderKneeDash() {
+  const el = document.getElementById('kneeDashBody');
+  if (!el) return;
+  if (!_allKnee.length) {
+    el.innerHTML = `<div class="empty" style="padding:6px 0;font-size:11px">${t('tp.knee_no_data')}</div>`;
+    return;
+  }
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const dayMs = 86400000;
+
+  // 14-dagers sparkline: høyeste smerte per dag, nyeste til høyre
+  const byDate = {};
+  _allKnee.forEach(k => {
+    const m = _maxPain(k);
+    if (byDate[k.date] == null || m > byDate[k.date]) byDate[k.date] = m;
+  });
+  const bars = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * dayMs).toISOString().slice(0, 10);
+    const v = byDate[d];
+    const h = v == null ? 3 : Math.max(3, (v / 10) * 38);
+    bars.push(`<div class="kd-bar ${_painClass(v)}" style="height:${h}px"
+      title="${d}${v != null ? ' · ' + v : ''}"></div>`);
+  }
+
+  // Dager siden siste smerte (maxPain > 2 regnes som smerte)
+  const painDays = _allKnee
+    .filter(k => _maxPain(k) > 2)
+    .map(k => k.date)
+    .sort();
+  const lastPain = painDays.length ? painDays[painDays.length - 1] : null;
+  let daysSince, painFreeNow;
+  if (lastPain) {
+    const diff = Math.floor((today - new Date(lastPain + 'T12:00:00')) / dayMs);
+    daysSince = diff; painFreeNow = diff >= 1;
+  } else {
+    daysSince = _allKnee.length; painFreeNow = true;  // ingen smerte registrert
+  }
+
+  // Rehab-streak: sammenhengende dager (fra i går/i dag bakover) med rehab-økt
+  const rehabDates = new Set(
+    _sessData
+      .filter(g => (g.session_type || '').toLowerCase().includes('rehab'))
+      .map(g => g.date)
+  );
+  let streak = 0;
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today.getTime() - i * dayMs).toISOString().slice(0, 10);
+    if (rehabDates.has(d)) streak++;
+    else if (i === 0) continue;   // tillat at i dag ikke er logget ennå
+    else break;
+  }
+
+  const streakTxt = streak === 1 ? t('tp.streak_day', { n: 1 }) : t('tp.streak_days', { n: streak });
+
+  el.innerHTML = `
+    <div class="kd-spark">${bars.join('')}</div>
+    <div class="kd-row">
+      <div class="kd-stat">
+        <div class="kd-stat-val ${painFreeNow ? 'good' : ''}">${daysSince}<span style="font-size:11px;color:var(--text-tertiary)"> ${t('tp.days_unit')}</span></div>
+        <div class="kd-stat-lbl">${t('tp.days_pain_free')}</div>
+      </div>
+      <div class="kd-stat">
+        <div class="kd-stat-val ${streak >= 3 ? 'good' : ''}">${streak >= 3 ? '<span class="kd-streak-fire">🔥</span>' : ''}${streak}</div>
+        <div class="kd-stat-lbl">${t('tp.rehab_streak')}</div>
+      </div>
+    </div>`;
 }
 
 function buildPainSummary(knee) {
@@ -1388,7 +1493,7 @@ function buildSprintDetailHtml(s, knee) {
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-      <input type="number" min="1" max="10" class="sess-edit-input"
+      <input type="number" min="1" max="100" class="sess-edit-input"
         value="${s.rpe ?? ''}" placeholder="—"
         onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
     </div>
@@ -1503,7 +1608,7 @@ function buildActDetailHtml(a) {
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-      <input type="number" min="1" max="10" class="sess-edit-input"
+      <input type="number" min="1" max="100" class="sess-edit-input"
         value="${a.rpe ?? ''}" placeholder="—"
         onblur="autoSaveActField('${a.id}','rpe',this.value)">
     </div>

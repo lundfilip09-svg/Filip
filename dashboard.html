@@ -28,7 +28,7 @@
       font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.14em;
       text-transform: uppercase; color: var(--text-tertiary);
     }
-    .dash-tagline .tg-sep { color: rgba(255,255,255,0.12); padding: 0 4px; }
+    .dash-tagline .tg-sep { color: rgba(255,255,255,0.25); padding: 0 4px; }
     .dash-date {
       font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
       letter-spacing: 0.06em; text-align: right; flex-shrink: 0; padding-bottom: 2px;
@@ -539,6 +539,7 @@
 let db;
 let weekPlan = {}; // { day_index: session_text } loaded from Supabase
 document.querySelector('[data-p="dashboard"]').classList.add('active');
+applyLang();
 
 async function loadWeekPlan() {
   const { data } = await db.from('training_plan').select('day_index,session_text');

@@ -76,6 +76,24 @@
     }
     .day-pill-del:hover { opacity: 1; color: #FF6B6B; }
     .add-section-wrap { margin-top: 10px; }
+    /* B1 — progressive overload-coach */
+    .po-card {
+      background: linear-gradient(135deg, rgba(91,164,245,0.06), rgba(107,227,164,0.04));
+      border: 1px solid rgba(91,164,245,0.18); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 14px;
+    }
+    .po-hd { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .po-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .po-sub { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }
+    .po-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+    .po-item:last-child { border-bottom: none; }
+    .po-ex { flex: 1; color: var(--text-secondary); font-weight: 600; }
+    .po-last { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .po-rec { font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; border-radius: 10px; white-space: nowrap; }
+    .po-rec.up   { background: rgba(107,227,164,0.12); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.25); }
+    .po-rec.hold { background: rgba(242,130,60,0.12); color: #F2823C; border: 1px solid rgba(242,130,60,0.25); }
+    .po-rec.flat { background: rgba(255,255,255,0.05); color: var(--text-tertiary); }
+    .po-empty { font-size: 11px; color: var(--text-tertiary); padding: 4px 0; }
     .day-pill {
       padding: 4px 12px;
       border-radius: 20px;
@@ -516,6 +534,15 @@
       </div>
     </div>
 
+    <!-- B1: Progressive Overload-coach -->
+    <div class="po-card" id="poCard" style="display:none">
+      <div class="po-hd">
+        <span class="po-title">💪 <span data-i18n="po.title">Overload-coach</span></span>
+        <span class="po-sub" data-i18n="po.subtitle">Forslag til neste økt</span>
+      </div>
+      <div id="poBody"></div>
+    </div>
+
     <div id="workoutBlocks"><div class="loading" style="padding:20px 2px">Laster øvelser…</div></div>
 
   </div>
@@ -710,6 +737,7 @@
 <script>
 let db;
 document.querySelector('[data-p="gym"]').classList.add('active');
+applyLang();
 
 // ── State ──────────────────────────────────────────────────────────
 let activeDay    = 'monday';   // settes ordentlig i bootstrap etter at gymDays er lastet
@@ -965,6 +993,7 @@ function tryRestoreSession(data) {
 // ── Init ───────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('logDate').value = today();
+  applyLang();
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
@@ -1128,6 +1157,7 @@ function renderAll() {
     document.getElementById('whExCount').textContent = `${exs.length} ${t('gym.exercises_lc')}`;
   }
   oppdaterTidsestimat();
+  renderOverloadCoach();   // B1: oppdater coach for aktiv dag (async, fire-and-forget)
 }
 
 function oppdaterTidsestimat() {
@@ -1355,6 +1385,86 @@ function renderWarmup() {
         ${zoneHtml}
       </div>${addHtml}`
     : `<div class="empty">${t('gym.no_warmup_data')}</div>${addHtml}`;
+}
+
+// ── B1: Progressive Overload-coach ──────────────────────────────────
+const PO_PAIN_LIMIT = 4;   // logget knesmerte > dette ⇒ ikke foreslå progresjon
+let _poCache = {};         // exercise_name → siste sett-historikk (per sesjon)
+
+async function renderOverloadCoach() {
+  const card = document.getElementById('poCard');
+  const body = document.getElementById('poBody');
+  if (!card || !body) return;
+  // Rehab-dagen har ingen vektprogresjon → skjul coachen der.
+  if (activeDay === 'rehab') { card.style.display = 'none'; return; }
+  const dayExs = getSortedMainExercises();
+  if (!dayExs.length) { card.style.display = 'none'; return; }
+
+  const names = [...new Set(dayExs.map(e => e.exercise_name))];
+  const { data, error } = await db.from('set_log')
+    .select('exercise_name,weight_kg,reps,date,knee_max')
+    .in('exercise_name', names)
+    .order('date', { ascending: false })
+    .limit(400);
+  if (error) { card.style.display = 'none'; return; }
+
+  // Grupper per øvelse → per dato (én "økt" = ett datapunkt, beste vekt den dagen)
+  const byEx = {};
+  (data || []).forEach(r => {
+    (byEx[r.exercise_name] ||= {});
+    const d = byEx[r.exercise_name];
+    if (!d[r.date] || (r.weight_kg ?? 0) > (d[r.date].weight_kg ?? 0)) {
+      d[r.date] = { weight_kg: r.weight_kg, reps: r.reps, knee_max: r.knee_max };
+    }
+  });
+
+  if (!Object.keys(byEx).length) {
+    card.style.display = '';
+    body.innerHTML = `<div class="po-empty">${t('po.no_data')}</div>`;
+    return;
+  }
+
+  const rows = names.map(name => {
+    const hist = byEx[name];
+    if (!hist) return '';
+    const dates = Object.keys(hist).sort().reverse();   // nyeste først
+    const last  = hist[dates[0]];
+    const lastW = last.weight_kg;
+    const lastR = last.reps || '';
+    const lastPain = last.knee_max ?? 0;
+
+    // Platå: hvor mange påfølgende økter (fra nyeste) med samme vekt
+    let plateau = 1;
+    for (let i = 1; i < dates.length; i++) {
+      if ((hist[dates[i]].weight_kg ?? null) === (lastW ?? null)) plateau++;
+      else break;
+    }
+
+    let recCls, recTxt;
+    if (lastPain > PO_PAIN_LIMIT) {
+      recCls = 'hold'; recTxt = t('po.hold_pain', { p: lastPain });
+    } else if (lastW != null && lastW > 0) {
+      if (plateau >= 3) { recCls = 'hold'; recTxt = t('po.plateau', { n: plateau }); }
+      else {
+        const next = Math.round((lastW + 2.5) * 2) / 2;   // +2.5 kg, halvkilo-presisjon
+        recCls = 'up'; recTxt = t('po.try', { w: next });
+      }
+    } else {
+      recCls = 'flat'; recTxt = t('po.keep');
+    }
+
+    const lastLbl = lastW != null
+      ? t('po.last', { w: lastW, r: lastR })
+      : (lastR ? t('po.try_reps', { r: lastR }) : '');
+    return `<div class="po-item">
+      <span class="po-ex">${escHtml(name)}</span>
+      <span class="po-last">${escHtml(lastLbl)}</span>
+      <span class="po-rec ${recCls}">${escHtml(recTxt)}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  card.style.display = '';
+  body.innerHTML = rows || `<div class="po-empty">${t('po.no_data')}</div>`;
 }
 
 // ── Workout ────────────────────────────────────────────────────────
@@ -2006,6 +2116,29 @@ async function saveLog() {
       after_score: kneePain['after'], day_after_score: kneePain['day-after'], notes,
     });
     if (kRes.error) toast(t('gym.knee_not_saved', { msg: kRes.error.message }), 'err');
+
+    // B1: lagre sett-historikk for progressive overload-coachen.
+    const kneeMax = Math.max(0,
+      kneePain['before'] ?? 0, kneePain['during'] ?? 0,
+      kneePain['after'] ?? 0, kneePain['day-after'] ?? 0);
+    const setRows = [];
+    for (const [exId, sets] of Object.entries(setData)) {
+      const ex = findExById(exId);
+      if (!ex) continue;
+      (sets || []).forEach((s, i) => {
+        if (!s.done) return;
+        setRows.push({
+          date, day_key: activeDay, exercise_name: ex.exercise_name,
+          weight_kg: (s.weight === '' || s.weight == null) ? null : Number(s.weight),
+          reps: String(s.reps ?? ex.reps ?? ''), set_index: i, knee_max: kneeMax,
+        });
+      });
+    }
+    if (setRows.length) {
+      const sRes = await db.from('set_log').insert(setRows);
+      if (sRes.error) { /* stille — set_log er sekundær, økta er allerede lagret */ }
+    }
+
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
