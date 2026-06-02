@@ -854,6 +854,21 @@ function dayLabel(d) {
 
 function getDay(key) { return gymDays.find(d => d.day_key === key); }
 
+// Oversett lagrede session_type-verdier (norske/engelske) til aktivt språk,
+// slik at gammel økthistorikk ("Strength Capacity", "Rehab") vises riktig.
+const _SESSION_TYPE_KEYS = {
+  'styrke kapasitet': 'session.strength_capacity', 'strength capacity': 'session.strength_capacity',
+  'styrke power': 'session.strength_power', 'strength power': 'session.strength_power',
+  'sirkulasjon & mobilitet': 'session.mobility', 'mobility & conditioning': 'session.mobility',
+  'daglig rehab': 'session.daily_rehab', 'daily rehab': 'session.daily_rehab',
+  'rehab': 'daytype.rehab',
+};
+function displaySessionType(raw) {
+  if (!raw) return t('gym.session');
+  const key = _SESSION_TYPE_KEYS[raw.trim().toLowerCase()];
+  return key ? t(key) : raw;
+}
+
 // A6: bygg dag-pills dynamisk fra gymDays + legg-til-knapp.
 function renderDayPills() {
   const wrap = document.getElementById('dayPills');
@@ -2220,7 +2235,7 @@ async function loadGymHistory() {
       <div class="hist-row" style="align-items:flex-start;padding:8px 0">
         <div style="flex:1;min-width:0">
           <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:2px">${fmtSessDate(g.date)}</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(g.session_type || '')}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(displaySessionType(g.session_type))}</div>
           <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>

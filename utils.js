@@ -337,6 +337,7 @@ const TRANSLATIONS = {
     'tp.stat_consistency': 'Konsistens', 'tp.stat_rest': 'Hviledager',
     'tp.week_load': 'Ukens belastning', 'tp.edit_plan': '✎ Rediger ukeplan',
     // B3 — kne-dashboard
+    'tp.session_fallback': 'Økt',
     'tp.knee_dash': 'Kne & rehab', 'tp.knee_trend': 'Smertetrend (14 d)',
     'tp.days_pain_free': 'Dager siden smerte', 'tp.rehab_streak': 'Rehab-streak',
     'tp.streak_days': '{n} dager', 'tp.streak_day': '{n} dag',
@@ -716,6 +717,7 @@ const TRANSLATIONS = {
     'tp.stat_consistency': 'Consistency', 'tp.stat_rest': 'Rest days',
     'tp.week_load': "Week's load", 'tp.edit_plan': '✎ Edit weekly plan',
     // B3 — knee dashboard
+    'tp.session_fallback': 'Session',
     'tp.knee_dash': 'Knee & rehab', 'tp.knee_trend': 'Pain trend (14 d)',
     'tp.days_pain_free': 'Days since pain', 'tp.rehab_streak': 'Rehab streak',
     'tp.streak_days': '{n} days', 'tp.streak_day': '{n} day',

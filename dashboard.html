@@ -871,10 +871,9 @@ function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
         text: t('dash.focus_rehab_pain_warning'),
         subtext: t('dash.focus_pain_after', { n: lastKnee.day_after_score }) });
     }
-    if (daysSince >= 3 && !isRest) {
-      items.push({ id: 'rehab-overdue', priority: 5, cat: 'rehab', type: 'actionable',
-        text: t('dash.focus_rehab_overdue') });
-    }
+    // Fjernet «rehab ikke gjennomført på X dager»-varselet: Filip gjør rehab
+    // som del av oppvarmingen på styrke-/sprintdager, så de logges ikke som
+    // egne rehab-økter. Varselet ble derfor misvisende.
   }
 
   // ── Priority 2-3: Sleep ───────────────────────────────────────────────

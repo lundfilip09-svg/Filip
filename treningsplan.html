@@ -116,10 +116,18 @@
     /* ── Main + sidebar layout ──────────────────────────────── */
     .tp-body {
       display: grid;
-      grid-template-columns: 1fr 272px;
+      grid-template-columns: 1fr 340px;
       gap: 14px;
       align-items: start;
     }
+    /* Editor: la notat-feltet vokse så kortet ikke blir en kort boks med stor
+       tom flate under. Gir en roligere, mer balansert venstrekolonne. */
+    .detail-panel { display: flex; flex-direction: column; }
+    .detail-panel .detail-field-notes { flex: 1; display: flex; flex-direction: column; }
+    .detail-panel .detail-field-notes textarea { flex: 1; min-height: 120px; }
+    /* Sidekortene side om side på brede skjermer → utnytter bredden, mindre stabling. */
+    .sidebar { display: grid; grid-template-columns: 1fr; gap: 12px; align-content: start; }
+    .sidebar .card { margin: 0; }
     @media (max-width: 860px) {
       .tp-body { grid-template-columns: 1fr; }
       .hero-band { grid-template-columns: 1fr 100px 100px; }
@@ -513,7 +521,7 @@
           placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder" onkeydown="if(event.key==='Enter')saveDay()">
       </div>
 
-      <div class="detail-field">
+      <div class="detail-field detail-field-notes">
         <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
         <textarea class="input-sm detail-input" id="detailNotes" rows="3"
           placeholder="Mål, teknikk, kommentarer…" data-i18n-placeholder="tp.notes_placeholder" style="resize:vertical"></textarea>
@@ -549,13 +557,6 @@
             <div class="stat-block-lbl" data-i18n="tp.stat_rest">Hviledager</div>
           </div>
         </div>
-      </div>
-
-      <!-- Week bar chart -->
-      <div class="card">
-        <div class="widget-label" data-i18n="tp.week_load">Ukens belastning</div>
-        <div class="week-bars" id="weekBars"></div>
-        <div id="weekLoadLabel" class="wbar-load-label" style="margin-top:8px"></div>
       </div>
 
       <!-- B3: Kne & rehab-dashboard -->
@@ -959,8 +960,10 @@ function renderSidebar() {
   document.getElementById('sbPct').textContent     = pct + '%';
   document.getElementById('sbRest').textContent    = rest;
 
-  // Bar chart — load-aware
+  // Bar chart — load-aware. (Ukens belastning-kortet er fjernet i redesign;
+  // hopp over hvis elementet ikke finnes.)
   const barEl = document.getElementById('weekBars');
+  if (!barEl) return;
   let loadScore = 0, doneCount = 0;
   barEl.innerHTML = SHORT_DAYS.map((name, i) => {
     const ds    = localISODate(dayDate(i));
@@ -1270,6 +1273,21 @@ function buildPainSummary(knee) {
   }</span>`;
 }
 
+// Oversett lagrede session_type-verdier (norske ELLER engelske) til aktivt språk.
+// Gjør at gammel logg (f.eks. "Strength Capacity", "Rehab") vises riktig på begge språk.
+const _SESSION_TYPE_KEYS = {
+  'styrke kapasitet': 'session.strength_capacity', 'strength capacity': 'session.strength_capacity',
+  'styrke power': 'session.strength_power', 'strength power': 'session.strength_power',
+  'sirkulasjon & mobilitet': 'session.mobility', 'mobility & conditioning': 'session.mobility',
+  'daglig rehab': 'session.daily_rehab', 'daily rehab': 'session.daily_rehab',
+  'rehab': 'daytype.rehab',
+};
+function displaySessionType(raw) {
+  if (!raw) return t('tp.session_fallback');
+  const key = _SESSION_TYPE_KEYS[raw.trim().toLowerCase()];
+  return key ? t(key) : raw;
+}
+
 function renderSessionGrid() {
   const el = document.getElementById('sessionGrid');
   if (!_sessData.length && !_sprintData.length) {
@@ -1315,7 +1333,7 @@ function renderSessionGrid() {
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
             style="border-top-color:rgba(107,227,164,0.3)"
             onclick="toggleSessionDetail('${g.id}')">
-            <div class="sess-name">${escHtml(g.session_type || 'Økt')}</div>
+            <div class="sess-name">${escHtml(displaySessionType(g.session_type))}</div>
             <div class="sess-meta">${buildPainSummary(knee)}<span class="sess-tag">${t('tp.gym_badge')}</span></div>
             ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
           </div>
@@ -1414,7 +1432,7 @@ function buildDetailHtml(g, knee) {
   return `<div class="sess-detail open" id="sess-detail-${g.id}" data-knee-id="${kneeid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div>
-        <div class="sess-detail-title">${escHtml(g.session_type || 'Økt')}</div>
+        <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
