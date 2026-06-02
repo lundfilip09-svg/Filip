@@ -338,3 +338,27 @@ body { animation: pageFadeIn 0.18s ease; }
 }
 .nav-tab { transition: opacity 0.1s; }
 .nav-tab:active { opacity: 0.6; }
+
+/* ── RPE-slider (delt komponent: sprint, gym, aktivitet) ──────────────── */
+.rpe-slider-wrap { display: flex; flex-direction: column; gap: 7px; }
+.rpe-slider-top { display: flex; align-items: baseline; justify-content: space-between; }
+.rpe-slider-val {
+  font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--text-primary);
+  font-variant-numeric: tabular-nums; min-width: 2ch;
+}
+.rpe-slider-val.empty { color: var(--text-tertiary); font-size: 14px; font-weight: 400; }
+.rpe-slider-hint { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+.rpe-slider {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 4px;
+  background: linear-gradient(to right, #6BE3A4 0%, #F2C063 55%, #FF6B6B 100%);
+  outline: none; cursor: pointer; opacity: 0.85;
+}
+.rpe-slider:disabled { opacity: 0.4; cursor: default; }
+.rpe-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 2px solid rgba(0,0,0,0.25); cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.rpe-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,0.25); cursor: pointer;
+}

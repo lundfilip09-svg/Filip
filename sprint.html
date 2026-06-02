@@ -228,10 +228,7 @@
     <hr class="session-divider">
     <div class="eval-label" data-i18n="sprint.evaluation">Evaluering</div>
 
-    <div class="form-group" style="max-width:180px;margin-bottom:14px">
-      <label class="form-label" data-i18n="sprint.rpe">RPE (1–100)</label>
-      <input type="number" id="logRpe" min="1" max="100" placeholder="70">
-    </div>
+    <div class="form-group" style="max-width:260px;margin-bottom:14px" id="logRpeHost"></div>
 
     <div style="margin-bottom:12px">
       <div class="form-label" style="margin-bottom:8px" data-i18n="knee.pain_0_10">Knesmerte (0–10)</div>
@@ -257,7 +254,7 @@
 
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label" data-i18n="notes">Notater</label>
-      <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…"></textarea>
+      <textarea id="logNotes" placeholder="Løpsforhold, teknikk, annet…" data-i18n-placeholder="sprint.notes_ph"></textarea>
     </div>
     <button id="sprintSaveBtn" class="btn btn-success" onclick="logSession()" data-i18n="sprint.log_btn">Logg økt</button>
   </div>
@@ -334,7 +331,7 @@ function saveDraft() {
     date:    document.getElementById('logDate').value,
     dist:    document.getElementById('logDist').value,
     type:    document.getElementById('logType').value,
-    rpe:     document.getElementById('logRpe').value,
+    rpe:     rpeValue('logRpe'),
     notes:   document.getElementById('logNotes').value,
     runs:    runs,
     skKnee:  { ...skKnee },
@@ -354,7 +351,7 @@ function restoreDraft() {
     if (d.date)  document.getElementById('logDate').value = d.date;
     if (d.dist)  document.getElementById('logDist').value = d.dist;
     if (d.type)  document.getElementById('logType').value = d.type;
-    if (d.rpe)   document.getElementById('logRpe').value  = d.rpe;
+    if (d.rpe != null) renderLogRpe(d.rpe);
     if (d.notes) document.getElementById('logNotes').value = d.notes;
     if (Array.isArray(d.runs)) { runs = d.runs; renderRuns(); }
     if (d.skKnee) {
@@ -375,17 +372,14 @@ function painClass(s) {
   return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
 }
 function painHint(i) {
-  // Subtil fargeantydning som viser skala 0=grønn → 10=rød før valg
-  const t = i / 10;
-  const r = Math.round(t * 255);
-  const g = Math.round((1 - t) * 180 + 20);
-  return `rgba(${r},${g},40,0.13)`;
+  // Ingen farge-antydning før valg — alle knapper nøytrale, så det er tydelig
+  // hvilke faser som IKKE er fylt ut (ingen 0 ser ut som "valgt").
+  return '';
 }
 function buildPainRow(phase) {
   const el = document.getElementById(`sk-${phase}`);
   el.innerHTML = [...Array(11)].map((_,i) =>
-    `<button class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i})"
-      style="background:${painHint(i)}">${i}</button>`
+    `<button type="button" class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i});this.blur()">${i}</button>`
   ).join('');
 }
 function selPain(phase, score) {
@@ -399,11 +393,21 @@ function selPain(phase, score) {
 restoreDraft();
 
 // Lagre draft ved endringer i tekstfelt/select
-['logDate','logDist','logType','logRpe','logNotes'].forEach(id => {
+['logDate','logDist','logType','logNotes'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', saveDraft);
   if (el) el.addEventListener('change', saveDraft);
 });
+
+// RPE-slider (injiseres i #logRpeHost). renderLogRpe(value) tegner den på nytt.
+function renderLogRpe(value = null) {
+  const host = document.getElementById('logRpeHost');
+  if (!host) return;
+  host.innerHTML = rpeSliderHTML('logRpe', value);
+  const el = document.getElementById('logRpe');
+  if (el) el.addEventListener('change', saveDraft);
+}
+renderLogRpe();
 
 // ── Runs list ─────────────────────────────────────────────────────────────
 function addRun() {
@@ -476,11 +480,11 @@ async function loadPBs() {
     return `<div class="pb-cell" id="pb-${d}">
       <div class="pb-dist" style="display:flex;align-items:center;justify-content:space-between;gap:4px">${distLabel(d)}${editBtn}</div>
       <div id="pb-display-${d}">
-        <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
+        <div class="pb-time">${r?.best_time != null ? (+r.best_time).toFixed(2) : '–'}</div>
         <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       </div>
       ${editable ? `<div id="pb-edit-${d}" style="display:none" class="pb-edit-wrap">
-        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" value="${r?.best_time != null ? r.best_time.toFixed(2) : ''}">
+        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" value="${r?.best_time != null ? (+r.best_time).toFixed(2) : ''}">
         <input class="pb-edit-inp" id="pb-inp-date-${d}" type="date" value="${r?.date || ''}">
         <div class="pb-edit-actions">
           <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="savePB('${d}')">${t('save')}</button>
@@ -526,8 +530,9 @@ async function loadSprintGoals() {
     .in('distance', ['100m','200m']);
   const best = {};
   (data || []).forEach(r => {
-    best[r.distance] = r.best_time;
-    if (r.baseline_time != null) _goalBaselines[r.distance] = r.baseline_time;
+    // Supabase numeric leses som string → tving til tall så .toFixed/matte funker.
+    best[r.distance] = r.best_time != null ? +r.best_time : r.best_time;
+    if (r.baseline_time != null) _goalBaselines[r.distance] = +r.baseline_time;
   });
   _lastGoalBest = best;
   renderSprintGoals(best);
@@ -579,7 +584,7 @@ async function logSession() {
   if (btn) btn.disabled = true;
   try {
     const date  = document.getElementById('logDate').value || today();
-    const rpe   = parseInt(document.getElementById('logRpe').value) || null;
+    const rpe   = rpeValue('logRpe');
     const notes = document.getElementById('logNotes').value.trim();
 
     const inserts = runs.map(r => ({
@@ -616,7 +621,7 @@ async function logSession() {
         : r.type === 'Stevne';
       if (!countsForPB) continue;
       const { data: rec } = await db.from('sprint_records')
-        .select('best_time').eq('distance', r.distance).single();
+        .select('best_time').eq('distance', r.distance).maybeSingle();
       if (!rec || r.time < rec.best_time) {
         await db.from('sprint_records').upsert(
           { distance: r.distance, best_time: r.time, date },
@@ -634,7 +639,7 @@ async function logSession() {
     // Reset
     runs = [];
     renderRuns();
-    document.getElementById('logRpe').value   = '';
+    renderLogRpe();
     document.getElementById('logNotes').value = '';
     Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
     ['before','during','after','dayafter'].forEach(p =>
@@ -678,13 +683,13 @@ function _buildSessCard(date, runs, isOpen) {
   const runRows = runs.map(r => `
     <div class="history-row">
       <span class="history-dist">${escHtml(distLabel(r.distance))}</span>
-      <span class="history-time">${r.time_seconds != null ? r.time_seconds.toFixed(2) + 's' : '–'}</span>
+      <span class="history-time">${r.time_seconds != null ? (+r.time_seconds).toFixed(2) + 's' : '–'}</span>
       <span class="history-type">${escHtml(r.type || '')}</span>
     </div>`).join('');
 
   const painVals = [
-    { l: 'Før', v: kneeBefore }, { l: 'Under', v: kneeDuring },
-    { l: 'Etter', v: kneeAfter }, { l: 'D.etter', v: kneeDayAfter },
+    { l: t('knee.before'), v: kneeBefore }, { l: t('knee.during'), v: kneeDuring },
+    { l: t('knee.after'), v: kneeAfter }, { l: t('tp.knee_dayafter'), v: kneeDayAfter },
   ];
   const hasPain = painVals.some(x => x.v != null);
   const painSummary = hasPain
@@ -723,9 +728,9 @@ function _buildSessCard(date, runs, isOpen) {
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Knesmerte</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('knee.pain')}</div>
       <div class="sess-edit-row">
-        ${[['Før','knee_before',kneeBefore],['Under','knee_during',kneeDuring],['Etter','knee_after',kneeAfter],['D.etter','knee_day_after',kneeDayAfter]].map(([lbl,field,val]) => `
+        ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) => `
           <div>
             <div class="sess-edit-lbl">${lbl}</div>
             <input type="number" min="0" max="10" class="sess-edit-input"
@@ -814,7 +819,7 @@ function refreshHistCard(date) {
 }
 
 async function deleteSprintDate(date) {
-  if (!confirm('Slett alle løp fra ' + date + '?')) return;
+  if (!confirm(t('confirm.delete_runs', { date }))) return;
   await db.from('sprint_log').delete().eq('date', date);
   await loadHistory();
   toast(t('sprint.deleted'));
@@ -848,10 +853,10 @@ function renderKneeTrend(data) {
   if (!data.length) { el.innerHTML = `<div class="empty">${t('sprint.no_data_yet')}</div>`; return; }
 
   const phases = [
-    { key: 'before_score',    label: 'Før' },
-    { key: 'during_score',    label: 'Under' },
-    { key: 'after_score',     label: 'Etter' },
-    { key: 'day_after_score', label: 'Dagen etter' },
+    { key: 'before_score',    label: t('knee.before') },
+    { key: 'during_score',    label: t('knee.during') },
+    { key: 'after_score',     label: t('knee.after') },
+    { key: 'day_after_score', label: t('knee.dayafter') },
   ];
 
   function painClr(v) {
@@ -946,7 +951,7 @@ async function saveKneeInline() {
       </div>`;
     return;
   }
-  onLangChange = () => { renderHistory(); renderSprintGoals(_lastGoalBest); loadPBs(); applyLang(); };
+  onLangChange = () => { renderHistory(); renderSprintGoals(_lastGoalBest); loadPBs(); loadKneeTrend(); renderLogRpe(rpeValue('logRpe')); applyLang(); };
   applyLang();
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();

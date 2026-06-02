@@ -172,6 +172,16 @@
       width: 100%; box-sizing: border-box;
     }
     .detail-actions { display: flex; gap: 8px; }
+    .physio-trigger {
+      margin-top: 12px; width: 100%; padding: 9px; border-radius: 8px;
+      background: rgba(126,200,227,0.06); border: 1px solid rgba(126,200,227,0.18);
+      color: #7EC8E3; font-size: 11px; font-family: var(--font-mono); cursor: pointer;
+      transition: background 0.15s, border-color 0.15s; text-align: center;
+    }
+    .physio-trigger:hover { background: rgba(126,200,227,0.12); border-color: rgba(126,200,227,0.32); }
+    .physio-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 9px 11px; }
+    .physio-item-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 3px; }
+    .physio-item-note { font-size: 12px; color: var(--text-secondary); line-height: 1.45; white-space: pre-wrap; }
 
     /* ── Session history ────────────────────────────────────── */
     .hist-section { margin-top: 20px; }
@@ -301,6 +311,15 @@
     .kd-stat-val.good { color: #6BE3A4; }
     .kd-stat-lbl { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 5px; }
     .kd-streak-fire { font-size: 13px; }
+    /* #5 Trender */
+    .tr-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .tr-row:last-child { border-bottom: none; }
+    .tr-name { font-size: 11px; color: var(--text-secondary); width: 78px; flex-shrink: 0; }
+    .tr-spark { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 22px; }
+    .tr-bar { flex: 1; min-height: 2px; border-radius: 1px; background: rgba(255,255,255,0.18); }
+    .tr-dir { font-size: 11px; font-family: var(--font-mono); font-weight: 700; width: 46px; text-align: right; flex-shrink: 0; }
+    .tr-dir.good { color: #6BE3A4; } .tr-dir.bad { color: #FF6B6B; } .tr-dir.flat { color: var(--text-tertiary); }
+    .tr-dir.nodata { color: var(--text-tertiary); font-weight: 400; font-size: 9px; }
     .stat-block {
       background: rgba(255,255,255,0.025); border-radius: 8px; padding: 12px;
     }
@@ -531,6 +550,12 @@
         <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
         <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
       </div>
+
+      <!-- Plager + Fysio-notat: minimale knapper som åpner popup -->
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="physio-trigger" style="flex:1;margin-top:0" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
+        <button class="physio-trigger" style="flex:1;margin-top:0" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
+      </div>
     </div>
 
     <!-- Sidebar -->
@@ -563,6 +588,14 @@
       <div class="card" id="kneeDashCard">
         <div class="widget-label" data-i18n="tp.knee_dash">Kne & rehab</div>
         <div id="kneeDashBody">
+          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+        </div>
+      </div>
+
+      <!-- #5: Trender (kne, søvn, belastning siste 2 uker) -->
+      <div class="card" id="trendCard">
+        <div class="widget-label" data-i18n="tp.trends">Trender</div>
+        <div id="trendBody">
           <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
         </div>
       </div>
@@ -624,10 +657,7 @@
         <div class="act-field-label" data-i18n="tp.act_replaced">Erstattet planlagt økt (valgfritt)</div>
         <input class="input-sm" id="actReplacedLabel" type="text" placeholder="F.eks. Sprint — tok det rolig pga hamstring" data-i18n-placeholder="tp.act_replaced_ph" style="width:100%;box-sizing:border-box">
       </div>
-      <div style="margin-bottom:12px">
-        <div class="act-field-label" style="margin-bottom:6px">RPE (1–100)</div>
-        <input class="input-sm" id="actRpe" type="number" min="1" max="100" placeholder="—" style="width:80px">
-      </div>
+      <div style="margin-bottom:12px;max-width:260px" id="actRpeHost"></div>
       <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.knee">Knesmerte</div>
       <div class="act-pain-row">
         <div><div class="act-field-label" data-i18n="tp.knee_before">Før</div><input class="input-sm" id="actKneeBefore" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
@@ -652,6 +682,75 @@
       </div>
       <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       <button class="act-save-btn" onclick="saveWeeklyPlan()" data-i18n="tp.save_plan">Lagre plan</button>
+    </div>
+  </div>
+
+  <!-- Fysio-notat modal -->
+  <div class="act-modal-overlay hidden" id="physioModal" onclick="if(event.target===this)closePhysioModal()">
+    <div class="act-modal" style="max-width:440px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title" data-i18n="tp.physio_title">Notat fra fysio/naprapat</span>
+        <button class="act-modal-close" onclick="closePhysioModal()">✕</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <div class="act-field-label" data-i18n="tp.date">Dato</div>
+          <input class="input-sm" id="physioDate" type="date" style="width:100%;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="act-field-label" data-i18n="tp.physio_therapist">Terapeut</div>
+          <input class="input-sm" id="physioTherapist" type="text" data-i18n-placeholder="tp.physio_therapist_ph" placeholder="F.eks. Andreas Havre" style="width:100%;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="act-field-label" data-i18n="tp.physio_note">Notat</div>
+        <textarea class="input-sm" id="physioNote" rows="5" data-i18n-placeholder="tp.physio_note_ph" placeholder="Hva sa terapeuten?" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+      </div>
+      <button class="act-save-btn" onclick="savePhysioNote()" data-i18n="tp.physio_save">Lagre notat</button>
+      <div class="act-field-label" style="margin:16px 0 6px" data-i18n="tp.physio_recent">Siste notater</div>
+      <div id="physioList" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- Plager/skader modal -->
+  <div class="act-modal-overlay hidden" id="injuryModal" onclick="if(event.target===this)closeInjuryModal()">
+    <div class="act-modal" style="max-width:460px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title" data-i18n="tp.inj_title">Plager & skader</span>
+        <button class="act-modal-close" onclick="closeInjuryModal()">✕</button>
+      </div>
+      <div id="injuryList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:110px">
+            <div class="act-field-label" data-i18n="tp.inj_part">Kroppsdel</div>
+            <select class="input-sm" id="injPart" style="width:100%;box-sizing:border-box"></select>
+          </div>
+          <div style="flex:1;min-width:90px">
+            <div class="act-field-label" data-i18n="tp.inj_side">Side</div>
+            <select class="input-sm" id="injSide" style="width:100%;box-sizing:border-box"></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:110px">
+            <div class="act-field-label" data-i18n="tp.inj_status">Status</div>
+            <select class="input-sm" id="injStatus" style="width:100%;box-sizing:border-box"></select>
+          </div>
+          <div style="flex:1;min-width:110px">
+            <div class="act-field-label" data-i18n="tp.inj_severity">Alvorlighet</div>
+            <select class="input-sm" id="injSeverity" style="width:100%;box-sizing:border-box"></select>
+          </div>
+          <div style="flex:1;min-width:110px">
+            <div class="act-field-label" data-i18n="tp.inj_start">Startet</div>
+            <input class="input-sm" id="injStart" type="date" style="width:100%;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="act-field-label" data-i18n="tp.inj_note">Notat</div>
+          <textarea class="input-sm" id="injNote" rows="3" data-i18n-placeholder="tp.inj_note_ph" placeholder="Hva dreier det seg om?" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+        </div>
+        <button class="act-save-btn" onclick="saveInjury()" data-i18n="tp.inj_save">Lagre plage</button>
+      </div>
     </div>
   </div>
 
@@ -1030,7 +1129,7 @@ async function saveDay() {
 }
 
 async function clearDay() {
-  if (!confirm('Tøm planen for denne dagen?')) return;
+  if (!confirm(t('confirm.clear_day'))) return;
 
   let clearError;
   if (weekOffset === 0) {
@@ -1104,6 +1203,7 @@ let _kneeMap    = {};
 let _kneeSprint = {}; // date → knee_pain for sprint sessions
 let _openDetail = null;
 let _actData    = [];   // activity_log rows
+let _healthData = [];   // health_data rows (sleep_score) for trend-oversikten
 let _actType    = null; // valgt type i modal
 
 function distLabel(d) {
@@ -1131,14 +1231,16 @@ function calcPainTrend(kneeSessions) {
 
 async function loadSessionHistory() {
   const el = document.getElementById('sessionGrid');
-  const [{ data: gymData }, { data: sprintRaw }, { data: actRaw }] = await Promise.all([
+  const [{ data: gymData }, { data: sprintRaw }, { data: actRaw }, { data: healthRaw }] = await Promise.all([
     db.from('gym_log').select('*').order('date', { ascending: false }).limit(30),
     db.from('sprint_log').select('*').order('date', { ascending: false }).limit(30),
     db.from('activity_log').select('*').order('date', { ascending: false }).limit(30),
+    db.from('health_data').select('date,sleep_score').order('date', { ascending: false }).limit(30),
   ]);
   _sessData   = gymData   || [];
   _sprintData = sprintRaw || [];
   _actData    = actRaw    || [];
+  _healthData = healthRaw || [];   // for trend-oversikten
 
   if (!_sessData.length && !_sprintData.length && !_actData.length) {
     el.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:20px 0">${t('tp.no_sessions')}</div>`;
@@ -1177,6 +1279,71 @@ async function loadSessionHistory() {
 
   renderSessionGrid();
   renderKneeDash();
+  renderTrends();
+}
+
+// ── #5: Trend-oversikt (kne, søvn, belastning, siste 14 dager) ──────
+function _trendDir(vals, goodIsDown) {
+  // vals = [{date, v}] kronologisk. Returnerer {type:'good|bad|flat|nodata', txt}
+  const scored = vals.filter(x => x.v != null);
+  if (scored.length < 4) return { type: 'nodata', txt: t('tp.tr_nodata') };
+  const half = Math.ceil(scored.length / 2);
+  const avg = a => a.reduce((s, x) => s + x.v, 0) / a.length;
+  const older = avg(scored.slice(0, half));
+  const newer = avg(scored.slice(half));
+  const delta = newer - older;
+  const rel = older !== 0 ? Math.abs(delta) / Math.abs(older) : Math.abs(delta);
+  if (rel < 0.08) return { type: 'flat', txt: '→ ' + t('tp.tr_flat') };
+  const rising = delta > 0;
+  // goodIsDown: lavere = bedre (kne, belastning). Ellers (søvn) høyere = bedre.
+  const isGood = goodIsDown ? !rising : rising;
+  return { type: isGood ? 'good' : 'bad', txt: (rising ? '↑ ' + t('tp.tr_up') : '↓ ' + t('tp.tr_down')) };
+}
+function _sparkBars(vals, maxRef) {
+  return vals.map(x => {
+    const h = x.v == null ? 2 : Math.max(2, (x.v / maxRef) * 22);
+    return `<div class="tr-bar" style="height:${h}px"></div>`;
+  }).join('');
+}
+function renderTrends() {
+  const el = document.getElementById('trendBody');
+  if (!el) return;
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const dayMs = 86400000;
+  const isoDays = [];
+  for (let i = 13; i >= 0; i--) isoDays.push(new Date(today.getTime() - i * dayMs).toISOString().slice(0, 10));
+
+  // Kne: høyeste smerte per dag
+  const kneeByDate = {};
+  _allKnee.forEach(k => { const m = _maxPain(k); if (kneeByDate[k.date] == null || m > kneeByDate[k.date]) kneeByDate[k.date] = m; });
+  const kneeVals = isoDays.map(d => ({ date: d, v: kneeByDate[d] ?? null }));
+
+  // Søvn: sleep_score per dag
+  const sleepByDate = {};
+  _healthData.forEach(h => { if (h.sleep_score != null) sleepByDate[h.date] = +h.sleep_score; });
+  const sleepVals = isoDays.map(d => ({ date: d, v: sleepByDate[d] ?? null }));
+
+  // Belastning: sum RPE/10 (sprint+gym+aktivitet) per dag, ekskl. ingenting (alt teller som last)
+  const loadByDate = {};
+  const addLoad = (date, rpe, fallback) => { loadByDate[date] = (loadByDate[date] || 0) + ((rpe || fallback) / 10); };
+  _sprintData.forEach(s => addLoad(s.date, s.rpe, 50));
+  _sessData.forEach(g => addLoad(g.date, g.rpe, 60));
+  _actData.forEach(a => addLoad(a.date, a.rpe, 50));
+  const loadVals = isoDays.map(d => ({ date: d, v: loadByDate[d] ?? null }));
+
+  const rows = [
+    { name: t('tp.tr_knee'),  vals: kneeVals,  goodIsDown: true,  maxRef: 10 },
+    { name: t('tp.tr_sleep'), vals: sleepVals, goodIsDown: false, maxRef: 100 },
+    { name: t('tp.tr_load'),  vals: loadVals,  goodIsDown: true,  maxRef: Math.max(10, ...loadVals.map(x => x.v || 0)) },
+  ];
+  el.innerHTML = rows.map(r => {
+    const dir = _trendDir(r.vals, r.goodIsDown);
+    return `<div class="tr-row">
+      <span class="tr-name">${r.name}</span>
+      <span class="tr-spark">${_sparkBars(r.vals, r.maxRef)}</span>
+      <span class="tr-dir ${dir.type}">${dir.txt}</span>
+    </div>`;
+  }).join('') + `<div style="font-size:9px;color:var(--text-tertiary);margin-top:8px;font-family:var(--font-mono)">${t('tp.tr_2w')}</div>`;
 }
 
 // ── B3: Kne & rehab-dashboard ───────────────────────────────────────
@@ -1216,9 +1383,9 @@ function renderKneeDash() {
       title="${d}${v != null ? ' · ' + v : ''}"></div>`);
   }
 
-  // Dager siden siste smerte (maxPain > 2 regnes som smerte)
+  // Dager siden siste smerte (maxPain > 3 regnes som smerte; ≤ 3 = smertefri)
   const painDays = _allKnee
-    .filter(k => _maxPain(k) > 2)
+    .filter(k => _maxPain(k) > 3)
     .map(k => k.date)
     .sort();
   const lastPain = painDays.length ? painDays[painDays.length - 1] : null;
@@ -1230,12 +1397,13 @@ function renderKneeDash() {
     daysSince = _allKnee.length; painFreeNow = true;  // ingen smerte registrert
   }
 
-  // Rehab-streak: sammenhengende dager (fra i går/i dag bakover) med rehab-økt
-  const rehabDates = new Set(
-    _sessData
-      .filter(g => (g.session_type || '').toLowerCase().includes('rehab'))
-      .map(g => g.date)
-  );
+  // Rehab-streak: sammenhengende dager med en økt der Filip gjør rehab.
+  // Teller styrke + rehab (gym_log) OG sprint (sprint_log), fordi rehab-øvelsene
+  // gjøres som prep på disse. Teller IKKE fotball/basket/andre aktiviteter.
+  const rehabDates = new Set([
+    ..._sessData.map(g => g.date),       // gym_log = styrke + rehab
+    ..._sprintData.map(s => s.date),     // sprint
+  ]);
   let streak = 0;
   for (let i = 0; i < 60; i++) {
     const d = new Date(today.getTime() - i * dayMs).toISOString().slice(0, 10);
@@ -1265,7 +1433,7 @@ function buildPainSummary(knee) {
     { l: t('knee.before'),    v: knee?.before_score },
     { l: t('knee.during'),  v: knee?.during_score },
     { l: t('knee.after'),  v: knee?.after_score },
-    { l: 'D.etter',v: knee?.day_after_score },
+    { l: t('tp.knee_dayafter'), v: knee?.day_after_score },
   ];
   if (!vals.some(x => x.v != null)) return '';
   return `<span class="sess-pain">${
@@ -1647,11 +1815,143 @@ function buildActDetailHtml(a) {
 }
 
 // ── Modal-funksjoner ───────────────────────────────────────────────────────
+// ── Plager/skader ─────────────────────────────────────────────────
+const BODY_PARTS = ['body.knee','body.hamstring','body.glute','body.hipflexor','body.hip',
+  'body.shoulder','body.back','body.neck','body.ankle','body.calf','body.achilles','body.foot','body.other'];
+let _editInjuryId = null;
+
+function _fillSelect(id, opts, selected) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = opts.map(o => `<option value="${o.v}"${o.v === selected ? ' selected' : ''}>${escHtml(o.l)}</option>`).join('');
+}
+function _injSelectOpts() {
+  _fillSelect('injPart', BODY_PARTS.map(k => ({ v: k, l: t(k) })));
+  _fillSelect('injSide', [{v:'',l:t('side.none')},{v:'left',l:t('side.left')},{v:'right',l:t('side.right')},{v:'both',l:t('side.both')}]);
+  _fillSelect('injStatus', [{v:'active',l:t('status.active')},{v:'improving',l:t('status.improving')},{v:'archived',l:t('status.archived')}]);
+  _fillSelect('injSeverity', [{v:'mild',l:t('sev.mild')},{v:'moderate',l:t('sev.moderate')},{v:'severe',l:t('sev.severe')}]);
+}
+async function openInjuryModal() {
+  document.getElementById('injuryModal').classList.remove('hidden');
+  _resetInjuryForm();
+  await loadInjuries();
+}
+function closeInjuryModal() { document.getElementById('injuryModal').classList.add('hidden'); }
+function _resetInjuryForm() {
+  _editInjuryId = null;
+  _injSelectOpts();
+  document.getElementById('injStart').value = today();
+  document.getElementById('injNote').value = '';
+  document.querySelector('#injuryModal .act-save-btn').textContent = t('tp.inj_save');
+}
+
+async function loadInjuries() {
+  const el = document.getElementById('injuryList');
+  const { data } = await db.from('injuries').select('*').order('updated_at', { ascending: false }).limit(30);
+  if (!data || !data.length) { el.innerHTML = `<div class="empty" style="font-size:11px;padding:4px">${t('tp.inj_empty')}</div>`; return; }
+  const sevColor = { mild:'#6BE3A4', moderate:'var(--warning)', severe:'#FF6B6B' };
+  const statColor = { active:'#FF6B6B', improving:'var(--warning)', archived:'var(--text-tertiary)' };
+  el.innerHTML = data.map(i => {
+    const part = t(i.body_part);
+    const side = i.side ? ' ' + t('side.' + i.side).toLowerCase() : '';
+    return `<div class="physio-item" style="display:flex;align-items:flex-start;gap:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary)">${escHtml(part)}${escHtml(side)}
+          <span style="font-size:9px;font-family:var(--font-mono);color:${statColor[i.status]||'var(--text-tertiary)'}"> · ${t('status.'+i.status)}</span>
+          <span style="font-size:9px;font-family:var(--font-mono);color:${sevColor[i.severity]||'var(--text-tertiary)'}"> · ${t('sev.'+i.severity)}</span>
+        </div>
+        ${i.note ? `<div class="physio-item-note" style="font-size:11px;margin-top:2px">${escHtml(i.note)}</div>` : ''}
+        <div class="physio-item-meta">${i.start_date ? t('tp.inj_start')+': '+fmtDate(i.start_date) : ''}</div>
+      </div>
+      <button class="edit-knee-btn" style="flex-shrink:0" onclick='editInjury(${JSON.stringify(JSON.stringify(i))})'>✎</button>
+      <button class="gym-del-btn" style="flex-shrink:0" onclick="deleteInjury('${i.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function editInjury(jsonStr) {
+  const i = JSON.parse(jsonStr);
+  _editInjuryId = i.id;
+  _injSelectOpts();
+  document.getElementById('injPart').value = i.body_part;
+  document.getElementById('injSide').value = i.side || '';
+  document.getElementById('injStatus').value = i.status;
+  document.getElementById('injSeverity').value = i.severity;
+  document.getElementById('injStart').value = i.start_date || '';
+  document.getElementById('injNote').value = i.note || '';
+  document.querySelector('#injuryModal .act-save-btn').textContent = t('save');
+  document.getElementById('injuryModal').querySelector('.act-modal').scrollTop = 9999;
+}
+
+async function saveInjury() {
+  const body_part = document.getElementById('injPart').value;
+  if (!body_part) { toast(t('tp.inj_need_part'), 'err'); return; }
+  const row = {
+    body_part,
+    side: document.getElementById('injSide').value || null,
+    status: document.getElementById('injStatus').value,
+    severity: document.getElementById('injSeverity').value,
+    start_date: document.getElementById('injStart').value || null,
+    note: document.getElementById('injNote').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  let error;
+  if (_editInjuryId) ({ error } = await db.from('injuries').update(row).eq('id', _editInjuryId));
+  else ({ error } = await db.from('injuries').insert(row));
+  if (error) { toast(t('tp.save_error') || 'Feil', 'err'); return; }
+  toast(t('tp.inj_saved'));
+  _resetInjuryForm();
+  await loadInjuries();
+}
+
+async function deleteInjury(id) {
+  if (!confirm(t('confirm.delete_activity'))) return;
+  await db.from('injuries').delete().eq('id', id);
+  toast(t('tp.inj_deleted'));
+  await loadInjuries();
+}
+
+// ── Fysio-notat ──────────────────────────────────────────────────
+async function openPhysioModal() {
+  document.getElementById('physioModal').classList.remove('hidden');
+  document.getElementById('physioDate').value = today();
+  document.getElementById('physioTherapist').value = '';
+  document.getElementById('physioNote').value = '';
+  await loadPhysioNotes();
+}
+function closePhysioModal() { document.getElementById('physioModal').classList.add('hidden'); }
+
+async function loadPhysioNotes() {
+  const el = document.getElementById('physioList');
+  const { data } = await db.from('physio_notes')
+    .select('*').order('date', { ascending: false }).limit(10);
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="empty" style="font-size:11px;padding:4px">${t('tp.physio_empty')}</div>`;
+    return;
+  }
+  el.innerHTML = data.map(p => `<div class="physio-item">
+    <div class="physio-item-meta">${fmtDate(p.date)}${p.therapist ? ' · ' + escHtml(p.therapist) : ''}</div>
+    <div class="physio-item-note">${escHtml(p.note)}</div>
+  </div>`).join('');
+}
+
+async function savePhysioNote() {
+  const date = document.getElementById('physioDate').value || today();
+  const therapist = document.getElementById('physioTherapist').value.trim() || null;
+  const note = document.getElementById('physioNote').value.trim();
+  if (!note) { toast(t('tp.physio_need_note'), 'err'); return; }
+  const { error } = await db.from('physio_notes').insert({ date, therapist, note });
+  if (error) { toast(t('tp.save_error') || 'Feil', 'err'); return; }
+  toast(t('tp.physio_saved'));
+  document.getElementById('physioNote').value = '';
+  document.getElementById('physioTherapist').value = '';
+  await loadPhysioNotes();
+}
+
 function openActModal() {
   document.getElementById('actModal').classList.remove('hidden');
   document.getElementById('actDate').value = today();
 
-  document.getElementById('actRpe').value = '';
+  document.getElementById('actRpeHost').innerHTML = rpeSliderHTML('actRpe');
   document.getElementById('actNotes').value = '';
   document.getElementById('actKneeBefore').value = '';
   document.getElementById('actKneeDuring').value = '';
@@ -1698,7 +1998,7 @@ async function saveActivity() {
   if (_actType === 'Annet')      actLabel = document.getElementById('actCustomLabel').value.trim() || null;
   else if (_actType === 'Rolig dag') actLabel = document.getElementById('actReplacedLabel').value.trim() || null;
   const duration   = null;
-  const rpe        = parseInt(document.getElementById('actRpe').value) || null;
+  const rpe        = rpeValue('actRpe');
   const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);
   const kneeDuring = document.getElementById('actKneeDuring').value === '' ? null : Number(document.getElementById('actKneeDuring').value);
   const kneeAfter  = document.getElementById('actKneeAfter').value === '' ? null : Number(document.getElementById('actKneeAfter').value);
@@ -1729,7 +2029,7 @@ async function autoSaveActField(actId, field, value) {
 }
 
 async function deleteActivity(actId) {
-  if (!confirm('Slett denne aktiviteten?')) return;
+  if (!confirm(t('confirm.delete_activity'))) return;
   const { error } = await db.from('activity_log').delete().eq('id', actId);
   if (error) { toast(t('tp.delete_error'), 'err'); return; }
   _actData = _actData.filter(a => String(a.id) !== String(actId));

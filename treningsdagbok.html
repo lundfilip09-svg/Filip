@@ -226,7 +226,7 @@ function render(){
         <td class="num">${fmtD(s.date)}</td>
         <td>${esc(s.distance||'')}</td>
         <td>${esc(s.type||'')}</td>
-        <td class="num">${s.time_seconds!=null ? s.time_seconds.toFixed(2)+'s' : '–'}</td>
+        <td class="num">${s.time_seconds!=null ? (+s.time_seconds).toFixed(2)+'s' : '–'}</td>
         <td class="num">${s.rpe!=null ? s.rpe : '–'}</td>
         <td class="num">${painCell(s.knee_before,s.knee_during,s.knee_after)}</td>
         <td class="notes">${esc(s.notes||'')}</td>

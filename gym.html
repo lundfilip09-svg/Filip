@@ -655,7 +655,7 @@
           <button class="pain-phase-pill" id="pp-before"    onclick="setSbPhase('before')" data-i18n="knee.before">Før</button>
           <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')" data-i18n="knee.during">Under</button>
           <button class="pain-phase-pill" id="pp-after"     onclick="setSbPhase('after')" data-i18n="knee.after">Etter</button>
-          <button class="pain-phase-pill" id="pp-day-after" onclick="setSbPhase('day-after')">D.etter</button>
+          <button class="pain-phase-pill" id="pp-day-after" onclick="setSbPhase('day-after')" data-i18n="tp.knee_dayafter">D.etter</button>
         </div>
       </div>
     </div>
@@ -689,6 +689,7 @@
           </div>
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:10px" id="gymRpeHost"></div>
       <div class="form-group" style="margin-bottom:10px">
         <label class="form-label" data-i18n="notes">Notater</label>
         <textarea id="sessionNotes" class="input-sm" rows="2" style="width:100%;resize:vertical;box-sizing:border-box"></textarea>
@@ -979,9 +980,9 @@ function resumeRestTimer() {
       restPaused = false;
       playTimerDone();
       const e = document.getElementById('restDisplay');
-      if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = 'Klar!'; }
+      if (e) { e.classList.remove('running'); e.classList.add('done'); e.textContent = t('gym.ready'); }
       const rv = document.getElementById('restVal');
-      if (rv) rv.textContent = 'Klar!';
+      if (rv) rv.textContent = t('gym.ready');
       const pb = document.getElementById('restPauseBtn');
       if (pb) { pb.textContent = '⏸'; pb.disabled = true; }
     }
@@ -1069,6 +1070,8 @@ async function init() {
     document.getElementById(id)?.addEventListener('change', saveDraft);
   });
 
+  renderGymRpe();   // RPE-slider for økta
+
   onLangChange = () => {
     loadGymHistory();
     renderDayPills();
@@ -1076,6 +1079,7 @@ async function init() {
     const wt = document.getElementById('workoutTitle');
     if (wt && d) wt.textContent = dayLabel(d);
     renderAll();
+    renderGymRpe(rpeValue('gymRpe'));
     applyLang();
   };
   await loadGymHistory();
@@ -1820,7 +1824,7 @@ function finishWorkout() {
   const sbNotes = document.getElementById('sidebarNotes')?.value || '';
   if (sbNotes) document.getElementById('sessionNotes').value = sbNotes;
   const total = getTotalSets(), done = getDoneSets();
-  document.getElementById('doneStats').textContent = `${done} av ${total} sett fullført`;
+  document.getElementById('doneStats').textContent = t('gym.sets_done', { done, total });
   setWS('done');
 }
 
@@ -1930,7 +1934,7 @@ function stopRest() {
   const el = document.getElementById('restDisplay');
   if (el) { el.textContent = '—'; el.className = 'rest-display'; }
   const rv = document.getElementById('restVal');
-  if (rv) rv.textContent = 'Ikke i drift';
+  if (rv) rv.textContent = t('gym.not_running');
   const pb = document.getElementById('restPauseBtn');
   if (pb) { pb.textContent = '⏸'; pb.disabled = true; }
 }
@@ -1977,8 +1981,8 @@ function buildPainButtons() {
     const el = document.getElementById(`knee-${phase}`);
     if (!el) return;
     el.innerHTML = [...Array(11)].map((_,i) =>
-      `<button class="pain-btn" data-phase="${phase}" data-score="${i}"
-        onclick="selectPain('${phase}',${i})">${i}</button>`
+      `<button type="button" class="pain-btn" data-phase="${phase}" data-score="${i}"
+        onclick="selectPain('${phase}',${i});this.blur()">${i}</button>`
     ).join('');
   });
   buildMiniPainButtons();
@@ -2061,7 +2065,7 @@ async function addExercise(day, section, formId) {
 }
 
 async function deleteExercise(id) {
-  if (!confirm('Slett øvelse?')) return;
+  if (!confirm(t('confirm.delete_exercise'))) return;
   await db.from('workout_program').delete().eq('id', id);
   for (const d of Object.keys(allExercises))
     for (const s of Object.keys(allExercises[d]))
@@ -2111,6 +2115,12 @@ async function autoSaveExField(id, field, value) {
   }
 }
 
+// RPE-slider for gym-økta
+function renderGymRpe(value = null) {
+  const host = document.getElementById('gymRpeHost');
+  if (host) host.innerHTML = rpeSliderHTML('gymRpe', value);
+}
+
 // ── Log ────────────────────────────────────────────────────────────
 async function saveLog() {
   if (_isSavingLog) return;
@@ -2123,7 +2133,8 @@ async function saveLog() {
     // A6: bruk det auto-oversatte dagnavnet som session_type (også for egendefinerte dager)
     const _d = getDay(activeDay);
     const sessionType = _d ? dayLabel(_d) : activeDay;
-    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes });
+    const gymRpe = rpeValue('gymRpe');
+    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes, rpe: gymRpe });
     if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
     const kRes = await db.from('knee_pain').insert({
       date, session_type: sessionType,
@@ -2142,9 +2153,10 @@ async function saveLog() {
       if (!ex) continue;
       (sets || []).forEach((s, i) => {
         if (!s.done) return;
+        const w = (s.weight === '' || s.weight == null) ? null : Number(s.weight);
         setRows.push({
           date, day_key: activeDay, exercise_name: ex.exercise_name,
-          weight_kg: (s.weight === '' || s.weight == null) ? null : Number(s.weight),
+          weight_kg: (w == null || isNaN(w)) ? null : w,
           reps: String(s.reps ?? ex.reps ?? ''), set_index: i, knee_max: kneeMax,
         });
       });
@@ -2172,6 +2184,7 @@ function clearLog() {
   document.querySelectorAll('.mini-pain-btn').forEach(b => b.className = 'mini-pain-btn');
   document.getElementById('sessionNotes').value = '';
   document.getElementById('logDate').value = today();
+  renderGymRpe();
 }
 
 // ── History (sidebar: last 10 sessions; full log in Treningsoversikt) ──
@@ -2223,10 +2236,10 @@ async function loadGymHistory() {
     const blurSave = `autoSaveKnee('${g.id}','${g.date}','${escHtml(g.session_type || '')}')`;
 
     const painStr = [
-      { l:'Før',         v: knee?.before_score },
-      { l:'Under',       v: knee?.during_score },
-      { l:'Etter',       v: knee?.after_score },
-      { l:'Dagen etter', v: knee?.day_after_score },
+      { l:t('knee.before'),       v: knee?.before_score },
+      { l:t('knee.during'),       v: knee?.during_score },
+      { l:t('knee.after'),        v: knee?.after_score },
+      { l:t('knee.dayafter'),     v: knee?.day_after_score },
     ].map(p =>
       `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`
     ).join(' · ');
@@ -2243,16 +2256,16 @@ async function loadGymHistory() {
       </div>
       <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
         <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
-          <span class="knee-edit-label">Før</span>
+          <span class="knee-edit-label">${t('knee.before')}</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}"
             value="${knee?.before_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">Under</span>
+          <span class="knee-edit-label">${t('knee.during')}</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}"
             value="${knee?.during_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">Etter</span>
+          <span class="knee-edit-label">${t('knee.after')}</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}"
             value="${knee?.after_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">D.etter</span>
+          <span class="knee-edit-label">${t('tp.knee_dayafter')}</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}"
             value="${knee?.day_after_score ?? ''}" style="width:42px" onblur="${blurSave}"
             title="Kan fylles inn dagen etter">
@@ -2269,7 +2282,7 @@ async function loadGymHistory() {
 }
 
 async function deleteGymSession(gymId, kneePainId) {
-  if (!confirm('Slett denne økten?')) return;
+  if (!confirm(t('confirm.delete_session'))) return;
   const ops = [db.from('gym_log').delete().eq('id', gymId)];
   if (kneePainId) ops.push(db.from('knee_pain').delete().eq('id', kneePainId));
   const results = await Promise.all(ops);

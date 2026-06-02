@@ -122,6 +122,16 @@ const TRANSLATIONS = {
     'gym.no_sections_yet': 'Ingen seksjoner ennå. Legg til en for å begynne.',
     'gym.ex_unit': 'øv', 'gym.sets_unit': 'sett', 'gym.add_exercise_btn': '+ Øvelse',
     'gym.finish_first': 'Fullfør den aktive økta først',
+    'confirm.delete_exercise': 'Slett øvelse?',
+    'confirm.delete_session': 'Slett denne økten?',
+    'confirm.clear_day': 'Tøm planen for denne dagen?',
+    'confirm.delete_activity': 'Slett denne aktiviteten?',
+    'confirm.delete_runs': 'Slett alle løp fra {date}?',
+    'gym.ready': 'Klar!', 'gym.not_running': 'Ikke i drift',
+    'gjoremal.add_ph': 'Legg til gjøremål…',
+    'sprint.notes_ph': 'Løpsforhold, teknikk, annet…',
+    'rpe.hint': 'Dra: 1 = veldig lett · 100 = maks',
+    'gym.sets_done': '{done} av {total} sett fullført',
     'gym.select_day': 'Velg dag', 'gym.exercises': 'Øvelser',
     'gym.pick_and_start': 'Velg dag og trykk start når du er klar.',
     'gym.start_session': '▷ Start økt', 'gym.exercises_lc': 'øvelser',
@@ -338,6 +348,29 @@ const TRANSLATIONS = {
     'tp.week_load': 'Ukens belastning', 'tp.edit_plan': '✎ Rediger ukeplan',
     // B3 — kne-dashboard
     'tp.session_fallback': 'Økt',
+    'tp.inj_btn': '🩹 Plager', 'tp.inj_title': 'Plager & skader',
+    'tp.inj_add': '+ Ny plage', 'tp.inj_part': 'Kroppsdel', 'tp.inj_side': 'Side',
+    'tp.inj_status': 'Status', 'tp.inj_severity': 'Alvorlighet', 'tp.inj_start': 'Startet',
+    'tp.inj_note': 'Notat', 'tp.inj_note_ph': 'Hva dreier det seg om? Hva provoserer, hva hjelper…',
+    'tp.inj_save': 'Lagre plage', 'tp.inj_saved': 'Plage lagret', 'tp.inj_deleted': 'Plage slettet',
+    'tp.inj_empty': 'Ingen plager ført inn', 'tp.inj_active': 'Aktive', 'tp.inj_archived': 'Arkivert',
+    'tp.inj_need_part': 'Velg kroppsdel',
+    'side.left': 'Venstre', 'side.right': 'Høyre', 'side.both': 'Begge', 'side.none': '–',
+    'status.active': 'Aktiv', 'status.improving': 'Bedring', 'status.archived': 'Arkivert',
+    'sev.mild': 'Mild', 'sev.moderate': 'Moderat', 'sev.severe': 'Alvorlig',
+    'body.knee': 'Kne', 'body.hamstring': 'Hamstring', 'body.glute': 'Glute',
+    'body.hipflexor': 'Hoftebøyer', 'body.hip': 'Hofte', 'body.shoulder': 'Skulder',
+    'body.back': 'Rygg', 'body.neck': 'Nakke', 'body.ankle': 'Ankel', 'body.calf': 'Legg',
+    'body.achilles': 'Akilles', 'body.foot': 'Fot', 'body.other': 'Annet',
+    'tp.physio_btn': '🩺 Fysio-notat', 'tp.physio_title': 'Notat fra fysio/naprapat',
+    'tp.physio_therapist': 'Terapeut', 'tp.physio_therapist_ph': 'F.eks. Andreas Havre',
+    'tp.physio_note': 'Notat', 'tp.physio_note_ph': 'Hva sa terapeuten? Råd, øvelser, vurdering…',
+    'tp.physio_save': 'Lagre notat', 'tp.physio_saved': 'Fysio-notat lagret',
+    'tp.physio_recent': 'Siste notater', 'tp.physio_empty': 'Ingen notater ennå',
+    'tp.physio_need_note': 'Skriv et notat først',
+    'tp.trends': 'Trender', 'tp.tr_knee': 'Knesmerte', 'tp.tr_sleep': 'Søvn',
+    'tp.tr_load': 'Belastning', 'tp.tr_2w': 'Siste 2 uker',
+    'tp.tr_up': 'opp', 'tp.tr_down': 'ned', 'tp.tr_flat': 'stabil', 'tp.tr_nodata': 'mangler data',
     'tp.knee_dash': 'Kne & rehab', 'tp.knee_trend': 'Smertetrend (14 d)',
     'tp.days_pain_free': 'Dager siden smerte', 'tp.rehab_streak': 'Rehab-streak',
     'tp.streak_days': '{n} dager', 'tp.streak_day': '{n} dag',
@@ -502,6 +535,16 @@ const TRANSLATIONS = {
     'gym.no_sections_yet': 'No sections yet. Add one to get started.',
     'gym.ex_unit': 'ex', 'gym.sets_unit': 'sets', 'gym.add_exercise_btn': '+ Exercise',
     'gym.finish_first': 'Finish the active session first',
+    'confirm.delete_exercise': 'Delete exercise?',
+    'confirm.delete_session': 'Delete this session?',
+    'confirm.clear_day': 'Clear the plan for this day?',
+    'confirm.delete_activity': 'Delete this activity?',
+    'confirm.delete_runs': 'Delete all runs from {date}?',
+    'gym.ready': 'Ready!', 'gym.not_running': 'Not running',
+    'gjoremal.add_ph': 'Add task…',
+    'sprint.notes_ph': 'Conditions, technique, other…',
+    'rpe.hint': 'Drag: 1 = very easy · 100 = max',
+    'gym.sets_done': '{done} of {total} sets completed',
     'gym.select_day': 'Select day', 'gym.exercises': 'Exercises',
     'gym.pick_and_start': 'Pick a day and press start when ready.',
     'gym.start_session': '▷ Start session', 'gym.exercises_lc': 'exercises',
@@ -718,6 +761,29 @@ const TRANSLATIONS = {
     'tp.week_load': "Week's load", 'tp.edit_plan': '✎ Edit weekly plan',
     // B3 — knee dashboard
     'tp.session_fallback': 'Session',
+    'tp.inj_btn': '🩹 Injuries', 'tp.inj_title': 'Injuries & complaints',
+    'tp.inj_add': '+ New injury', 'tp.inj_part': 'Body part', 'tp.inj_side': 'Side',
+    'tp.inj_status': 'Status', 'tp.inj_severity': 'Severity', 'tp.inj_start': 'Started',
+    'tp.inj_note': 'Note', 'tp.inj_note_ph': 'What is it? What provokes it, what helps…',
+    'tp.inj_save': 'Save injury', 'tp.inj_saved': 'Injury saved', 'tp.inj_deleted': 'Injury deleted',
+    'tp.inj_empty': 'No injuries logged', 'tp.inj_active': 'Active', 'tp.inj_archived': 'Archived',
+    'tp.inj_need_part': 'Select body part',
+    'side.left': 'Left', 'side.right': 'Right', 'side.both': 'Both', 'side.none': '–',
+    'status.active': 'Active', 'status.improving': 'Improving', 'status.archived': 'Archived',
+    'sev.mild': 'Mild', 'sev.moderate': 'Moderate', 'sev.severe': 'Severe',
+    'body.knee': 'Knee', 'body.hamstring': 'Hamstring', 'body.glute': 'Glute',
+    'body.hipflexor': 'Hip flexor', 'body.hip': 'Hip', 'body.shoulder': 'Shoulder',
+    'body.back': 'Back', 'body.neck': 'Neck', 'body.ankle': 'Ankle', 'body.calf': 'Calf',
+    'body.achilles': 'Achilles', 'body.foot': 'Foot', 'body.other': 'Other',
+    'tp.physio_btn': '🩺 Physio note', 'tp.physio_title': 'Note from physio/therapist',
+    'tp.physio_therapist': 'Therapist', 'tp.physio_therapist_ph': 'E.g. Andreas Havre',
+    'tp.physio_note': 'Note', 'tp.physio_note_ph': 'What did the therapist say? Advice, exercises, assessment…',
+    'tp.physio_save': 'Save note', 'tp.physio_saved': 'Physio note saved',
+    'tp.physio_recent': 'Recent notes', 'tp.physio_empty': 'No notes yet',
+    'tp.physio_need_note': 'Write a note first',
+    'tp.trends': 'Trends', 'tp.tr_knee': 'Knee pain', 'tp.tr_sleep': 'Sleep',
+    'tp.tr_load': 'Load', 'tp.tr_2w': 'Last 2 weeks',
+    'tp.tr_up': 'up', 'tp.tr_down': 'down', 'tp.tr_flat': 'stable', 'tp.tr_nodata': 'no data',
     'tp.knee_dash': 'Knee & rehab', 'tp.knee_trend': 'Pain trend (14 d)',
     'tp.days_pain_free': 'Days since pain', 'tp.rehab_streak': 'Rehab streak',
     'tp.streak_days': '{n} days', 'tp.streak_day': '{n} day',
@@ -843,6 +909,38 @@ function painColor(s) {
   if (s <= 5) return 'var(--warning)';
   if (s <= 7) return 'rgba(242,130,60,1)';
   return 'var(--danger)';
+}
+
+// Delt RPE-slider (1–100). id = unik id på <input>. value = startverdi (null = tom).
+// Returnerer HTML. Les verdien med rpeValue(id) → tall eller null.
+function rpeSliderHTML(id, value = null) {
+  const v = (value == null || value === '') ? '' : value;
+  const shown = v === '' ? '–' : v;
+  const cls = v === '' ? 'rpe-slider-val empty' : 'rpe-slider-val';
+  return `<div class="rpe-slider-wrap">
+    <div class="rpe-slider-top">
+      <span>${t('sprint.rpe')}</span>
+      <span class="${cls}" id="${id}-val">${shown}</span>
+    </div>
+    <input type="range" min="0" max="100" step="5" value="${v === '' ? 0 : v}" id="${id}"
+      class="rpe-slider" data-touched="${v === '' ? '0' : '1'}"
+      oninput="rpeSliderInput('${id}')">
+    <div class="rpe-slider-hint">${t('rpe.hint')}</div>
+  </div>`;
+}
+function rpeSliderInput(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.dataset.touched = '1';
+  const valEl = document.getElementById(id + '-val');
+  if (valEl) { valEl.textContent = el.value; valEl.className = 'rpe-slider-val'; }
+}
+// Verdi: null hvis aldri rørt (= ikke logget), ellers tallet (0 tillatt for "rolig dag").
+function rpeValue(id) {
+  const el = document.getElementById(id);
+  if (!el || el.dataset.touched !== '1') return null;
+  const n = parseInt(el.value, 10);
+  return isNaN(n) ? null : n;
 }
 
 async function getConfig() {

@@ -9,18 +9,13 @@
 
 const SYSTEM_PROMPT = `Du er en personlig trenings- og rehabiliteringsassistent for Filip Lund (17 år). Filip er sprinter (100m, 200m) og styrketrener. Mål: Sub 11.10 på 100m og 22.30 på 200m.
 
-KNESKADE — VENSTRE KNE
-Diagnose: Patellar tendinopati (patellarsene-irritasjon). Debut: Januar 2026, etter direkte slag mot kneet. Symptomer: Smerte foran/nedre del av kneskålen, synlig hevelse venstre vs høyre, smerte ved full strekk, hypermobil kneskål. Rotårsak (naprapat Andreas Havre, Sandviken): Stiv venstre ankel, svakt quadriceps venstre, stivere venstre hofte — asymmetri mellom sidene. Provoserende faktorer: Spenst, eksplosive øvelser, blokkstart, step-up, knebøyhopp, høy total belastning. Hva hjelper: HSR, Spanish squat, eksentrisk leg extension, calf raise 90° sittende, backwards treadmill, oppvarming.
+SKADER/PLAGER: Filip styrer selv en plageliste (se [PLAGER/SKADER]-blokken). DETTE er den autoritative, oppdaterte oversikten over hva som plager ham NÅ — kroppsdel, side, status (aktiv/bedring/arkivert), alvorlighet og notat. Behandle bare aktive og bedring-plager som relevante; arkiverte er historikk og skal ikke styre råd med mindre Filip spør. Ikke anta en skade som ikke står i lista (f.eks. ikke nevn kneet hvis det er arkivert). Hvis lista er tom, anta at han er skadefri.
 
-BEHANDLINGSFILOSOFI (fra Havre): Trene 80% intensitet, ikke presse gjennom smerte. Droppe spenst/plyometri. Litt rehab hver dag er bedre enn mye sjelden. 5 gode stevner > 8-10 dårlige med tilbakefall. Ikke vits å lage fast program — kjenn etter selv og tilpass. Styrke før løpeøkt er bra, styrkeøkt dagen før stevne kan fungere hvis eksplosivt utført. Kne sleeve til oppvarming.
+FYSIO-/NAPRAPAT-RÅD: Filip fører selv inn notater fra hver fysio-/naprapat-time (se [FYSIO-NOTATER]-blokken). DETTE er den autoritative kilden til behandlingsråd, rotårsak, provoserende faktorer, rehab-øvelser og hva som hjelper — bruk de nyeste notatene, ikke gamle antakelser. Hvis blokken er tom eller mangler et tema, si at du ikke har notater på det ennå i stedet for å gjette. Ikke tillegg en bestemt terapeut råd Filip ikke har ført inn.
 
-DAGLIGE REHAB-ØVELSER (dager uten sprint/styrke): Spanish Squat ISO 2×35-45sek, Ankelstrekk mot vegg 2×12, Hip Swivels 1×10, Face pulls med strikk 2×15.
+TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Sprint-dager: Søndag, Tirsdag og Torsdag (kan reduseres til 2 dager i vondere perioder).
 
-TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Sprint-dager: Søndag, Tirsdag og Torsdag (kan reduseres til 2 dager i vondere perioder). Rehab tirsdag/torsdag/lørdag/søndag. Neste naprapat ~5 uker fra siste besøk.
-
-NAKKE/RYGG (sekundært): Høyre indre rygg svakere pga telefon/dominant høyrehånd. Stiv rygg → skuldre fremover → nakkesmerter. Tiltak: Rows med strikk for midtre rygg.
-
-ANDRE IDRETTER: Filip kan drive andre idretter enn sprint og styrke (f.eks. fotball/soccer, basket, padel). Disse ligger i aktivitetsloggen og ukeplanen. Ballidrett med mye retningsendring, hopp og akselerasjon gir ekstra belastning på patellarsenen — vurder total ukesbelastning på tvers av ALT Filip faktisk har gjort, ikke bare sprint og styrke. Les hva han faktisk trener fra dataene; ikke anta. Hvis Filip skriver på engelsk, svar på engelsk.
+ANDRE IDRETTER: Filip kan drive andre idretter enn sprint og styrke (f.eks. fotball/soccer, basket, padel). Disse ligger i aktivitetsloggen og ukeplanen. Ballidrett med mye retningsendring, hopp og akselerasjon gir ekstra belastning (særlig på aktive plager i kne/legg/hofte) — vurder total ukesbelastning på tvers av ALT Filip faktisk har gjort, ikke bare sprint og styrke. Les hva han faktisk trener fra dataene; ikke anta. Hvis Filip skriver på engelsk, svar på engelsk.
 
 ROLIG DAG: I aktivitetsloggen kan activity_type være "Rolig dag". Det betyr at Filip tok det rolig istedenfor en planlagt økt — activity_label sier hvilken økt det erstattet og hvorfor (f.eks. "Sprint — hamstring"). Behandle dette som en bevisst nedtrapping, ikke en uteblitt økt, og ta hensyn til årsaken når du gir råd.
 
@@ -92,7 +87,7 @@ export default async function handler(req, res) {
   // Fetch training data
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
-         knee28, sprint28, gym28, act28, aiNotesData] = await Promise.all([
+         knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData] = await Promise.all([
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=7'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
@@ -115,12 +110,18 @@ export default async function handler(req, res) {
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'sprint_log',
       'select=date,rpe&order=date.desc&limit=120'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'gym_log',
-      'select=date&order=date.desc&limit=120'),
+      'select=date,rpe&order=date.desc&limit=120'),
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'activity_log',
       'select=date,rpe,duration_min&order=date.desc&limit=120'),
     // B6: AI-ens egne notater (siste 8) for å huske tidligere råd
     sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'ai_notes',
       'select=date,note&order=created_at.desc&limit=8'),
+    // Fysio-/naprapat-notater (siste 10) — autoritativ kilde til behandlingsråd
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'physio_notes',
+      'select=date,therapist,note&order=date.desc&limit=10'),
+    // Plageliste — aktive/bedring/arkiverte skader, autoritativ status
+    sbFetch(SUPABASE_URL, SUPABASE_ANON_KEY, token, 'injuries',
+      'select=body_part,side,status,severity,start_date,note&order=updated_at.desc&limit=20'),
   ]);
 
 
@@ -139,7 +140,7 @@ export default async function handler(req, res) {
   // Belastning ≈ antall økter (sprint+gym+aktivitet) vektet med RPE der den finnes.
   const _loadEvents = [
     ...(Array.isArray(sprint28) ? sprint28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
-    ...(Array.isArray(gym28) ? gym28 : []).map(r => ({ date: r.date, load: 6 })),
+    ...(Array.isArray(gym28) ? gym28 : []).map(r => ({ date: r.date, load: (r.rpe || 60) / 10 })),
     ...(Array.isArray(act28) ? act28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
   ].filter(e => e.date && _daysAgo(e.date) >= 0);
   const within28 = _loadEvents.filter(e => _daysAgo(e.date) < 28);
@@ -180,6 +181,35 @@ ${metricLines.join('\n')}`;
 ${notesArr.map(n => `- (${n.date}) ${n.note}`).join('\n')}`
     : '';
 
+  // Plageliste — aktive/bedring øverst, arkiverte til slutt
+  const BODY_NO = { 'body.knee':'Kne','body.hamstring':'Hamstring','body.glute':'Glute',
+    'body.hipflexor':'Hoftebøyer','body.hip':'Hofte','body.shoulder':'Skulder','body.back':'Rygg',
+    'body.neck':'Nakke','body.ankle':'Ankel','body.calf':'Legg','body.achilles':'Akilles','body.foot':'Fot','body.other':'Annet' };
+  const SIDE_NO = { left:'venstre', right:'høyre', both:'begge' };
+  const STAT_NO = { active:'AKTIV', improving:'BEDRING', archived:'arkivert' };
+  const SEV_NO  = { mild:'mild', moderate:'moderat', severe:'alvorlig' };
+  const injAll = Array.isArray(injuriesData) ? injuriesData : [];
+  const injActive = injAll.filter(i => i.status !== 'archived');
+  const injArchived = injAll.filter(i => i.status === 'archived');
+  const fmtInj = i => {
+    const part = BODY_NO[i.body_part] || i.body_part;
+    const side = i.side && SIDE_NO[i.side] ? ' ' + SIDE_NO[i.side] : '';
+    return `- ${part}${side} [${STAT_NO[i.status] || i.status}, ${SEV_NO[i.severity] || i.severity}${i.start_date ? ', siden ' + i.start_date : ''}]${i.note ? ': ' + i.note : ''}`;
+  };
+  const injuriesBlock = injActive.length || injArchived.length
+    ? `[PLAGER/SKADER — Filips egen oversikt. Kun aktive/bedring er relevante for råd nå.]
+${injActive.length ? injActive.map(fmtInj).join('\n') : '(ingen aktive plager)'}${injArchived.length ? '\nArkivert (historikk, ikke aktivt): ' + injArchived.map(i => (BODY_NO[i.body_part] || i.body_part)).join(', ') : ''}`
+    : `[PLAGER/SKADER]
+(Ingen plager ført inn — anta skadefri med mindre noe annet sies.)`;
+
+  // Fysio-/naprapat-notater — autoritativ kilde til behandlingsråd
+  const physioArr = Array.isArray(physioNotesData) ? physioNotesData : [];
+  const physioBlock = physioArr.length
+    ? `[FYSIO-NOTATER — Filips egne notater fra fysio-/naprapat-timer, nyeste først. Dette er autoritativt for behandlingsråd.]
+${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.note}`).join('\n')}`
+    : `[FYSIO-NOTATER]
+(Ingen notater ført inn ennå — ikke gjett om behandlingsråd; si at du mangler notater.)`;
+
   // Slå sammen ukeplan: weekly_plan = global standard, training_plan = override per dag.
   const DAYS_NO = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
   const planByDay = {};
@@ -219,6 +249,10 @@ ${notesArr.map(n => `- (${n.date}) ${n.note}`).join('\n')}`
 ${osloDate} (${osloDateISO})
 
 ${metricsBlock}
+
+${injuriesBlock}
+
+${physioBlock}
 
 ${notesBlock}
 

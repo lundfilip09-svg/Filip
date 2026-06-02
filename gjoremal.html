@@ -649,7 +649,7 @@
     <div class="gm-add-panel">
       <div class="gm-add-top">
         <div class="gm-add-ghost-cb"></div>
-        <input type="text" id="todoTitle" placeholder="Legg til gjøremål…"
+        <input type="text" id="todoTitle" placeholder="Legg til gjøremål…" data-i18n-placeholder="gjoremal.add_ph"
                data-i18n-placeholder="gm.add_placeholder"
                onkeydown="if(event.key==='Enter')addTodo()"
                oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
