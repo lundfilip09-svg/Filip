@@ -142,9 +142,12 @@ export default async function handler(req, res) {
     ...(Array.isArray(gym28) ? gym28 : []).map(r => ({ date: r.date, load: 6 })),
     ...(Array.isArray(act28) ? act28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
   ].filter(e => e.date && _daysAgo(e.date) >= 0);
+  const within28 = _loadEvents.filter(e => _daysAgo(e.date) < 28);
   const acute   = _loadEvents.filter(e => _daysAgo(e.date) < 7).reduce((a, e) => a + e.load, 0);
-  const chronic = _loadEvents.filter(e => _daysAgo(e.date) < 28).reduce((a, e) => a + e.load, 0) / 4;
-  const acwr = chronic > 0 ? (acute / chronic) : null;
+  const chronic = within28.reduce((a, e) => a + e.load, 0) / 4;
+  // ACWR krever nok loggede økter for å være meningsfull. Med tom/tynn historikk
+  // (de første ukene) blir tallet misvisende → vis det ikke før minst 8 økter på 28 d.
+  const acwr = (within28.length >= 8 && chronic > 0) ? (acute / chronic) : null;
 
   // Dager siden siste smertefrie dag (maks smerte ≤ 2) og siden siste smerte (> 2)
   const _kneeMax = (k) => Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0, k.day_after_score ?? 0);
@@ -156,12 +159,19 @@ export default async function handler(req, res) {
   const avgHrv   = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.hrv).filter(v => v != null));
   const avgRhr   = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.rhr).filter(v => v != null));
 
+  // Bygg nøkkeltall-blokken dynamisk. ACWR tas bare med når den er pålitelig
+  // (nok loggede økter) — ellers utelates linja helt så AI-en ikke fester seg
+  // ved et misvisende tall mens historikken fortsatt er tynn.
+  const metricLines = [];
+  if (acwr != null) {
+    metricLines.push(`ACWR (akutt:kronisk belastning, 7d vs 28d): ${acwr.toFixed(2)}${acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}`);
+  }
+  metricLines.push(`Dager siden siste knesmerte (>2): ${daysSincePain != null ? daysSincePain : 'ingen smerte registrert nylig'}`);
+  metricLines.push(`Snitt søvnscore (7d): ${avgSleep != null ? Math.round(avgSleep) : '–'}`);
+  metricLines.push(`Snitt HRV (7d): ${avgHrv != null ? Math.round(avgHrv) : '–'} ms`);
+  metricLines.push(`Snitt hvilepuls (7d): ${avgRhr != null ? Math.round(avgRhr) : '–'}`);
   const metricsBlock = `[FORHÅNDSBEREGNEDE NØKKELTALL — bruk disse, ikke regn på nytt]
-ACWR (akutt:kronisk belastning, 7d vs 28d): ${acwr != null ? acwr.toFixed(2) : 'for lite data'}${acwr != null && acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}
-Dager siden siste knesmerte (>2): ${daysSincePain != null ? daysSincePain : 'ingen smerte registrert nylig'}
-Snitt søvnscore (7d): ${avgSleep != null ? Math.round(avgSleep) : '–'}
-Snitt HRV (7d): ${avgHrv != null ? Math.round(avgHrv) : '–'} ms
-Snitt hvilepuls (7d): ${avgRhr != null ? Math.round(avgRhr) : '–'}`;
+${metricLines.join('\n')}`;
 
   // B6: AI-ens egne tidligere notater
   const notesArr = Array.isArray(aiNotesData) ? aiNotesData : [];

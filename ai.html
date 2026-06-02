@@ -382,6 +382,30 @@ async function saveHistory() {
   } catch { /* silent — localStorage still valid */ }
 }
 
+// Live-sync: lytt på nye meldinger i ai_chat_history og vis dem på alle enheter.
+// Dedupe: enheten som sendte meldingen viser den allerede lokalt, så vi hopper
+// over hvis samme rolle+innhold allerede ligger i chatHistory.
+let _chatChannel = null;
+function subscribeChatRealtime(userId) {
+  if (_chatChannel) { try { db.removeChannel(_chatChannel); } catch {} }
+  _chatChannel = db
+    .channel('ai_chat_' + userId)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'ai_chat_history', filter: `user_id=eq.${userId}` },
+      (payload) => {
+        const m = payload.new;
+        if (!m || (m.role !== 'user' && m.role !== 'assistant')) return;
+        // Allerede vist lokalt? (samme rolle+innhold blant de siste meldingene)
+        const dup = chatHistory.slice(-6).some(x => x.role === m.role && x.content === m.content);
+        if (dup) return;
+        chatHistory.push({ role: m.role, content: m.content });
+        if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+        localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+        appendMessage(m.role === 'user' ? 'user' : 'ai', m.content);
+      })
+    .subscribe();
+}
+
 async function clearChat() {
   try {
     const { data: { session } } = await db.auth.getSession();
@@ -560,6 +584,7 @@ function autoResize(el) {
 
     applyLang();
     initWeeklySummary();   // B5
+    subscribeChatRealtime(session.user.id);   // live-sync mac ↔ telefon
     document.getElementById('chatInput').focus();
   } catch (err) {
     document.querySelector('.chat-card').innerHTML =
