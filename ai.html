@@ -218,7 +218,7 @@
   <div class="ai-header">
     <div>
       <div class="ai-title">AI Overseer</div>
-      <div class="ai-subtitle"><span data-i18n="ai.sub_pre">Personlig assistent</span> · <span>claude-haiku-4.5</span> · <span data-i18n="ai.sub_post">Søvn · Sprint · Rehab</span></div>
+      <div class="ai-subtitle"><span data-i18n="ai.sub_pre">Personlig assistent</span> · <span data-i18n="ai.model">Sonnet 4.6</span> · <span data-i18n="ai.sub_post">Søvn · Sprint · Rehab</span></div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;flex-shrink:0;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
   </div>
@@ -427,7 +427,7 @@ async function sendMessage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      appendMessage('ai', err.error || `Feil ${res.status} — prøv igjen`, true);
+      appendMessage('ai', err.error || t('ai.err_generic', { status: res.status }), true);
     } else {
       const { reply } = await res.json();
       appendMessage('ai', reply);
@@ -541,6 +541,13 @@ function autoResize(el) {
       </div>`;
   }
 })();
+
+// Refresh static text + message author labels when language toggles
+onLangChange = () => {
+  applyLang();
+  document.querySelectorAll('.msg-user .msg-label').forEach(e => e.textContent = t('ai.you'));
+  document.querySelectorAll('.msg-ai:not(.msg-loading) .msg-label').forEach(e => e.textContent = t('ai.title'));
+};
 </script>
 </body>
 </html>

@@ -413,7 +413,7 @@ function removeRun(i) {
 function renderRuns() {
   const el = document.getElementById('runsList');
   if (!runs.length) {
-    el.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);padding:6px 2px 10px">Ingen løp lagt til ennå</div>';
+    el.innerHTML = `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);padding:6px 2px 10px">${t('sprint.no_runs_yet')}</div>`;
     return;
   }
   el.innerHTML = runs.map((r, i) => `

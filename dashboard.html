@@ -722,15 +722,15 @@ function _localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function _weekStripLabel(txt) {
-  if (/sprint/i.test(txt))    return 'Sprint';
-  if (/fotball|soccer/i.test(txt)) return 'Fotball';
-  if (/basket/i.test(txt))    return 'Basket';
-  if (/sirk/i.test(txt))      return 'Sirk.';
-  if (/mobil/i.test(txt))     return 'Mobil.';
-  if (/kondi/i.test(txt))     return 'Kondi.';
-  if (/styrke/i.test(txt))    return 'Styrke';
-  if (/hvile/i.test(txt))     return 'Hvile';
-  if (/rehab/i.test(txt))     return 'Rehab';
+  if (/sprint/i.test(txt))    return t('dash.chip_sprint');
+  if (/fotball|soccer/i.test(txt)) return t('dash.chip_soccer');
+  if (/basket/i.test(txt))    return t('dash.chip_basket');
+  if (/sirk/i.test(txt))      return t('dash.chip_sirk');
+  if (/mobil/i.test(txt))     return t('dash.chip_mobil');
+  if (/kondi/i.test(txt))     return t('dash.chip_kondi');
+  if (/styrke/i.test(txt))    return t('dash.chip_styrke');
+  if (/hvile/i.test(txt))     return t('dash.chip_hvile');
+  if (/rehab/i.test(txt))     return t('dash.chip_rehab');
   const first = txt.split(/\s+/)[0];
   return first.length <= 8 ? first : first.slice(0, 7) + '…';
 }
@@ -756,7 +756,9 @@ async function renderWeekStrip() {
   (gymRes.data || []).forEach(s => { gymByDate[s.date] = s.session_type || ''; });
   const sprintDates = new Set((sprintRes.data || []).map(s => s.date));
 
-  const dayNames = ['man','tir','ons','tor','fre','lør','søn'];
+  const dayNames = (typeof _lang !== 'undefined' && _lang === 'en')
+    ? ['mon','tue','wed','thu','fri','sat','sun']
+    : ['man','tir','ons','tor','fre','lør','søn'];
   const el = document.getElementById('weekStrip');
   const todayStr = _localDateStr(now);
 
@@ -775,12 +777,12 @@ async function renderWeekStrip() {
       if (/sprint/i.test(gymType))                              cls = 'ind-sprint';
       else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) cls = 'ind-kondisjon';
       else if (/rehab/i.test(gymType))                          cls = 'ind-kondisjon';
-      chips.push({ cls, label: _weekStripLabel(gymType) || 'Styrke' });
+      chips.push({ cls, label: _weekStripLabel(gymType) || t('dash.chip_styrke') });
     }
 
     // Logged sprint session (if not already counted as sprint)
     if (sprintDates.has(dateStr) && !chips.some(c => c.cls === 'ind-sprint')) {
-      chips.push({ cls: 'ind-sprint', label: 'Sprint' });
+      chips.push({ cls: 'ind-sprint', label: t('dash.chip_sprint') });
     }
 
     // Plan-based chip for days with no logged session
@@ -1189,13 +1191,22 @@ async function loadCalendar() {
     loadSleep().catch(e => { console.error('sleep', e); return null; }),
     loadKnee().catch(e  => { console.error('knee', e);  return null; }),
     loadRehabData().catch(() => null),
-    loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = '<div class="empty">Kunne ikke laste gjøremål</div>'; }),
+    loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = `<div class="empty">${t('dash.todo_err')}</div>`; }),
     loadCalendar().catch(() => {}),
     renderWeekStrip().catch(() => {}),
   ]);
 
   renderDailyFokus({ sleepData, kneeData, sessionData, rehabData });
 })();
+
+// Re-render dynamic content when language toggles (utils.js calls this from toggleLang)
+onLangChange = () => {
+  applyLang();
+  renderWeekStrip().catch(() => {});
+  if (_lastFokusData) renderDailyFokus(_lastFokusData);
+  loadTodos().catch(() => {});
+  loadCalendar().catch(() => {});
+};
 </script>
 </body>
 </html>

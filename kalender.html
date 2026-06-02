@@ -574,13 +574,25 @@ const CAT_COLORS = {
   other:  '#B197FC',
   gcal:   '#5BA4F5',
 };
-const CAT_LABELS = {
-  styrke: 'Styrke', stevne: 'Stevne', kirke: 'Kirke', fridag: 'Fridag', other: 'Annet',
-};
-const NO_DAYS_SHORT   = ['Søn','Man','Tir','Ons','Tor','Fre','Lør'];
-const NO_DAYS_FULL    = ['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
-const NO_MONTHS_SHORT = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
-const NO_MONTHS_FULL  = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+// Locale-aware category labels — follow the 🇳🇴/🇺🇸 toggle.
+function CAT_LABELS() {
+  return {
+    styrke: t('kal.cat_styrke'), stevne: t('kal.cat_stevne'), kirke: t('kal.cat_kirke'),
+    fridag: t('kal.cat_fridag'), other: t('kal.cat_other'),
+  };
+}
+// Locale-aware day/month names — follow the 🇳🇴/🇺🇸 toggle via fmtLocale().
+// Reference dates: 2024-01 starts on a Monday; Jan..Dec are months 0..11.
+function _names(opt, count, base) {
+  const fmt = new Intl.DateTimeFormat(fmtLocale(), opt);
+  return Array.from({ length: count }, (_, i) => fmt.format(base(i)));
+}
+// Sunday-first to match getDay() (0=Sun): 2023-12-31 is a Sunday.
+function DAYS_SHORT()  { return _names({ weekday: 'short' }, 7, i => new Date(2023, 11, 31 + i)); }
+function DAYS_FULL()   { return _names({ weekday: 'long'  }, 7, i => new Date(2023, 11, 31 + i)); }
+function MONTHS_SHORT() { return _names({ month: 'short' }, 12, i => new Date(2024, i, 1)); }
+function MONTHS_FULL()  { return _names({ month: 'long'  }, 12, i => new Date(2024, i, 1)); }
+function _cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 // ── State ──────────────────────────────────────────────────────────────────
 let db             = null;
@@ -604,8 +616,8 @@ function getMonday(d) {
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 function fmtTime(d) { return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function fmtDateLong(d) {
-  const name = NO_DAYS_FULL[d.getDay()];
-  return `${name.charAt(0).toUpperCase() + name.slice(1)} ${d.getDate()}. ${NO_MONTHS_FULL[d.getMonth()]}`;
+  const name = DAYS_FULL()[d.getDay()];
+  return `${_cap(name)} ${d.getDate()}. ${MONTHS_FULL()[d.getMonth()]}`;
 }
 
 function getEventColor(ev) {
@@ -786,7 +798,7 @@ function renderWeekStrip() {
 
     return `<div class="week-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="selectDay('${dStr}')">
       <div class="wd-top">
-        <span class="wd-name">${['Man','Tir','Ons','Tor','Fre','Lør','Søn'][i]}</span>
+        <span class="wd-name">${_cap(DAYS_SHORT()[(i + 1) % 7])}</span>
         <span class="wd-num">${d.getDate()}</span>
       </div>
       ${evTitle ? `<div class="wd-ev"><div class="wd-ev-dot" style="background:${evColor}"></div>${escHtml(evTitle)}</div>` : ''}
@@ -796,7 +808,7 @@ function renderWeekStrip() {
 
   const mid = addDays(weekStart, 3);
   document.getElementById('headerLabel').innerHTML =
-    `${NO_MONTHS_FULL[mid.getMonth()].charAt(0).toUpperCase() + NO_MONTHS_FULL[mid.getMonth()].slice(1)}<span>${mid.getFullYear()}</span>`;
+    `${_cap(MONTHS_FULL()[mid.getMonth()])}<span>${mid.getFullYear()}</span>`;
 }
 
 // ── Day view dispatcher ────────────────────────────────────────────────────
@@ -860,7 +872,7 @@ function renderAgenda(dateStr) {
 function agRow(e) {
   const c        = getEventColor(e);
   const isActive = e.id === activeEventId;
-  const catLabel = e.source === 'gcal' ? 'GCal' : (CAT_LABELS[e.category] || 'Annet');
+  const catLabel = e.source === 'gcal' ? 'GCal' : (CAT_LABELS()[e.category] || t('kal.cat_other'));
   const timeStr  = e.allDay ? t('kal.whole_day') : (e.startTime || '–');
   const style    = isActive ? `background:${hexAlpha(c,0.07)};border-left-color:${c}` : '';
 
@@ -965,7 +977,7 @@ function renderEventDetail() {
   }
 
   const c       = CAT_COLORS[ev.category] || CAT_COLORS.other;
-  const catBtns = Object.entries(CAT_LABELS).map(([k,v]) =>
+  const catBtns = Object.entries(CAT_LABELS()).map(([k,v]) =>
     `<button class="ev-cat-btn${ev.category === k ? ' active' : ''}"
       style="${ev.category === k ? `background:${hexAlpha(CAT_COLORS[k],0.14)};border-color:${hexAlpha(CAT_COLORS[k],0.28)};color:${CAT_COLORS[k]}` : ''}"
       onclick="evSetCat('${k}')">${v}</button>`
@@ -1047,7 +1059,7 @@ function renderUpcoming() {
   const upcoming = allEvents().filter(e => e.date >= todayD).slice(0, 28);
 
   if (!upcoming.length) {
-    el.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);padding:4px 0">Ingen kommende hendelser</div>';
+    el.innerHTML = `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);padding:4px 0">${t('dash.no_events')}</div>`;
     return;
   }
 
@@ -1062,11 +1074,11 @@ function renderUpcoming() {
     const isToday  = dateStr === todayD;
     const dow      = (d.getDay() + 6) % 7;
     const dayLabel = isToday ? t('kal.today')
-      : `${NO_DAYS_SHORT[dow === 6 ? 0 : dow + 1] || NO_DAYS_SHORT[dow]} ${d.getDate()}. ${NO_MONTHS_SHORT[d.getMonth()]}`;
+      : `${_cap(DAYS_SHORT()[dow === 6 ? 0 : dow + 1] || DAYS_SHORT()[dow])} ${d.getDate()}. ${MONTHS_SHORT()[d.getMonth()]}`;
 
     const rows = evts.map(e => {
       const c        = getEventColor(e);
-      const catLabel = e.source === 'gcal' ? '' : (CAT_LABELS[e.category] || '');
+      const catLabel = e.source === 'gcal' ? '' : (CAT_LABELS()[e.category] || '');
       return `<div class="upcoming-event" onclick="selectDay('${dateStr}');openEvent('${e.id}')">
         <div class="up-dot" style="background:${c}"></div>
         <div class="up-title">${escHtml(e.title)}</div>
@@ -1100,7 +1112,7 @@ function renderNextCard() {
   ).sort((a,b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0];
 
   if (!next) {
-    el.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary)">Ingen kommende</div>';
+    el.innerHTML = `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary)">${t('kal.no_upcoming')}</div>`;
     return;
   }
 
@@ -1345,6 +1357,9 @@ function fmtSleepHM(hours) {
     }
   }, 60_000);
 })();
+
+// Re-render everything (day/month names, cards) when language toggles
+onLangChange = () => { applyLang(); renderAll(); };
 </script>
 </body>
 </html>

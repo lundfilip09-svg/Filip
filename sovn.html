@@ -392,7 +392,7 @@ function renderHero(d) {
   if (d?.sleep_hours)    chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
   if (d?.rhr)            chips.push(`❤️ ${d.rhr} bpm`);
   if (d?.hrv != null)    chips.push(`⚡ HRV ${d.hrv}ms`);
-  if (d?.awake_minutes)  chips.push(`👁 Våken ${d.awake_minutes}min`);
+  if (d?.awake_minutes)  chips.push(`👁 ${t('sovn.awake')} ${d.awake_minutes}min`);
   if (d?.sleep_start)    chips.push(`🛌 ${d.sleep_start}`);
   if (d?.sleep_end)      chips.push(`⏰ ${d.sleep_end}`);
   const st = fmtSyncTime(d?.timestamp);
@@ -404,8 +404,8 @@ function renderHero(d) {
     tagline = t('sovn.you_slept') + sleepHoursStr(d.sleep_hours);
     if (d.awake_minutes) {
       const aw = d.awake_minutes;
-      const awCtx = aw <= 5 ? ' · nesten ingen avbrudd' : aw <= 19 ? ` · ${aw} min våken (bra)` : aw <= 30 ? ` · ${aw} min våken (akseptabelt)` : aw <= 50 ? ` · ${aw} min våken – litt urolig` : ` · ${aw} min våken – fragmentert`;
-      tagline += awCtx;
+      const awCtx = aw <= 5 ? t('sovn.awake_ctx_none') : aw <= 19 ? t('sovn.awake_ctx_good', {v:aw}) : aw <= 30 ? t('sovn.awake_ctx_acceptable', {v:aw}) : aw <= 50 ? t('sovn.awake_ctx_restless', {v:aw}) : t('sovn.awake_ctx_fragmented', {v:aw});
+      tagline += ' · ' + awCtx;
     }
     if (txt.sub) tagline += ' · ' + txt.sub;
   } else {
@@ -517,11 +517,11 @@ function analyzeMetrics(d) {
   // an athlete with high training load, 31–50 = starting to fragment, >50 = flag it.
   if (d?.awake_minutes != null) {
     const v = d.awake_minutes;
-    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Eksepsjonelt', color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:'Under 5 min er eksepsjonelt. Nesten ingen avbrudd – søvnen var sammenhengende og effektiv.' });
-    else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Bra',          color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:`${v} min er under referansegrensen på 20 min for unge friske voksne. Solid søvnkontinuitet.` });
-    else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'ok',     badge:'Akseptabelt',  color:'var(--text-secondary)', glow:'', advice:`${v} min er akseptabelt for en idrettsutøver med høy treningsbelastning – studier viser snitt 30–48 min WASO hos unge styrke/sprint-utøvere. Men mål mot under 20 min.` });
-    else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'warn',   badge:'Litt urolig',  color:'#F2C063', glow:'rgba(242,192,99,0.1)',   advice:`${v} min våken fragmenterer søvnen. Vanlige årsaker: sen skjermbruk, prosjektjag eller skolepress rett før leggetid. Prøv å koble av 30–45 min før du legger deg.` });
-    else              results.push({ key:'awake', val:`${v}`, label:'Våken', unit:'min', level:'danger', badge:'Fragmentert',  color:'#FF6B6B', glow:'rgba(255,107,107,0.12)', advice:`${v} min våken er for mye. Sannsynlig årsak: stress (skole/prosjekt) eller sen skjermeksponering holder nervesystemet aktivert. Fragmentert søvn saboterer restitusjon selv om totaltiden ser bra ut – HRV og RHR vil lide.` });
+    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_exceptional'), color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice:t('sovn.awake_advice_exceptional', {v}) });
+    else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_good'),        color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice:t('sovn.awake_advice_good', {v}) });
+    else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_acceptable'),  color:'var(--text-secondary)', glow:'', advice:t('sovn.awake_advice_acceptable', {v}) });
+    else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'warn',   badge:t('sovn.awake_restless'),    color:'#F2C063', glow:'rgba(242,192,99,0.1)',   advice:t('sovn.awake_advice_restless', {v}) });
+    else              results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'danger', badge:t('sovn.awake_fragmented'),  color:'#FF6B6B', glow:'rgba(255,107,107,0.12)', advice:t('sovn.awake_advice_fragmented', {v}) });
   }
 
   return results;
@@ -567,7 +567,7 @@ function renderMetrics(d) {
     byKey['sleep'] || { key:'sleep', val:'–', label: t('sovn.total'),     level:'none', badge:'', color:'#5BA4F5', glow:'', advice:'' },
     byKey['rhr']   || { key:'rhr',   val:'–', label: t('sovn.rhr'),       unit:'bpm',  level:'none', badge:'', color:'', glow:'', advice:'' },
     byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV',                unit:'ms',   level:'none', badge:'', color:'', glow:'', advice:'' },
-    byKey['awake'] || { key:'awake', val:'–', label:'Våken',              unit:'min',  level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['awake'] || { key:'awake', val:'–', label:t('sovn.awake'),       unit:'min',  level:'none', badge:'', color:'', glow:'', advice:'' },
   ];
 
   el.innerHTML = cards.map(m => `
@@ -756,13 +756,13 @@ function renderChart(metric, days) {
 
   } else if (metric === 'rhr') {
     const vals = dates.map(ds => { const e=find(ds); return e?.rhr || null; });
-    datasets = [{ label:'Hvilepuls', data:vals, borderColor:'#FF6B6B', backgroundColor:'rgba(255,107,107,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#FF6B6B', pointHoverRadius:5, pointBorderColor:'transparent' }];
+    datasets = [{ label:t('sovn.rhr'), data:vals, borderColor:'#FF6B6B', backgroundColor:'rgba(255,107,107,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#FF6B6B', pointHoverRadius:5, pointBorderColor:'transparent' }];
     isLine = true; yLabel = 'bpm';
 
   } else if (metric === 'score') {
     const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
     datasets = [{
-      label:'Søvnscore', data:vals,
+      label:t('sovn.score_lbl'), data:vals,
       backgroundColor: vals.map(v => !v ? 'transparent' : v >= 80 ? 'rgba(107,227,164,0.75)' : v >= 60 ? 'rgba(242,192,99,0.75)' : 'rgba(255,107,107,0.75)'),
       borderColor:      vals.map(v => !v ? 'transparent' : v >= 80 ? '#6BE3A4' : v >= 60 ? '#F2C063' : '#FF6B6B'),
       borderWidth:1, borderRadius:4,
@@ -785,7 +785,7 @@ function renderChart(metric, days) {
           filter: item => item.dataset.label !== '8t mål' && item.parsed.y > 0,
           callbacks: {
             label: ctx => {
-              if (metric === 'sleep') return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}t`;
+              if (metric === 'sleep') return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}${_lang === 'en' ? 'h' : 't'}`;
               return `${ctx.dataset.label}: ${ctx.parsed.y}`;
             },
           },
@@ -824,7 +824,7 @@ function renderChart(metric, days) {
 async function loadChartData() {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
   const { data } = await db.from('health_data')
-    .select('date,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,hrv,rhr,sleep_score')
+    .select('date,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,awake_minutes,hrv,rhr,sleep_score')
     .gte('date', `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`).order('date');
   chartData = data || [];
   renderChart(chartMetric, chartDays);

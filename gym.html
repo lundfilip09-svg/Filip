@@ -46,7 +46,36 @@
       justify-content: space-between;
       margin-bottom: 14px;
     }
-    .day-pills { display: flex; gap: 3px; }
+    .day-pills { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
+    /* A6 — legg-til-dag-knapp + dialog */
+    .day-add-pill {
+      padding: 4px 11px; border-radius: 20px; border: 1px dashed rgba(255,255,255,0.18);
+      background: transparent; color: var(--text-tertiary); font-size: 11px;
+      font-family: var(--font-mono); cursor: pointer; transition: all 0.15s;
+    }
+    .day-add-pill:hover { color: var(--text-secondary); border-color: rgba(255,255,255,0.32); }
+    .day-dialog-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200;
+      display: none; align-items: center; justify-content: center;
+    }
+    .day-dialog-backdrop.open { display: flex; }
+    .day-dialog {
+      background: #16161a; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+      padding: 22px; width: min(340px, 90vw); display: flex; flex-direction: column; gap: 14px;
+    }
+    .day-dialog h3 { margin: 0; font-size: 15px; color: var(--text-primary); }
+    .day-dialog label { font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-tertiary); display: block; margin-bottom: 5px; }
+    .day-dialog select {
+      width: 100%; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); font-size: 13px;
+    }
+    .day-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .day-pill-del {
+      margin-left: 5px; opacity: 0.45; cursor: pointer; font-size: 12px;
+    }
+    .day-pill-del:hover { opacity: 1; color: #FF6B6B; }
+    .add-section-wrap { margin-top: 10px; }
     .day-pill {
       padding: 4px 12px;
       border-radius: 20px;
@@ -435,14 +464,11 @@
 
     <div class="wh">
       <div class="wh-row1">
-        <div class="day-pills">
-          <button class="day-pill" data-day="monday"    onclick="setDay('monday')" data-i18n="gym.monday">Mandag</button>
-          <button class="day-pill" data-day="wednesday" onclick="setDay('wednesday')" data-i18n="gym.wednesday">Onsdag</button>
-          <button class="day-pill" data-day="friday"    onclick="setDay('friday')" data-i18n="gym.friday">Fredag</button>
-          <button class="day-pill" data-day="rehab"     onclick="setDay('rehab')" data-i18n="dash.cat_rehab">Rehab</button>
+        <div class="day-pills" id="dayPills">
+          <!-- A6: dag-pills genereres dynamisk fra gym_days i renderDayPills() -->
         </div>
         <div class="wh-cta">
-          <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px">▷ Start økt</button>
+          <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px" data-i18n="gym.start_session">▷ Start økt</button>
           <div class="elapsed-chip ws-active">
             <span class="elapsed-dot"></span>
             <span id="elapsedDisplay">0:00</span>
@@ -500,8 +526,8 @@
     <!-- IDLE: pre-workout -->
     <div class="sb-sec ws-idle">
       <div class="sb-hd" data-i18n="gym.today_session">Dagens økt</div>
-      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-bottom:12px">Velg dag og trykk start når du er klar.</div>
-      <button class="btn btn-success" style="width:100%;padding:10px;font-size:12px" onclick="startWorkout()">▷ Start økt</button>
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-bottom:12px" data-i18n="gym.pick_and_start">Velg dag og trykk start når du er klar.</div>
+      <button class="btn btn-success" style="width:100%;padding:10px;font-size:12px" onclick="startWorkout()" data-i18n="gym.start_session">▷ Start økt</button>
     </div>
 
     <div class="sb-sec ws-idle">
@@ -658,6 +684,25 @@
 </div>
 </main>
 
+<!-- A6: Ny dag-dialog -->
+<div class="day-dialog-backdrop" id="dayDialog">
+  <div class="day-dialog">
+    <h3 data-i18n="gym.new_day">Ny dag</h3>
+    <div>
+      <label data-i18n="gym.day_weekday">Ukedag</label>
+      <select id="ddWeekday"></select>
+    </div>
+    <div>
+      <label data-i18n="gym.day_type">Type (valgfritt)</label>
+      <select id="ddType"></select>
+    </div>
+    <div class="day-dialog-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeDayDialog()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-success btn-sm" onclick="createDay()" data-i18n="gym.create_day">Opprett dag</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -667,8 +712,9 @@ let db;
 document.querySelector('[data-p="gym"]').classList.add('active');
 
 // ── State ──────────────────────────────────────────────────────────
-let activeDay    = detectDay();
+let activeDay    = 'monday';   // settes ordentlig i bootstrap etter at gymDays er lastet
 let allExercises = {};
+let gymDays      = [];          // A6: [{ id, day_key, weekday, type_label, is_protected, sort_order }]
 let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
@@ -759,11 +805,93 @@ function restoreDraft() {
 }
 
 function detectDay() {
-  const d = new Date().getDay();
-  if (d === 1) return 'monday';
-  if (d === 3) return 'wednesday';
-  if (d === 5) return 'friday';
-  return 'monday';
+  // A6: finn en eksisterende dag som matcher dagens ukedag, ellers første dag.
+  const wd = new Date().getDay();
+  const match = gymDays.find(d => d.weekday === wd && d.day_key !== 'rehab');
+  if (match) return match.day_key;
+  const firstNonRehab = gymDays.find(d => d.day_key !== 'rehab');
+  return firstNonRehab ? firstNonRehab.day_key : (gymDays[0]?.day_key || 'monday');
+}
+
+// A6: auto-oversatt visningsnavn for en dag.
+// Ukedagsnavn (man/tue/...) + valgfri type. Rehab vises bare som typen.
+function dayLabel(d) {
+  if (!d) return '';
+  if (d.day_key === 'rehab') return t('daytype.rehab');
+  const wdName   = (d.weekday != null) ? t('wd.' + d.weekday) : '';
+  const typeName = d.type_label ? t(d.type_label) : '';
+  if (wdName && typeName) return `${wdName} · ${typeName}`;
+  return wdName || typeName || d.day_key;
+}
+
+function getDay(key) { return gymDays.find(d => d.day_key === key); }
+
+// A6: bygg dag-pills dynamisk fra gymDays + legg-til-knapp.
+function renderDayPills() {
+  const wrap = document.getElementById('dayPills');
+  if (!wrap) return;
+  const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+  wrap.innerHTML = sorted.map(d => {
+    const active = d.day_key === activeDay ? ' active' : '';
+    const del = d.is_protected ? '' :
+      `<span class="day-pill-del" title="${t('gym.delete_day')}"
+         onclick="event.stopPropagation();deleteDay('${escHtml(d.day_key)}')">×</span>`;
+    return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
+      onclick="setDay('${escHtml(d.day_key)}')">${escHtml(dayLabel(d))}${del}</button>`;
+  }).join('') +
+    `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">+ Dag</button>`;
+}
+
+// A6: tilgjengelige dag-typer (i18n-nøkler). NULL = ingen type.
+const DAY_TYPES = [
+  'daytype.strength', 'daytype.strength_capacity', 'daytype.strength_power',
+  'daytype.power', 'daytype.mobility', 'daytype.conditioning', 'daytype.rest',
+  'daytype.rehab', 'daytype.soccer', 'daytype.basketball', 'daytype.track',
+];
+
+function openDayDialog() {
+  if (workoutState === 'active') { toast(t('gym.finish_first') || '⏸', 'err'); return; }
+  const wdSel = document.getElementById('ddWeekday');
+  const tySel = document.getElementById('ddType');
+  // Ukedager man(1)..søn(0), satt opp man–søn for naturlig rekkefølge.
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  wdSel.innerHTML = order.map(w => `<option value="${w}">${escHtml(t('wd.' + w))}</option>`).join('');
+  tySel.innerHTML = `<option value="">${escHtml(t('gym.day_type_none'))}</option>` +
+    DAY_TYPES.map(k => `<option value="${k}">${escHtml(t(k))}</option>`).join('');
+  document.getElementById('dayDialog').classList.add('open');
+}
+function closeDayDialog() { document.getElementById('dayDialog').classList.remove('open'); }
+
+async function createDay() {
+  const weekday = parseInt(document.getElementById('ddWeekday').value, 10);
+  const typeRaw = document.getElementById('ddType').value;
+  const type_label = typeRaw || null;
+  // Unik nøkkel: ukedag + type (slik at "Tuesday Strength" og "Tuesday Soccer" kan sameksistere).
+  const day_key = `wd${weekday}` + (type_label ? '_' + type_label.replace('daytype.', '') : '');
+  if (gymDays.some(d => d.day_key === day_key)) { toast(t('gym.day_exists'), 'err'); closeDayDialog(); return; }
+  const sort_order = Math.max(0, ...gymDays.filter(d => !d.is_protected).map(d => d.sort_order ?? 0)) + 1;
+  const row = { day_key, weekday, type_label, is_protected: false, sort_order };
+  const { data, error } = await db.from('gym_days').insert(row).select().single();
+  if (error) { toast(t('gym.save_error'), 'err'); return; }
+  gymDays.push(data || row);
+  closeDayDialog();
+  allExercises[day_key] = {};   // ny dag starter tom
+  setDay(day_key);
+  toast(t('gym.day_created'));
+}
+
+async function deleteDay(key) {
+  const d = getDay(key);
+  if (!d || d.is_protected) return;
+  if (!confirm(t('gym.delete_day_confirm'))) return;
+  await db.from('workout_program').delete().eq('day', key);   // rydd øvelser på dagen
+  await db.from('gym_days').delete().eq('day_key', key);
+  gymDays = gymDays.filter(x => x.day_key !== key);
+  delete allExercises[key];
+  if (activeDay === key) activeDay = detectDay();
+  renderDayPills();
+  setDay(activeDay);
+  toast(t('gym.day_deleted'));
 }
 function setWS(s) { workoutState = s; document.body.dataset.ws = s; }
 
@@ -841,18 +969,23 @@ async function init() {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
 
+  // A6: last data (inkl. gymDays) FØR vi avgjør aktiv dag, så pills kan rendres.
+  await loadData();
+
   // Restore active day — session key wins, then draft, then detectDay()
+  let wantDay = null;
   if (saved?.activeDay) {
-    activeDay = saved.activeDay;
+    wantDay = saved.activeDay;
   } else {
     try {
       const dr = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-      if (dr?.activeDay) activeDay = dr.activeDay;
+      if (dr?.activeDay) wantDay = dr.activeDay;
     } catch(e) {}
   }
+  // Bruk lagret dag bare hvis den fortsatt finnes, ellers detectDay().
+  activeDay = (wantDay && getDay(wantDay)) ? wantDay : detectDay();
 
   setDay(activeDay);
-  await loadData();
 
   if (saved?.workoutStartedAt && tryRestoreSession(saved)) {
     setWS('active');
@@ -892,17 +1025,34 @@ async function init() {
     document.getElementById(id)?.addEventListener('change', saveDraft);
   });
 
-  onLangChange = () => { loadGymHistory(); applyLang(); };
+  onLangChange = () => {
+    loadGymHistory();
+    renderDayPills();
+    const d = getDay(activeDay);
+    const wt = document.getElementById('workoutTitle');
+    if (wt && d) wt.textContent = dayLabel(d);
+    renderAll();
+    applyLang();
+  };
   await loadGymHistory();
   await checkDayAfterRehab();
   applyLang();
 }
 
 async function loadData() {
-  const [prog, wts] = await Promise.all([
+  const [prog, wts, days] = await Promise.all([
     db.from('workout_program').select('*').order('sort_order'),
     db.from('exercise_weights').select('*'),
+    db.from('gym_days').select('*').order('sort_order'),
   ]);
+  // A6: dag-registeret. Fallback til de gamle hardkodede dagene hvis tabellen
+  // ikke finnes ennå (migrasjon 016 ikke kjørt).
+  gymDays = (days.data && days.data.length) ? days.data : [
+    { day_key: 'monday',    weekday: 1, type_label: 'daytype.strength_capacity', is_protected: false, sort_order: 0 },
+    { day_key: 'wednesday', weekday: 3, type_label: 'daytype.mobility',          is_protected: false, sort_order: 1 },
+    { day_key: 'friday',    weekday: 5, type_label: 'daytype.strength_power',     is_protected: false, sort_order: 2 },
+    { day_key: 'rehab',     weekday: null, type_label: 'daytype.rehab',          is_protected: true,  sort_order: 99 },
+  ];
   allExercises = {};
   (prog.data || []).forEach(ex => {
     if (!allExercises[ex.day]) allExercises[ex.day] = {};
@@ -957,11 +1107,9 @@ function setDay(day) {
   if (workoutState === 'active') return;
   activeDay = day;
   document.body.dataset.day = day;
-  document.querySelectorAll('.day-pill').forEach(t =>
-    t.classList.toggle('active', t.dataset.day === day)
-  );
-  const titles = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power'), rehab: t('session.daily_rehab') };
-  document.getElementById('workoutTitle').textContent = titles[day] || 'Økt';
+  renderDayPills();
+  const d = getDay(day);
+  document.getElementById('workoutTitle').textContent = d ? dayLabel(d) : t('gym.session');
   renderAll();
   saveDraft();
 }
@@ -972,12 +1120,12 @@ function renderAll() {
   if (warmupWrap) warmupWrap.style.display = (activeDay === 'wednesday' || isRehab) ? 'none' : '';
   if (isRehab) {
     renderRehab();
-    document.getElementById('whExCount').textContent = `${(allExercises['rehab']?.['Rehab'] || []).length} øvelser`;
+    document.getElementById('whExCount').textContent = `${(allExercises['rehab']?.['Rehab'] || []).length} ${t('gym.exercises_lc')}`;
   } else {
     if (activeDay !== 'wednesday') renderWarmup();
     renderWorkout();
     const exs = getSortedMainExercises();
-    document.getElementById('whExCount').textContent = `${exs.length} øvelser`;
+    document.getElementById('whExCount').textContent = `${exs.length} ${t('gym.exercises_lc')}`;
   }
   oppdaterTidsestimat();
 }
@@ -1119,7 +1267,7 @@ function renderRehab() {
     <div class="sec-hd">
       <span class="sec-label" data-i18n="gym.daily_rehab">Daglig Rehab</span>
       <span class="sec-divider"></span>
-      <span class="sec-count">${exs.length} øvelser</span>
+      <span class="sec-count">${exs.length} ${t('gym.exercises_lc')}</span>
     </div>
     ${exs.map((ex, i) => renderExRow(ex, 'rehab', i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
@@ -1166,7 +1314,7 @@ function renderWarmup() {
   allWmExs.sort((a, b) => (a.ex.sort_order ?? Infinity) - (b.ex.sort_order ?? Infinity));
 
   document.getElementById('warmupBadge').textContent =
-    allWmExs.length ? `${allWmExs.length} øvelser` : '—';
+    allWmExs.length ? `${allWmExs.length} ${t('gym.exercises_lc')}` : '—';
 
   let zoneHtml = '';
   allWmExs.forEach(({ ex, isSyk }, i) => {
@@ -1213,10 +1361,41 @@ function renderWarmup() {
 function renderWorkout() {
   const el  = document.getElementById('workoutBlocks');
   const day = allExercises[activeDay] || {};
-  if (!Object.keys(day).length) {
-    el.innerHTML = `<div class="loading" style="padding:20px 2px">${t('gym.loading_exercises')}</div>`; return;
-  }
-  el.innerHTML = Object.entries(day).map(([sec, exs]) => renderSectionBlock(sec, exs, activeDay)).join('');
+  const sections = Object.entries(day);
+  // A6: tom (egendefinert) dag → vis "ingen seksjoner" + legg-til, ikke "laster".
+  const body = sections.length
+    ? sections.map(([sec, exs]) => renderSectionBlock(sec, exs, activeDay)).join('')
+    : `<div class="empty" style="padding:14px 2px">${t('gym.no_sections_yet')}</div>`;
+  el.innerHTML = body + renderAddSection(activeDay);
+}
+
+// A6: legg-til-seksjon-skjema, tilgjengelig på alle dager (også egendefinerte).
+function renderAddSection(day) {
+  const id = `add-section-${day}`;
+  return `<div class="add-section-wrap">
+    <div class="add-ex-form" id="${id}">
+      <input class="input-sm" placeholder="${t('gym.section_name_ph')}" id="${id}-name">
+      <button class="btn btn-success btn-sm" onclick="addSection('${escHtml(day)}','${id}')">+</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${id}').classList.remove('open')">✕</button>
+    </div>
+    <button class="add-ex-btn" onclick="document.getElementById('${id}').classList.toggle('open')"
+      data-i18n="gym.add_section">+ Seksjon</button>
+  </div>`;
+}
+
+async function addSection(day, formId) {
+  const name = document.getElementById(`${formId}-name`).value.trim();
+  if (!name) return;
+  if (allExercises[day]?.[name]) { toast(t('gym.section_exists'), 'err'); return; }
+  // Seksjoner finnes som "kolonner" via øvelser. Vi oppretter en tom seksjon i
+  // minnet; den persisteres så snart første øvelse legges til (workout_program
+  // har ingen egen seksjonstabell).
+  if (!allExercises[day]) allExercises[day] = {};
+  allExercises[day][name] = [];
+  document.getElementById(formId).classList.remove('open');
+  document.getElementById(`${formId}-name`).value = '';
+  renderAll();
+  toast(t('gym.section_added'));
 }
 
 function renderSectionBlock(label, exs, day) {
@@ -1228,7 +1407,7 @@ function renderSectionBlock(label, exs, day) {
     <div class="sec-hd">
       <span class="sec-label">${escHtml(label)}</span>
       <span class="sec-divider"></span>
-      <span class="sec-count">${exs.length} øv · ${totSets} sett</span>
+      <span class="sec-count">${exs.length} ${t('gym.ex_unit')} · ${totSets} ${t('gym.sets_unit')}</span>
     </div>
     ${exs.map((ex, i) => renderExRow(ex, day, i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
@@ -1238,7 +1417,7 @@ function renderSectionBlock(label, exs, day) {
       <button class="btn btn-success btn-sm" onclick="addExercise('${day}','${escHtml(label)}','${addId}')">+</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
     </div>
-    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
+    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">${t('gym.add_exercise_btn')}</button>
   </div>`;
 }
 
@@ -1814,10 +1993,11 @@ async function saveLog() {
   const btn = document.getElementById('saveLogBtn');
   if (btn) btn.disabled = true;
   try {
-    const labels = { monday: t('session.strength_capacity'), wednesday: t('session.mobility'), friday: t('session.strength_power'), rehab: 'Rehab' };
     const notes  = document.getElementById('sessionNotes').value.trim();
     const date   = document.getElementById('logDate').value || today();
-    const sessionType = labels[activeDay] || activeDay;
+    // A6: bruk det auto-oversatte dagnavnet som session_type (også for egendefinerte dager)
+    const _d = getDay(activeDay);
+    const sessionType = _d ? dayLabel(_d) : activeDay;
     const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes });
     if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
     const kRes = await db.from('knee_pain').insert({

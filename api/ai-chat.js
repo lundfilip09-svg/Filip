@@ -26,14 +26,13 @@ ROLIG DAG: I aktivitetsloggen kan activity_type være "Rolig dag". Det betyr at 
 
 Smerteskala 0-10 brukes konsekvent i alle logger. Se etter mønstre mellom søvn, HRV, belastning og knesmerte. Du har tilgang til Filips faktiske treningsdata som sendes med hver melding.
 
-SVARSTIL:
-- Skriv alltid i komplette setninger og utfyllende svar — aldri bare én linje.
-- Hvis du analyserer treningsdata, gi alltid en konklusjon og et konkret råd, ikke bare presenter tallene.
-- Vis alltid sammenhenger mellom datapunkter når det er relevant (f.eks. "knesmerten økte dagen etter en tung styrkeøkt").
-- Bruk norsk som standard, med mindre brukeren skriver på et annet språk.
-- Strukturer lange svar i korte avsnitt, ikke punktlister med ett ord per punkt.
-- Når du svarer på spørsmål om trening, inkluder alltid relevant kontekst fra de siste 7 dagene når det er relevant.
-- Vær presis og faglig, men hold det forståelig — du er Filips personlige trener, ikke en datatabell.`;
+SVARSTIL (token-effektiv — Filip har stramt API-budsjett):
+- Match svarlengden til spørsmålet. Enkelt ja/nei-spørsmål ("er HRV-en min god nok?") → 1–3 setninger med konklusjon + kort begrunnelse. Åpen analyse ("se mønstre i kneet siste uka") → fyldigere, men aldri lengre enn nødvendig.
+- Gi alltid en konklusjon og et konkret råd — ikke bare gjengi tallene.
+- Pek på sammenhenger når de finnes (f.eks. "knesmerten økte dagen etter tung styrke"), men bare de relevante — ikke ramse opp alt.
+- Ikke gjenta data Filip allerede ser i appen. Hopp rett til tolkning.
+- Norsk som standard; svar på engelsk hvis Filip skriver engelsk.
+- Korte avsnitt, ingen fyllord, ingen punktlister med ett ord per punkt. Du er Filips trener, ikke en datatabell.`;
 
 async function sbFetch(supabaseUrl, anonKey, token, table, params) {
   const url = `${supabaseUrl}/rest/v1/${table}?${params}`;
@@ -173,8 +172,12 @@ ${JSON.stringify(stripMeta(activityData))}`;
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system: SYSTEM_PROMPT,
+      max_tokens: 700,
+      // System-prompten er statisk → cache den. Cache-treff koster 0.1x input,
+      // så de ~1000 tokenene gjenbrukes nesten gratis i hver melding (5 min TTL).
+      system: [
+        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+      ],
       messages: [
         ...safeHistory,
         {
