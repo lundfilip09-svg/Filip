@@ -126,7 +126,12 @@ export default async function handler(req, res) {
 
   // ── B6: forhåndsberegnede nøkkeltall ──────────────────────────────
   // Sendes som korte tall så modellen slipper å regne fra rådata hver gang.
-  const _now = new Date(osloDateISO + 'T12:00:00');
+  // Bruk klientens lokale dato hvis sendt, ellers dagens dato (uavhengig av
+  // osloDateISO, som beregnes lenger ned).
+  const _todayISO = (typeof localDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(localDate))
+    ? localDate
+    : new Date().toISOString().slice(0, 10);
+  const _now = new Date(_todayISO + 'T12:00:00');
   const _daysAgo = (ds) => Math.floor((_now - new Date(ds + 'T12:00:00')) / 86400000);
   const _avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
