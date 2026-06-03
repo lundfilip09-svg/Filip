@@ -118,17 +118,21 @@
       display: grid;
       grid-template-columns: 1fr 340px;
       gap: 14px;
-      align-items: stretch;   /* venstre kolonne strekkes til høyde = sidebar → ingen tom flate */
+      align-items: start;
+      grid-auto-flow: row;
     }
-    /* Editor fyller kolonnehøyden: notat-feltet vokser, knappene blir liggende nederst. */
-    .detail-panel { display: flex; flex-direction: column; }
-    .detail-panel .detail-field-notes { flex: 1; display: flex; flex-direction: column; }
-    .detail-panel .detail-field-notes textarea { flex: 1; min-height: 120px; }
+    /* Editor + helse-kort i venstre kolonne; sidebar spenner begge radene til høyre. */
+    .detail-panel { grid-column: 1; grid-row: 1; }
+    #healthLogCard { grid-column: 1; grid-row: 2; }
+    .sidebar { grid-column: 2; grid-row: 1 / span 2; }
+    .detail-panel .detail-field-notes textarea { min-height: 90px; }
     /* Sidekortene side om side på brede skjermer → utnytter bredden, mindre stabling. */
     .sidebar { display: grid; grid-template-columns: 1fr; gap: 12px; align-content: start; }
     .sidebar .card { margin: 0; }
     @media (max-width: 860px) {
       .tp-body { grid-template-columns: 1fr; }
+      /* Stable alt i én kolonne på mobil — nullstill eksplisitt grid-plassering. */
+      .detail-panel, #healthLogCard, .sidebar { grid-column: 1; grid-row: auto; }
       .hero-band { grid-template-columns: 1fr 100px 100px; }
     }
     @media (max-width: 600px) {
@@ -549,9 +553,11 @@
         <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
         <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
       </div>
+    </div>
 
-      <!-- Plager + Fysio-notat: minimale knapper som åpner popup -->
-      <div style="display:flex;gap:8px;margin-top:12px">
+    <!-- Plager + Fysio-notat: eget kort, uavhengig av dagens økt -->
+    <div class="card" id="healthLogCard" style="grid-column:1">
+      <div style="display:flex;gap:8px">
         <button class="physio-trigger" style="flex:1;margin-top:0" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
         <button class="physio-trigger" style="flex:1;margin-top:0" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
       </div>
