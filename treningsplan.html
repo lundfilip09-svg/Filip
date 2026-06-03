@@ -118,10 +118,9 @@
       display: grid;
       grid-template-columns: 1fr 340px;
       gap: 14px;
-      align-items: start;
+      align-items: stretch;   /* venstre kolonne strekkes til høyde = sidebar → ingen tom flate */
     }
-    /* Editor: la notat-feltet vokse så kortet ikke blir en kort boks med stor
-       tom flate under. Gir en roligere, mer balansert venstrekolonne. */
+    /* Editor fyller kolonnehøyden: notat-feltet vokser, knappene blir liggende nederst. */
     .detail-panel { display: flex; flex-direction: column; }
     .detail-panel .detail-field-notes { flex: 1; display: flex; flex-direction: column; }
     .detail-panel .detail-field-notes textarea { flex: 1; min-height: 120px; }
