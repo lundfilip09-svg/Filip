@@ -13,133 +13,138 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* ── Page: wider on this page ────────────────────────────── */
-    .page { max-width: 1380px; }
+    /* ── Page ──────────────────────────────────────────────────── */
+    .page { max-width: 1440px; }
 
-    /* ── Hero text (used in center panel) ────────────────────── */
-    .hero-eyebrow {
-      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px;
-    }
-    .hero-session {
-      font-size: 24px; font-weight: 700; letter-spacing: -0.025em;
-      color: var(--text-primary); line-height: 1.15; margin-bottom: 6px;
-    }
-    .hero-session.is-rest { color: var(--text-tertiary); font-size: 18px; font-weight: 400; }
-    .hero-next {
-      font-size: 11px; font-family: var(--font-mono);
-      color: var(--text-tertiary); margin-top: 2px;
-    }
-    .hero-kpi {
-    /* ── 3-column dashboard ──────────────────────────────────── */
-    .tp-dashboard {
+    /* ── 2-kolonne grid: 72% / 28% ─────────────────────────── */
+    .tp-layout {
       display: grid;
-      grid-template-columns: 27% 1fr 25%;
+      grid-template-columns: 1fr 280px;
       gap: 14px;
       align-items: start;
     }
-    .tp-panel-left,
-    .tp-panel-right  { display: flex; flex-direction: column; gap: 10px; }
-    .tp-panel-center { display: flex; flex-direction: column; gap: 12px; }
+    .tp-main  { display: flex; flex-direction: column; gap: 10px; }
+    .tp-aside { display: flex; flex-direction: column; gap: 10px; }
 
-    /* ── Today header (center) ───────────────────────────────── */
-    .tp-today-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-    .tp-today-info { flex: 1; min-width: 0; }
-    .tp-today-kpis { display: flex; gap: 10px; flex-shrink: 0; }
+    /* ── Hero-rad (inline i kort, ikke eget panel) ───────────── */
+    .tp-hero-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 16px 18px;
+    }
+    .hero-eyebrow {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 5px;
+    }
+    .hero-session {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.025em;
+      color: var(--text-primary); line-height: 1.15; margin-bottom: 4px;
+    }
+    .hero-session.is-rest { color: var(--text-tertiary); font-size: 17px; font-weight: 400; }
+    .hero-next {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+    }
+    .tp-hero-kpis { display: flex; gap: 8px; flex-shrink: 0; }
     .tp-kpi {
       text-align: center; background: rgba(255,255,255,0.025);
-      border-radius: 10px; padding: 10px 14px; min-width: 64px;
+      border-radius: 8px; padding: 9px 14px; min-width: 58px;
     }
-    .tp-kpi-val { font-size: 26px; font-weight: 700; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); }
-    .tp-kpi-lbl { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 5px; line-height: 1.4; }
+    .tp-kpi-val { font-size: 24px; font-weight: 700; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); }
+    .tp-kpi-lbl { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; line-height: 1.4; }
 
-    /* ── Week nav row (right panel) ──────────────────────────── */
-    .tp-week-nav-row { display: flex; align-items: center; justify-content: space-between; padding: 2px; }
+    /* ── Ukestrip (7 dagkort, bred) ─────────────────────────── */
+    .tp-week-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px 0;
+    }
+    .tp-week-label {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+    }
+    .tp-week-nav { display: flex; gap: 6px; align-items: center; }
 
-    /* ── Day strip: vertical in right panel ──────────────────── */
-    .day-strip { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 14px; }
+    .day-strip {
+      display: grid; grid-template-columns: repeat(7,1fr);
+      gap: 6px; padding: 12px 14px 14px;
+    }
     .day-card {
       background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 10px; padding: 11px 10px 10px; cursor: pointer;
+      border-radius: 10px; padding: 12px 10px 11px; cursor: pointer;
       transition: background 0.12s, border-color 0.12s;
-      display: flex; flex-direction: column; gap: 5px; min-height: 104px;
+      display: flex; flex-direction: column; gap: 5px; min-height: 116px;
     }
     .day-card:hover:not(.is-selected) { background: rgba(255,255,255,0.045); border-color: rgba(255,255,255,0.1); }
-    .day-card.is-today    { border-color: rgba(91,164,245,0.35); }
-    .day-card.is-selected { background: rgba(91,164,245,0.08); border-color: rgba(91,164,245,0.55); }
-    .day-card.is-logged   { border-color: rgba(107,227,164,0.35); }
-    .day-card.is-logged.is-today { border-color: rgba(91,164,245,0.4); }
+    .day-card.is-today    { border-color: rgba(91,164,245,0.4); }
+    .day-card.is-selected { background: rgba(91,164,245,0.08); border-color: rgba(91,164,245,0.6); }
+    .day-card.is-logged   { border-color: rgba(107,227,164,0.4); }
+    .day-card.is-logged.is-today { border-color: rgba(91,164,245,0.45); }
     .day-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .day-card-name { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
-    .day-card-date { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1; }
+    .day-card-date { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1; }
     .day-card.is-today .day-card-date { color: #5BA4F5; }
     .day-logged-dot { width: 6px; height: 6px; border-radius: 50%; background: #6BE3A4; flex-shrink: 0; margin-top: 3px; }
-    .day-card-plan { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1.35; margin-top: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal; }
-    .day-card-rest { font-size: 9px; font-family: var(--font-mono); color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.08em; margin-top: auto; }
+    .day-card-plan { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1.35; margin-top: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal; }
+    .day-card-rest { font-size: 9px; font-family: var(--font-mono); color: rgba(255,255,255,0.16); text-transform: uppercase; letter-spacing: 0.08em; margin-top: auto; }
 
-    /* Right panel: vertical day strip overrides */
-    .tp-panel-right .day-strip { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
-    .tp-panel-right .day-card { min-height: auto; flex-direction: row; align-items: center; padding: 9px 11px; gap: 8px; }
-    .tp-panel-right .day-card-top { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 1px; width: 46px; flex-shrink: 0; }
-    .tp-panel-right .day-card-date { font-size: 16px; }
-    .tp-panel-right .day-card-plan,
-    .tp-panel-right .day-card-rest { flex: 1; font-size: 10px; margin-top: 0; -webkit-line-clamp: 1; }
-    .tp-panel-right .day-logged-dot { margin-top: 0; flex-shrink: 0; margin-left: auto; }
-    .tp-panel-right .day-card.is-logged { border-left-width: 2px; border-left-color: rgba(107,227,164,0.6); }
-
-    /* ── History section ─────────────────────────────────────── */
-    .tp-history-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .tp-history-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; }
-    .tp-history-title::before { content: ''; width: 18px; height: 1px; background: var(--text-tertiary); flex-shrink: 0; }
-    .tp-history-toggle { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 8px; transition: background 0.15s, color 0.15s; }
-    .tp-history-toggle:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
-    .tp-hist-collapsed { display: none; }
-
-    /* ── Responsive ──────────────────────────────────────────── */
-    @media (max-width: 1040px) {
-      .tp-dashboard { grid-template-columns: 1fr 1fr; }
-      .tp-panel-center { grid-column: 1 / -1; }
-    }
-    @media (max-width: 680px) {
-      .tp-dashboard { grid-template-columns: 1fr; }
-      .tp-panel-right .day-strip { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
-      .tp-panel-right .day-card { flex-direction: column; align-items: flex-start; padding: 8px 6px; min-height: 72px; gap: 5px; }
-      .tp-panel-right .day-card-top { width: auto; }
-      .tp-panel-right .day-card.is-logged { border-left-width: 1px; }
-    }
-
-    /* ── Detail panel ───────────────────────────────────────── */
-    .detail-panel { }
+    /* ── Dag-editor (under ukestrip, tar full bredde i main) ─── */
+    .tp-detail-wrap { padding: 0 14px 14px; }
     .detail-header {
       display: flex; align-items: baseline;
-      justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+      justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap;
     }
     .detail-day-meta {
       font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
       text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 3px;
     }
     .detail-day-title {
-      font-size: 18px; font-weight: 700; color: var(--text-primary);
+      font-size: 17px; font-weight: 700; color: var(--text-primary);
       letter-spacing: -0.02em;
     }
-    .detail-day-title.is-empty { color: var(--text-tertiary); font-weight: 400; font-size: 15px; }
+    .detail-day-title.is-empty { color: var(--text-tertiary); font-weight: 400; font-size: 14px; }
     .detail-logged-badge {
       font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
       letter-spacing: 0.1em; padding: 3px 9px; border-radius: 20px;
       background: rgba(107,227,164,0.12); color: #6BE3A4;
       border: 1px solid rgba(107,227,164,0.2); white-space: nowrap;
     }
-    .detail-field { margin-bottom: 14px; }
+    .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-field { margin-bottom: 10px; }
+    .detail-field-notes { grid-column: 1 / -1; }
     .detail-field-label {
       font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 5px;
     }
-    .detail-input {
-      width: 100%; box-sizing: border-box;
+    .detail-input { width: 100%; box-sizing: border-box; }
+    .detail-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* ── History section ─────────────────────────────────────── */
+    .tp-history-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .tp-history-title { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; }
+    .tp-history-title::before { content: ''; width: 16px; height: 1px; background: var(--text-tertiary); flex-shrink: 0; }
+    .tp-history-toggle { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 8px; transition: background 0.15s, color 0.15s; }
+    .tp-history-toggle:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+    .tp-hist-collapsed { display: none; }
+
+    /* ── Aside: week nav ─────────────────────────────────────── */
+    .tp-week-nav-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
     }
-    .detail-actions { display: flex; gap: 8px; }
+    #weekNavLabel { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 1040px) {
+      .tp-layout { grid-template-columns: 1fr; }
+      .tp-aside { display: grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .tp-aside { grid-template-columns: 1fr; }
+      .day-strip { grid-template-columns: repeat(7,1fr); gap: 4px; padding: 8px; }
+      .day-card { min-height: 80px; padding: 8px 6px; }
+      .detail-2col { grid-template-columns: 1fr; }
+    }
+
+    /* ── Physio / rehab ─────────────────────────────────────── */
     .physio-trigger {
-      margin-top: 12px; width: 100%; padding: 9px; border-radius: 8px;
+      width: 100%; padding: 8px; border-radius: 8px;
       background: rgba(126,200,227,0.06); border: 1px solid rgba(126,200,227,0.18);
       color: #7EC8E3; font-size: 11px; font-family: var(--font-mono); cursor: pointer;
       transition: background 0.15s, border-color 0.15s; text-align: center;
@@ -449,45 +454,21 @@
 
 <main class="page">
 
-  <!-- 3-column dashboard -->
-  <div class="tp-dashboard">
+  <!-- 2-kolonne layout -->
+  <div class="tp-layout">
 
-    <!-- LEFT: Health & Rehab ────────────────────────────────────── -->
-    <aside class="tp-panel-left">
+    <!-- MAIN (venstre 72%) ─────────────────────────────────────── -->
+    <div class="tp-main">
 
-      <div class="card" id="kneeDashCard" style="padding:16px">
-        <div class="widget-label" data-i18n="tp.knee_dash">Kne & rehab</div>
-        <div id="kneeDashBody">
-          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
-        </div>
-      </div>
-
-      <div class="card" id="trendCard" style="padding:16px">
-        <div class="widget-label" data-i18n="tp.trends">Trender</div>
-        <div id="trendBody">
-          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:7px">
-        <button class="physio-trigger" style="margin-top:0" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
-        <button class="physio-trigger" style="margin-top:0" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
-      </div>
-
-    </aside>
-
-    <!-- CENTER: Today's session + day editor ─────────────────────── -->
-    <section class="tp-panel-center">
-
-      <!-- Today header -->
-      <div class="card">
-        <div class="tp-today-hd">
-          <div class="tp-today-info">
+      <!-- Hero + KPI-rad -->
+      <div class="card" style="padding:0">
+        <div class="tp-hero-row">
+          <div>
             <div class="hero-eyebrow" id="heroEyebrow" data-i18n="tp.hero_loading">I dag — laster…</div>
             <div class="hero-session" id="heroSession">—</div>
             <div class="hero-next" id="heroNext"></div>
           </div>
-          <div class="tp-today-kpis">
+          <div class="tp-hero-kpis">
             <div class="tp-kpi">
               <div class="tp-kpi-val" id="kpiDone">—</div>
               <div class="tp-kpi-lbl" data-i18n-html="tp.kpi_sessions">Treninger<br>denne uke</div>
@@ -498,56 +479,84 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Selected day detail editor -->
-      <div class="card detail-panel">
-        <div class="detail-header">
-          <div>
-            <div class="detail-day-meta" id="detailMeta">—</div>
-            <div class="detail-day-title" id="detailTitle" data-i18n="tp.select_day">Velg en dag</div>
+        <!-- Ukestrip — integrert i samme kort -->
+        <div class="day-strip" id="dayStrip"></div>
+
+        <!-- Dag-editor direkte under ukestrip -->
+        <div class="tp-detail-wrap">
+          <div class="detail-header">
+            <div>
+              <div class="detail-day-meta" id="detailMeta">—</div>
+              <div class="detail-day-title" id="detailTitle" data-i18n="tp.select_day">Velg en dag</div>
+            </div>
+            <div id="detailLoggedBadge"></div>
           </div>
-          <div id="detailLoggedBadge"></div>
-        </div>
 
-        <div class="detail-field">
-          <div class="detail-field-label" data-i18n="tp.session_activity">Økt / Aktivitet</div>
-          <input class="input-sm detail-input" id="detailPlan" type="text"
-            placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder" onkeydown="if(event.key==='Enter')saveDay()">
-        </div>
+          <div class="detail-2col">
+            <div class="detail-field">
+              <div class="detail-field-label" data-i18n="tp.session_activity">Økt / Aktivitet</div>
+              <input class="input-sm detail-input" id="detailPlan" type="text"
+                placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder"
+                onkeydown="if(event.key==='Enter')saveDay()">
+            </div>
+            <div class="detail-field detail-field-notes" style="grid-column:1/-1">
+              <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
+              <textarea class="input-sm detail-input" id="detailNotes" rows="3"
+                placeholder="Mål, teknikk, kommentarer…" data-i18n-placeholder="tp.notes_placeholder"
+                style="resize:vertical"></textarea>
+            </div>
+          </div>
 
-        <div class="detail-field detail-field-notes">
-          <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
-          <textarea class="input-sm detail-input" id="detailNotes" rows="5"
-            placeholder="Mål, teknikk, kommentarer…" data-i18n-placeholder="tp.notes_placeholder" style="resize:vertical"></textarea>
-        </div>
-
-        <div class="detail-actions">
-          <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
-          <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
+          <div class="detail-actions">
+            <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
+          </div>
         </div>
       </div>
 
-    </section>
-
-    <!-- RIGHT: Week overview ─────────────────────────────────────── -->
-    <aside class="tp-panel-right">
-
-      <!-- Week nav -->
-      <div class="tp-week-nav-row">
-        <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
-          style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.prev_week">← Forrige</button>
-        <span id="weekNavLabel"
-          style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">Uke —</span>
-        <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
-          style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.next_week">Neste →</button>
-      </div>
-
-      <!-- Day strip (vertical on desktop) -->
-      <div class="day-strip" id="dayStrip"></div>
-
-      <!-- Week stats -->
+      <!-- Øktlogg / historikk -->
       <div class="card" style="padding:16px">
+        <div class="tp-history-hd">
+          <span class="tp-history-title" data-i18n="tp.history">Øktlogg</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="painTrendBadge" class="trend-badge trend-neutral" style="display:none"></span>
+            <button onclick="openActModal()"
+              style="display:flex;align-items:center;gap:5px;background:rgba(107,227,164,0.08);
+                     border:1px solid rgba(107,227,164,0.2);border-radius:7px;padding:4px 10px;
+                     cursor:pointer;color:#6BE3A4;font-family:var(--font-mono);font-size:10px;
+                     transition:background 0.15s"
+              onmouseover="this.style.background='rgba(107,227,164,0.16)'"
+              onmouseout="this.style.background='rgba(107,227,164,0.08)'">
+              <span style="font-size:14px;line-height:1">+</span>
+              <span data-i18n="tp.add_activity">Aktivitet</span>
+            </button>
+            <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()">∧</button>
+          </div>
+        </div>
+        <div id="sessionGrid" class="sess-grid">
+          <div class="loading" data-i18n="tp.loading_log">Laster øktlogg…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ASIDE (høyre 28%) ───────────────────────────────────────── -->
+    <aside class="tp-aside">
+
+      <!-- Uke-navigasjon -->
+      <div class="card" style="padding:0">
+        <div class="tp-week-nav-row">
+          <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
+            style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.prev_week">← Forrige</button>
+          <span id="weekNavLabel">Uke —</span>
+          <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
+            style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.next_week">Neste →</button>
+        </div>
+      </div>
+
+      <!-- Ukestatistikk -->
+      <div class="card" style="padding:14px">
         <div class="widget-label" data-i18n="tp.this_week">Denne uken</div>
         <div class="stat-quad">
           <div class="stat-block">
@@ -569,41 +578,30 @@
         </div>
       </div>
 
-      <!-- Edit weekly plan -->
-      <button onclick="openEditWeeklyPlan()"
-        style="width:100%;padding:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-               border-radius:8px;color:var(--text-secondary);font-size:11px;font-family:var(--font-mono);
-               cursor:pointer;transition:background 0.15s;text-align:center"
-        onmouseover="this.style.background='rgba(255,255,255,0.07)'"
-        onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-        <span data-i18n="tp.edit_plan">✎ Rediger ukeplan</span>
-      </button>
+      <!-- Kne & rehab -->
+      <div class="card" style="padding:14px" id="kneeDashCard">
+        <div class="widget-label" data-i18n="tp.knee_dash">Kne & rehab</div>
+        <div id="kneeDashBody">
+          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+        </div>
+      </div>
+
+      <!-- Trender -->
+      <div class="card" style="padding:14px" id="trendCard">
+        <div class="widget-label" data-i18n="tp.trends">Trender</div>
+        <div id="trendBody">
+          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+        </div>
+      </div>
+
+      <!-- Hurtighandlinger -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="physio-trigger" onclick="openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
+        <button class="physio-trigger" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
+        <button class="physio-trigger" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
+      </div>
 
     </aside>
-  </div>
-
-  <!-- Session history (collapsible) -->
-  <div class="card">
-    <div class="tp-history-hd">
-      <span class="tp-history-title" data-i18n="tp.history">Øktlogg</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span id="painTrendBadge" class="trend-badge trend-neutral" style="display:none"></span>
-        <button onclick="openActModal()"
-          style="display:flex;align-items:center;gap:5px;background:rgba(107,227,164,0.08);
-                 border:1px solid rgba(107,227,164,0.2);border-radius:7px;padding:4px 10px;
-                 cursor:pointer;color:#6BE3A4;font-family:var(--font-mono);font-size:10px;
-                 transition:background 0.15s"
-          onmouseover="this.style.background='rgba(107,227,164,0.16)'"
-          onmouseout="this.style.background='rgba(107,227,164,0.08)'">
-          <span style="font-size:14px;line-height:1">+</span>
-          <span data-i18n="tp.add_activity">Aktivitet</span>
-        </button>
-        <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()">∧</button>
-      </div>
-    </div>
-    <div id="sessionGrid" class="sess-grid">
-      <div class="loading" data-i18n="tp.loading_log">Laster øktlogg…</div>
-    </div>
   </div>
 
   <!-- Aktivitet modal -->

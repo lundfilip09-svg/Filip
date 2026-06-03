@@ -35,7 +35,8 @@
       "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('utils.js','utf8'\\);const o=s.indexOf\\('{',s.indexOf\\('const TRANSLATIONS'\\)\\);let d=0,e=-1;for\\(let i=o;i<s.length;i++\\){if\\(s[i]=='{'\\)d++;if\\(s[i]=='}'\\){d--;if\\(!d\\){e=i;break;}}}const T=eval\\('\\('+s.slice\\(o,e+1\\)+'\\)'\\);console.log\\('no',Object.keys\\(T.no\\).length,'en',Object.keys\\(T.en\\).length\\)\")",
       "Bash(grep -n '' /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard/__TRACKED_VAR__)",
       "Bash(node --check /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard/utils.js)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git -C /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard diff --stat HEAD)"
     ]
   }
 }
