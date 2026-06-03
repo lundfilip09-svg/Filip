@@ -1863,6 +1863,7 @@ async function saveInjury() {
   const body_part = document.getElementById('injPart').value;
   if (!body_part) { toast(t('tp.inj_need_part'), 'err'); return; }
   const row = {
+    user_id: userId,
     body_part,
     side: document.getElementById('injSide').value || null,
     status: document.getElementById('injStatus').value,
@@ -1916,7 +1917,7 @@ async function savePhysioNote() {
   const therapist = document.getElementById('physioTherapist').value.trim() || null;
   const note = document.getElementById('physioNote').value.trim();
   if (!note) { toast(t('tp.physio_need_note'), 'err'); return; }
-  const { error } = await db.from('physio_notes').insert({ date, therapist, note });
+  const { error } = await db.from('physio_notes').insert({ user_id: userId, date, therapist, note });
   if (error) { toast(t('tp.save_error') || 'Feil', 'err'); return; }
   toast(t('tp.physio_saved'));
   document.getElementById('physioNote').value = '';
