@@ -664,7 +664,7 @@
 
   <!-- Fysio-notat modal -->
   <div class="act-modal-overlay hidden" id="physioModal" onclick="if(event.target===this)closePhysioModal()">
-    <div class="act-modal" style="max-width:440px">
+    <div class="act-modal" style="max-width:560px">
       <div class="act-modal-hd">
         <span class="act-modal-title" data-i18n="tp.physio_title">Notat fra fysio/naprapat</span>
         <button class="act-modal-close" onclick="closePhysioModal()">✕</button>
@@ -683,9 +683,12 @@
         <div class="act-field-label" data-i18n="tp.physio_note">Notat</div>
         <textarea class="input-sm" id="physioNote" rows="5" data-i18n-placeholder="tp.physio_note_ph" placeholder="Hva sa terapeuten?" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
       </div>
-      <button class="act-save-btn" onclick="savePhysioNote()" data-i18n="tp.physio_save">Lagre notat</button>
+      <div style="display:flex;gap:8px">
+        <button class="act-save-btn" id="physioSaveBtn" onclick="savePhysioNote()" data-i18n="tp.physio_save" style="flex:1">Lagre notat</button>
+        <button class="input-sm" id="physioCancelBtn" onclick="cancelPhysioEdit()" data-i18n="cancel" style="display:none;cursor:pointer">Avbryt</button>
+      </div>
       <div class="act-field-label" style="margin:16px 0 6px" data-i18n="tp.physio_recent">Siste notater</div>
-      <div id="physioList" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto"></div>
+      <div id="physioList" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -1898,6 +1901,8 @@ async function openPhysioModal() {
 }
 function closePhysioModal() { document.getElementById('physioModal').classList.add('hidden'); }
 
+let _physioEditId = null;
+
 async function loadPhysioNotes() {
   const el = document.getElementById('physioList');
   const { data } = await db.from('physio_notes')
@@ -1907,9 +1912,45 @@ async function loadPhysioNotes() {
     return;
   }
   el.innerHTML = data.map(p => `<div class="physio-item">
-    <div class="physio-item-meta">${fmtDate(p.date)}${p.therapist ? ' · ' + escHtml(p.therapist) : ''}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div class="physio-item-meta">${fmtDate(p.date)}${p.therapist ? ' · ' + escHtml(p.therapist) : ''}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="editPhysioNote('${p.id}')" title="${t('edit')}" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px">✏️</button>
+        <button onclick="deletePhysioNote('${p.id}')" title="${t('delete')}" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px">🗑️</button>
+      </div>
+    </div>
     <div class="physio-item-note">${escHtml(p.note)}</div>
   </div>`).join('');
+}
+
+async function editPhysioNote(id) {
+  const { data } = await db.from('physio_notes').select('*').eq('id', id).single();
+  if (!data) return;
+  _physioEditId = id;
+  document.getElementById('physioDate').value = data.date;
+  document.getElementById('physioTherapist').value = data.therapist || '';
+  document.getElementById('physioNote').value = data.note;
+  document.getElementById('physioSaveBtn').textContent = t('save');
+  document.getElementById('physioCancelBtn').style.display = 'block';
+  document.getElementById('physioNote').focus();
+}
+
+function cancelPhysioEdit() {
+  _physioEditId = null;
+  document.getElementById('physioDate').value = today();
+  document.getElementById('physioTherapist').value = '';
+  document.getElementById('physioNote').value = '';
+  document.getElementById('physioSaveBtn').textContent = t('tp.physio_save');
+  document.getElementById('physioCancelBtn').style.display = 'none';
+}
+
+async function deletePhysioNote(id) {
+  if (!confirm(t('tp.physio_del_confirm'))) return;
+  const { error } = await db.from('physio_notes').delete().eq('id', id);
+  if (error) { toast(t('tp.save_error') || 'Feil', 'err'); return; }
+  toast(t('tp.physio_deleted'));
+  if (_physioEditId === id) cancelPhysioEdit();
+  await loadPhysioNotes();
 }
 
 async function savePhysioNote() {
@@ -1917,11 +1958,15 @@ async function savePhysioNote() {
   const therapist = document.getElementById('physioTherapist').value.trim() || null;
   const note = document.getElementById('physioNote').value.trim();
   if (!note) { toast(t('tp.physio_need_note'), 'err'); return; }
-  const { error } = await db.from('physio_notes').insert({ user_id: userId, date, therapist, note });
+  let error;
+  if (_physioEditId) {
+    ({ error } = await db.from('physio_notes').update({ date, therapist, note }).eq('id', _physioEditId));
+  } else {
+    ({ error } = await db.from('physio_notes').insert({ user_id: userId, date, therapist, note }));
+  }
   if (error) { toast(t('tp.save_error') || 'Feil', 'err'); return; }
-  toast(t('tp.physio_saved'));
-  document.getElementById('physioNote').value = '';
-  document.getElementById('physioTherapist').value = '';
+  toast(_physioEditId ? t('tp.physio_updated') : t('tp.physio_saved'));
+  cancelPhysioEdit();
   await loadPhysioNotes();
 }
 
