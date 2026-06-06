@@ -197,7 +197,10 @@
     .dtt.active { color: var(--text-primary); background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
     .dtt.overdue.active { color: var(--danger); }
     .dtt-n { opacity: 0.55; }
+    .dtt.has-overdue { color: var(--danger); }
+    .dtt.has-overdue .dtt-n { opacity: 1; }
     .dash-todo-list { display: flex; flex-direction: column; gap: 2px; min-height: 54px; }
+    .dash-fallback-hint { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 6px; opacity: 0.7; }
 
     /* ── Next event ── */
     .next-evt {
@@ -432,7 +435,10 @@
     <div class="fokus-right">
       <div class="card">
         <div class="todos-header">
-          <div class="section-title" style="margin-bottom:0" data-i18n="dash.tasks">Gjøremål</div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="section-title" style="margin-bottom:0" data-i18n="dash.tasks">Gjøremål</div>
+            <a href="gjoremal.html" data-i18n-title="dash.tasks" title="Gjøremål" style="text-decoration:none;color:var(--text-tertiary);font-size:13px;line-height:1">→</a>
+          </div>
           <div class="todos-progress" id="todosProgress"></div>
         </div>
         <div id="importantTodos">
@@ -1000,9 +1006,11 @@ function renderDailyFokus(data) {
   const items = _buildFokusList(data);
   if (!items.length) {
     el.innerHTML = `<div class="empty" style="padding:2px 0">${t('dash.all_ok')}</div>`;
-    return;
+  } else {
+    el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
   }
-  el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
+  // Oppdater «I dag»-fanen så den kan falle tilbake på fokus-forslag når den er tom
+  if (typeof renderDashTodos === 'function') renderDashTodos();
 }
 
 // ── Dashboard-gjøremål: I dag / I morgen / Forfalt (basert på due_date) ──────
@@ -1027,6 +1035,11 @@ async function loadTodos() {
 
 function setDashTab(tab) { dashTodoTab = tab; renderDashTodos(); }
 
+function openTaskList(listName) {
+  try { if (listName) localStorage.setItem('gjoremal_active_tab', listName); } catch {}
+  window.location.href = 'gjoremal.html';
+}
+
 function renderDashTodos() {
   const el = document.getElementById('importantTodos');
   if (!el) return;
@@ -1038,14 +1051,25 @@ function renderDashTodos() {
   let html = `<div class="dash-todo-tabs">
       ${tabBtn('today', t('dash.today'))}
       ${tabBtn('tomorrow', t('dash.tomorrow'))}
-      ${tabBtn('overdue', t('dash.overdue'), 'overdue')}
+      ${tabBtn('overdue', t('dash.overdue'), counts.overdue > 0 ? 'overdue has-overdue' : 'overdue')}
     </div><div class="dash-todo-list">`;
   if (!list.length) {
-    html += `<div class="empty">${t('gm.no_todos_empty')}</div>`;
+    const fb = (tab === 'today' && typeof _buildFokusList === 'function' && _lastFokusData)
+      ? _buildFokusList(_lastFokusData).filter(i => i.type === 'actionable' && !i.autoDone && !_isFokusDone(i.id))
+      : [];
+    if (fb.length) {
+      html += `<div class="dash-fallback-hint">${t('dash.from_focus')}</div>`;
+      html += fb.map(i => `<div class="todo-item" style="cursor:pointer" onclick="toggleFokusItem('${i.id}')">
+          <div class="todo-cb"></div>
+          <span class="todo-text">${escHtml(i.text)}</span>
+        </div>`).join('');
+    } else {
+      html += `<div class="empty">${t('gm.no_todos_empty')}</div>`;
+    }
   } else {
     html += list.map(td => `<div class="todo-item ${td.important ? 'important' : ''}">
         <div class="todo-cb" onclick="completeTodo('${td.id}', this)"></div>
-        <span class="todo-text">${escHtml(td.title)}</span>
+        <span class="todo-text" style="cursor:pointer" data-list="${escHtml(td.list_name || '')}" onclick="openTaskList(this.dataset.list)">${escHtml(td.title)}</span>
         ${(td.due_date && tab !== 'today') ? `<span class="todo-due ${tab==='overdue'?'overdue':''}">${fmtDate(td.due_date)}</span>` : ''}
         ${td.important ? `<span class="star-btn active">★</span>` : ''}
       </div>`).join('');

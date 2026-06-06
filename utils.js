@@ -81,7 +81,7 @@ const TRANSLATIONS = {
     'dash.cat_rehab': 'Rehab', 'dash.cat_recovery': 'Recovery',
     'dash.cat_sovn': 'Søvn', 'dash.cat_warning': 'OBS',
     'dash.cat_kalender': 'Kalender',
-    'dash.from_plan': 'Fra ukeplanen',
+    'dash.from_plan': 'Fra ukeplanen', 'dash.from_focus': 'Fra dagens fokus',
     'dash.add_todo_ph': 'Legg til viktig gjøremål…',
     'dash.cal_nothing_planned': 'Ingenting planlagt', 'dash.cal_not_connected': 'Kalender ikke tilkoblet',
     // Week-strip chips
@@ -501,7 +501,7 @@ const TRANSLATIONS = {
     'dash.cat_rehab': 'Rehab', 'dash.cat_recovery': 'Recovery',
     'dash.cat_sovn': 'Sleep', 'dash.cat_warning': 'NOTE',
     'dash.cat_kalender': 'Calendar',
-    'dash.from_plan': 'From weekly plan',
+    'dash.from_plan': 'From weekly plan', 'dash.from_focus': 'From daily focus',
     'dash.add_todo_ph': 'Add important task…',
     'dash.cal_nothing_planned': 'Nothing planned', 'dash.cal_not_connected': 'Calendar not connected',
     // Week-strip chips
