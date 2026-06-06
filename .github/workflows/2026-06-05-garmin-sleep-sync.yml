@@ -1,0 +1,40 @@
+name: Garmin sleep sync (poll til søvn finnes)
+
+# Pinger /api/garmin-sync hvert 30. min i et morgenvindu, slik at søvndata
+# hentes så snart Garmin har den – uten å måtte kjøre noe i terminalen.
+# garmin-sync.py har en vakt: ligger dagens søvn allerede i Supabase, hopper
+# den over uten å logge inn i Garmin (billig + unngår at kontoen blir låst).
+#
+# OPPSETT (én gang):
+#   GitHub → repoet → Settings → Secrets and variables → Actions
+#   → New repository secret:
+#       Name:   SYNC_URL
+#       Secret: https://<ditt-vercel-domene>/api/garmin-sync
+
+on:
+  schedule:
+    # Cron er ALLTID UTC. '*/30 4-12 * * *' = hvert 30. min, 04:00–12:30 UTC
+    # ≈ 06:00–14:30 norsk tid (dekker oppvåkning hele året, sommer/vinter).
+    # Sover du lenger i helga? Utvid timene, f.eks. '4-14'.
+    - cron: '*/30 4-12 * * *'
+  workflow_dispatch: {}   # lar deg kjøre den manuelt fra Actions-fanen
+
+# Ikke kjør flere overlappende pinger samtidig
+concurrency:
+  group: garmin-sleep-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping garmin-sync
+        run: |
+          if [ -z "${{ secrets.SYNC_URL }}" ]; then
+            echo "::error::Mangler repo-secret SYNC_URL (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "Pinger sleep-sync $(date -u '+%Y-%m-%d %H:%M UTC')"
+          code=$(curl -sS --max-time 90 -w '%{http_code}' -o body.txt "${{ secrets.SYNC_URL }}" || echo 000)
+          echo "HTTP $code"
+          head -c 2000 body.txt || true

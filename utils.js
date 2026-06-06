@@ -167,6 +167,8 @@ const TRANSLATIONS = {
     'gym.loading_exercises': 'Laster øvelser…', 'gym.col_sets': 'Sett', 'gym.col_reps': 'Reps',
     'gym.col_weight': 'Vekt (kg)', 'gym.col_notes': 'Notater', 'gym.complete_exercise': 'Fullfør øvelse',
     'gym.all_done': 'Alle øvelser fullført ✓', 'gym.no_warmup_phase': 'Ingen oppvarmingsdata',
+    'gym.rest_range': 'Velg mellom 5 sek og 10 min', 'gym.fill_day_after': 'Kan fylles inn dagen etter',
+    'gym.notif_rest_done': 'Hviletimer ferdig', 'gym.notif_rest_body': 'Tid for neste sett!',
     // Sprint
     'sprint.personal_records': 'Personlige rekorder',
     'sprint.goals': 'Sprintmål', 'sprint.log': 'Logg økt',
@@ -278,6 +280,7 @@ const TRANSLATIONS = {
     'sovn.you_slept': 'Du sov ',
     'sovn.score_sub': 'Søvnscore',
     'sovn.copy_prompt': 'Kopier kommandoen under:',
+    'sovn.prev_day': 'Forrige dag', 'sovn.next_day': 'Neste dag',
     // Gjøremål
     'gm.title': 'Gjøremål', 'gm.sub': 'Oppgaver & mål',
     'gm.active': 'Aktive', 'gm.important': 'Viktige',
@@ -582,6 +585,8 @@ const TRANSLATIONS = {
     'gym.loading_exercises': 'Loading exercises…', 'gym.col_sets': 'Sets', 'gym.col_reps': 'Reps',
     'gym.col_weight': 'Weight (kg)', 'gym.col_notes': 'Notes', 'gym.complete_exercise': 'Complete exercise',
     'gym.all_done': 'All exercises done ✓', 'gym.no_warmup_phase': 'No warm-up data',
+    'gym.rest_range': 'Choose between 5 sec and 10 min', 'gym.fill_day_after': 'Can be filled in the day after',
+    'gym.notif_rest_done': 'Rest timer done', 'gym.notif_rest_body': 'Time for the next set!',
     // Sprint
     'sprint.personal_records': 'Personal Records',
     'sprint.goals': 'Sprint Goals', 'sprint.log': 'Log Session',
@@ -693,6 +698,7 @@ const TRANSLATIONS = {
     'sovn.you_slept': 'You slept ',
     'sovn.score_sub': 'Sleep score',
     'sovn.copy_prompt': 'Copy the command below:',
+    'sovn.prev_day': 'Previous day', 'sovn.next_day': 'Next day',
     // Gjøremål
     'gm.title': 'Tasks', 'gm.sub': 'Tasks & goals',
     'gm.active': 'Active', 'gm.important': 'Important',

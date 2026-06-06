@@ -832,14 +832,13 @@ async function loadPlanForWeek() {
 }
 
 // ── Weekly plan editor ─────────────────────────────────────────────────────
-const _WP_DAY_NAMES = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
-
+// Ukedagsnavn via i18n (wd.0=søn..wd.6=lør). d=0..6 = man..søn ⇒ wd.((d+1)%7).
 function openEditWeeklyPlan() {
   const el = document.getElementById('weeklyPlanRows');
   if (!el) return;
   el.innerHTML = [0,1,2,3,4,5,6].map(d => `
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${_WP_DAY_NAMES[d]}</div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${t('wd.'+((d+1)%7))}</div>
       <input class="input-sm" id="wp-day-${d}" type="text" placeholder="${t('tp.wp_placeholder')}"
         value="${escHtml(weeklyPlan[d] || '')}"
         style="flex:1" onkeydown="if(event.key==='Enter')saveWeeklyPlan()">
@@ -1000,7 +999,7 @@ function renderDetail() {
   }
 
   document.getElementById('detailLoggedBadge').innerHTML =
-    logged ? '<span class="detail-logged-badge">✓ Fullført</span>' : '';
+    logged ? `<span class="detail-logged-badge">${t('tp.completed')}</span>` : '';
 
   document.getElementById('detailPlan').value  = txt;
   document.getElementById('detailNotes').value = notesText(i);

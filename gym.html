@@ -543,7 +543,7 @@
       <div id="poBody"></div>
     </div>
 
-    <div id="workoutBlocks"><div class="loading" style="padding:20px 2px">Laster øvelser…</div></div>
+    <div id="workoutBlocks"><div class="loading" data-i18n="gym.loading_exercises" style="padding:20px 2px">Laster øvelser…</div></div>
 
   </div>
 
@@ -677,7 +677,7 @@
         <input type="date" id="logDate" class="input-sm" style="width:100%;box-sizing:border-box">
       </div>
       <div style="margin-bottom:10px">
-        <div style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.12em;color:var(--text-tertiary);margin-bottom:7px">Knesmerte</div>
+        <div data-i18n="knee.pain" style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.12em;color:var(--text-tertiary);margin-bottom:7px">Knesmerte</div>
         <div class="knee-grid" style="margin-bottom:4px">
           <div>
             <div class="knee-phase-label" data-i18n="knee.after_session">Etter økt</div>
@@ -1326,7 +1326,7 @@ function renderRehab() {
       <button class="btn btn-success btn-sm" onclick="addExercise('rehab','Rehab','${addId}')">+</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
     </div>
-    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>
+    <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">${t('gym.add_exercise_btn')}</button>
   </div>`;
 }
 
@@ -1396,7 +1396,7 @@ function renderWarmup() {
     <button class="btn btn-success btn-sm" onclick="addExercise('${wmAddDay}','Prepøvelser','${addId}')">+</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
   </div>
-  <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">+ Øvelse</button>`;
+  <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">${t('gym.add_exercise_btn')}</button>`;
 
   el.innerHTML = zoneHtml
     ? `<div id="warmup-drag-zone" data-wm-zone="1"
@@ -1592,7 +1592,7 @@ function renderExRow(ex, day, num, isWarmup) {
         </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
-      <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="Slett">×</button>
+      <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
     </div>
     <div class="set-drawer" id="drawer-${ex.id}"></div>
   </div>`;
@@ -1656,16 +1656,16 @@ function renderDrawer(exId) {
     <table class="drawer-table">
       <thead><tr>
         <th style="width:28px">${t('gym.col_sets')}</th><th>${t('gym.col_reps')}</th><th>${t('gym.col_weight')}</th>
-        <th style="width:32px">✓</th><th>Notater</th>
+        <th style="width:32px">✓</th><th>${t('gym.col_notes')}</th>
       </tr></thead>
       <tbody id="drawer-body-${exId}">
         ${data.map((s, i) => drawerRow(exId, i, s)).join('')}
       </tbody>
     </table>
     <div class="drawer-actions">
-      <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ Sett</button>
+      <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ ${t('gym.col_sets')}</button>
       <span class="drawer-spacer"></span>
-      <button class="btn btn-ghost btn-sm" onclick="saveSetWeights('${exId}')">Lagre</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveSetWeights('${exId}')">${t('save')}</button>
       <button class="btn btn-success btn-sm" onclick="completeExercise('${exId}')">${t('gym.complete_exercise')}</button>
     </div>`;
   el.classList.add('open');
@@ -1909,7 +1909,7 @@ function startCustomRest() {
   const min = parseInt(document.getElementById('restCustomMin').value, 10) || 0;
   const sec = parseInt(document.getElementById('restCustomSec').value, 10) || 0;
   const total = min * 60 + sec;
-  if (total < 5 || total > 600) { alert('Velg mellom 5 sek og 10 min'); return; }
+  if (total < 5 || total > 600) { toast(t('gym.rest_range'), 'err'); return; }
   startRest(total);
 }
 function startRest(seconds) {
@@ -2252,7 +2252,7 @@ async function loadGymHistory() {
           <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
-        <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="Slett økt">✕</button>
+        <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="${t('delete')}">✕</button>
       </div>
       <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
         <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
@@ -2268,10 +2268,10 @@ async function loadGymHistory() {
           <span class="knee-edit-label">${t('tp.knee_dayafter')}</span>
           <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}"
             value="${knee?.day_after_score ?? ''}" style="width:42px" onblur="${blurSave}"
-            title="Kan fylles inn dagen etter">
+            title="${t('gym.fill_day_after')}">
         </div>
         <div style="display:flex;gap:5px">
-          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">Lukk</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">${t('close')}</button>
         </div>
       </div>
     </div>`;
@@ -2500,7 +2500,7 @@ function playTimerDone() {
     });
   } catch(e) {}
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification('Hviletimer ferdig', { body: 'Tid for neste sett!', silent: true }); } catch(e) {}
+    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body'), silent: true }); } catch(e) {}
   }
 }
 

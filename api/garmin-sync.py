@@ -172,17 +172,55 @@ def save_to_supabase(row):
         return resp.status
 
 
+def already_has_sleep(date_str):
+    """True hvis health_data for datoen allerede har søvndata (sleep_hours/sleep_score).
+    Brukes som vakt så 30-min-polling ikke logger inn i Garmin i unødvendig."""
+    try:
+        supabase_url = os.environ["SUPABASE_URL"]
+        supabase_key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    except KeyError:
+        return False
+    url = f"{supabase_url}/rest/v1/health_data?date=eq.{date_str}&select=sleep_hours,sleep_score"
+    req = urllib.request.Request(url, headers={
+        "apikey":        supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            rows = json.loads(resp.read().decode("utf-8"))
+        if isinstance(rows, list) and rows:
+            r = rows[0]
+            return bool(r.get("sleep_hours") or r.get("sleep_score"))
+    except Exception:
+        return False
+    return False
+
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Les valgfri ?date=YYYY-MM-DD fra URL
+        # Les valgfri ?date=YYYY-MM-DD og ?force=1 fra URL
         target_date = None
+        force = False
         try:
             parsed = urlparse(self.path)
             params = parse_qs(parsed.query)
             if "date" in params:
                 target_date = params["date"][0]
+            if "force" in params and params["force"][0] in ("1", "true", "yes"):
+                force = True
         except Exception:
             pass
+
+        # Vakt: hvis dagens søvn allerede ligger i Supabase, hopp over uten å logge inn i Garmin.
+        # Gjør 30-min-polling billig og unngår at Garmin rate-limiter/låser kontoen.
+        check_date = target_date or datetime.date.today().isoformat()
+        if not force and already_has_sleep(check_date):
+            body = json.dumps({"ok": True, "skipped": "already_have_sleep", "date": check_date}, indent=2)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body.encode("utf-8"))
+            return
 
         try:
             row    = fetch_garmin_data(target_date)

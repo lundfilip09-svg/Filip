@@ -440,7 +440,7 @@ function renderRuns() {
       <span class="run-dist">${escHtml(distLabel(r.distance))}</span>
       <span class="run-time">${r.time.toFixed(2)}s</span>
       <span class="run-type">${escHtml(r.type)}</span>
-      <button class="run-del" onclick="removeRun(${i})" title="Fjern">✕</button>
+      <button class="run-del" onclick="removeRun(${i})" title="${t('delete')}">✕</button>
     </div>`).join('');
 }
 
@@ -741,7 +741,7 @@ function _buildSessCard(date, runs, isOpen) {
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Notater</div>
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="saveHistField('${date}','notes',this.value)"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"
@@ -873,7 +873,7 @@ function renderKneeTrend(data) {
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
             <div style="font-size:12px;font-family:var(--font-mono);color:var(--text-secondary);
               font-weight:600;white-space:nowrap">${fmtDate(d.date)}</div>
-            <button onclick="openKneeEdit(${i})" title="Rediger" style="background:none;border:none;
+            <button onclick="openKneeEdit(${i})" title="${t('edit')}" style="background:none;border:none;
               color:var(--text-tertiary);cursor:pointer;font-size:11px;padding:1px 4px;line-height:1;
               opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1"
               onmouseout="this.style.opacity=0.6">✎</button>

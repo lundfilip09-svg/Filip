@@ -418,8 +418,8 @@ async function clearChat() {
   document.getElementById('chatHistory').innerHTML = `
     <div class="chat-empty" id="chatEmpty">
       <div class="chat-empty-icon">🤖</div>
-      <div class="chat-empty-title">${t('ai.empty_title')}</div>
-      <div class="chat-empty-sub">${t('ai.empty_sub').replace('\n', '<br>')}</div>
+      <div class="chat-empty-title" data-i18n="ai.empty_title">${t('ai.empty_title')}</div>
+      <div class="chat-empty-sub" data-i18n="ai.empty_sub">${t('ai.empty_sub').replace('\n', '<br>')}</div>
     </div>`;
   toast(t('ai.cleared'));
 }

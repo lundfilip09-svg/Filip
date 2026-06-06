@@ -301,7 +301,6 @@ const VERCEL_DOMAIN = 'https://filip-vita.vercel.app';
 // ─────────────────────────────────────────────────────────────────────────
 
 let todayEntry   = null;
-let lastSyncAt   = null;
 let chartData    = [];
 let chartInstance = null;
 let chartMetric  = 'sleep';
@@ -336,16 +335,8 @@ function sleepHoursStr(h) {
 }
 
 // ── Smart insights ─────────────────────────────────────────────────────────
-function fmtSyncTime(ts) {
-  if (!ts) return null;
-  return new Date(ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-}
-
 function getHeroText(d) {
-  const syncTime = fmtSyncTime(d?.timestamp ?? lastSyncAt);
-  const syncLabel = syncTime ? t('sovn.synced_at', {time: syncTime}) : t('sovn.sync_auto');
-
-  if (!d) return { main: t('sovn.no_data'), sub: syncLabel, color:'var(--text-tertiary)' };
+  if (!d) return { main: t('sovn.no_data'), sub: t('sovn.sync_auto'), color:'var(--text-tertiary)' };
   const sc = d.sleep_score;
   if (!sc) {
     return { main: t('sovn.sleeping'), sub: d.sleep_hours ? t('sovn.registered', {d: sleepHoursStr(d.sleep_hours)}) : t('sovn.waiting'), color:'var(--text-secondary)' };
@@ -396,8 +387,6 @@ function renderHero(d) {
   if (d?.awake_minutes)  chips.push(`👁 ${t('sovn.awake')} ${d.awake_minutes}min`);
   if (d?.sleep_start)    chips.push(`🛌 ${d.sleep_start}`);
   if (d?.sleep_end)      chips.push(`⏰ ${d.sleep_end}`);
-  const st = fmtSyncTime(d?.timestamp);
-  if (st && isViewingToday()) chips.push(`🔄 ${st}`);
 
   // Build tagline — include awake context
   let tagline = '';
@@ -427,9 +416,9 @@ function renderHero(d) {
       </div>
       <div class="hero-right">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-          <button onclick="offsetViewDate(-1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-tertiary);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Forrige dag">‹</button>
-          <div class="hero-date" style="margin:0">${dispDate}${isToday ? ' · I DAG' : ''}</div>
-          <button onclick="offsetViewDate(1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:${isToday ? 'rgba(255,255,255,0.12)' : 'var(--text-tertiary)'};border-radius:6px;width:24px;height:24px;cursor:${isToday ? 'default' : 'pointer'};font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Neste dag" ${isToday ? 'disabled' : ''}>›</button>
+          <button onclick="offsetViewDate(-1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-tertiary);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${t('sovn.prev_day')}">‹</button>
+          <div class="hero-date" style="margin:0">${dispDate}${isToday ? ' · ' + t('dash.today').toUpperCase() : ''}</div>
+          <button onclick="offsetViewDate(1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:${isToday ? 'rgba(255,255,255,0.12)' : 'var(--text-tertiary)'};border-radius:6px;width:24px;height:24px;cursor:${isToday ? 'default' : 'pointer'};font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${t('sovn.next_day')}" ${isToday ? 'disabled' : ''}>›</button>
         </div>
         <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
         <div class="hero-tagline">${tagline}</div>
@@ -678,12 +667,6 @@ async function loadViewDate() {
   const entry = data?.[0] || null;
   if (isViewingToday()) {
     todayEntry = entry;
-    lastSyncAt = entry?.timestamp || null;
-    if (!lastSyncAt) {
-      const { data: recent } = await db.from('health_data')
-        .select('timestamp').order('timestamp', { ascending: false }).limit(1);
-      lastSyncAt = recent?.[0]?.timestamp || null;
-    }
   }
   renderStats(entry);
 }

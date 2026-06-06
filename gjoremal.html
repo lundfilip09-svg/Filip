@@ -763,6 +763,14 @@ function updateStats() {
   set('statOverdue',   lt.filter(t => !t.completed && t.due_date && t.due_date < todayStr).length);
 }
 
+// Re-render dynamic (JS-generert) innhold ved språkbytte. toggleLang() i utils.js kaller denne.
+function onLangChange() {
+  applyLang();
+  renderListsBar();
+  renderTodos();
+  updateStats();
+}
+
 // ── Lists ─────────────────────────────────────────────────────────────────
 async function loadLists() {
   const { data } = await db.from('todos').select('list_name');
@@ -785,7 +793,7 @@ function renderListsBar() {
     return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}" onclick="selectList(this.dataset.list)">
       <span class="gm-li-name">${escHtml(l)}</span>
       ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
-      <button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="Slett" style="${l==='Generelt'?'visibility:hidden;pointer-events:none':''}">✕</button>
+      <button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="${t('delete')}" style="${l==='Generelt'?'visibility:hidden;pointer-events:none':''}">✕</button>
     </div>`;
   }).join('');
 }
@@ -877,7 +885,7 @@ function renderTodos() {
           </div>
         </div>
         <div class="todo-actions">
-          <button class="star-btn ${todo.important?'active':''}" onclick="toggleImportant('${todo.id}',${todo.important})" title="Viktig">
+          <button class="star-btn ${todo.important?'active':''}" onclick="toggleImportant('${todo.id}',${todo.important})" title="${t('gm.important_btn')}">
             ${todo.important ? '★' : '☆'}
           </button>
           <button class="todo-del" onclick="deleteTodo('${todo.id}')">✕</button>
