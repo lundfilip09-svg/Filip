@@ -13,7 +13,7 @@ const TRANSLATIONS = {
     // Common
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
     'cancel': 'Avbryt', 'delete': 'Slett', 'close': 'Lukk', 'add': 'Legg til',
-    'edit': 'Rediger', 'reset': 'Nullstill', 'date': 'Dato', 'notes': 'Notater',
+    'edit': 'Rediger', 'reset': 'Nullstill', 'date': 'Dato', 'notes': 'Notater', 'unit.sec': 'sek',
     // Knee pain
     'knee.before': 'Før', 'knee.during': 'Under', 'knee.after': 'Etter',
     'knee.dayafter': 'Dagen etter',
@@ -45,7 +45,7 @@ const TRANSLATIONS = {
     'dash.active_tasks': '{n} aktive', 'dash.little_data': 'Lite data',
     'dash.go_to_session': 'Gå til økt →', 'dash.go_to_sleep': 'Gå til søvn →',
     'dash.go_to_sprint': 'Gå til sprint →',
-    'dash.recovery_day': 'Restitusjonsdag', 'dash.tomorrow': 'I morgen',
+    'dash.recovery_day': 'Restitusjonsdag', 'dash.tomorrow': 'I morgen', 'dash.overdue': 'Forfalt',
     'dash.all_ok': 'Alt ser bra ut i dag', 'dash.no_pain': 'Ingen smertelogg',
     'dash.no_imp_todos': 'Ingen viktige gjøremål',
     'dash.todo_err': 'Kunne ikke fullføre gjøremål',
@@ -127,7 +127,7 @@ const TRANSLATIONS = {
     'confirm.clear_day': 'Tøm planen for denne dagen?',
     'confirm.delete_activity': 'Slett denne aktiviteten?',
     'confirm.delete_runs': 'Slett alle løp fra {date}?',
-    'gym.ready': 'Klar!', 'gym.not_running': 'Ikke i drift',
+    'gym.ready': 'Klar!',
     'gjoremal.add_ph': 'Legg til gjøremål…',
     'sprint.notes_ph': 'Løpsforhold, teknikk, annet…',
     'rpe.hint': 'Dra: 1 = veldig lett · 100 = maks',
@@ -203,7 +203,7 @@ const TRANSLATIONS = {
     'sovn.recovery': 'God restitusjon', 'sovn.solid': 'Solid søvnnatt',
     'sovn.moderate': 'Middels restitusjon', 'sovn.hard': 'Krevende natt',
     'sovn.no_data': 'Ingen søvndata', 'sovn.sleeping': 'Sover videre?',
-    'sovn.synced_at': 'Synkronisert kl. {time}', 'sovn.sync_auto': 'Synces automatisk',
+    'sovn.sync_auto': 'Synces automatisk',
     'sovn.sprint_ready': 'Bra grunnlag for sprint i dag',
     'sovn.train_ready': 'Klar for trening',
     'sovn.light_session': 'Lett økt kan være lurt',
@@ -280,7 +280,8 @@ const TRANSLATIONS = {
     'sovn.you_slept': 'Du sov ',
     'sovn.score_sub': 'Søvnscore',
     'sovn.copy_prompt': 'Kopier kommandoen under:',
-    'sovn.prev_day': 'Forrige dag', 'sovn.next_day': 'Neste dag',
+    'sovn.prev_day': 'Forrige dag', 'sovn.next_day': 'Neste dag', 'sovn.fetched': 'Søvn hentet ✓',
+    'sovn.fetch_now': 'Hent søvn nå', 'sovn.fetching': 'Henter…', 'sovn.no_new': 'Ingen ny søvndata', 'sovn.fetch_err': 'Henting feilet',
     // Gjøremål
     'gm.title': 'Gjøremål', 'gm.sub': 'Oppgaver & mål',
     'gm.active': 'Aktive', 'gm.important': 'Viktige',
@@ -301,6 +302,7 @@ const TRANSLATIONS = {
     'gm.stats_done': 'Fullført i dag', 'gm.stats_overdue': 'Forfalt',
     'gm.sub_tasks': 'Gjøremål for i dag og fremover',
     'gm.update_error': 'Kunne ikke oppdatere', 'gm.delete_error': 'Kunne ikke slette',
+    'gm.rename': 'Gi nytt navn', 'gm.rename_prompt': 'Nytt navn på listen:', 'gm.list_exists': 'Listen finnes allerede', 'gm.list_renamed': 'Liste omdøpt',
     // Kalender
     'kal.title': 'Kalender', 'kal.today': 'I dag', 'kal.new_event': 'Ny hendelse', 'kal.add_event': 'Hendelse',
     'kal.add_placeholder': 'Tittel, dato, klokkeslett…',
@@ -323,7 +325,7 @@ const TRANSLATIONS = {
     'tp.title': 'Treningsoversikt', 'tp.history': 'Økthistorikk',
     'tp.no_sessions': 'Ingen loggede økter ennå',
     'tp.no_sessions_full': '<div class="empty" style="grid-column:1/-1;padding:20px 0">Ingen loggede økter ennå</div>',
-    'tp.knee': 'Knesmerte', 'tp.edit_pain': 'Rediger smerteverdier',
+    'tp.edit_pain': 'Rediger smerteverdier',
     'tp.notes': 'Notater', 'tp.trend_up': '↓ Knesmerte forbedres',
     'tp.trend_down': '↑ Knesmerte øker', 'tp.trend_stable': '— Knesmerte stabil',
     'tp.gym_badge': '✓ Gym', 'tp.sprint_badge': '⚡ Sprint',
@@ -431,7 +433,7 @@ const TRANSLATIONS = {
     // Common
     'loading': 'Loading…', 'no_data': 'No data', 'save': 'Save',
     'cancel': 'Cancel', 'delete': 'Delete', 'close': 'Close', 'add': 'Add',
-    'edit': 'Edit', 'reset': 'Reset', 'date': 'Date', 'notes': 'Notes',
+    'edit': 'Edit', 'reset': 'Reset', 'date': 'Date', 'notes': 'Notes', 'unit.sec': 'sec',
     // Knee pain
     'knee.before': 'Before', 'knee.during': 'During', 'knee.after': 'After',
     'knee.dayafter': 'Day after',
@@ -463,7 +465,7 @@ const TRANSLATIONS = {
     'dash.active_tasks': '{n} active', 'dash.little_data': 'Little data',
     'dash.go_to_session': 'Go to session →', 'dash.go_to_sleep': 'Go to sleep →',
     'dash.go_to_sprint': 'Go to sprint →',
-    'dash.recovery_day': 'Recovery day', 'dash.tomorrow': 'Tomorrow',
+    'dash.recovery_day': 'Recovery day', 'dash.tomorrow': 'Tomorrow', 'dash.overdue': 'Overdue',
     'dash.all_ok': 'All looks good today', 'dash.no_pain': 'No pain log',
     'dash.no_imp_todos': 'No important tasks',
     'dash.todo_err': 'Could not complete task',
@@ -545,7 +547,7 @@ const TRANSLATIONS = {
     'confirm.clear_day': 'Clear the plan for this day?',
     'confirm.delete_activity': 'Delete this activity?',
     'confirm.delete_runs': 'Delete all runs from {date}?',
-    'gym.ready': 'Ready!', 'gym.not_running': 'Not running',
+    'gym.ready': 'Ready!',
     'gjoremal.add_ph': 'Add task…',
     'sprint.notes_ph': 'Conditions, technique, other…',
     'rpe.hint': 'Drag: 1 = very easy · 100 = max',
@@ -621,7 +623,7 @@ const TRANSLATIONS = {
     'sovn.recovery': 'Good Recovery', 'sovn.solid': 'Solid Night',
     'sovn.moderate': 'Moderate Recovery', 'sovn.hard': 'Tough Night',
     'sovn.no_data': 'No sleep data', 'sovn.sleeping': 'Still sleeping?',
-    'sovn.synced_at': 'Synced at {time}', 'sovn.sync_auto': 'Syncs automatically',
+    'sovn.sync_auto': 'Syncs automatically',
     'sovn.sprint_ready': 'Good basis for sprint today',
     'sovn.train_ready': 'Ready to train',
     'sovn.light_session': 'Consider a light session',
@@ -698,7 +700,8 @@ const TRANSLATIONS = {
     'sovn.you_slept': 'You slept ',
     'sovn.score_sub': 'Sleep score',
     'sovn.copy_prompt': 'Copy the command below:',
-    'sovn.prev_day': 'Previous day', 'sovn.next_day': 'Next day',
+    'sovn.prev_day': 'Previous day', 'sovn.next_day': 'Next day', 'sovn.fetched': 'Sleep fetched ✓',
+    'sovn.fetch_now': 'Fetch sleep now', 'sovn.fetching': 'Fetching…', 'sovn.no_new': 'No new sleep data', 'sovn.fetch_err': 'Fetch failed',
     // Gjøremål
     'gm.title': 'Tasks', 'gm.sub': 'Tasks & goals',
     'gm.active': 'Active', 'gm.important': 'Important',
@@ -719,6 +722,7 @@ const TRANSLATIONS = {
     'gm.stats_done': 'Done today', 'gm.stats_overdue': 'Overdue',
     'gm.sub_tasks': 'Tasks for today and ahead',
     'gm.update_error': 'Could not update', 'gm.delete_error': 'Could not delete',
+    'gm.rename': 'Rename', 'gm.rename_prompt': 'New list name:', 'gm.list_exists': 'List already exists', 'gm.list_renamed': 'List renamed',
     // Kalender
     'kal.title': 'Calendar', 'kal.today': 'Today', 'kal.new_event': 'New event', 'kal.add_event': 'Event',
     'kal.add_placeholder': 'Title, date, time…',
@@ -741,7 +745,7 @@ const TRANSLATIONS = {
     'tp.title': 'Training Overview', 'tp.history': 'Session History',
     'tp.no_sessions': 'No sessions logged yet',
     'tp.no_sessions_full': '<div class="empty" style="grid-column:1/-1;padding:20px 0">No sessions logged yet</div>',
-    'tp.knee': 'Knee Pain', 'tp.edit_pain': 'Edit pain values',
+    'tp.edit_pain': 'Edit pain values',
     'tp.notes': 'Notes', 'tp.trend_up': '↓ Knee pain improving',
     'tp.trend_down': '↑ Knee pain worsening', 'tp.trend_stable': '— Knee pain stable',
     'tp.gym_badge': '✓ Gym', 'tp.sprint_badge': '⚡ Sprint',
@@ -962,6 +966,38 @@ async function getConfig() {
   if (cfg.error) throw new Error(cfg.error);
   sessionStorage.setItem('app_config', JSON.stringify(cfg));
   return cfg;
+}
+
+// ── Auto-hent søvn ────────────────────────────────────────────────────────
+// Henter søvn fra Garmin for de siste dagene som mangler i Supabase. Null oppsett
+// for brukeren: kjøres når en side lastes. Trygt å kalle ofte (throttlet 10 min +
+// server-vakt hopper over dager som alt finnes). Krever global `db` på siden.
+// Returnerer true hvis ny søvndata ble lagret.
+async function autoSyncSleep(days = 3) {
+  if (typeof db === 'undefined' || !db) return false;
+  const THROTTLE_MS = 10 * 60 * 1000;
+  if (Date.now() - (+(localStorage.getItem('sleep_autosync_at') || 0)) < THROTTLE_MS) return false;
+  const fmt = d => d.toLocaleDateString('sv');               // YYYY-MM-DD lokal
+  const dates = Array.from({ length: days }, (_, n) => {
+    const d = new Date(); d.setDate(d.getDate() - n); return fmt(d);
+  });
+  let have = new Set();
+  try {
+    const { data } = await db.from('health_data').select('date,sleep_score,sleep_hours').in('date', dates);
+    have = new Set((data || []).filter(r => r.sleep_score || r.sleep_hours).map(r => r.date));
+  } catch { return false; }
+  const missing = dates.filter(d => !have.has(d));
+  if (!missing.length) return false;
+  localStorage.setItem('sleep_autosync_at', String(Date.now()));
+  let got = false;
+  for (const d of missing) {                                 // nyeste først
+    try {
+      const r = await fetch(`/api/garmin-sync?date=${d}`);
+      const j = await r.json();
+      if (j?.ok && j.data && (j.data.sleep_hours || j.data.sleep_score)) got = true;
+    } catch { /* nettverk/timeout – prøver igjen neste gang siden lastes */ }
+  }
+  return got;
 }
 
 // ── Page transition on nav clicks ─────────────────────────────────────────

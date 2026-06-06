@@ -12,12 +12,9 @@ name: Garmin sleep sync (poll til søvn finnes)
 #       Secret: https://<ditt-vercel-domene>/api/garmin-sync
 
 on:
-  schedule:
-    # Cron er ALLTID UTC. '*/30 4-12 * * *' = hvert 30. min, 04:00–12:30 UTC
-    # ≈ 06:00–14:30 norsk tid (dekker oppvåkning hele året, sommer/vinter).
-    # Sover du lenger i helga? Utvid timene, f.eks. '4-14'.
-    - cron: '*/30 4-12 * * *'
-  workflow_dispatch: {}   # lar deg kjøre den manuelt fra Actions-fanen
+  # Automatisk synk skjer nå INNE I APPEN (henter de siste dagene når du åpner den),
+  # så denne kjører IKKE på timeplan lenger – bare hvis du starter den manuelt.
+  workflow_dispatch: {}   # kjør manuelt fra Actions-fanen ved behov
 
 # Ikke kjør flere overlappende pinger samtidig
 concurrency:

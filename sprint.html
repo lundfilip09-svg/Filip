@@ -484,7 +484,7 @@ async function loadPBs() {
         <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       </div>
       ${editable ? `<div id="pb-edit-${d}" style="display:none" class="pb-edit-wrap">
-        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" value="${r?.best_time != null ? (+r.best_time).toFixed(2) : ''}">
+        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" data-i18n-placeholder="unit.sec" value="${r?.best_time != null ? (+r.best_time).toFixed(2) : ''}">
         <input class="pb-edit-inp" id="pb-inp-date-${d}" type="date" value="${r?.date || ''}">
         <div class="pb-edit-actions">
           <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="savePB('${d}')">${t('save')}</button>

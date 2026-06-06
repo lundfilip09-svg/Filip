@@ -191,6 +191,13 @@
     .dash-todo-add input:disabled { opacity: 0.5; }
     .todo-item { transition: opacity 0.32s ease, transform 0.32s ease; }
     .todo-item.completing { opacity: 0.15 !important; transform: translateX(8px); pointer-events: none; }
+    .dash-todo-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .dtt { flex: 1; text-align: center; padding: 6px 4px; border-radius: 7px; font-size: 9.5px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); background: rgba(255,255,255,0.03); border: 1px solid transparent; cursor: pointer; transition: all 0.12s; }
+    .dtt:hover { color: var(--text-secondary); }
+    .dtt.active { color: var(--text-primary); background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+    .dtt.overdue.active { color: var(--danger); }
+    .dtt-n { opacity: 0.55; }
+    .dash-todo-list { display: flex; flex-direction: column; gap: 2px; min-height: 54px; }
 
     /* ── Next event ── */
     .next-evt {
@@ -443,8 +450,8 @@
           </div>
         </div>
         <div class="dash-todo-add">
-          <input id="dashTodoInput" type="text" data-i18n-placeholder="dash.add_todo_ph"
-            placeholder="Legg til viktig gjøremål…" data-i18n-placeholder="dash.add_todo_ph"
+          <input id="dashTodoInput" type="text" data-i18n-placeholder="gm.add_placeholder"
+            placeholder="Legg til gjøremål…"
             onkeydown="if(event.key==='Enter')addDashTodo()">
           <button class="btn btn-primary btn-sm" onclick="addDashTodo()" data-i18n="add">Legg til</button>
         </div>
@@ -998,65 +1005,84 @@ function renderDailyFokus(data) {
   el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
 }
 
-// ── Important todos ────────────────────────────────────────────────────────
+// ── Dashboard-gjøremål: I dag / I morgen / Forfalt (basert på due_date) ──────
+let dashTodoData = { today: [], tomorrow: [], overdue: [] };
+let dashTodoTab  = 'today';
+
 async function loadTodos() {
-  const { data } = await db.from('todos')
-    .select('*')
-    .eq('important', true)
+  const todayStr = today();
+  const tm = new Date(); tm.setDate(tm.getDate() + 1);
+  const tmrwStr = `${tm.getFullYear()}-${String(tm.getMonth()+1).padStart(2,'0')}-${String(tm.getDate()).padStart(2,'0')}`;
+  const { data } = await db.from('todos').select('*')
     .eq('completed', false)
     .order('due_date', { ascending: true, nullsLast: true });
+  const all = data || [];
+  dashTodoData = {
+    today:    all.filter(t => t.due_date === todayStr),
+    tomorrow: all.filter(t => t.due_date === tmrwStr),
+    overdue:  all.filter(t => t.due_date && t.due_date < todayStr),
+  };
+  renderDashTodos();
+}
+
+function setDashTab(tab) { dashTodoTab = tab; renderDashTodos(); }
+
+function renderDashTodos() {
   const el = document.getElementById('importantTodos');
-  const progressEl = document.getElementById('todosProgress');
-  if (!data?.length) {
-    if (progressEl) progressEl.textContent = '';
-    el.innerHTML = `<div class="empty">${t('dash.no_imp_todos')}</div>`;
-    return;
+  if (!el) return;
+  const counts = { today: dashTodoData.today.length, tomorrow: dashTodoData.tomorrow.length, overdue: dashTodoData.overdue.length };
+  const tab  = dashTodoTab;
+  const list = dashTodoData[tab] || [];
+  const tabBtn = (key, label, extra = '') =>
+    `<div class="dtt ${tab===key?'active':''} ${extra}" onclick="setDashTab('${key}')">${label} <span class="dtt-n">${counts[key]}</span></div>`;
+  let html = `<div class="dash-todo-tabs">
+      ${tabBtn('today', t('dash.today'))}
+      ${tabBtn('tomorrow', t('dash.tomorrow'))}
+      ${tabBtn('overdue', t('dash.overdue'), 'overdue')}
+    </div><div class="dash-todo-list">`;
+  if (!list.length) {
+    html += `<div class="empty">${t('gm.no_todos_empty')}</div>`;
+  } else {
+    html += list.map(td => `<div class="todo-item ${td.important ? 'important' : ''}">
+        <div class="todo-cb" onclick="completeTodo('${td.id}', this)"></div>
+        <span class="todo-text">${escHtml(td.title)}</span>
+        ${(td.due_date && tab !== 'today') ? `<span class="todo-due ${tab==='overdue'?'overdue':''}">${fmtDate(td.due_date)}</span>` : ''}
+        ${td.important ? `<span class="star-btn active">★</span>` : ''}
+      </div>`).join('');
   }
-  if (progressEl) progressEl.textContent = t('dash.active_tasks', {n: data.length});
-  el.innerHTML = data.map(td => {
-    const due = td.due_date ? new Date(td.due_date + 'T12:00:00') : null;
-    const isOverdue = due && due < new Date();
-    return `<div class="todo-item important">
-      <div class="todo-cb" onclick="completeTodo('${td.id}', this)"></div>
-      <span class="todo-text">${escHtml(td.title)}</span>
-      ${td.due_date ? `<span class="todo-due ${isOverdue?'overdue':''}">${fmtDate(td.due_date)}</span>` : ''}
-      <span class="star-btn active">★</span>
-    </div>`;
-  }).join('');
+  html += `</div>`;
+  el.innerHTML = html;
+  const progressEl = document.getElementById('todosProgress');
+  if (progressEl) {
+    const active = counts.today + counts.overdue;
+    progressEl.textContent = active ? t('dash.active_tasks', { n: active }) : '';
+  }
 }
 
 async function completeTodo(id, cbEl) {
   const item = cbEl.closest('.todo-item');
-  item.classList.add('completing');
+  if (item) item.classList.add('completing');
   const { error } = await db.from('todos').update({ completed: true, completed_at: new Date().toISOString() }).eq('id', id);
-  if (error) {
-    item.classList.remove('completing');
-    toast(t('dash.todo_err'), 'err');
-    return;
-  }
-  setTimeout(() => {
-    item.remove();
-    const progressEl = document.getElementById('todosProgress');
-    if (progressEl) {
-      const remaining = document.querySelectorAll('#importantTodos .todo-item').length;
-      progressEl.textContent = remaining > 0 ? t('dash.active_tasks', {n: remaining}) : '';
-    }
-  }, 350);
+  if (error) { if (item) item.classList.remove('completing'); toast(t('dash.todo_err'), 'err'); return; }
+  for (const k of ['today', 'tomorrow', 'overdue'])
+    dashTodoData[k] = dashTodoData[k].filter(td => String(td.id) !== String(id));
+  setTimeout(renderDashTodos, 350);
 }
 
-// ── Legg til viktig gjøremål fra forsiden (havner i "Generelt") ─────────────
+// Legg til fra forsiden — havner på dagen som matcher aktiv fane (I morgen → i morgen, ellers i dag)
 async function addDashTodo() {
   const input = document.getElementById('dashTodoInput');
   const title = input.value.trim();
   if (!title) return;
+  const base = new Date();
+  if (dashTodoTab === 'tomorrow') base.setDate(base.getDate() + 1);
+  const due = `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`;
   input.disabled = true;
-  const { error } = await db.from('todos').insert({
-    title, list_name: 'Generelt', important: true, completed: false,
-  });
+  const { error } = await db.from('todos').insert({ title, list_name: 'Generelt', completed: false, due_date: due });
   input.disabled = false;
   if (error) { toast(t('gm.save_error'), 'err'); return; }
-  input.value = '';
-  input.focus();
+  input.value = ''; input.focus();
+  if (dashTodoTab === 'overdue') dashTodoTab = 'today';
   toast(t('gm.added'));
   await loadTodos().catch(() => {});
 }
@@ -1197,12 +1223,20 @@ async function loadCalendar() {
   ]);
 
   renderDailyFokus({ sleepData, kneeData, sessionData, rehabData });
+
+  // Hent søvn automatisk hvis de siste dagene mangler (null oppsett for brukeren)
+  autoSyncSleep().then(async got => {
+    if (!got) return;
+    const fresh = await loadSleep().catch(() => null);
+    renderDailyFokus({ sleepData: fresh, kneeData, sessionData, rehabData });
+  });
 })();
 
 // Re-render dynamic content when language toggles (utils.js calls this from toggleLang)
 onLangChange = () => {
   applyLang();
   renderWeekStrip().catch(() => {});
+  if (typeof renderDashTodos === 'function') renderDashTodos();
   if (_lastFokusData) renderDailyFokus(_lastFokusData);
   loadTodos().catch(() => {});
   loadCalendar().catch(() => {});

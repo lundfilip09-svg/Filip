@@ -133,7 +133,7 @@
       text-align: center;
     }
     .gm-li.active .gm-li-count { background: rgba(91,164,245,0.15); color: #5BA4F5; }
-    .gm-li-del {
+    .gm-li-del, .gm-li-edit {
       opacity: 0;
       background: none;
       border: none;
@@ -145,9 +145,10 @@
       transition: all 0.12s;
       line-height: 1;
     }
-    .gm-li:hover .gm-li-del { opacity: 0.6; }
+    .gm-li:hover .gm-li-del, .gm-li:hover .gm-li-edit { opacity: 0.6; }
     .gm-li-del:hover { color: var(--danger) !important; opacity: 1 !important; }
-    @media (hover: none) { .gm-li-del { opacity: 0.4; } } /* alltid synlig på touch */
+    .gm-li-edit:hover { color: var(--text-secondary) !important; opacity: 1 !important; }
+    @media (hover: none) { .gm-li-del, .gm-li-edit { opacity: 0.4; } } /* alltid synlig på touch */
 
     .gm-new-list-wrap {
       padding: 12px 8px 20px;
@@ -464,7 +465,7 @@
         gap: 4px;
       }
       .gm-li { white-space: nowrap; flex-shrink: 0; padding: 6px 12px; }
-      .gm-li-del { display: none !important; }
+      .gm-li-del, .gm-li-edit { display: none !important; }
       .gm-new-list-wrap { border-top: none; padding: 0 12px 10px; margin-top: 0; }
       .gm-main  { padding: 20px 16px 60px; }
       .gm-page-title { font-size: 22px; }
@@ -601,7 +602,7 @@
 
     <div class="gm-sb-section" data-i18n="gm.lists">Lister</div>
     <div class="gm-list-nav" id="listsBar">
-      <div class="loading">Laster…</div>
+      <div class="loading" data-i18n="loading">Laster…</div>
     </div>
 
     <div class="gm-new-list-wrap">
@@ -775,7 +776,8 @@ function onLangChange() {
 async function loadLists() {
   const { data } = await db.from('todos').select('list_name');
   const fromDb = [...new Set((data || []).map(t => t.list_name))];
-  const defaultLists = ['Generelt', 'Trening', 'Skole'];
+  const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
+  const defaultLists = ['Generelt', 'Trening', 'Skole'].filter(d => !hidden.includes(d));
   lists = [...new Set([...defaultLists, ...fromDb])];
   const savedTab = localStorage.getItem('gjoremal_active_tab');
   if (savedTab && lists.includes(savedTab)) {
@@ -793,6 +795,7 @@ function renderListsBar() {
     return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}" onclick="selectList(this.dataset.list)">
       <span class="gm-li-name">${escHtml(l)}</span>
       ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
+      <button class="gm-li-edit" data-list="${escHtml(l)}" onclick="event.stopPropagation();renameList(this.dataset.list)" title="${t('gm.rename')}">✎</button>
       <button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="${t('delete')}" style="${l==='Generelt'?'visibility:hidden;pointer-events:none':''}">✕</button>
     </div>`;
   }).join('');
@@ -804,6 +807,26 @@ function selectList(name) {
   renderListsBar();
   document.getElementById('listHeading').textContent = name;
   renderTodos();
+}
+
+async function renameList(oldName) {
+  const newName = (prompt(t('gm.rename_prompt'), oldName) || '').trim();
+  if (!newName || newName === oldName) return;
+  if (lists.includes(newName)) { toast(t('gm.list_exists'), 'err'); return; }
+  const { error } = await db.from('todos').update({ list_name: newName }).eq('list_name', oldName);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  // Hvis en default-liste døpes om, skjul den så den ikke re-injiseres ved neste lasting
+  if (['Generelt','Trening','Skole'].includes(oldName)) {
+    const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
+    if (!hidden.includes(oldName)) { hidden.push(oldName); localStorage.setItem('gm_hidden_defaults', JSON.stringify(hidden)); }
+  }
+  lists = lists.map(l => l === oldName ? newName : l);
+  allTodos.forEach(td => { if (td.list_name === oldName) td.list_name = newName; });
+  if (activeList === oldName) { activeList = newName; try { localStorage.setItem('gjoremal_active_tab', newName); } catch {} }
+  renderListsBar();
+  const h = document.getElementById('listHeading'); if (h) h.textContent = activeList;
+  renderTodos();
+  toast(t('gm.list_renamed'));
 }
 
 async function addList() {

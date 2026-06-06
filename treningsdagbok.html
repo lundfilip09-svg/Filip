@@ -104,7 +104,7 @@ const TR = {
     th_date:'Dato', th_type:'Type', th_notes:'Notater', th_pain:'Knesmerte (f/u/e)',
     th_dist:'Distanse', th_kind:'Type', th_time:'Tid', th_rpe:'RPE',
     none_gym:'Ingen økter i perioden.', none_sprint:'Ingen sprintøkter i perioden.',
-    langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)'
+    langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil'
   },
   en: {
     from:'From', to:'To', update:'Update', save_pdf:'Save as PDF', back:'← Back',
@@ -115,7 +115,7 @@ const TR = {
     th_date:'Date', th_type:'Type', th_notes:'Notes', th_pain:'Knee pain (b/d/a)',
     th_dist:'Distance', th_kind:'Type', th_time:'Time', th_rpe:'RPE',
     none_gym:'No sessions in this period.', none_sprint:'No sprint sessions in this period.',
-    langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)'
+    langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error'
   }
 };
 let _lang = localStorage.getItem('lang') || 'no';
@@ -146,7 +146,7 @@ async function init(){
     const cfg = await r.json();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
   } catch(e){
-    document.getElementById('doc').innerHTML = `<div class="empty">Config-feil: ${e.message}</div>`;
+    document.getElementById('doc').innerHTML = `<div class="empty">${t('config_err')}: ${e.message}</div>`;
     return;
   }
   // Default: siste 4 uker

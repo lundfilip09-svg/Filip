@@ -201,6 +201,7 @@ class handler(BaseHTTPRequestHandler):
         # Les valgfri ?date=YYYY-MM-DD og ?force=1 fra URL
         target_date = None
         force = False
+        provided_key = None
         try:
             parsed = urlparse(self.path)
             params = parse_qs(parsed.query)
@@ -208,8 +209,20 @@ class handler(BaseHTTPRequestHandler):
                 target_date = params["date"][0]
             if "force" in params and params["force"][0] in ("1", "true", "yes"):
                 force = True
+            if "key" in params:
+                provided_key = params["key"][0]
         except Exception:
             pass
+
+        # Valgfri beskyttelse: er env-variabelen SYNC_KEY satt, må ?key=… matche.
+        # AV som standard (bakoverkompatibelt) — app, cron og manuell henting funker uendret.
+        required_key = os.environ.get("SYNC_KEY")
+        if required_key and provided_key != required_key:
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": False, "error": "forbidden"}).encode("utf-8"))
+            return
 
         # Vakt: hvis dagens søvn allerede ligger i Supabase, hopp over uten å logge inn i Garmin.
         # Gjør 30-min-polling billig og unngår at Garmin rate-limiter/låser kontoen.

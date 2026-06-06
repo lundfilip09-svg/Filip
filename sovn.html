@@ -237,7 +237,7 @@
   <!-- Hero -->
   <div class="hero-card">
     <div id="heroInner">
-      <div class="hero-inner"><div class="empty-state">Laster…</div></div>
+      <div class="hero-inner"><div class="empty-state" data-i18n="loading">Laster…</div></div>
     </div>
   </div>
 
@@ -374,6 +374,12 @@ function getReadinessInsight(d) {
 }
 
 // ── Render: Hero ───────────────────────────────────────────────────────────
+function goToToday() {
+  viewDate = new Date().toLocaleDateString('sv');
+  loadViewDate();
+  renderChart(chartMetric, chartDays);
+}
+
 function renderHero(d) {
   const el  = document.getElementById('heroInner');
   const sc  = d?.sleep_score;
@@ -419,40 +425,42 @@ function renderHero(d) {
           <button onclick="offsetViewDate(-1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-tertiary);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${t('sovn.prev_day')}">‹</button>
           <div class="hero-date" style="margin:0">${dispDate}${isToday ? ' · ' + t('dash.today').toUpperCase() : ''}</div>
           <button onclick="offsetViewDate(1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:${isToday ? 'rgba(255,255,255,0.12)' : 'var(--text-tertiary)'};border-radius:6px;width:24px;height:24px;cursor:${isToday ? 'default' : 'pointer'};font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${t('sovn.next_day')}" ${isToday ? 'disabled' : ''}>›</button>
+          ${!isToday ? `<button onclick="goToToday()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-secondary);border-radius:6px;height:24px;padding:0 9px;cursor:pointer;font-size:10px;font-family:var(--font-mono);flex-shrink:0" title="${t('dash.today')}">${t('dash.today')}</button>` : ''}
         </div>
         <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
         <div class="hero-tagline">${tagline}</div>
         ${chips.length ? `<div class="hero-chips">${chips.map(c => `<div class="hero-chip">${c}</div>`).join('')}</div>` : ''}
         ${noData && isToday ? `
-        <button onclick="copySyncCommand(this)" style="
+        <button onclick="fetchSleepNow(this)" style="
           margin-top:14px; display:inline-flex; align-items:center; gap:7px;
           background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.11);
           color:var(--text-secondary); font-family:var(--font-mono); font-size:11px;
           padding:7px 13px; border-radius:7px; cursor:pointer; transition:all 0.15s;
           letter-spacing:0.03em;" onmouseover="this.style.background='rgba(255,255,255,0.09)'"
           onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-          <span>📋</span> ${t('sovn.copy_sync')}
+          <span>🔄</span> ${t('sovn.fetch_now')}
         </button>` : ''}
       </div>
     </div>`;
 }
 
-function copySyncCommand(btn) {
-  const cmd = `curl "${VERCEL_DOMAIN}/api/garmin-sync"`;
-  navigator.clipboard.writeText(cmd).then(() => {
-    const orig = btn.innerHTML;
-    btn.innerHTML = `<span>✓</span> ${t('sovn.copied')}`;
-    btn.style.borderColor = 'rgba(107,227,164,0.3)';
-    btn.style.color = 'var(--success)';
-    setTimeout(() => {
-      btn.innerHTML = orig;
-      btn.style.borderColor = '';
-      btn.style.color = '';
-    }, 2500);
-  }).catch(() => {
-    // Fallback: prompt med kommandoen
-    prompt(t('sovn.copy_prompt'), `curl "${VERCEL_DOMAIN}/api/garmin-sync"`);
-  });
+async function fetchSleepNow(btn) {
+  const orig = btn.innerHTML;
+  btn.innerHTML = `<span>⏳</span> ${t('sovn.fetching')}`;
+  btn.style.pointerEvents = 'none';
+  try {
+    const today = new Date().toLocaleDateString('sv');
+    const r = await fetch(`/api/garmin-sync?date=${today}&force=1`);
+    const j = await r.json();
+    if (j?.ok && j.data && (j.data.sleep_hours || j.data.sleep_score)) {
+      toast(t('sovn.fetched')); loadToday(); loadChartData(); return;
+    }
+    toast(t('sovn.no_new'));
+  } catch {
+    toast(t('sovn.fetch_err'), 'err');
+  }
+  btn.innerHTML = orig;
+  btn.style.pointerEvents = '';
 }
 
 // ── Render: Metrics ────────────────────────────────────────────────────────
@@ -761,6 +769,16 @@ function renderChart(metric, days) {
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: { duration: 380 },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const ds = dates[els[0].index];
+        if (!ds || ds === viewDate) return;
+        viewDate = ds;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        loadViewDate();
+        setTimeout(() => renderChart(chartMetric, chartDays), 50);
+      },
+      onHover: (e, els) => { if (e?.native?.target) e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -779,7 +797,7 @@ function renderChart(metric, days) {
         x: {
           stacked: metric === 'sleep',
           grid: { color:'rgba(255,255,255,0.04)', drawBorder:false },
-          ticks: { color:'#6B6964', font:{family:'ui-monospace',size:9}, maxRotation:45, maxTicksLimit:days <= 14 ? 14 : 16 },
+          ticks: { color:(c)=>dates[c.index]===viewDate?'#FAFAFA':'#6B6964', font:{family:'ui-monospace',size:9}, maxRotation:45, maxTicksLimit:days <= 14 ? 14 : 16 },
         },
         y: {
           stacked: metric === 'sleep',
@@ -848,6 +866,10 @@ function setChartPeriod(days) {
   // Sett riktig periode-knapp aktiv
   document.querySelectorAll('.cp-btn').forEach(b => b.classList.toggle('active', b.dataset.days === String(chartDays)));
   await Promise.all([loadToday(), loadChartData()]);
+  // Hent søvn automatisk hvis de siste dagene mangler (null oppsett for brukeren)
+  autoSyncSleep().then(got => {
+    if (got) { toast(t('sovn.fetched')); loadToday(); loadChartData(); }
+  });
 })();
 </script>
 </body>
