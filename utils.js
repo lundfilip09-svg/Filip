@@ -400,6 +400,8 @@ const TRANSLATIONS = {
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
     'ai.sub_pre': 'Personlig assistent', 'ai.sub_post': 'Søvn · Sprint · Rehab',
     'ai.clear': 'Tøm samtale', 'ai.cleared': 'Samtale tømt',
+    'ai.copy_report': 'Kopier AI-helserapport', 'ai.report_building': 'Bygger rapport…',
+    'ai.report_copied': 'AI-helserapport kopiert til utklippstavlen', 'ai.report_copy_fail': 'Kunne ikke kopiere — prøv igjen',
     // B5 — ukentlig oppsummering
     'ws.title': 'Ukens oppsummering', 'ws.generate': 'Lag ukesoppsummering',
     'ws.generating': 'Lager oppsummering…', 'ws.this_week': 'Denne uken (uke {n})',
@@ -822,6 +824,8 @@ const TRANSLATIONS = {
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
     'ai.sub_pre': 'Personal assistant', 'ai.sub_post': 'Sleep · Sprint · Rehab',
     'ai.clear': 'Clear chat', 'ai.cleared': 'Chat cleared',
+    'ai.copy_report': 'Copy AI Health Report', 'ai.report_building': 'Building report…',
+    'ai.report_copied': 'AI health report copied to clipboard', 'ai.report_copy_fail': 'Could not copy — try again',
     // B5 — weekly summary
     'ws.title': 'Weekly summary', 'ws.generate': 'Generate weekly summary',
     'ws.generating': 'Generating summary…', 'ws.this_week': 'This week (week {n})',

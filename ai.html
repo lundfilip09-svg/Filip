@@ -239,7 +239,10 @@
       <div class="ai-title">AI Overseer</div>
       <div class="ai-subtitle"><span data-i18n="ai.sub_pre">Personlig assistent</span> · <span data-i18n="ai.model">Sonnet 4.6</span> · <span data-i18n="ai.sub_post">Søvn · Sprint · Rehab</span></div>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;flex-shrink:0;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
+    <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+      <button class="btn btn-ghost btn-sm" id="copyReportBtn" onclick="copyHealthReport()" style="font-size:11px" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
+    </div>
   </div>
 
   <div class="chat-card">
@@ -666,6 +669,143 @@ async function generateWeeklySummary() {
     body.innerHTML = `<div class="ws-hint" style="color:var(--danger)">${e.name === 'AbortError' ? t('ai.err_timeout') : t('ai.err_network')}</div>`;
   } finally {
     btn.disabled = false;
+  }
+}
+
+// ── Copy AI Health Report ────────────────────────────────────────────────────
+// Bygger en ferdig "master prompt" på ENGELSK (skal limes inn i gratis-AI i USA)
+// og kopierer til utklippstavla. Statisk bakgrunn er hardkodet; PB-er, plager,
+// fysio-notater og siste 7 dager hentes LIVE fra Supabase så rapporten aldri
+// blir utdatert. NB: rapport-teksten er bevisst engelsk-only (data, ikke UI) —
+// knapp/toast er tospråklige via i18n.
+async function writeClip(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (_) { return false; }
+  }
+}
+
+const _INJ_BODY_EN = { 'body.knee':'Knee','body.hamstring':'Hamstring','body.glute':'Glute',
+  'body.hipflexor':'Hip flexor','body.hip':'Hip','body.shoulder':'Shoulder','body.back':'Back',
+  'body.neck':'Neck','body.ankle':'Ankle','body.calf':'Calf','body.achilles':'Achilles',
+  'body.foot':'Foot','body.other':'Other' };
+const _INJ_SIDE_EN = { left:'left', right:'right', both:'both' };
+const _INJ_STAT_EN = { active:'ACTIVE', improving:'IMPROVING', archived:'archived' };
+const _INJ_SEV_EN  = { mild:'mild', moderate:'moderate', severe:'severe' };
+
+function _isoDaysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function copyHealthReport() {
+  const btn = document.getElementById('copyReportBtn');
+  if (btn) btn.disabled = true;
+  toast(t('ai.report_building'));
+  try {
+    const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
+    const [health, knee, gym, sprint, activity, records, physio, injuries] = await Promise.all([
+      db.from('health_data').select('date,sleep_score,hrv,rhr').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('knee_pain').select('date,before_score,during_score,after_score,day_after_score,notes').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('gym_log').select('date,session_type,rpe').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('sprint_log').select('date,distance,type,rpe').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('activity_log').select('date,activity_type,activity_label,duration_min,rpe').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('sprint_records').select('distance,best_time').order('distance', { ascending: true }),
+      db.from('physio_notes').select('date,therapist,note').order('date', { ascending: false }).limit(3),
+      db.from('injuries').select('body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
+    ]);
+
+    const H = health.data || [], K = knee.data || [], G = gym.data || [],
+          S = sprint.data || [], A = activity.data || [], R = records.data || [],
+          P = physio.data || [], I = injuries.data || [];
+
+    // PB-linje — live fra sprint_records, fallback til kjente verdier
+    const recMap = {};
+    R.forEach(r => { if (r.best_time != null) recMap[r.distance] = Number(r.best_time).toFixed(2); });
+    const pb100 = recMap['100m'] || '11.52';
+    const pb200 = recMap['200m'] || '23.11';
+    const otherPB = R.filter(r => !['100m','200m'].includes(r.distance) && r.best_time != null)
+      .map(r => `${r.distance} (${Number(r.best_time).toFixed(2)}s)`);
+    const eventsLine = `100m (${pb100}s) / 200m (${pb200}s)` + (otherPB.length ? ' / ' + otherPB.join(' / ') : '');
+
+    // Aktive plager → engelsk
+    const injLines = I.map(i => {
+      const part = _INJ_BODY_EN[i.body_part] || i.body_part;
+      const side = i.side && _INJ_SIDE_EN[i.side] ? ' ' + _INJ_SIDE_EN[i.side] : '';
+      const meta = `${_INJ_STAT_EN[i.status] || i.status}, ${_INJ_SEV_EN[i.severity] || i.severity}${i.start_date ? ', since ' + i.start_date : ''}`;
+      return `- ${part}${side} [${meta}]${i.note ? ': ' + i.note : ''}`;
+    });
+    const injBlock = injLines.length ? injLines.join('\n') : '- None currently logged (assume injury-free unless noted below).';
+
+    // Fysio-notater
+    const physioBlock = P.length
+      ? P.map(p => `(${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.note}`).join('\n\n')
+      : 'No physio notes logged yet.';
+
+    // Siste 7 dager — én linje per dag (i dag → bakover)
+    const idx = (rows) => { const m = {}; rows.forEach(r => { (m[r.date] ||= []).push(r); }); return m; };
+    const hM = {}; H.forEach(h => hM[h.date] = h);
+    const kM = {}; K.forEach(k => kM[k.date] = k);
+    const gM = idx(G), sM = idx(S), aM = idx(A);
+
+    const dayLines = [];
+    for (let n = 0; n < 7; n++) {
+      const ds = _isoDaysAgo(n);
+      const wd = new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+      const parts = [];
+      const h = hM[ds];
+      parts.push(`Sleep score: ${h && h.sleep_score != null ? h.sleep_score : '–'}`);
+      if (h && (h.hrv != null || h.rhr != null)) parts.push(`HRV ${h.hrv ?? '–'} / RHR ${h.rhr ?? '–'}`);
+      const k = kM[ds];
+      parts.push(`Knee pain before/during/after/next-day: ${k ? `${k.before_score ?? '–'}/${k.during_score ?? '–'}/${k.after_score ?? '–'}/${k.day_after_score ?? '–'}` : 'not logged'}`);
+      const sess = [];
+      (gM[ds] || []).forEach(g => sess.push(`Strength${g.session_type ? ' (' + g.session_type + ')' : ''}${g.rpe != null ? ' RPE ' + g.rpe : ''}`));
+      (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + s.distance : ''}${s.type ? ' ' + s.type : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}`));
+      (aM[ds] || []).forEach(a => sess.push(`${a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type}${a.duration_min ? ' ' + a.duration_min + 'min' : ''}${a.rpe != null ? ' RPE ' + a.rpe : ''}`));
+      parts.push(`Sessions: ${sess.length ? sess.join('; ') : 'rest / none logged'}`);
+      dayLines.push(`${ds} (${wd}): ${parts.join(' | ')}`);
+    }
+
+    const report =
+`=== ATHLETE CONTEXT ===
+Name: Filip Lund (born 2009) — competitive 100m/200m sprinter, Norway
+Main Events: ${eventsLine}
+Current Club: Norna-Salhus IL (Norway)
+Coaching Team: Erlend Sæterstøl, Jørgen Homstad, Joakim Dang, Sondre Amundsen
+
+=== MEDICAL & INJURY HISTORY ===
+Diagnosis: Patellar tendinopathy (jumper's knee), left knee.
+Onset: January 2026, following a rapid ramp-up in sprint training volume.
+Current Status: Doing daily targeted rehab. Tolerating static/slow heavy loading well, but highly sensitive to high-velocity stretch-shortening cycles (like football and max sprinting).
+Active issues (live from tracker):
+${injBlock}
+Latest Physio/Clinical Notes (live from tracker, newest first):
+${physioBlock}
+
+=== CURRENT ENVIRONMENT ===
+Location: Fergus Falls, Minnesota (High School Exchange VG2 at Hillcrest).
+Current Activities: Combining High School Soccer (2-3x week) with Sprint Training (1x week) and Strength/Rehab (2x week).
+
+=== RECENT TRACKING DATA (LAST 7 DAYS) ===
+${dayLines.join('\n')}
+
+=== YOUR ROLE AS AN EXPERT SPRINT & REHAB COACH ===
+Based strictly on sports science, tendon adaptation timelines, and my tracking data above:
+1. Analyze if my knee pain trend indicates that my current soccer/sprint load is safe or causing regression.
+2. Give me a concrete recommendation for my training load TOMORROW.
+3. Highlight any red flags I need to watch out for in my upcoming sessions.`;
+
+    const ok = await writeClip(report);
+    toast(ok ? t('ai.report_copied') : t('ai.report_copy_fail'));
+  } catch (e) {
+    toast(t('ai.report_copy_fail'));
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 

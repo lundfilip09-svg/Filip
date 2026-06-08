@@ -588,23 +588,6 @@
       </div>
     </div>
 
-    <!-- ACTIVE: active exercise -->
-    <div class="sb-sec ws-active">
-      <div class="sb-hd" data-i18n="gym.active_exercise">Aktiv øvelse</div>
-      <div class="sb-ex-card" id="sbActiveCard">
-        <div class="sb-ex-empty" data-i18n="gym.no_active_exercise">Ingen aktiv øvelse</div>
-        <div class="sb-ex-hint" data-i18n="gym.tap_exercise">Trykk på en øvelse for å begynne</div>
-      </div>
-    </div>
-
-    <!-- ACTIVE: next exercise -->
-    <div class="sb-sec ws-active">
-      <div class="sb-hd" data-i18n="gym.next_exercise">Neste øvelse</div>
-      <div class="sb-ex-card" id="sbNextCard">
-        <div class="sb-ex-empty">—</div>
-      </div>
-    </div>
-
     <!-- ACTIVE: verktøy -->
     <div class="sb-sec ws-active">
       <div class="sb-hd" data-i18n="gym.tools">Verktøy</div>
@@ -826,7 +809,9 @@ function restoreDraft() {
   if (!raw) return;
   try {
     const d = JSON.parse(raw);
-    if (d.setData)      setData = d.setData;
+    // Only restore set data if the draft is from today — avoids yesterday's
+    // user-added sets bleeding into a new session
+    if (d.setData && d.logDate === today()) setData = d.setData;
     if (d.kneePain)     Object.assign(kneePain, d.kneePain);
     if (d.logDate)      document.getElementById('logDate').value = d.logDate;
     if (d.sessionNotes) document.getElementById('sessionNotes').value = d.sessionNotes;
@@ -1010,10 +995,25 @@ function tryRestoreSession(data) {
 }
 
 
+// ── Service Worker registration ────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// Send a message to the active Service Worker (if any)
+function swPost(msg) {
+  navigator.serviceWorker?.ready
+    .then(reg => reg.active?.postMessage(msg))
+    .catch(() => {});
+}
+
 // ── Init ───────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('logDate').value = today();
   applyLang();
+  // Request notification permission on load so timer fires system alerts
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default')
+    Notification.requestPermission();
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
@@ -1945,6 +1945,9 @@ function startRest(seconds) {
   restDuration  = seconds;
   restPaused    = false;
   saveSession();
+  // Tell Service Worker to fire a background notification when timer ends
+  swPost({ type: 'START_TIMER', seconds,
+    title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body') });
   resumeRestTimer();
   const rv = document.getElementById('restVal');
   if (rv) rv.textContent = fmtRest(seconds);
@@ -1956,6 +1959,7 @@ function startRest(seconds) {
 
 function stopRest() {
   clearInterval(restTimerInt); restTimerInt = null;
+  swPost({ type: 'CANCEL_TIMER' }); // cancel any pending SW notification
   restStartedAt = null; restDuration = 0;
   restPaused = false; restPausedRemaining = 0;
   const el = document.getElementById('restDisplay');
@@ -2526,8 +2530,10 @@ function playTimerDone() {
       o.stop(ctx.currentTime + delay + 0.25);
     });
   } catch(e) {}
+  // Vibrate on mobile (pattern: short-pause-short)
+  try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body'), silent: true }); } catch(e) {}
+    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body') }); } catch(e) {}
   }
 }
 
