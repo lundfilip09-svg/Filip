@@ -36,7 +36,9 @@ const TRANSLATIONS = {
     'dash.calendar': 'Kalender', 'dash.today': 'I dag', 'dash.upcoming': 'Kommende',
     'dash.status': 'Status', 'dash.full_overview': 'Full treningsoversikt →',
     'dash.sleep_score': 'Søvnscore', 'dash.hrv': 'HRV', 'dash.rhr': 'Hvilepuls',
-    'dash.deep_sleep': 'Dyp søvn', 'dash.tonight': 'I natt',
+    'dash.deep_sleep': 'Dyp søvn', 'dash.deep': 'Dyp', 'dash.tonight': 'I natt',
+    'dash.hr_unit': 't', 'dash.min_unit': 'm',
+    'dash.cfg_error': 'Sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler i Vercel.',
     'dash.yesterday': 'I går', 'dash.days_ago': '{n} dager siden',
     'dash.offline': 'Ingen nettverkstilkobling — data kan være utdatert',
     'dash.no_session': 'Ingen økt planlagt i dag', 'dash.rest_day': 'Hviledag',
@@ -153,7 +155,7 @@ const TRANSLATIONS = {
     'gym.fill_sets_reps': 'Fyll inn sett og reps',
     'gym.knee_not_saved': 'Knesmerte ikke lagret: {msg}',
     'gym.select_pain_score': 'Velg smertescore 0–10',
-    'gym.weight_saved': '{name}: {kg} kg lagret',
+    'gym.weight_saved': '{name}: {w} kg lagret',
     'gym.session': 'Økt', 'gym.session_done': 'Økt fullført!', 'gym.save_in_sidebar': 'Lagre i sidepanelet →',
     'gym.dismiss': 'Avvis', 'gym.today_session': 'Dagens økt', 'gym.knee_before_session': 'Knesmerte — Før økt',
     'gym.session_status': 'Øktstatus', 'gym.active_exercise': 'Aktiv øvelse', 'gym.no_active_exercise': 'Ingen aktiv øvelse',
@@ -456,7 +458,9 @@ const TRANSLATIONS = {
     'dash.calendar': 'Calendar', 'dash.today': 'Today', 'dash.upcoming': 'Upcoming',
     'dash.status': 'Status', 'dash.full_overview': 'Full training overview →',
     'dash.sleep_score': 'Sleep score', 'dash.hrv': 'HRV', 'dash.rhr': 'Resting HR',
-    'dash.deep_sleep': 'Deep sleep', 'dash.tonight': 'Last night',
+    'dash.deep_sleep': 'Deep sleep', 'dash.deep': 'Deep', 'dash.tonight': 'Last night',
+    'dash.hr_unit': 'h', 'dash.min_unit': 'm',
+    'dash.cfg_error': 'Set SUPABASE_URL and SUPABASE_ANON_KEY as environment variables in Vercel.',
     'dash.yesterday': 'Yesterday', 'dash.days_ago': '{n} days ago',
     'dash.offline': 'No network connection — data may be outdated',
     'dash.no_session': 'No session planned today', 'dash.rest_day': 'Rest day',
@@ -560,11 +564,11 @@ const TRANSLATIONS = {
     // B1 — progressive overload coach
     'po.title': 'Overload coach', 'po.subtitle': 'Suggestions for next session',
     'po.no_data': 'Log a few sessions and I’ll suggest progression here.',
-    'po.try': 'Try {w} kg', 'po.try_reps': 'Try {r}',
+    'po.try': 'Try {w} lbs', 'po.try_reps': 'Try {r}',
     'po.hold_pain': 'Hold weight — you logged pain ({p}) last time',
     'po.plateau': 'Plateau for {n} sessions — consider variation',
     'po.progress': '↑ ready for more', 'po.keep': 'Keep',
-    'po.last': 'Last: {w} kg × {r}', 'po.kg': 'kg',
+    'po.last': 'Last: {w} lbs × {r}', 'po.kg': 'lbs',
     'po.collapse': 'Hide', 'po.expand': 'Show coach',
     'gym.knee_panel': 'Knee Pain — Log',
     'gym.select_exercise_first': 'Select an exercise first',
@@ -573,7 +577,7 @@ const TRANSLATIONS = {
     'gym.fill_sets_reps': 'Enter sets and reps',
     'gym.knee_not_saved': 'Knee pain not saved: {msg}',
     'gym.select_pain_score': 'Select a pain score 0–10',
-    'gym.weight_saved': '{name}: {kg} kg saved',
+    'gym.weight_saved': '{name}: {w} lbs saved',
     'gym.session': 'Session', 'gym.session_done': 'Session complete!', 'gym.save_in_sidebar': 'Save in the sidebar →',
     'gym.dismiss': 'Dismiss', 'gym.today_session': "Today's session", 'gym.knee_before_session': 'Knee pain — Before session',
     'gym.session_status': 'Session status', 'gym.active_exercise': 'Active exercise', 'gym.no_active_exercise': 'No active exercise',
@@ -585,7 +589,7 @@ const TRANSLATIONS = {
     'gym.exercise_ph': 'Exercise', 'gym.sets_ph': 'Sets', 'gym.reps_ph': 'Reps',
     'gym.daily_rehab': 'Daily Rehab', 'gym.no_warmup_data': 'No warm-up data',
     'gym.loading_exercises': 'Loading exercises…', 'gym.col_sets': 'Sets', 'gym.col_reps': 'Reps',
-    'gym.col_weight': 'Weight (kg)', 'gym.col_notes': 'Notes', 'gym.complete_exercise': 'Complete exercise',
+    'gym.col_weight': 'Weight (lbs)', 'gym.col_notes': 'Notes', 'gym.complete_exercise': 'Complete exercise',
     'gym.all_done': 'All exercises done ✓', 'gym.no_warmup_phase': 'No warm-up data',
     'gym.rest_range': 'Choose between 5 sec and 10 min', 'gym.fill_day_after': 'Can be filled in the day after',
     'gym.notif_rest_done': 'Rest timer done', 'gym.notif_rest_body': 'Time for the next set!',
@@ -852,6 +856,29 @@ function t(key, vars = {}) {
 }
 
 function fmtLocale() { return _lang === 'en' ? 'en-GB' : 'no-NO'; }
+
+// ── Vekt-enhet (kg ↔ lbs), bundet til språk: no = kg, en = lbs ──────────────
+// All lagring/in-memory er ALLTID i kg (kanonisk). Konverter kun ved
+// visning (fromKg) og inntasting (toKg).
+const LB_PER_KG = 2.2046226218;
+function weightUnit() { return _lang === 'en' ? 'lbs' : 'kg'; }
+// kg (number|''|null) → tall i gjeldende enhet for visning ('' hvis tomt)
+function fromKg(kg) {
+  if (kg === '' || kg == null || isNaN(parseFloat(kg))) return '';
+  const n = parseFloat(kg);
+  return _lang === 'en' ? Math.round(n * LB_PER_KG * 10) / 10 : Math.round(n * 100) / 100;
+}
+// verdi i gjeldende enhet → kg (number, eller NaN hvis ugyldig)
+function toKg(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return NaN;
+  return _lang === 'en' ? Math.round((n / LB_PER_KG) * 100) / 100 : n;
+}
+// steg for vektinput i gjeldende enhet (2.5 kg ≈ 5 lbs)
+function weightStep(big = true) {
+  if (_lang === 'en') return big ? 5 : 1;
+  return big ? 2.5 : 0.5;
+}
 
 function applyLang() {
   document.documentElement.lang = _lang === 'en' ? 'en' : 'no';

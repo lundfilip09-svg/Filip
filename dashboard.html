@@ -582,10 +582,10 @@ document.getElementById('dateLabel').textContent =
 async function autoCleanTodos() {
   const key = 'ac_' + today();
   if (localStorage.getItem(key)) return;
-  localStorage.setItem(key, '1');
-  await db.from('todos').delete()
+  const { error } = await db.from('todos').delete()
     .eq('completed', true)
     .lt('completed_at', today() + 'T00:00:00.000Z');
+  if (!error) localStorage.setItem(key, '1');  // sett flagg kun ved vellykket sletting
 }
 
 // ── Sleep card ─────────────────────────────────────────────────────────────
@@ -612,9 +612,12 @@ async function loadSleep() {
   // Formater timer som "7t 50m"
   function fmtHours(h) {
     if (!h) return '–';
-    const t = Math.round(h * 60);
-    return t >= 60 ? `${Math.floor(t/60)}t ${t%60}m` : `${t}m`;
+    const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
+    const mins = Math.round(h * 60);
+    return mins >= 60 ? `${Math.floor(mins/60)}${hu} ${mins%60}${mu}` : `${mins}${mu}`;
   }
+  const _hu = t('dash.hr_unit'), _mu = t('dash.min_unit');
+  const fmtMin = m => `${m>=60?Math.floor(m/60)+_hu:''}${m%60>0?m%60+_mu:m<60?m+_mu:''}`;
 
   el.innerHTML = `
     <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
@@ -636,12 +639,12 @@ async function loadSleep() {
           <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#4A9EE8">${hrv}ms</div>
         </div>` : ''}
         ${deep ? `<div style="background:rgba(124,111,212,0.08);border:1px solid rgba(124,111,212,0.18);border-radius:7px;padding:5px 9px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(124,111,212,0.7);letter-spacing:0.08em;text-transform:uppercase">Dyp</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${deep>=60?Math.floor(deep/60)+'t':''}${deep%60>0?deep%60+'m':deep<60?deep+'m':''}</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(124,111,212,0.7);letter-spacing:0.08em;text-transform:uppercase">${t('dash.deep')}</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${fmtMin(deep)}</div>
         </div>` : ''}
         ${rem ? `<div style="background:rgba(107,227,164,0.08);border:1px solid rgba(107,227,164,0.18);border-radius:7px;padding:5px 9px">
           <div style="font-size:9px;font-family:var(--font-mono);color:rgba(107,227,164,0.7);letter-spacing:0.08em;text-transform:uppercase">REM</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${rem>=60?Math.floor(rem/60)+'t':''}${rem%60>0?rem%60+'m':rem<60?rem+'m':''}</div>
+          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${fmtMin(rem)}</div>
         </div>` : ''}
       </div>
     </a>`;
@@ -754,9 +757,9 @@ function _weekStripLabel(txt) {
   if (/basket/i.test(txt))    return t('dash.chip_basket');
   if (/sirk/i.test(txt))      return t('dash.chip_sirk');
   if (/mobil/i.test(txt))     return t('dash.chip_mobil');
-  if (/kondi/i.test(txt))     return t('dash.chip_kondi');
-  if (/styrke/i.test(txt))    return t('dash.chip_styrke');
-  if (/hvile/i.test(txt))     return t('dash.chip_hvile');
+  if (/kondi|condition/i.test(txt)) return t('dash.chip_kondi');
+  if (/styrke|strength/i.test(txt)) return t('dash.chip_styrke');
+  if (/hvile|rest/i.test(txt))     return t('dash.chip_hvile');
   if (/rehab/i.test(txt))     return t('dash.chip_rehab');
   const first = txt.split(/\s+/)[0];
   return first.length <= 8 ? first : first.slice(0, 7) + '…';
@@ -802,7 +805,7 @@ async function renderWeekStrip() {
     if (gymType !== undefined) {
       let cls = 'ind-styrke';
       if (/sprint/i.test(gymType))                              cls = 'ind-sprint';
-      else if (/mobilitet|sirkulasjon|kondisjon/i.test(gymType)) cls = 'ind-kondisjon';
+      else if (/mobilitet|sirkulasjon|kondisjon|mobility|condition/i.test(gymType)) cls = 'ind-kondisjon';
       else if (/rehab/i.test(gymType))                          cls = 'ind-kondisjon';
       chips.push({ cls, label: _weekStripLabel(gymType) || t('dash.chip_styrke') });
     }
@@ -819,7 +822,7 @@ async function renderWeekStrip() {
         const t = txt.toLowerCase();
         let cls = 'ind-styrke';
         if (/sprint/.test(t)) cls = 'ind-sprint';
-        else if (/kondisjon|sirkulasjon|mobilitet/.test(t)) cls = 'ind-kondisjon';
+        else if (/kondisjon|sirkulasjon|mobilitet|condition|mobility/.test(t)) cls = 'ind-kondisjon';
         chips.push({ cls, label: _weekStripLabel(txt) });
       }
     }
@@ -1127,7 +1130,7 @@ async function addDashTodo() {
 // ── Calendar helpers ───────────────────────────────────────────────────────
 function _calFmtTime(start) {
   if (!start.dateTime) return t('kal.whole_day');
-  return new Date(start.dateTime).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+  return new Date(start.dateTime).toLocaleTimeString(fmtLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 function _calFmtDate(start) {
   const d = new Date(start.dateTime || start.date);
@@ -1139,11 +1142,11 @@ function _calIsToday(start) {
   return new Date(start.dateTime || start.date).toDateString() === new Date().toDateString();
 }
 function kalenderFarge(tittel) {
-  const t = tittel || '';
-  if (t.includes('Styrke') || t.includes('Friidrett')) return '#FFB84D';
-  if (t.includes('Stevne') || t.includes('Konkurranse')) return '#F6C453';
-  if (t.includes('Gudstjeneste') || t.includes('Salhus') || t.includes('Salt')) return '#7EC8E3';
-  if (t.includes('Helligdag')) return '#66C7A3';
+  const s = tittel || '';
+  if (/styrke|friidrett|strength|track/i.test(s)) return '#FFB84D';
+  if (/stevne|konkurranse|competition|meet|race/i.test(s)) return '#F6C453';
+  if (/gudstjeneste|salhus|salt|church|service|worship/i.test(s)) return '#7EC8E3';
+  if (/helligdag|holiday/i.test(s)) return '#66C7A3';
   return '#B197FC';
 }
 function _calEventHTML(timeLabel, title, allDay) {
@@ -1236,7 +1239,7 @@ async function loadCalendar() {
       `<div class="card" style="text-align:center;padding:40px">
         <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
         <div style="color:var(--text-tertiary);font-size:11px;margin-top:10px">
-          Sett SUPABASE_URL og SUPABASE_ANON_KEY som miljøvariabler i Vercel.
+          ${t('dash.cfg_error')}
         </div>
       </div>`;
     return;
@@ -1272,6 +1275,9 @@ async function loadCalendar() {
 // Re-render dynamic content when language toggles (utils.js calls this from toggleLang)
 onLangChange = () => {
   applyLang();
+  loadSession();                     // synkron — bygger badge/CTA med t()
+  loadSleep().catch(() => {});       // re-render søvnkort (Dyp-label, timer, dataalder)
+  loadKnee().catch(() => {});        // re-render knekort (fasenavn)
   renderWeekStrip().catch(() => {});
   if (typeof renderDashTodos === 'function') renderDashTodos();
   if (_lastFokusData) renderDailyFokus(_lastFokusData);

@@ -398,6 +398,10 @@
     .rest-preset { flex: 1; padding: 5px 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; cursor: pointer; transition: all 0.12s; }
     .rest-preset:hover { background: rgba(255,255,255,0.09); color: var(--text-secondary); }
 
+    /* Remove-set button */
+    .set-remove { width: 22px; height: 22px; border-radius: 50%; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--text-tertiary); font-size: 14px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+    .set-remove:hover { background: rgba(220,50,50,0.18); border-color: rgba(220,50,50,0.5); color: #ff6b6b; }
+
     /* Knee grid */
     .knee-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
@@ -1073,14 +1077,16 @@ async function init() {
   renderGymRpe();   // RPE-slider for økta
 
   onLangChange = () => {
+    const openEx = activeDrawer;   // bevar åpen drawer over språkbytte
     loadGymHistory();
     renderDayPills();
     const d = getDay(activeDay);
     const wt = document.getElementById('workoutTitle');
     if (wt && d) wt.textContent = dayLabel(d);
-    renderAll();
+    renderAll();                   // re-rendrer vektinput i gjeldende enhet
     renderGymRpe(rpeValue('gymRpe'));
     applyLang();
+    if (openEx) { activeDrawer = null; openDrawer(openEx); }   // gjenåpne + konverter sett-vekter
   };
   await loadGymHistory();
   await checkDayAfterRehab();
@@ -1465,15 +1471,15 @@ async function renderOverloadCoach() {
     } else if (lastW != null && lastW > 0) {
       if (plateau >= 3) { recCls = 'hold'; recTxt = t('po.plateau', { n: plateau }); }
       else {
-        const next = Math.round((lastW + 2.5) * 2) / 2;   // +2.5 kg, halvkilo-presisjon
-        recCls = 'up'; recTxt = t('po.try', { w: next });
+        const next = Math.round((lastW + 2.5) * 2) / 2;   // +2.5 kg, halvkilo-presisjon (kanonisk)
+        recCls = 'up'; recTxt = t('po.try', { w: fromKg(next) });
       }
     } else {
       recCls = 'flat'; recTxt = t('po.keep');
     }
 
     const lastLbl = lastW != null
-      ? t('po.last', { w: lastW, r: lastR })
+      ? t('po.last', { w: fromKg(lastW), r: lastR })
       : (lastR ? t('po.try_reps', { r: lastR }) : '');
     return `<div class="po-item">
       <span class="po-ex">${escHtml(name)}</span>
@@ -1581,14 +1587,14 @@ function renderExRow(ex, day, num, isWarmup) {
             onclick="event.stopPropagation()"
             onblur="autoSaveExField('${ex.id}','reps',this.value)">
           ${!isWarmup ? `<span style="color:rgba(255,255,255,0.18);font-family:var(--font-mono);margin:0 2px">·</span>
-          <input class="ex-inline-input weight-inp" type="number" step="2.5" min="0" placeholder="—"
-            value="${weights[ex.id] !== undefined ? weights[ex.id] : (weights[ex.exercise_name] !== undefined ? weights[ex.exercise_name] : '')}"
-            style="width:42px"
+          <input class="ex-inline-input weight-inp" type="number" step="${weightStep(true)}" min="0" placeholder="—"
+            value="${fromKg(weights[ex.id] !== undefined ? weights[ex.id] : (weights[ex.exercise_name] !== undefined ? weights[ex.exercise_name] : ''))}"
+            style="width:48px"
             data-exercise-id="${ex.id}"
             onclick="event.stopPropagation()"
-            onblur="saveWeight(this.dataset.exerciseId, this.value)"
-            onchange="saveWeight(this.dataset.exerciseId, this.value)">
-          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">kg</span>` : ''}
+            onblur="saveWeight(this.dataset.exerciseId, toKg(this.value))"
+            onchange="saveWeight(this.dataset.exerciseId, toKg(this.value))">
+          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">${t('po.kg')}</span>` : ''}
         </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
@@ -1656,7 +1662,7 @@ function renderDrawer(exId) {
     <table class="drawer-table">
       <thead><tr>
         <th style="width:28px">${t('gym.col_sets')}</th><th>${t('gym.col_reps')}</th><th>${t('gym.col_weight')}</th>
-        <th style="width:32px">✓</th><th>${t('gym.col_notes')}</th>
+        <th style="width:32px">✓</th><th>${t('gym.col_notes')}</th><th style="width:28px"></th>
       </tr></thead>
       <tbody id="drawer-body-${exId}">
         ${data.map((s, i) => drawerRow(exId, i, s)).join('')}
@@ -1676,12 +1682,13 @@ function drawerRow(exId, i, s) {
     <td class="set-num-cell">${i + 1}</td>
     <td><input class="set-inp" type="text" value="${escHtml(String(s.reps))}"
       onchange="setData['${exId}'][${i}].reps=this.value;saveDraft()"></td>
-    <td><input class="set-inp" type="number" step="0.5" value="${s.weight !== '' && s.weight !== undefined ? s.weight : ''}"
-      onchange="setData['${exId}'][${i}].weight=this.value===''?'':parseFloat(this.value);saveDraft()"></td>
+    <td><input class="set-inp" type="number" step="${weightStep(false)}" value="${s.weight !== '' && s.weight !== undefined ? fromKg(s.weight) : ''}"
+      onchange="setData['${exId}'][${i}].weight=this.value===''?'':toKg(this.value);saveDraft()"></td>
     <td><button class="set-check${s.done ? ' done' : ''}" id="sc-${exId}-${i}"
       onclick="toggleSetDone('${exId}',${i})">${s.done ? '✓' : ''}</button></td>
     <td><input class="set-inp set-notes-inp" type="text" value="${escHtml(s.notes)}"
       onchange="setData['${exId}'][${i}].notes=this.value;saveDraft()" placeholder="—"></td>
+    <td><button class="set-remove" onclick="removeSet('${exId}',${i})" title="Fjern sett">−</button></td>
   </tr>`;
 }
 
@@ -1710,6 +1717,26 @@ function addSet(exId) {
   const i = d.length;
   d.push({ done: false, weight: last?.weight ?? (weights[exId] ?? weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
   document.getElementById(`drawer-body-${exId}`)?.insertAdjacentHTML('beforeend', drawerRow(exId, i, d[i]));
+}
+
+function removeSet(exId, i) {
+  const d = setData[exId];
+  if (!d) return;
+  if (d.length <= 1) { toast('Minst 1 sett kreves', 'err'); return; }
+  // Shift completedSets indices after removal
+  if (completedSets[exId]) {
+    const updated = new Set();
+    completedSets[exId].forEach(idx => {
+      if (idx < i) updated.add(idx);
+      else if (idx > i) updated.add(idx - 1);
+    });
+    completedSets[exId] = updated;
+  }
+  d.splice(i, 1);
+  renderDrawer(exId);
+  saveDraft();
+  updateExRowStatus(exId);
+  updateProgress();
 }
 
 async function saveSetWeights(exId) {
@@ -2041,7 +2068,7 @@ async function saveWeight(exId, val) {
     { exercise_id: exId, weight_kg: kg, updated_at: new Date().toISOString() },
     { onConflict: 'exercise_id' }
   );
-  if (!error) toast(t('gym.weight_saved', { name: ex?.exercise_name ?? exId, kg }));
+  if (!error) toast(t('gym.weight_saved', { name: ex?.exercise_name ?? exId, w: fromKg(kg) }));
 }
 
 // ── CRUD ───────────────────────────────────────────────────────────
