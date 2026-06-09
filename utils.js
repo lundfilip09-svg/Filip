@@ -200,6 +200,8 @@ const TRANSLATIONS = {
     'sprint.edit_pb': 'Rediger', 'sprint.pb_saved': 'PB oppdatert',
     'sprint.pb_invalid': 'Ugyldig tid — skriv et positivt desimaltall (f.eks. 11.52)',
     'sprint.reset_baseline': 'Nullstill baseline', 'sprint.baseline_reset': 'Baseline nullstilt til {time}s',
+    'sprint.lvl_label': 'Akselerasjon', 'sprint.lvl_low': 'Lav', 'sprint.lvl_mid': 'Middels', 'sprint.lvl_high': 'Høy',
+    'tp.soccer_lvl': 'Intensitet',
     // Søvn
     'sovn.title': 'Søvn & Restitusjon', 'sovn.score_lbl': 'Søvnscore', 'sovn.rhr': 'Hvilepuls',
     'sovn.recovery': 'God restitusjon', 'sovn.solid': 'Solid søvnnatt',
@@ -624,6 +626,8 @@ const TRANSLATIONS = {
     'sprint.edit_pb': 'Edit', 'sprint.pb_saved': 'PB updated',
     'sprint.pb_invalid': 'Invalid time — enter a positive decimal (e.g. 11.52)',
     'sprint.reset_baseline': 'Reset baseline', 'sprint.baseline_reset': 'Baseline reset to {time}s',
+    'sprint.lvl_label': 'Acceleration', 'sprint.lvl_low': 'Low', 'sprint.lvl_mid': 'Med', 'sprint.lvl_high': 'High',
+    'tp.soccer_lvl': 'Intensity',
     // Søvn
     'sovn.title': 'Sleep & Recovery', 'sovn.score_lbl': 'Sleep Score', 'sovn.rhr': 'Resting HR',
     'sovn.recovery': 'Good Recovery', 'sovn.solid': 'Solid Night',
@@ -1029,6 +1033,34 @@ async function autoSyncSleep(days = 3) {
     } catch { /* nettverk/timeout – prøver igjen neste gang siden lastes */ }
   }
   return got;
+}
+
+// ── Aktivitetsvektet belastning ──────────────────────────────────────────────
+// source: 'gym'|'sprint'|'activity'  typeText = session_type/type/activity_type
+// labelText = activity_label (fotball-nivå lagret her; sprint-nivå kodet i typeText-suffiks)
+// Sprint/fotball-nivå: ':lav'=1.5  ':middels'=2.25  ':høy'/ingen=3.0 (old data → maks)
+function loadMultiplier(source, typeText, labelText) {
+  const s = (typeText  || '').toLowerCase();
+  const l = (labelText || '').toLowerCase();
+  if (source === 'gym') return 1.0;
+  if (source === 'sprint') {
+    const lvl = s.split(':')[1] || '';
+    if (lvl === 'lav')     return 1.5;
+    if (lvl === 'middels') return 2.25;
+    return 3.0;
+  }
+  // activity source
+  if (/fotball|soccer/.test(s)) {
+    if (l === 'lav')     return 1.5;
+    if (l === 'middels') return 2.25;
+    return 3.0;
+  }
+  if (/padel|padle/.test(s))                             return 3.0;
+  if (/basket/.test(s))                                  return 3.0;
+  if (/løp|jog|run/.test(s))                             return 1.5;
+  if (/svøm|swim|sykl|cycl|bike|ellipse|rehab/.test(s)) return 1.0;
+  if (/rolig|lett|easy/.test(s))                         return 1.5;
+  return 1.5;
 }
 
 // ── Page transition on nav clicks ─────────────────────────────────────────

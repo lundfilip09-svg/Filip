@@ -431,6 +431,19 @@
     .add-activity-label {
       font-size: 11px; font-family: var(--font-mono); color: #6BE3A4;
     }
+
+    /* ── Level selector (fotball + sprint) ──────────────────────── */
+    .act-lvl-btn {
+      flex: 1; padding: 7px 4px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 7px; cursor: pointer; text-align: center;
+      font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .act-lvl-btn:hover { background: rgba(255,255,255,0.08); }
+    .act-lvl-btn.selected {
+      background: rgba(107,227,164,0.12); border-color: rgba(107,227,164,0.4); color: #6BE3A4;
+    }
   </style>
 </head>
 <body>
@@ -629,6 +642,14 @@
       <div id="actCustomWrap" style="display:none;margin-bottom:12px">
         <div class="act-field-label" data-i18n="tp.describe_activity">Beskriv aktivitet</div>
         <input class="input-sm" id="actCustomLabel" type="text" placeholder="F.eks. Volleyball" data-i18n-placeholder="tp.act_custom_ph" style="width:100%;box-sizing:border-box">
+      </div>
+      <div id="actSoccerLevel" style="display:none;margin-bottom:12px">
+        <div class="act-field-label" data-i18n="tp.soccer_lvl">Intensitet</div>
+        <div style="display:flex;gap:5px">
+          <button type="button" class="act-lvl-btn" data-level="lav" onclick="selectSoccerLevel(this)" data-i18n="sprint.lvl_low">Lav</button>
+          <button type="button" class="act-lvl-btn" data-level="middels" onclick="selectSoccerLevel(this)" data-i18n="sprint.lvl_mid">Middels</button>
+          <button type="button" class="act-lvl-btn selected" data-level="høy" onclick="selectSoccerLevel(this)" data-i18n="sprint.lvl_high">Høy</button>
+        </div>
       </div>
       <div id="actReplacedWrap" style="display:none;margin-bottom:12px">
         <div class="act-field-label" data-i18n="tp.act_replaced">Erstattet planlagt økt (valgfritt)</div>
@@ -1183,7 +1204,8 @@ let _kneeSprint = {}; // date → knee_pain for sprint sessions
 let _openDetail = null;
 let _actData    = [];   // activity_log rows
 let _healthData = [];   // health_data rows (sleep_score) for trend-oversikten
-let _actType    = null; // valgt type i modal
+let _actType      = null; // valgt type i modal
+let _soccerLevel  = 'høy'; // valgt intensitetsnivå for fotball (default: høy = 3.0)
 
 function distLabel(d) {
   if (!d) return d;
@@ -1302,13 +1324,15 @@ function renderTrends() {
   _healthData.forEach(h => { if (h.sleep_score != null) sleepByDate[h.date] = +h.sleep_score; });
   const sleepVals = isoDays.map(d => ({ date: d, v: sleepByDate[d] ?? null }));
 
-  // Belastning: sum RPE/10 (sprint+gym+aktivitet) per dag, ekskl. ingenting (alt teller som last)
+  // Belastning: (rpe/10) × aktivitetsmultiplikator per økt, summert per dag.
   const loadByDate = {};
-  const addLoad = (date, rpe, fallback) => { loadByDate[date] = (loadByDate[date] || 0) + ((rpe || fallback) / 10); };
-  _sprintData.forEach(s => addLoad(s.date, s.rpe, 50));
-  _sessData.forEach(g => addLoad(g.date, g.rpe, 60));
-  _actData.forEach(a => addLoad(a.date, a.rpe, 50));
-  const loadVals = isoDays.map(d => ({ date: d, v: loadByDate[d] ?? null }));
+  const addLoad = (date, rpe, mult) => { loadByDate[date] = (loadByDate[date] || 0) + ((rpe || 0) / 10) * mult; };
+  _sessData.forEach(g => addLoad(g.date, g.rpe, loadMultiplier('gym', g.session_type)));
+  _actData.forEach(a => addLoad(a.date, a.rpe, loadMultiplier('activity', a.activity_type, a.activity_label)));
+  // sprint_log er per løp → tell hver økt (dato) én gang
+  const _sprintSeen = {};
+  _sprintData.forEach(s => { if (!_sprintSeen[s.date]) { _sprintSeen[s.date] = 1; addLoad(s.date, s.rpe, loadMultiplier('sprint', s.type)); } });
+  const loadVals = isoDays.map(d => ({ date: d, v: loadByDate[d] != null ? loadByDate[d] : null }));
 
   const rows = [
     { name: t('tp.tr_knee'),  vals: kneeVals,  goodIsDown: true,  maxRef: 10 },
@@ -1612,7 +1636,7 @@ function buildSprintDetailHtml(s, knee) {
     <div style="display:flex;gap:12px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
       <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);min-width:80px">${escHtml(r.distance)}</span>
       <span style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--text-primary)">${r.time_seconds != null ? (+r.time_seconds).toFixed(2) + 's' : '—'}</span>
-      <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase">${escHtml(r.type || '')}</span>
+      <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase">${escHtml((r.type || '').split(':')[0])}</span>
     </div>`).join('');
 
   const cpSteps = [
@@ -1981,8 +2005,14 @@ function openActModal() {
   document.getElementById('actKneeDayAfter').value = '';
   document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('actCustomWrap').style.display = 'none';
+  document.getElementById('actSoccerLevel').style.display = 'none';
   const rw = document.getElementById('actReplacedWrap');
   if (rw) { rw.style.display = 'none'; document.getElementById('actReplacedLabel').value = ''; }
+  // reset soccer level to høy (safe default for old-data parity)
+  _soccerLevel = 'høy';
+  document.querySelectorAll('#actSoccerLevel .act-lvl-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.level === 'høy');
+  });
   _actType = null;
 }
 
@@ -1990,11 +2020,18 @@ function closeActModal() {
   document.getElementById('actModal').classList.add('hidden');
 }
 
+function selectSoccerLevel(btn) {
+  document.querySelectorAll('#actSoccerLevel .act-lvl-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  _soccerLevel = btn.dataset.level;
+}
+
 function selectActType(btn) {
   document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   _actType = btn.dataset.type;
   document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
+  document.getElementById('actSoccerLevel').style.display = _actType === 'Fotball' ? 'block' : 'none';
 
   // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
   const replacedWrap = document.getElementById('actReplacedWrap');
@@ -2017,8 +2054,9 @@ async function saveActivity() {
   if (!date) { toast(t('tp.select_date'), 'err'); return; }
 
   let actLabel = null;
-  if (_actType === 'Annet')      actLabel = document.getElementById('actCustomLabel').value.trim() || null;
+  if (_actType === 'Annet')          actLabel = document.getElementById('actCustomLabel').value.trim() || null;
   else if (_actType === 'Rolig dag') actLabel = document.getElementById('actReplacedLabel').value.trim() || null;
+  else if (_actType === 'Fotball')   actLabel = _soccerLevel;
   const duration   = null;
   const rpe        = rpeValue('actRpe');
   const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);

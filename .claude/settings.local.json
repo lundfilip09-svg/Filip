@@ -36,7 +36,9 @@
       "Bash(grep -n '' /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard/__TRACKED_VAR__)",
       "Bash(node --check /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard/utils.js)",
       "Bash(node -e ' *)",
-      "Bash(git -C /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard diff --stat HEAD)"
+      "Bash(git -C /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard diff --stat HEAD)",
+      "Bash(node --check sprint.html)",
+      "Bash(node --check treningsplan.html)"
     ]
   }
 }

@@ -138,6 +138,19 @@
     .pb-edit-inp { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; padding: 3px 6px; width: 100%; box-sizing: border-box; text-align: center; }
     .pb-edit-inp:focus { outline: none; border-color: rgba(91,164,245,0.4); }
     .pb-edit-actions { display: flex; gap: 4px; }
+    /* ── Sprint level selector ──────────────────────────────────── */
+    .sprint-lvl-btns { display: flex; gap: 5px; }
+    .sprint-lvl-btn {
+      flex: 1; padding: 6px 4px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 7px; cursor: pointer; text-align: center;
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-secondary);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .sprint-lvl-btn:hover { background: rgba(255,255,255,0.08); }
+    .sprint-lvl-btn.selected {
+      background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.5); color: #5BA4F5;
+    }
   </style>
 </head>
 <body>
@@ -210,6 +223,14 @@
           <option value="Stevne" data-i18n="sprint.competition">Stevne</option>
           <option value="Trening (ute)" data-i18n="sprint.training_outdoor">Trening (ute)</option>
         </select>
+      </div>
+      <div class="form-group" style="min-width:140px">
+        <label class="form-label" data-i18n="sprint.lvl_label">Akselerasjon</label>
+        <div class="sprint-lvl-btns" id="sprintLevelWrap">
+          <button type="button" class="sprint-lvl-btn" data-level="lav" onclick="selectSprintLevel(this)" data-i18n="sprint.lvl_low">Lav</button>
+          <button type="button" class="sprint-lvl-btn" data-level="middels" onclick="selectSprintLevel(this)" data-i18n="sprint.lvl_mid">Middels</button>
+          <button type="button" class="sprint-lvl-btn selected" data-level="høy" onclick="selectSprintLevel(this)" data-i18n="sprint.lvl_high">Høy</button>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" data-i18n="sprint.time">Tid (sek)</label>
@@ -317,7 +338,8 @@ function distLabel(d) {
 }
 
 const skKnee = { before: null, during: null, after: null, dayafter: null };
-let _isSavingLog = false;
+let _isSavingLog  = false;
+let _sprintLevel  = 'høy'; // valgt akselerasjonsnivå for belastning (default: høy = 3.0)
 let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
 let _pbData = {};          // distance → { best_time, date }
@@ -326,11 +348,19 @@ let _goalBaselines = {};   // distance → baseline_time (override from sprint_r
 
 const DRAFT_KEY = 'sprint_form_draft';
 
+function selectSprintLevel(btn) {
+  document.querySelectorAll('.sprint-lvl-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  _sprintLevel = btn.dataset.level;
+  saveDraft();
+}
+
 function saveDraft() {
   const draft = {
     date:    document.getElementById('logDate').value,
     dist:    document.getElementById('logDist').value,
     type:    document.getElementById('logType').value,
+    level:   _sprintLevel,
     rpe:     rpeValue('logRpe'),
     notes:   document.getElementById('logNotes').value,
     runs:    runs,
@@ -351,6 +381,12 @@ function restoreDraft() {
     if (d.date)  document.getElementById('logDate').value = d.date;
     if (d.dist)  document.getElementById('logDist').value = d.dist;
     if (d.type)  document.getElementById('logType').value = d.type;
+    if (d.level) {
+      _sprintLevel = d.level;
+      document.querySelectorAll('.sprint-lvl-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.level === d.level);
+      });
+    }
     if (d.rpe != null) renderLogRpe(d.rpe);
     if (d.notes) document.getElementById('logNotes').value = d.notes;
     if (Array.isArray(d.runs)) { runs = d.runs; renderRuns(); }
@@ -415,7 +451,7 @@ function addRun() {
   const type = document.getElementById('logType').value;
   const time = parseFloat(document.getElementById('logTime').value);
   if (!dist || isNaN(time) || time <= 0) { toast(t('sprint.fill_fields'), 'err'); return; }
-  runs.push({ distance: dist, type, time });
+  runs.push({ distance: dist, type: type + ':' + _sprintLevel, time });
   document.getElementById('logTime').value = '';
   document.getElementById('logTime').focus();
   renderRuns();
@@ -439,7 +475,7 @@ function renderRuns() {
       <span class="run-num">${t('sprint.run_num', { n: i + 1 })}</span>
       <span class="run-dist">${escHtml(distLabel(r.distance))}</span>
       <span class="run-time">${r.time.toFixed(2)}s</span>
-      <span class="run-type">${escHtml(r.type)}</span>
+      <span class="run-type">${escHtml(r.type.split(':')[0])}</span>
       <button class="run-del" onclick="removeRun(${i})" title="${t('delete')}">✕</button>
     </div>`).join('');
 }
@@ -451,7 +487,7 @@ async function loadPBs() {
     db.from('sprint_log')
       .select('time_seconds,date')
       .eq('distance', '60m_celler')
-      .eq('type', 'Trening')
+      .or('type.eq.Trening,type.like.Trening:%')
       .not('time_seconds', 'is', null)
       .order('time_seconds', { ascending: true })
       .limit(1),
@@ -600,7 +636,7 @@ async function logSession() {
     const [logRes, kneeRes] = await Promise.all([
       db.from('sprint_log').insert(inserts).select(),
       db.from('knee_pain').insert({
-        date, session_type: `Sprint ${distList} ${runs[0].type}`,
+        date, session_type: `Sprint ${distList} ${runs[0].type.split(':')[0]}`,
         before_score:    skKnee.before,
         during_score:    skKnee.during,
         after_score:     skKnee.after,
@@ -616,9 +652,10 @@ async function logSession() {
     const newPBs = [];
     for (const r of runs) {
       if (r.distance === '60m_flying') continue;
+      const baseType = r.type.split(':')[0];
       const countsForPB = r.distance === '60m_celler'
-        ? r.type === 'Trening'
-        : r.type === 'Stevne';
+        ? baseType === 'Trening'
+        : baseType === 'Stevne';
       if (!countsForPB) continue;
       const { data: rec } = await db.from('sprint_records')
         .select('best_time').eq('distance', r.distance).maybeSingle();
@@ -684,7 +721,7 @@ function _buildSessCard(date, runs, isOpen) {
     <div class="history-row">
       <span class="history-dist">${escHtml(distLabel(r.distance))}</span>
       <span class="history-time">${r.time_seconds != null ? (+r.time_seconds).toFixed(2) + 's' : '–'}</span>
-      <span class="history-type">${escHtml(r.type || '')}</span>
+      <span class="history-type">${escHtml((r.type || '').split(':')[0])}</span>
     </div>`).join('');
 
   const painVals = [
