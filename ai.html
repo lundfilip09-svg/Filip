@@ -866,7 +866,7 @@ async function copyHealthReport() {
     const pb100 = recMap['100m'] || '11.52';
     const pb200 = recMap['200m'] || '23.11';
     const otherPB = R.filter(r => !['100m','200m'].includes(r.distance) && r.best_time != null)
-      .map(r => `${r.distance} (${Number(r.best_time).toFixed(2)}s)`);
+      .map(r => `${distLabel(r.distance)} (${Number(r.best_time).toFixed(2)}s)`);
     const eventsLine = `100m (${pb100}s) / 200m (${pb200}s)` + (otherPB.length ? ' / ' + otherPB.join(' / ') : '');
 
     // Aktive plager → engelsk
@@ -902,7 +902,7 @@ async function copyHealthReport() {
       parts.push(`Knee pain before/during/after/next-day: ${k ? `${k.before_score ?? '–'}/${k.during_score ?? '–'}/${k.after_score ?? '–'}/${k.day_after_score ?? '–'}` : 'not logged'}`);
       const sess = [];
       (gM[ds] || []).forEach(g => sess.push(`Strength${g.session_type ? ' (' + g.session_type + ')' : ''}${g.duration_min ? ' ' + g.duration_min + 'min' : ''}${g.rpe != null ? ' RPE ' + g.rpe : ''}${g.session_notes ? ' — ' + g.session_notes : ''}`));
-      (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + s.distance : ''}${s.type ? ' ' + s.type : ''}${s.duration_min ? ' ' + s.duration_min + 'min' : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}${s.notes ? ' — ' + s.notes : ''}`));
+      (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + distLabel(s.distance) : ''}${s.type ? ' ' + s.type : ''}${s.duration_min ? ' ' + s.duration_min + 'min' : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}${s.notes ? ' — ' + s.notes : ''}`));
       (aM[ds] || []).forEach(a => sess.push(`${a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type}${a.duration_min ? ' ' + a.duration_min + 'min' : ''}${a.rpe != null ? ' RPE ' + a.rpe : ''}`));
       parts.push(`Sessions: ${sess.length ? sess.join('; ') : 'rest / none logged'}`);
       dayLines.push(`${ds} (${wd}): ${parts.join(' | ')}`);
@@ -980,12 +980,19 @@ async function copyInjuryStatus() {
 
     const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
     const fmtDM = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' }) : '–';
-    const firstSentence = s => {
-      const x = String(s || '').trim();
+    // Notat-sammendrag: de to første setningene + «Provoserer:»/«Hjelper:»-
+    // setninger uansett hvor de står i notatet. Setningsskille = .!? fulgt av
+    // mellomrom (datoer som «01.06» splittes ikke).
+    const noteSummary = raw => {
+      const x = String(raw || '').trim();
       if (!x) return '';
-      const m = x.match(/^[\s\S]*?[.!?](?=\s|$)/);
-      const f = (m ? m[0] : x).trim();
-      return f.length > 140 ? f.slice(0, 137) + '…' : f;
+      const sents = x.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+      const out = sents.slice(0, 2);
+      sents.forEach(s => {
+        if (/^(provoserer|hjelper|unngår|avoid|helps|aggravate)/i.test(s) && !out.includes(s)) out.push(s);
+      });
+      const res = out.join(' ');
+      return res.length > 400 ? res.slice(0, 397) + '…' : res;
     };
 
     const lines = I.map(i => {
@@ -993,8 +1000,9 @@ async function copyInjuryStatus() {
       const side = i.side ? ` (${t('inj.side_' + i.side)})` : '';
       const sev  = i.severity ? t('inj.sev_' + i.severity) + ', ' : '';
       const st   = t('inj.st_' + i.status);
-      const note = firstSentence(i.note);
-      return `• ${part}${side} — ${sev}${st} ${t('inj.since')} ${fmtDM(i.start_date)}${note ? ': ' + note : ''}`;
+      const head = `• ${part}${side} — ${sev}${st} ${t('inj.since')} ${fmtDM(i.start_date)}`;
+      const note = noteSummary(i.note);
+      return note ? `${head}\n${note}` : head;
     });
 
     // Siste 7 dager: økter (sprint telles per dato), snitt-RPE, maks knesmerte
@@ -1010,7 +1018,7 @@ async function copyInjuryStatus() {
     const today = new Date().toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
     const msg = `${t('diag.header')} — Filip Lund, ${today}
 
-${lines.length ? lines.join('\n') : t('diag.none')}
+${lines.length ? lines.join('\n\n') : t('diag.none')}
 
 ${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? '–', pain: maxPain ?? '–' })}`;
 

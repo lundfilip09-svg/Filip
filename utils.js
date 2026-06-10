@@ -947,6 +947,12 @@ function t(key, vars = {}) {
   return String(str).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
 }
 
+// Distanse-koder («60m_flying») skal ALDRI vises rått — alltid «60m (flying)».
+// Funker også på koder inni lengre strenger (f.eks. lagret session_type).
+function distLabel(d) {
+  return String(d ?? '').replace(/(\d+\s*k?m)_([a-zA-ZæøåÆØÅ]+)/g, '$1 ($2)');
+}
+
 function fmtLocale() { return _lang === 'en' ? 'en-GB' : 'no-NO'; }
 
 // ── Vekt-enhet (kg ↔ lbs) ────────────────────────────────────────────────────

@@ -338,10 +338,7 @@ let db;
 document.querySelector('[data-p="sprint"]').classList.add('active');
 applyLang();
 
-function distLabel(d) {
-  const map = { '60m_celler': '60m (celler)', '60m_flying': '60m (flying)' };
-  return map[d] || d;
-}
+// distLabel kommer fra utils.js («60m_flying» → «60m (flying)»)
 
 const skKnee = { before: null, during: null, after: null, dayafter: null };
 let _isSavingLog  = false;
@@ -670,7 +667,8 @@ async function logSession() {
       knee_day_after: skKnee.dayafter,
     }));
 
-    const distList = [...new Set(runs.map(r => r.distance))].join('/');
+    // session_type er visningstekst → bruk distLabel, aldri rå koder
+    const distList = [...new Set(runs.map(r => distLabel(r.distance)))].join('/');
     const [logRes, kneeRes] = await Promise.all([
       db.from('sprint_log').insert(inserts).select(),
       db.from('knee_pain').insert({

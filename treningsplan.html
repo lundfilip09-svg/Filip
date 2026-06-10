@@ -1292,10 +1292,7 @@ let _healthData = [];   // health_data rows (sleep_score) for trend-oversikten
 let _actType      = null; // valgt type i modal
 let _soccerLevel  = 'høy'; // valgt intensitetsnivå for fotball (default: høy = 3.0)
 
-function distLabel(d) {
-  if (!d) return d;
-  return d.includes('_') ? d.replace('_', ' (') + ')' : d;
-}
+// distLabel kommer fra utils.js («60m_flying» → «60m (flying)»)
 
 function painColorClass(score) {
   if (score === null || score === undefined) return '';
@@ -1767,12 +1764,12 @@ function buildSprintDetailHtml(s, knee) {
   const d   = new Date(s.date + 'T12:00:00');
   const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const kneeid  = knee?.id || '';
-  const distList = [...new Set(s.runs.map(r => r.distance))].join('/');
-  const sessionType = knee?.session_type || `Sprint ${distList} ${s.runs[0]?.type || ''}`.trim();
+  const distList = [...new Set(s.runs.map(r => distLabel(r.distance)))].join('/');
+  const sessionType = distLabel(knee?.session_type || `Sprint ${distList} ${s.runs[0]?.type || ''}`.trim());
 
   const runsHtml = s.runs.map(r => `
     <div style="display:flex;gap:12px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-      <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);min-width:80px">${escHtml(r.distance)}</span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);min-width:80px">${escHtml(distLabel(r.distance))}</span>
       <span style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--text-primary)">${r.time_seconds != null ? (+r.time_seconds).toFixed(2) + 's' : '—'}</span>
       <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase">${escHtml((r.type || '').split(':')[0])}</span>
     </div>`).join('');

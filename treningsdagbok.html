@@ -117,7 +117,7 @@ const TR = {
     cat_gym:'Styrke', cat_sprint:'Sprint', cat_act:'Aktivitet',
     sec_log:'Øktlogg', none_log:'Ingen økter i perioden.',
     pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Gjelder venstre kne der ikke annet er notert.',
-    sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag.',
+    sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag. Manglende varighet estimeres: rehab 45, styrke 120, sprint 75, aktivitet 60 min.',
     langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil',
     sec_injuries:'Skader & status', none_injuries:'Ingen aktive plager registrert.',
     sec_pain_trend:'Knesmerte-trend', none_pain:'Ingen knesmerte registrert i perioden.',
@@ -143,7 +143,7 @@ const TR = {
     cat_gym:'Strength', cat_sprint:'Sprint', cat_act:'Activity',
     sec_log:'Session log', none_log:'No sessions in this period.',
     pain_legend:'Pain: before / during / after / day after (0–10). Left knee unless noted otherwise.',
-    sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday.',
+    sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday. Missing durations estimated: rehab 45, strength 120, sprint 75, activity 60 min.',
     langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error',
     sec_injuries:'Injuries & status', none_injuries:'No active issues recorded.',
     sec_pain_trend:'Knee pain trend', none_pain:'No knee pain recorded in this period.',
@@ -194,14 +194,24 @@ function trWord(raw){
   return s;
 }
 function trType(raw){
-  return String(raw || '').split('·').map(p =>
+  return distLabel(String(raw || '').split('·').map(p =>
     p.split(':').map(q => trWord(q)).join(':')
-  ).join(' · ');
+  ).join(' · '));
 }
 
-// sRPE: varighet × RPE/10 — manglende varighet får nøkterne defaults
-const _SRPE_DEF = { gym: 60, sprint: 75, act: 60 };
-function srpe(dur, def, rpe){ return (dur ?? def) * ((rpe || 0) / 10); }
+// Distanse-koder («60m_flying») skal aldri vises rått — alltid «60m (flying)»
+function distLabel(d){ return String(d ?? '').replace(/(\d+\s*k?m)_([a-zA-ZæøåÆØÅ]+)/g, '$1 ($2)'); }
+
+// Varighet: timer glemmes ofte (start trykkes på slutten av økta) — alt under
+// 10 min regnes som «ikke målt» og vises som «–». Belastning estimeres da med
+// typiske varigheter per økttype i stedet.
+function realDur(d){ return (d != null && d >= 10) ? d : null; }
+
+// sRPE: varighet × RPE/10 — manglende/ugyldig varighet får typiske defaults:
+// rehab 45 min, styrke 120 min, sprint 75 min, aktivitet 60 min
+const _SRPE_DEF = { gym: 120, rehab: 45, sprint: 75, act: 60 };
+function gymDef(sessionType){ return /rehab/i.test(sessionType || '') ? _SRPE_DEF.rehab : _SRPE_DEF.gym; }
+function srpe(dur, def, rpe){ return (realDur(dur) ?? def) * ((rpe || 0) / 10); }
 
 function fmtD(ds){
   if(!ds) return '';
@@ -283,7 +293,7 @@ function render(){
 
   // Total sRPE-belastning (min × RPE/10); sprint telles per økt (dato)
   let totLoad = 0;
-  gym.forEach(g => totLoad += srpe(g.duration_min, _SRPE_DEF.gym, g.rpe));
+  gym.forEach(g => totLoad += srpe(g.duration_min, gymDef(g.session_type), g.rpe));
   acts.forEach(a => totLoad += srpe(a.duration_min, _SRPE_DEF.act, a.rpe));
   sprintDates.forEach(d => {
     const durRow = sprint.find(s => s.date===d && s.duration_min!=null);
@@ -293,7 +303,7 @@ function render(){
 
   // PB-linje fra sprint_records
   const pbLine = records.filter(r => r.best_time!=null)
-    .map(r => `${r.distance} ${Number(r.best_time).toFixed(2)}s`).join(' · ');
+    .map(r => `${distLabel(r.distance)} ${Number(r.best_time).toFixed(2)}s`).join(' · ');
 
   let html = `
     <div class="doc-head">
@@ -361,7 +371,7 @@ function render(){
   // ── Ukentlig belastning (sRPE per uke, man–søn) ───────────────
   const loadByWeek = {};
   const addLoad = (ds, v) => { const w = weekStart(ds); loadByWeek[w] = (loadByWeek[w]||0) + v; };
-  gym.forEach(g => addLoad(g.date, srpe(g.duration_min, _SRPE_DEF.gym, g.rpe)));
+  gym.forEach(g => addLoad(g.date, srpe(g.duration_min, gymDef(g.session_type), g.rpe)));
   acts.forEach(a => addLoad(a.date, srpe(a.duration_min, _SRPE_DEF.act, a.rpe)));
   sprintDates.forEach(d => {
     const durRow = sprint.find(s => s.date===d && s.duration_min!=null);
@@ -398,18 +408,30 @@ function render(){
   gym.forEach(g => rows.push({
     date: g.date, cat: 'gym',
     type: trType(g.session_type||''),
-    dur: g.duration_min, rpe: g.rpe,
+    dur: realDur(g.duration_min), rpe: g.rpe,
     pain: (() => { const k = kneeByDate[g.date]; return k ? painCell(k.before_score,k.during_score,k.after_score,k.day_after_score) : '–'; })(),
     note: g.session_notes || kneeByDate[g.date]?.notes || ''
   }));
   sprintDates.forEach(d => {
     const rs = sprint.filter(s => s.date===d);
-    const runs = rs.map(s => `${s.distance||''} ${trType((s.type||'').split(':')[0])}${s.time_seconds!=null ? ' '+(+s.time_seconds).toFixed(2)+'s' : ''}`.trim());
+    // Grupper like løp: «4× 150m: 20.63s, 20.50s, …» — type vises kun når
+    // den ikke er vanlig trening (f.eks. stevne)
+    const groups = {};
+    rs.forEach(s => {
+      const key = `${s.distance||''}|${(s.type||'').split(':')[0]}`;
+      (groups[key] ||= []).push(s);
+    });
+    const runs = Object.entries(groups).map(([key, arr]) => {
+      const [dist, typ] = key.split('|');
+      const times = arr.map(s => s.time_seconds!=null ? (+s.time_seconds).toFixed(2)+'s' : null).filter(Boolean);
+      const typeWord = typ && !/^trening$/i.test(typ) && !/^training$/i.test(typ) ? ' ' + trWord(typ).toLowerCase() : '';
+      return `${arr.length}× ${distLabel(dist)}${typeWord}${times.length ? ': ' + times.join(', ') : ''}`;
+    });
     const p = rs.find(s => [s.knee_before,s.knee_during,s.knee_after,s.knee_day_after].some(v=>v!=null));
     rows.push({
       date: d, cat: 'sprint',
-      type: runs.join(', '),
-      dur: rs.find(s=>s.duration_min!=null)?.duration_min, rpe: sprintRpeByDate[d],
+      type: runs.join(' · '),
+      dur: realDur(rs.find(s=>realDur(s.duration_min)!=null)?.duration_min), rpe: sprintRpeByDate[d],
       pain: p ? painCell(p.knee_before,p.knee_during,p.knee_after,p.knee_day_after) : '–',
       note: [...new Set(rs.map(s=>s.notes).filter(Boolean))].join(' · ')
     });
@@ -421,7 +443,7 @@ function render(){
     rows.push({
       date: a.date, cat: 'act',
       type: label,
-      dur: a.duration_min, rpe: a.rpe,
+      dur: realDur(a.duration_min), rpe: a.rpe,
       pain: painCell(a.knee_before,a.knee_during,a.knee_after,a.knee_day_after),
       note: a.notes || ''
     });
