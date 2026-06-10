@@ -65,18 +65,31 @@ export default async function handler(req, res) {
 
   const cfg = { url: SUPABASE_URL, key: SUPABASE_SERVICE_ROLE_KEY };
 
+  // Verste kne-verdi (høyest smerte) på tvers av de fire feltene i én rad.
+  const worstKnee = (r) => {
+    if (!r) return null;
+    const vals = [r.before_score, r.during_score, r.after_score, r.day_after_score]
+      .filter((v) => v != null);
+    return vals.length ? Math.max(...vals) : null;
+  };
+
   try {
+    // limit=2 → rad [0] = i dag/siste, rad [1] = forrige loggførte dag ("i går").
+    // Vi bruker forrige loggførte rad, ikke en hard kalenderdato, så trenden
+    // ikke forsvinner hver gang en dag uten logg hopper over.
     const [sleepRows, kneeRows, todoRows] = await Promise.all([
-      // Siste natt: nyeste rad etter dato
-      sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr&order=date.desc&limit=1', cfg),
-      // Siste kne-logg: nyeste rad etter dato
-      sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=1', cfg),
+      // Siste to netter: nyeste rad etter dato
+      sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr&order=date.desc&limit=2', cfg),
+      // Siste to kne-logger: nyeste rad etter dato
+      sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
       // Aktive gjøremål med forfallsdato, nærmeste først
       sb('todos?select=title,due_date,list_name,important&completed=eq.false&due_date=not.is.null&order=due_date.asc&limit=6', cfg),
     ]);
 
     const sleep = sleepRows[0] || null;
     const knee = kneeRows[0] || null;
+    const sleepPrev = sleepRows[1] || null;
+    const kneePrev = kneeRows[1] || null;
 
     return res.status(200).json({
       generated_at: new Date().toISOString(),
@@ -101,6 +114,11 @@ export default async function handler(req, res) {
         list_name: t.list_name,
         important: t.important,
       })),
+      // Forrige loggførte dag — driver trend-pilene i widgetene.
+      yesterday: {
+        sleep: sleepPrev ? { score: sleepPrev.sleep_score } : null,
+        knee: kneePrev ? { worst_score: worstKnee(kneePrev) } : null,
+      },
     });
   } catch (e) {
     return res.status(502).json({ error: 'Kunne ikke hente data', detail: String(e.message || e) });

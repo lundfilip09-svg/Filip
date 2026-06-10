@@ -55,10 +55,17 @@ function run(argv) {
   const sleepCol = (v) => v == null ? "gray" : v >= 80 ? "green" : v >= 60 ? "orange" : "red";
   const kneeCol  = (v) => v == null ? "gray" : v <= 2 ? "green" : v <= 5 ? "orange" : "red";
 
+  // Verste (høyeste) kne-verdi på tvers av de fire feltene i en rad.
+  const worstKnee = (r) => {
+    if (!r) return null;
+    const vals = [r.before, r.during, r.after, r.day_after].filter((v) => v != null);
+    return vals.length ? Math.max.apply(null, vals) : null;
+  };
+
   const kneeVal = k ? (k.during != null ? k.during : (k.after != null ? k.after : null)) : null;
 
   // --- Menylinje (kompakt) ---
-  const sTxt = s && s.score != null ? "😴" + s.score : "😴–";
+  const sTxt = s && s.score != null ? "💤" + s.score : "💤–";
   const kTxt = kneeVal != null ? "🦵" + kneeVal : "🦵–";
   const cTxt = "✅" + todos.length;
   out.push(sTxt + "  " + kTxt + "  " + cTxt + " | size=13");
@@ -89,6 +96,37 @@ function run(argv) {
     if (det.length) out.push(det.join(" · ") + " | size=11 color=gray");
     if (k.date) out.push(k.date + " | size=11 color=gray");
   } else out.push("Ingen data | color=gray");
+  out.push("---");
+
+  // --- Trend (vs forrige loggførte dag) ---
+  out.push("Trend (vs i går) | size=14");
+  const y = d.yesterday || {};
+  const yS = (y.sleep && y.sleep.score != null) ? y.sleep.score : null;
+  const yK = (y.knee && y.knee.worst_score != null) ? y.knee.worst_score : null;
+  const tS = (s && s.score != null) ? s.score : null;
+  const tK = worstKnee(k);
+
+  // Søvn: høyere = bedre.
+  if (tS != null && yS != null) {
+    const diff = tS - yS;
+    const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "▬";
+    const col = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+    const sign = diff > 0 ? "+" + diff : "" + diff;
+    out.push("💤 Søvn: " + tS + " " + arrow + " " + sign + " (i går " + yS + ") | color=" + col);
+  } else {
+    out.push("💤 Søvn: ingen sammenligning | size=11 color=gray");
+  }
+
+  // Kne: lavere = bedre (pil ned = forbedring = grønn).
+  if (tK != null && yK != null) {
+    const diff = tK - yK;
+    const arrow = diff < 0 ? "▼" : diff > 0 ? "▲" : "▬";
+    const col = diff < 0 ? "green" : diff > 0 ? "red" : "gray";
+    const sign = diff > 0 ? "+" + diff : "" + diff;
+    out.push("🦵 Kne (verste): " + tK + " " + arrow + " " + sign + " (i går " + yK + ") | color=" + col);
+  } else {
+    out.push("🦵 Kne (verste): ingen sammenligning | size=11 color=gray");
+  }
   out.push("---");
 
   // --- Gjøremål ---
