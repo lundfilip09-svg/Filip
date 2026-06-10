@@ -1,155 +1,135 @@
 // Widget Readiness — Scriptable (Small + Medium)
-// =================================================================
-// Daglig beredskap 0–100 fra søvn, kne og HRV.
-//   worst_knee = max(før,under,etter,d+1) fra siste kne-logg
-//   hrv_norm   = min(hrv/70*100, 100)
-//   readiness  = sleep_score*0.4 + (10-worst_knee)*6 + hrv_norm*0.2
-// (Vektsum 1.2 → teoretisk maks 120; klippes til 0–100.)
-// TOKEN/BASE kopiert fra "Filip Dashboard.js" (kun lese).
-// =================================================================
-
+// Beredskap 0–100: søvnscore×0.4 + (10−kne)×6 + HRV-norm×0.2
 const BASE  = "https://filip-vita.vercel.app";
 const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
 const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
-const DEEPLINK = `${BASE}/dashboard.html`;
 
-const BG1 = new Color("#0f172a"), BG2 = new Color("#1e293b");
-const FG = new Color("#f1f5f9"), DIM = new Color("#94a3b8");
-const GREEN = new Color("#22c55e"), YELLOW = new Color("#eab308"), RED = new Color("#ef4444");
-const TRACK = new Color("#ffffff", 0.10);
+const C = {
+  bg1:   new Color("#07111e"),
+  bg2:   new Color("#0c1829"),
+  fg:    new Color("#f1f5f9"),
+  s1:    new Color("#94a3b8"),
+  s2:    new Color("#475569"),
+  sep:   new Color("#1a2a3d"),
+  ok:    new Color("#10b981"),
+  warn:  new Color("#f59e0b"),
+  bad:   new Color("#f43f5e"),
+  track: new Color("#ffffff", 0.08),
+};
 
 function hhmm(d){ return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
-
-// Returnerer {score, word, color, rec, parts:{sleep,knee,hrv}} eller null hvis
-// søvnscore mangler (kan ikke beregne).
-function computeReadiness(data){
-  const s = data.sleep;
-  if(!s || s.score == null) return null;
-  const k = data.knee;
-  const vals = k ? [k.before, k.during, k.after, k.day_after].filter(v => v!=null) : [];
-  const worstKnee = vals.length ? Math.max(...vals) : 0; // ingen logg = ingen smerte
-  const hrv = s.hrv;
-  const hrvNorm = hrv != null ? Math.min(hrv/70*100, 100) : 0;
-
-  const pSleep = s.score * 0.4;          // maks 40
-  const pKnee  = (10 - worstKnee) * 6;   // maks 60
-  const pHrv   = hrvNorm * 0.2;          // maks 20
-  let score = Math.round(pSleep + pKnee + pHrv);
-  score = Math.max(0, Math.min(100, score));
-
-  let word, color, colorHex, rec;
-  if(score > 75){ word = "KLAR";    color = GREEN;  colorHex = "#22c55e"; rec = "Tren hardt"; }
-  else if(score >= 50){ word = "MODERAT"; color = YELLOW; colorHex = "#eab308"; rec = "Moderat økt"; }
-  else { word = "HVIL"; color = RED; colorHex = "#ef4444"; rec = "Hvil"; }
-
-  return {
-    score, word, color, colorHex, rec,
-    hrvMissing: hrv == null,
-    parts: {
-      sleep: { val: pSleep, max: 40 },
-      knee:  { val: pKnee,  max: 60 },
-      hrv:   { val: pHrv,   max: 20, missing: hrv == null },
-    },
-  };
+function lbl(parent,text){
+  const t=parent.addText(text); t.textColor=C.s2; t.font=Font.mediumSystemFont(9); return t;
 }
-
-async function getData(){
-  const req = new Request(API); req.timeoutInterval = 12;
-  return await req.loadJSON();
-}
-
 function errWidget(msg){
-  const w = new ListWidget(); w.backgroundColor = BG1;
-  const t = w.addText("Readiness utilgjengelig"); t.textColor = FG; t.font = Font.boldSystemFont(14);
+  const w=new ListWidget(); w.backgroundColor=C.bg1;
+  w.addText("Beredskap utilgjengelig").textColor=C.fg;
   w.addSpacer(4);
-  const e = w.addText(String(msg)); e.textColor = DIM; e.font = Font.systemFont(10);
+  w.addText(String(msg)).textColor=C.s2;
   return w;
 }
 
-// Horisontal komponent-stolpe: label + spor + fyll (val/max), med tall.
-function addBar(parent, label, val, max, color, w){
-  const row = parent.addStack(); row.centerAlignContent();
-  const l = row.addStack(); l.size = new Size(46, 12);
-  const lt = l.addText(label); lt.textColor=DIM; lt.font=Font.systemFont(10);
-  const track = row.addStack(); track.backgroundColor=TRACK; track.size=new Size(w,10); track.cornerRadius=5;
-  const fillW = Math.max(2, Math.round(w * Math.min(val/max,1)));
-  const fill = track.addStack(); fill.backgroundColor=color; fill.size=new Size(fillW,10); fill.cornerRadius=5;
-  row.addSpacer(6);
-  const v = row.addText(`${Math.round(val)}`); v.textColor=FG; v.font=Font.mediumSystemFont(10);
+function compute(data){
+  const s=data.sleep;
+  if(!s||s.score==null) return null;
+  const k=data.knee;
+  const vals=k?[k.before,k.during,k.after,k.day_after].filter(v=>v!=null):[];
+  const worstK=vals.length?Math.max(...vals):0;
+  const hrv=s.hrv;
+  const hrvN=hrv!=null?Math.min(hrv/70*100,100):0;
+  let score=Math.round(s.score*0.4+(10-worstK)*6+hrvN*0.2);
+  score=Math.max(0,Math.min(100,score));
+  let word,color,colorHex,rec;
+  if(score>75){   word="KLAR";    color=C.ok;   colorHex="#10b981"; rec="Tren hardt"; }
+  else if(score>=50){ word="MODERAT"; color=C.warn; colorHex="#f59e0b"; rec="Moderat økt"; }
+  else{           word="HVIL";    color=C.bad;  colorHex="#f43f5e"; rec="Hvil i dag"; }
+  return {score,word,color,colorHex,rec,
+    parts:{
+      sleep:{val:s.score*0.4,max:40},
+      knee: {val:(10-worstK)*6,max:60},
+      hrv:  {val:hrvN*0.2,max:20,missing:hrv==null},
+    }};
 }
 
-// =================================================================
-// SMALL — stor score + ett ord
-// =================================================================
-function buildSmall(r){
-  const w = new ListWidget();
-  const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
-  w.setPadding(14,14,14,14); w.url = DEEPLINK;
+function addBar(parent,label,val,max,color,barW){
+  const row=parent.addStack(); row.centerAlignContent();
+  const labelBox=row.addStack(); labelBox.size=new Size(44,12);
+  labelBox.addText(label).textColor=C.s2;
+  const track=row.addStack(); track.backgroundColor=C.track; track.size=new Size(barW,8); track.cornerRadius=4;
+  const fw=Math.max(2,Math.round(barW*Math.min(val/max,1)));
+  const fill=track.addStack(); fill.backgroundColor=color; fill.size=new Size(fw,8); fill.cornerRadius=4;
+  row.addSpacer(6);
+  row.addText(`${Math.round(val)}`).textColor=C.s1;
+}
 
-  const lbl = w.addText("BEREDSKAP"); lbl.textColor=DIM; lbl.font=Font.mediumSystemFont(9);
+// ── SMALL ─────────────────────────────────────────────────
+function buildSmall(r){
+  const w=new ListWidget();
+  const g=new LinearGradient(); g.colors=[C.bg1,C.bg2]; g.locations=[0,1]; w.backgroundGradient=g;
+  w.setPadding(14,14,14,14); w.url=`${BASE}/dashboard.html`;
+
+  lbl(w,"BEREDSKAP");
+  w.addSpacer(1);
   if(!r){
-    const num = w.addText("–"); num.textColor=DIM; num.font=Font.boldSystemFont(46);
+    w.addText("–").textColor=C.s2;
     w.addSpacer();
     return w;
   }
-  const num = w.addText(`${r.score}`); num.textColor=r.color; num.font=Font.boldSystemFont(50);
+  const n=w.addText(`${r.score}`); n.textColor=r.color; n.font=Font.boldSystemFont(50);
   w.addSpacer(2);
-  const word = w.addText(r.word); word.textColor=r.color; word.font=Font.boldSystemFont(20);
+  const wrd=w.addText(r.word); wrd.textColor=r.color; wrd.font=Font.boldSystemFont(18);
   w.addSpacer();
-  const foot = w.addText(`Oppdatert ${hhmm(new Date())}`); foot.textColor=DIM; foot.font=Font.systemFont(8);
+  w.addText(hhmm(new Date())).textColor=C.s2;
   return w;
 }
 
-// =================================================================
-// MEDIUM — score + tre bidrag (stolper) + anbefaling
-// =================================================================
+// ── MEDIUM ────────────────────────────────────────────────
 function buildMedium(r){
-  const w = new ListWidget();
-  const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
-  w.setPadding(13,15,12,15); w.url = DEEPLINK;
+  const w=new ListWidget();
+  const g=new LinearGradient(); g.colors=[C.bg1,C.bg2]; g.locations=[0,1]; w.backgroundGradient=g;
+  w.setPadding(13,15,12,15); w.url=`${BASE}/dashboard.html`;
 
-  const head = w.addStack(); head.centerAlignContent();
-  const title = head.addText("🎯 Beredskap"); title.textColor=FG; title.font=Font.boldSystemFont(13);
+  const head=w.addStack(); head.centerAlignContent();
+  lbl(head,"BEREDSKAP");
   head.addSpacer();
-  const ts = head.addText(hhmm(new Date())); ts.textColor=DIM; ts.font=Font.systemFont(10);
+  head.addText(hhmm(new Date())).textColor=C.s2;
   w.addSpacer(8);
 
   if(!r){
-    const e = w.addText("Mangler søvndata for å beregne."); e.textColor=DIM; e.font=Font.systemFont(12);
+    w.addText("Mangler søvndata for å beregne.").textColor=C.s2;
     w.addSpacer();
     return w;
   }
 
-  const body = w.addStack(); body.centerAlignContent();
-  // venstre: stor score + ord
-  const left = body.addStack(); left.layoutVertically();
-  const num = left.addText(`${r.score}`); num.textColor=r.color; num.font=Font.boldSystemFont(44);
-  const word = left.addText(r.word); word.textColor=r.color; word.font=Font.boldSystemFont(15);
+  const body=w.addStack(); body.centerAlignContent();
+  const left=body.addStack(); left.layoutVertically();
+  const n=left.addText(`${r.score}`); n.textColor=r.color; n.font=Font.boldSystemFont(46);
+  const wrd=left.addText(r.word); wrd.textColor=r.color; wrd.font=Font.boldSystemFont(14);
   body.addSpacer(16);
-  // høyre: tre stolper
-  const right = body.addStack(); right.layoutVertically();
-  const bw = 120;
-  addBar(right, "Søvn", r.parts.sleep.val, r.parts.sleep.max, GREEN, bw); right.addSpacer(6);
-  addBar(right, "Kne", r.parts.knee.val, r.parts.knee.max, YELLOW, bw); right.addSpacer(6);
-  addBar(right, r.parts.hrv.missing ? "HRV –" : "HRV", r.parts.hrv.val, r.parts.hrv.max, new Color("#38bdf8"), bw);
+  const right=body.addStack(); right.layoutVertically();
+  const bw=128;
+  addBar(right,"Søvn",r.parts.sleep.val,r.parts.sleep.max,C.ok,bw);   right.addSpacer(7);
+  addBar(right,"Kne", r.parts.knee.val, r.parts.knee.max, C.warn,bw); right.addSpacer(7);
+  addBar(right,r.parts.hrv.missing?"HRV –":"HRV",r.parts.hrv.val,r.parts.hrv.max,new Color("#60a5fa"),bw);
 
   w.addSpacer(9);
-  const recRow = w.addStack(); recRow.centerAlignContent();
-  const chip = recRow.addStack(); chip.backgroundColor=new Color(r.colorHex, 0.18); chip.cornerRadius=6; chip.setPadding(3,8,3,8);
-  const rt = chip.addText(r.rec); rt.textColor=r.color; rt.font=Font.boldSystemFont(12);
+  const chip=w.addStack();
+  const inner=chip.addStack(); inner.backgroundColor=new Color(r.colorHex,0.15); inner.cornerRadius=6; inner.setPadding(3,10,3,10);
+  const rt=inner.addText(r.rec); rt.textColor=r.color; rt.font=Font.boldSystemFont(12);
   return w;
 }
 
 async function build(){
   let data;
-  try { data = await getData(); } catch(e){ return errWidget("Nettverksfeil"); }
-  if(!data || data.error) return errWidget(data && data.error ? data.error : "Ukjent feil");
-  const r = computeReadiness(data);
-  return config.widgetFamily === "small" ? buildSmall(r) : buildMedium(r);
+  try{ const req=new Request(API); req.timeoutInterval=12; data=await req.loadJSON(); }
+  catch(e){ return errWidget("Nettverksfeil"); }
+  if(!data||data.error) return errWidget(data?.error??"Ukjent feil");
+  const r=compute(data);
+  return config.widgetFamily==="small"?buildSmall(r):buildMedium(r);
 }
 
-const widget = await build();
+const widget=await build();
 if(config.runsInWidget){ Script.setWidget(widget); }
-else if(config.widgetFamily === "small"){ await widget.presentSmall(); }
+else if(config.widgetFamily==="small"){ await widget.presentSmall(); }
 else { await widget.presentMedium(); }
 Script.complete();

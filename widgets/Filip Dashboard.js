@@ -1,232 +1,197 @@
-// Filip Dashboard — Scriptable widget (Medium + Small)
-// =================================================================
-// OPPSETT (gjør én gang):
-//   1. Installer "Scriptable" fra App Store.
-//   2. Åpne Scriptable → trykk + → lim inn HELE denne filen.
-//   3. Fyll inn TOKEN under (samme verdi som CRON_SECRET i Vercel).
-//   4. Legg widget på hjemmeskjerm: hold inne → + → Scriptable →
-//      Medium ELLER Small. Trykk på widgeten → "Edit Widget" → velg
-//      dette scriptet. Begge størrelser bruker samme script.
-//
-// SIKKERHET: TOKEN her gir KUN lesetilgang via proxyen (api/widget.js).
-//   Den gir ikke skrivetilgang og avslører ikke service_role-nøkkelen.
-//   OBS: tokenet er CRON_SECRET, som også brukes av Vercel-cron. Roterer du
-//   det, må du oppdatere både denne fila, Mac-widgeten og cron-oppsettet.
-// =================================================================
-
+// Filip Dashboard — Scriptable (Medium + Small)
 const BASE  = "https://filip-vita.vercel.app";
 const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
 const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
-const DEEPLINK = `${BASE}/ai.html`; // Tap åpner AI-chat
 
-// ---- Farger ----
-const BG1 = new Color("#0f172a"), BG2 = new Color("#1e293b");
-const FG = new Color("#f1f5f9"), DIM = new Color("#94a3b8");
-const GREEN = new Color("#22c55e"), YELLOW = new Color("#eab308"), RED = new Color("#ef4444");
-const ACCENT = new Color("#38bdf8"), GOLD = new Color("#fbbf24");
-const CHIPBG = new Color("#ffffff", 0.08);
-const SEP = new Color("#ffffff", 0.10);
+const C = {
+  bg1:  new Color("#07111e"),
+  bg2:  new Color("#0c1829"),
+  fg:   new Color("#f1f5f9"),
+  s1:   new Color("#94a3b8"),
+  s2:   new Color("#475569"),
+  sep:  new Color("#1a2a3d"),
+  ok:   new Color("#10b981"),
+  warn: new Color("#f59e0b"),
+  bad:  new Color("#f43f5e"),
+  acc:  new Color("#818cf8"),
+};
 
-function sleepColor(s){ if(s==null) return DIM; return s>=80?GREEN:s>=60?YELLOW:RED; }
-function kneeColor(p){ if(p==null) return DIM; return p<=2?GREEN:p<=5?YELLOW:RED; }
-
-// Verste (høyeste) kne-verdi på tvers av de fire feltene.
+function sleepColor(v){ return v==null?C.s2:v>=80?C.ok:v>=60?C.warn:C.bad; }
+function kneeColor(v){  return v==null?C.s2:v<=2?C.ok:v<=5?C.warn:C.bad; }
 function worstKnee(k){
   if(!k) return null;
-  const vals = [k.before, k.during, k.after, k.day_after].filter(v => v!=null);
-  return vals.length ? Math.max(...vals) : null;
+  const v=[k.before,k.during,k.after,k.day_after].filter(x=>x!=null);
+  return v.length?Math.max(...v):null;
 }
-
+function hoursLabel(h){
+  if(h==null) return "–";
+  const m=Math.round(h*60);
+  return `${Math.floor(m/60)}t ${m%60}m`;
+}
 function dueLabel(iso){
   if(!iso) return "";
-  const d = new Date(iso+"T00:00:00");
-  const now = new Date(); now.setHours(0,0,0,0);
-  const diff = Math.round((d - now)/86400000);
-  if(diff < 0)  return `for ${-diff}d siden`;
-  if(diff === 0) return "i dag";
-  if(diff === 1) return "i morgen";
-  if(diff <= 6)  return `${diff}d`;
+  const d=new Date(iso+"T00:00:00"), now=new Date(); now.setHours(0,0,0,0);
+  const diff=Math.round((d-now)/86400000);
+  if(diff<0)  return `${-diff}d siden`;
+  if(diff===0) return "i dag";
+  if(diff===1) return "i morgen";
+  if(diff<=6)  return `${diff}d`;
   return `${d.getDate()}.${d.getMonth()+1}.`;
 }
 function dueColor(iso){
-  if(!iso) return DIM;
-  const d = new Date(iso+"T00:00:00"); const now = new Date(); now.setHours(0,0,0,0);
-  const diff = Math.round((d-now)/86400000);
-  return diff < 0 ? RED : diff <= 1 ? YELLOW : DIM;
+  const d=new Date(iso+"T00:00:00"),now=new Date(); now.setHours(0,0,0,0);
+  const diff=Math.round((d-now)/86400000);
+  return diff<0?C.bad:diff<=1?C.warn:C.s1;
+}
+function dateStr(){
+  const d=new Date();
+  const days=["Søn","Man","Tir","Ons","Tor","Fre","Lør"];
+  const months=["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];
+  return `${days[d.getDay()]} ${d.getDate()}. ${months[d.getMonth()]}`;
 }
 function hhmm(d){ return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
-
-async function getData(){
-  const req = new Request(API);
-  req.timeoutInterval = 12;
-  return await req.loadJSON();
+function lbl(parent, text){
+  const t=parent.addText(text); t.textColor=C.s2; t.font=Font.mediumSystemFont(9); return t;
 }
-
-// ---- Gjenbrukbare bygge-elementer ----
-
-// Liten "chip": grå label + farget verdi i avrundet boks.
-function addChip(parent, label, value, color){
-  const c = parent.addStack();
-  c.backgroundColor = CHIPBG;
-  c.cornerRadius = 6;
-  c.setPadding(2, 7, 2, 7);
-  c.centerAlignContent();
-  const l = c.addText(`${label} `); l.textColor = DIM; l.font = Font.systemFont(9);
-  const v = c.addText(value==null ? "–" : `${value}`); v.textColor = color||FG; v.font = Font.boldSystemFont(10);
-  return c;
-}
-
-// Én kne-celle: liten grå label over farget tall.
-function addKneeCell(parent, label, v){
-  const cell = parent.addStack(); cell.layoutVertically(); cell.centerAlignContent();
-  const l = cell.addText(label); l.textColor=DIM; l.font=Font.systemFont(8); l.centerAlignText();
-  const n = cell.addText(v!=null?`${v}`:"–"); n.textColor=kneeColor(v); n.font=Font.boldSystemFont(16); n.centerAlignText();
-  return cell;
-}
-
-// Tynn horisontal skillelinje.
-function addSeparator(parent, w){
-  const line = parent.addStack();
-  line.backgroundColor = SEP;
-  line.size = new Size(w, 1);
-}
-
 function errWidget(msg){
-  const w = new ListWidget();
-  w.backgroundColor = BG1;
-  const t = w.addText("Dashboard utilgjengelig");
-  t.textColor = FG; t.font = Font.boldSystemFont(14);
+  const w=new ListWidget(); w.backgroundColor=C.bg1;
+  const t=w.addText("Dashboard utilgjengelig"); t.textColor=C.fg; t.font=Font.boldSystemFont(13);
   w.addSpacer(4);
-  const e = w.addText(String(msg)); e.textColor = DIM; e.font = Font.systemFont(10);
+  w.addText(String(msg)).textColor=C.s2;
   return w;
 }
 
-// =================================================================
-// MEDIUM
-// =================================================================
+// ── MEDIUM ────────────────────────────────────────────────
 function buildMedium(data){
-  const w = new ListWidget();
-  const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
-  w.setPadding(13,15,11,15);
-  w.url = DEEPLINK;
+  const w=new ListWidget();
+  const g=new LinearGradient(); g.colors=[C.bg1,C.bg2]; g.locations=[0,1]; w.backgroundGradient=g;
+  w.setPadding(14,15,12,15);
+  w.url=`${BASE}/ai.html`;
 
   // Header
-  const head = w.addStack(); head.centerAlignContent();
-  const title = head.addText("⚡ Dashboard"); title.textColor=FG; title.font=Font.boldSystemFont(13);
+  const head=w.addStack(); head.centerAlignContent();
+  const hn=head.addText("Filip"); hn.textColor=C.fg; hn.font=Font.boldSystemFont(14);
   head.addSpacer();
-  const ts = head.addText(hhmm(new Date())); ts.textColor=DIM; ts.font=Font.systemFont(10);
-  w.addSpacer(9);
+  const hd=head.addText(dateStr()); hd.textColor=C.s1; hd.font=Font.systemFont(10);
+  w.addSpacer(10);
 
-  const body = w.addStack(); body.topAlignContent();
+  const body=w.addStack(); body.topAlignContent();
 
-  // --- Venstre: søvn + kne ---
-  const left = body.addStack(); left.layoutVertically();
+  // ── Venstre: Søvn + Kne ──
+  const left=body.addStack(); left.layoutVertically();
+  const s=data.sleep;
 
-  const s = data.sleep;
-  const sLbl = left.addText("SØVN"); sLbl.textColor=DIM; sLbl.font=Font.mediumSystemFont(9);
+  lbl(left, "SØVN");
   left.addSpacer(2);
-  const sRow = left.addStack(); sRow.bottomAlignContent();
-  const sNum = sRow.addText(s && s.score!=null ? `${s.score}` : "–");
-  sNum.textColor = sleepColor(s && s.score); sNum.font = Font.boldSystemFont(34);
-  if(s && s.hours!=null){ sRow.addSpacer(5); const h=sRow.addText(`${s.hours}t`); h.textColor=DIM; h.font=Font.systemFont(12); }
-  // HRV / RHR chips
+  const sr=left.addStack(); sr.bottomAlignContent();
+  const sn=sr.addText(s&&s.score!=null?`${s.score}`:"–");
+  sn.textColor=sleepColor(s&&s.score); sn.font=Font.boldSystemFont(36);
+  if(s&&s.hours!=null){
+    sr.addSpacer(5);
+    const sh=sr.addText(hoursLabel(s.hours)); sh.textColor=C.s1; sh.font=Font.systemFont(11);
+  }
   left.addSpacer(5);
-  const chips = left.addStack(); chips.centerAlignContent();
-  addChip(chips, "HRV", s ? s.hrv : null, FG);
-  chips.addSpacer(5);
-  addChip(chips, "RHR", s ? s.rhr : null, FG);
+  if(s){
+    const hr=left.addStack(); hr.centerAlignContent();
+    const h1=hr.addText(`HRV ${s.hrv??'–'}`); h1.textColor=C.s1; h1.font=Font.systemFont(10);
+    hr.addSpacer(8);
+    const h2=hr.addText(`RHR ${s.rhr??'–'}`); h2.textColor=C.s1; h2.font=Font.systemFont(10);
+  }
+  left.addSpacer(10);
+  const divL=left.addStack(); divL.backgroundColor=C.sep; divL.size=new Size(130,1);
+  left.addSpacer(10);
 
-  left.addSpacer(9);
-  addSeparator(left, 130);
-  left.addSpacer(9);
-
-  const k = data.knee;
-  const kHead = left.addStack(); kHead.centerAlignContent();
-  const kLbl = kHead.addText("KNE"); kLbl.textColor=DIM; kLbl.font=Font.mediumSystemFont(9);
-  if(k && k.session_type){ kHead.addSpacer(5); const stp=kHead.addText(k.session_type); stp.textColor=DIM; stp.font=Font.systemFont(9); stp.lineLimit=1; }
+  // KNE
+  const k=data.knee;
+  const kh=left.addStack(); kh.centerAlignContent();
+  lbl(kh, "KNE");
+  if(k&&k.session_type){
+    kh.addSpacer(5);
+    const st=kh.addText(k.session_type); st.textColor=C.s2; st.font=Font.systemFont(9); st.lineLimit=1;
+  }
   left.addSpacer(4);
-  // Fire verdier som rad
-  const kRow = left.addStack(); kRow.centerAlignContent();
-  addKneeCell(kRow, "før", k ? k.before : null); kRow.addSpacer(10);
-  addKneeCell(kRow, "under", k ? k.during : null); kRow.addSpacer(10);
-  addKneeCell(kRow, "etter", k ? k.after : null); kRow.addSpacer(10);
-  addKneeCell(kRow, "d+1", k ? k.day_after : null);
+  const kr=left.addStack(); kr.centerAlignContent();
+  [{l:"før",v:k?k.before:null},{l:"und",v:k?k.during:null},{l:"etter",v:k?k.after:null},{l:"d+1",v:k?k.day_after:null}]
+    .forEach((p,i)=>{
+      if(i>0){ const dot=kr.addText("·"); dot.textColor=C.s2; dot.font=Font.systemFont(10); kr.addSpacer(3); }
+      const cell=kr.addStack(); cell.layoutVertically(); cell.centerAlignContent();
+      const cl=cell.addText(p.l); cl.textColor=C.s2; cl.font=Font.systemFont(8); cl.centerAlignText();
+      const cv=cell.addText(p.v!=null?`${p.v}`:"–"); cv.textColor=kneeColor(p.v); cv.font=Font.boldSystemFont(15); cv.centerAlignText();
+      if(i<3) kr.addSpacer(3);
+    });
 
   body.addSpacer(16);
 
-  // --- Høyre: gjøremål ---
-  const right = body.addStack(); right.layoutVertically();
-  const tLbl = right.addText("GJØREMÅL"); tLbl.textColor=DIM; tLbl.font=Font.mediumSystemFont(9);
+  // ── Høyre: Gjøremål ──
+  const right=body.addStack(); right.layoutVertically();
+  lbl(right, "GJØREMÅL");
   right.addSpacer(4);
-  const todos = (data.todos||[]).slice(0,4);
-  if(todos.length===0){ const e=right.addText("Ingenting med frist 🎉"); e.textColor=DIM; e.font=Font.systemFont(11); }
+  const todos=(data.todos||[]).slice(0,4);
+  if(todos.length===0){
+    const e=right.addText("Alt klart"); e.textColor=C.s2; e.font=Font.systemFont(11);
+  }
   for(const td of todos){
-    if(td.list_name){
-      const ln = right.addText(td.list_name.toUpperCase());
-      ln.textColor=DIM; ln.font=Font.mediumSystemFont(8); ln.lineLimit=1;
-    }
-    const row = right.addStack(); row.centerAlignContent();
-    const dot = row.addText(td.important ? "★ " : "• ");
-    dot.textColor = td.important ? GOLD : ACCENT; dot.font=Font.systemFont(11);
-    const name = row.addText(td.title); name.textColor=FG; name.font=Font.systemFont(11); name.lineLimit=1;
+    const row=right.addStack(); row.centerAlignContent();
+    const dot=row.addText("—  "); dot.textColor=C.s2; dot.font=Font.systemFont(10);
+    const tn=row.addText(td.title);
+    tn.textColor=td.important?C.fg:C.s1; tn.font=Font.systemFont(11); tn.lineLimit=1;
     row.addSpacer();
-    const due = row.addText(dueLabel(td.due_date)); due.textColor=dueColor(td.due_date); due.font=Font.mediumSystemFont(10);
-    right.addSpacer(6);
+    if(td.due_date){
+      const due=row.addText(dueLabel(td.due_date)); due.textColor=dueColor(td.due_date); due.font=Font.mediumSystemFont(10);
+    }
+    right.addSpacer(5);
   }
 
   w.addSpacer();
-  const foot = w.addStack(); foot.centerAlignContent();
-  const fu = foot.addText(`Oppdatert ${hhmm(new Date())}`); fu.textColor=DIM; fu.font=Font.systemFont(9);
-  foot.addSpacer();
-  const fl = foot.addText("AI-chat →"); fl.textColor=ACCENT; fl.font=Font.systemFont(9);
+  const foot=w.addStack(); foot.centerAlignContent();
+  foot.addText(hhmm(new Date())).textColor=C.s2;
+  (foot.addText(" · ")).textColor=C.s2;
+  const ai=foot.addText("AI →"); ai.textColor=C.acc; ai.font=Font.mediumSystemFont(9);
   return w;
 }
 
-// =================================================================
-// SMALL — søvnscore + verste kne + antall gjøremål
-// =================================================================
+// ── SMALL ─────────────────────────────────────────────────
 function buildSmall(data){
-  const w = new ListWidget();
-  const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
-  w.setPadding(13,14,13,14);
-  w.url = DEEPLINK;
+  const w=new ListWidget();
+  const g=new LinearGradient(); g.colors=[C.bg1,C.bg2]; g.locations=[0,1]; w.backgroundGradient=g;
+  w.setPadding(14,14,13,14);
+  w.url=`${BASE}/dashboard.html`;
 
-  const s = data.sleep;
-  const sLbl = w.addText("SØVN"); sLbl.textColor=DIM; sLbl.font=Font.mediumSystemFont(9);
-  const sNum = w.addText(s && s.score!=null ? `${s.score}` : "–");
-  sNum.textColor = sleepColor(s && s.score); sNum.font = Font.boldSystemFont(42);
+  const s=data.sleep;
+  lbl(w, "SØVN");
+  w.addSpacer(1);
+  const sn=w.addText(s&&s.score!=null?`${s.score}`:"–");
+  sn.textColor=sleepColor(s&&s.score); sn.font=Font.boldSystemFont(42);
 
-  w.addSpacer(8);
-
-  const worst = worstKnee(data.knee);
-  const kRow = w.addStack(); kRow.centerAlignContent();
-  const kIcon = kRow.addText("🦵 "); kIcon.font=Font.systemFont(13);
-  const kNum = kRow.addText(worst!=null ? `${worst}/10` : "–");
-  kNum.textColor = kneeColor(worst); kNum.font=Font.boldSystemFont(15);
-  const kc = kRow.addText("  verste"); kc.textColor=DIM; kc.font=Font.systemFont(9);
+  w.addSpacer(7);
+  const worst=worstKnee(data.knee);
+  const kr=w.addStack(); kr.centerAlignContent();
+  const kn=kr.addText(worst!=null?`${worst}/10`:"–"); kn.textColor=kneeColor(worst); kn.font=Font.boldSystemFont(15);
+  kr.addSpacer(4);
+  kr.addText("kne").textColor=C.s2;
 
   w.addSpacer(4);
-
-  const n = (data.todos||[]).length;
-  const tRow = w.addStack(); tRow.centerAlignContent();
-  const tIcon = tRow.addText("📋 "); tIcon.font=Font.systemFont(13);
-  const tNum = tRow.addText(`${n}`); tNum.textColor=FG; tNum.font=Font.boldSystemFont(15);
-  const tc = tRow.addText(n===1 ? "  gjøremål" : "  gjøremål"); tc.textColor=DIM; tc.font=Font.systemFont(9);
+  const n=(data.todos||[]).length;
+  const tr=w.addStack(); tr.centerAlignContent();
+  const tn=tr.addText(`${n}`); tn.textColor=C.fg; tn.font=Font.boldSystemFont(15);
+  tr.addSpacer(4);
+  tr.addText("gjøremål").textColor=C.s2;
 
   w.addSpacer();
-  const foot = w.addText(`Oppdatert ${hhmm(new Date())}`); foot.textColor=DIM; foot.font=Font.systemFont(8);
+  w.addText(hhmm(new Date())).textColor=C.s2;
   return w;
 }
 
 async function build(){
   let data;
-  try { data = await getData(); } catch(e){ return errWidget("Nettverksfeil"); }
-  if(!data || data.error) return errWidget(data && data.error ? data.error : "Ukjent feil");
-  return config.widgetFamily === "small" ? buildSmall(data) : buildMedium(data);
+  try{ const req=new Request(API); req.timeoutInterval=12; data=await req.loadJSON(); }
+  catch(e){ return errWidget("Nettverksfeil"); }
+  if(!data||data.error) return errWidget(data?.error??"Ukjent feil");
+  return config.widgetFamily==="small"?buildSmall(data):buildMedium(data);
 }
 
-const widget = await build();
+const widget=await build();
 if(config.runsInWidget){ Script.setWidget(widget); }
-else if(config.widgetFamily === "small"){ await widget.presentSmall(); }
+else if(config.widgetFamily==="small"){ await widget.presentSmall(); }
 else { await widget.presentMedium(); }
 Script.complete();
