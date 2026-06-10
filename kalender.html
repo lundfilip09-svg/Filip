@@ -274,6 +274,10 @@
     }
     .qa-preview.show { display: flex; }
     .qa-preview-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .qa-dest { display: flex; gap: 4px; margin-top: 5px; }
+    .qa-dest-btn { flex: 1; padding: 4px 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; cursor: pointer; font-size: 10px; font-family: var(--font-mono); color: var(--text-secondary); transition: background 0.12s, border-color 0.12s; }
+    .qa-dest-btn:hover { background: rgba(255,255,255,0.08); }
+    .qa-dest-btn.selected { background: rgba(91,164,245,0.12); border-color: rgba(91,164,245,0.4); color: #5BA4F5; }
 
     /* Event detail */
     .ev-detail-close {
@@ -336,7 +340,7 @@
     }
     .focus-stat-val {
       font-size: 17px; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text-primary); line-height: 1.1;
+      color: var(--text-primary); line-height: 1.1; white-space: nowrap;
     }
     .focus-stat-lbl {
       font-size: 7.5px; font-family: var(--font-mono); color: var(--text-tertiary);
@@ -505,6 +509,10 @@
             oninput="onQaInput()" onkeydown="onQaKey(event)">
           <button class="qa-send" onclick="qaSubmit()">↵</button>
         </div>
+        <div class="qa-dest" id="qaDestWrap">
+          <button type="button" class="qa-dest-btn selected" id="qaDestGcal" onclick="setQaDest('gcal')" data-i18n="kal.dest_gcal">Google Cal</button>
+          <button type="button" class="qa-dest-btn" id="qaDestLocal" onclick="setQaDest('local')" data-i18n="kal.dest_local">Lokal</button>
+        </div>
         <div class="qa-preview" id="qaPreview">
           <div class="qa-preview-dot" id="qaPreviewDot"></div>
           <span id="qaPreviewText"></span>
@@ -607,6 +615,19 @@ let customEvents   = [];
 let activeEventId  = null;
 let gcalScope      = 'this';   // 'this' = kun denne forekomsten, 'series' = hele gjentakende serien
 let viewMode       = 'agenda';
+let _qaDest        = 'gcal';   // 'gcal' | 'local'
+
+// ── Auth helper ────────────────────────────────────────────────────────────
+async function authHeaders() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; throw new Error('not_auth'); }
+  return { Authorization: `Bearer ${session.access_token}` };
+}
+
+function handle401() {
+  toast(t('kal.unauthorized'), 'err');
+  setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -735,7 +756,9 @@ async function loadGCalRange() {
   const start = toLocalStr(addDays(weekStart, -7));
   const end   = toLocalStr(addDays(weekStart, 35));
   try {
-    const r = await fetch(`/api/kalender?start=${start}&end=${end}`);
+    const hdrs = await authHeaders();
+    const r = await fetch(`/api/kalender?start=${start}&end=${end}`, { headers: hdrs });
+    if (r.status === 401) { handle401(); return; }
     if (!r.ok) throw new Error('API ' + r.status);
     const { events = [] } = await r.json();
     gcalEvents = events.map(e => ({
@@ -1257,11 +1280,13 @@ async function saveActiveGcalEvent() {
   if (!title || !date) { toast(t('kal.save_error'), 'err'); return; }
 
   const times = gcalTimeObjs(date, start, end);
+  const hdrs = { ...await authHeaders(), 'Content-Type': 'application/json' };
   const r = await fetch('/api/kalender', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: hdrs,
     body: JSON.stringify({ eventId: gcalTargetId(ev), summary: title, start: times.start, end: times.end }),
   });
+  if (r.status === 401) { handle401(); return; }
   if (!r.ok) { toast(r.status === 403 ? t('kal.gcal_err_scope') : t('kal.save_error'), 'err'); return; }
   toast(t('kal.updated'));
   await loadGCalRange();
@@ -1274,11 +1299,13 @@ async function deleteActiveGcalEvent() {
   const series = ev.recurringEventId && gcalScope === 'series';
   const msg = series ? t('kal.gcal_del_series_confirm') : t('kal.gcal_del_confirm');
   if (!confirm(`${msg} "${ev.title}"`)) return;
+  const hdrs = { ...await authHeaders(), 'Content-Type': 'application/json' };
   const r = await fetch('/api/kalender', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: hdrs,
     body: JSON.stringify({ eventId: gcalTargetId(ev) }),
   });
+  if (r.status === 401) { handle401(); return; }
   if (!r.ok) { toast(r.status === 403 ? t('kal.gcal_err_scope') : t('kal.del_error'), 'err'); return; }
   activeEventId = null;
   toast(t('kal.deleted'));
@@ -1340,12 +1367,39 @@ function onQaInput() {
 
 function onQaKey(e) { if (e.key === 'Enter') qaSubmit(); }
 
+function setQaDest(dest) {
+  _qaDest = dest;
+  document.getElementById('qaDestGcal').classList.toggle('selected', dest === 'gcal');
+  document.getElementById('qaDestLocal').classList.toggle('selected', dest === 'local');
+}
+
+async function createGcalEvent(data) {
+  const { title, date, startTime, endTime } = data;
+  if (!title || !date) return;
+  const times = gcalTimeObjs(date, startTime, endTime);
+  const hdrs = { ...await authHeaders(), 'Content-Type': 'application/json' };
+  const r = await fetch('/api/kalender', {
+    method: 'POST',
+    headers: hdrs,
+    body: JSON.stringify({ summary: title, start: times.start, end: times.end }),
+  });
+  if (r.status === 401) { handle401(); return; }
+  if (!r.ok) { toast(t('kal.save_error'), 'err'); return; }
+  toast(t('kal.added') + ': ' + title);
+  await loadGCalRange();
+  renderAll();
+}
+
 async function qaSubmit() {
   const val = document.getElementById('qaInput').value.trim();
   if (!val) return;
   const parsed = parseQuickAdd(val);
   if (!parsed) return;
-  await createEvent(parsed);
+  if (_qaDest === 'gcal') {
+    await createGcalEvent(parsed);
+  } else {
+    await createEvent(parsed);
+  }
   document.getElementById('qaInput').value = '';
   document.getElementById('qaPreview').classList.remove('show');
 }

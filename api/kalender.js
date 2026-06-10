@@ -1,9 +1,22 @@
 // api/kalender.js
-// Fetches Google Calendar events for an arbitrary date range.
-// Query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+// Fetches / creates / patches / deletes Google Calendar events.
+// Query params (GET): ?start=YYYY-MM-DD&end=YYYY-MM-DD
+// Requires: Authorization: Bearer <supabase-jwt>
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CAL_BASE  = 'https://www.googleapis.com/calendar/v3';
+
+async function requireAuth(req, res) {
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) { res.status(401).json({ error: 'unauthorized' }); return false; }
+  const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!r.ok) { res.status(401).json({ error: 'unauthorized' }); return false; }
+  return true;
+}
 
 async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   const res = await fetch(TOKEN_URL, {
@@ -62,11 +75,13 @@ function readBody(req) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Origin', 'https://filip-vita.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(204).end();
+
+  if (!await requireAuth(req, res)) return;
 
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
           GOOGLE_CALENDAR_ID = 'primary' } = process.env;
@@ -76,6 +91,25 @@ export default async function handler(req, res) {
 
   try {
     const token = await refreshAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
+
+    // ── Create event ──
+    if (req.method === 'POST') {
+      const { summary, start, end } = readBody(req);
+      if (!summary || !start || !end) return res.status(400).json({ error: 'summary, start, end required' });
+      const url = `${CAL_BASE}/calendars/${encodeURIComponent(GOOGLE_CALENDAR_ID)}/events`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary, start, end }),
+      });
+      if (!r.ok) {
+        const detail = await r.text();
+        const err = new Error(detail || 'Google POST failed');
+        err.status = r.status;
+        throw err;
+      }
+      return res.status(200).json({ event: await r.json() });
+    }
 
     // ── Update event: title and/or time ──
     if (req.method === 'PATCH') {

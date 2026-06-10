@@ -164,7 +164,17 @@
 <script>
 (async function loadCalendar() {
   try {
-    const res = await fetch('/api/google-calendar');
+    const headers = {};
+    if (window.db) {
+      const { data: { session } } = await window.db.auth.getSession();
+      if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    const res = await fetch('/api/google-calendar', { headers });
+    if (res.status === 401) {
+      document.getElementById('cal-today').innerHTML = '<p class="cal-error">Ikke innlogget</p>';
+      document.getElementById('cal-upcoming').innerHTML = '';
+      return;
+    }
     if (!res.ok) throw new Error('API svarte ' + res.status);
     const { today = [], upcoming = [] } = await res.json();
 

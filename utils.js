@@ -357,6 +357,8 @@ const TRANSLATIONS = {
     'kal.category': 'Kategori', 'kal.notes': 'Notater',
     'kal.cat_styrke': 'Styrke', 'kal.cat_stevne': 'Stevne', 'kal.cat_kirke': 'Kirke',
     'kal.cat_fridag': 'Fridag', 'kal.cat_other': 'Annet',
+    'kal.dest_gcal': 'Google Cal', 'kal.dest_local': 'Lokal',
+    'kal.unauthorized': 'Ikke innlogget — logg inn på nytt',
     // Treningsplan
     'tp.title': 'Treningsoversikt', 'tp.history': 'Økthistorikk',
     'tp.no_sessions': 'Ingen loggede økter ennå',
@@ -815,6 +817,8 @@ const TRANSLATIONS = {
     'kal.category': 'Category', 'kal.notes': 'Notes',
     'kal.cat_styrke': 'Strength', 'kal.cat_stevne': 'Competition', 'kal.cat_kirke': 'Church',
     'kal.cat_fridag': 'Day off', 'kal.cat_other': 'Other',
+    'kal.dest_gcal': 'Google Cal', 'kal.dest_local': 'Local',
+    'kal.unauthorized': 'Not logged in — please sign in again',
     // Treningsplan
     'tp.title': 'Training Overview', 'tp.history': 'Session History',
     'tp.no_sessions': 'No sessions logged yet',

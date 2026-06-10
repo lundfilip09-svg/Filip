@@ -1204,7 +1204,10 @@ async function loadCalendar() {
       if (Date.now() - ts < 30 * 60 * 1000) calData = data;
     }
     if (!calData) {
-      const res = await fetch('/api/google-calendar');
+      const { data: { session: calSess } } = await db.auth.getSession();
+      const authHdr = calSess ? { Authorization: `Bearer ${calSess.access_token}` } : {};
+      const res = await fetch('/api/google-calendar', { headers: authHdr });
+      if (res.status === 401) { elToday.innerHTML = `<p class="cal-error">${t('dash.cal_not_connected')}</p>`; return; }
       if (!res.ok) throw new Error('API svarte ' + res.status);
       calData = await res.json();
       sessionStorage.setItem(CAL_KEY, JSON.stringify({ ts: Date.now(), data: calData }));

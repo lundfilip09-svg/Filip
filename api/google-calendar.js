@@ -1,6 +1,7 @@
 // api/google-calendar.js
 // Henter ukens Google Calendar-hendelser.
 // Vercel Serverless Function.
+// Krever: Authorization: Bearer <supabase-jwt>
 //
 // Nødvendige env-variabler i Vercel:
 //   GOOGLE_CLIENT_ID
@@ -10,6 +11,18 @@
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CAL_BASE  = 'https://www.googleapis.com/calendar/v3';
+
+async function requireAuth(req, res) {
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) { res.status(401).json({ error: 'unauthorized' }); return false; }
+  const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!r.ok) { res.status(401).json({ error: 'unauthorized' }); return false; }
+  return true;
+}
 
 // Cache tokenet i module-scope — overlever warm Vercel-instanser (unngår unødvendig token-refresh)
 let _cachedToken = null;
@@ -50,12 +63,16 @@ async function fetchEvents(token, calId, timeMin, timeMax, maxResults) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://filip-vita.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
+
+  if (!await requireAuth(req, res)) return;
 
   const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
