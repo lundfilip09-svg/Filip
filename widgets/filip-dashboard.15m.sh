@@ -21,8 +21,8 @@
 # Avhengigheter: kun curl + osascript — begge følger med macOS. Ingen jq.
 # =================================================================
 
-BASE="https://filip-dashboard.vercel.app"
-TOKEN="LIM_INN_CRON_SECRET_HER"
+BASE="https://filip-vita.vercel.app"
+TOKEN="fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5"
 
 TMP="$(mktemp)"
 HTTP=$(curl -s --max-time 12 -w "%{http_code}" "$BASE/api/widget?token=$TOKEN" -o "$TMP")

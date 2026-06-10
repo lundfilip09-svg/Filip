@@ -13,8 +13,8 @@
 //   det, må du oppdatere både denne fila, Mac-widgeten og cron-oppsettet.
 // =================================================================
 
-const BASE  = "https://filip-dashboard.vercel.app";
-const TOKEN = "LIM_INN_CRON_SECRET_HER";
+const BASE  = "https://filip-vita.vercel.app";
+const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
 const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
 const DEEPLINK = `${BASE}/ai.html`; // Tap åpner AI-chat
 
