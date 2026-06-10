@@ -438,11 +438,11 @@ const TRANSLATIONS = {
     'ai.clear': 'Tøm samtale', 'ai.cleared': 'Samtale tømt',
     'ai.copy_report': 'Kopier AI-helserapport', 'ai.report_building': 'Bygger rapport…',
     'ai.report_copied': 'AI-helserapport kopiert til utklippstavlen', 'ai.report_copy_fail': 'Kunne ikke kopiere — prøv igjen',
-    // B5 — ukentlig oppsummering
-    'ws.title': 'Ukens oppsummering', 'ws.generate': 'Lag ukesoppsummering',
-    'ws.generating': 'Lager oppsummering…', 'ws.this_week': 'Denne uken (uke {n})',
-    'ws.regenerate': '↻ Lag på nytt', 'ws.saturday_hint': 'Lørdag — på tide med ukens oppsummering',
-    'ws.prompt': 'Lag en kort ukentlig oppsummering av treningsuka mi basert på de siste 7 dagene: økter fullført vs planlagt, total belastning, snittsøvn og HRV, knetrend, og ÉN konkret ting jeg bør justere neste uke. Hold det kort og konkret — dette er en fast ukesrapport, ikke en chat.',
+    // Ukesrapporter (søn–lør, auto-generert lørdag morgen, lagret i Supabase)
+    'ws.panel_title': 'Ukesrapporter', 'ws.regenerate': '↻ Lag på nytt',
+    'ws.generating': 'Lager…', 'ws.week_ending': 'Uke t.o.m. {date}',
+    'ws.current': 'DENNE UKA', 'ws.none': 'Ingen rapporter ennå — den første lages automatisk lørdag morgen.',
+    'ws.close': 'Lukk', 'ws.gen_failed': 'Klarte ikke lage rapporten', 'ws.saved': 'Ukesrapport lagret',
     'ai.empty_title': 'Klar til analyse',
     'ai.empty_sub': 'Spør om trening, knesmerte, søvn eller form.\nHenter data automatisk fra alle logger.',
     'ai.placeholder': 'Skriv en melding…',
@@ -898,11 +898,11 @@ const TRANSLATIONS = {
     'ai.clear': 'Clear chat', 'ai.cleared': 'Chat cleared',
     'ai.copy_report': 'Copy AI Health Report', 'ai.report_building': 'Building report…',
     'ai.report_copied': 'AI health report copied to clipboard', 'ai.report_copy_fail': 'Could not copy — try again',
-    // B5 — weekly summary
-    'ws.title': 'Weekly summary', 'ws.generate': 'Generate weekly summary',
-    'ws.generating': 'Generating summary…', 'ws.this_week': 'This week (week {n})',
-    'ws.regenerate': '↻ Regenerate', 'ws.saturday_hint': 'Saturday — time for your weekly summary',
-    'ws.prompt': 'Write a short weekly summary of my training week based on the last 7 days: sessions completed vs planned, total load, average sleep and HRV, knee trend, and ONE concrete thing to adjust next week. Keep it short and concrete — this is a fixed weekly report, not a chat.',
+    // Weekly reports (Sun–Sat, auto-generated Saturday morning, stored in Supabase)
+    'ws.panel_title': 'Weekly reports', 'ws.regenerate': '↻ Regenerate',
+    'ws.generating': 'Generating…', 'ws.week_ending': 'Week ending {date}',
+    'ws.current': 'THIS WEEK', 'ws.none': 'No reports yet — the first one is generated automatically on Saturday morning.',
+    'ws.close': 'Close', 'ws.gen_failed': 'Could not generate the report', 'ws.saved': 'Weekly report saved',
     'ai.empty_title': 'Ready to analyze',
     'ai.empty_sub': 'Ask about training, knee pain, sleep or form.\nFetches data automatically from all logs.',
     'ai.placeholder': 'Write a message…',
@@ -1041,7 +1041,13 @@ function today() {
 function fmtDate(ds) {
   if (!ds) return '';
   const d = new Date(ds + 'T12:00:00');
-  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear()).slice(2)}`;
+  if (_lang === 'en') {
+    // English: mm.dd.yyyy
+    return `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}.${String(d.getFullYear())}`;
+  } else {
+    // Norwegian: dd.mm.yyyy
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear())}`;
+  }
 }
 
 function painColor(s) {

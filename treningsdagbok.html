@@ -106,7 +106,17 @@ const TR = {
     none_gym:'Ingen økter i perioden.', none_sprint:'Ingen sprintøkter i perioden.',
     sec_act:'Aktiviteter (fotball, basket m.m.)', none_act:'Ingen aktiviteter i perioden.',
     s_acts:'Aktiviteter', s_load:'Total belastning (sRPE)',
-    langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil'
+    langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil',
+    sec_injuries:'Skader & status', none_injuries:'Ingen aktive plager registrert.',
+    sec_pain_trend:'Knesmerte-trend', none_pain:'Ingen knesmerte registrert i perioden.',
+    th_part:'Kroppsdel', th_side:'Side', th_sev:'Alvorlighet', th_status:'Status', th_since:'Siden',
+    pt_current:'Nåværende', pt_avg:'Snitt', pt_max:'Maks',
+    side_left:'venstre', side_right:'høyre', side_both:'begge',
+    sev_mild:'mild', sev_moderate:'moderat', sev_severe:'alvorlig',
+    st_active:'aktiv', st_improving:'bedring', st_archived:'arkivert',
+    bp_knee:'Kne', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hoftebøyer', bp_hip:'Hofte',
+    bp_shoulder:'Skulder', bp_back:'Rygg', bp_neck:'Nakke', bp_ankle:'Ankel', bp_calf:'Legg',
+    bp_achilles:'Akilles', bp_foot:'Fot', bp_other:'Annet'
   },
   en: {
     from:'From', to:'To', update:'Update', save_pdf:'Save as PDF', back:'← Back',
@@ -119,7 +129,17 @@ const TR = {
     none_gym:'No sessions in this period.', none_sprint:'No sprint sessions in this period.',
     sec_act:'Activities (soccer, basketball etc.)', none_act:'No activities in this period.',
     s_acts:'Activities', s_load:'Total load (sRPE)',
-    langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error'
+    langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error',
+    sec_injuries:'Injuries & status', none_injuries:'No active issues recorded.',
+    sec_pain_trend:'Knee pain trend', none_pain:'No knee pain recorded in this period.',
+    th_part:'Body part', th_side:'Side', th_sev:'Severity', th_status:'Status', th_since:'Since',
+    pt_current:'Current', pt_avg:'Avg', pt_max:'Max',
+    side_left:'left', side_right:'right', side_both:'both',
+    sev_mild:'mild', sev_moderate:'moderate', sev_severe:'severe',
+    st_active:'active', st_improving:'improving', st_archived:'archived',
+    bp_knee:'Knee', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hip flexor', bp_hip:'Hip',
+    bp_shoulder:'Shoulder', bp_back:'Back', bp_neck:'Neck', bp_ankle:'Ankle', bp_calf:'Calf',
+    bp_achilles:'Achilles', bp_foot:'Foot', bp_other:'Other'
   }
 };
 let _lang = localStorage.getItem('lang') || 'no';
@@ -180,6 +200,11 @@ function painCell(b,d,a,da){
   return `${fmt(b)} / ${fmt(d)} / ${fmt(a)} / ${fmt(da)}`;
 }
 
+function trBody(bp){ if(bp && bp.startsWith('body.')){ const k='bp_'+bp.slice(5), v=t(k); return v===k?bp:v; } return bp||''; }
+function trSide(s){ return s ? t('side_'+s) : ''; }
+function trSev(s){ return s ? t('sev_'+s) : ''; }
+function trStatus(s){ return s ? t('st_'+s) : ''; }
+
 async function init(){
   try {
     const r = await fetch('/api/config');
@@ -202,18 +227,19 @@ async function loadReport(){
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const [gym, knee, sprint, acts] = await Promise.all([
+  const [gym, knee, sprint, acts, inj] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('knee_pain').select('*').gte('date', from).lte('date', to),
     db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('activity_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
+    db.from('injuries').select('*').in('status', ['active','improving']).order('updated_at', {ascending:false}),
   ]);
-  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[], from, to };
+  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[], injuries: inj.data||[], from, to };
   render();
 }
 
 function render(){
-  const { gym, knee, sprint, acts, from, to } = _data;
+  const { gym, knee, sprint, acts, injuries, from, to } = _data;
   // Knesmerte koblet til dato (for gym-rader)
   const kneeByDate = {};
   knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
@@ -250,9 +276,55 @@ function render(){
       <div class="sum-box"><div class="sum-num">${avgRpe ?? '–'}</div><div class="sum-lbl">${t('s_avg_rpe')} ${t('rpe_scale')}</div></div>
       <div class="sum-box"><div class="sum-num">${totLoad || '–'}</div><div class="sum-lbl">${t('s_load')}</div></div>
       <div class="sum-box"><div class="sum-num">${painFree}</div><div class="sum-lbl">${t('s_pain_free')}</div></div>
-    </div>
+    </div>`;
 
-    <h2 class="sec">${t('sec_gym')}</h2>`;
+  // ── Skader & status (aktive + bedring) ───────────────────────
+  html += `<h2 class="sec">${t('sec_injuries')}</h2>`;
+  if (injuries.length) {
+    html += `<table><thead><tr>
+      <th>${t('th_part')}</th><th>${t('th_side')}</th><th>${t('th_sev')}</th><th>${t('th_status')}</th><th>${t('th_since')}</th><th>${t('th_notes')}</th>
+    </tr></thead><tbody>`;
+    injuries.forEach(i => {
+      html += `<tr>
+        <td>${esc(trBody(i.body_part))}</td>
+        <td>${esc(trSide(i.side))}</td>
+        <td>${esc(trSev(i.severity))}</td>
+        <td>${esc(trStatus(i.status))}</td>
+        <td class="num">${i.start_date ? fmtD(i.start_date) : '–'}</td>
+        <td class="notes">${esc(i.note||'')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else html += `<div class="empty">${t('none_injuries')}</div>`;
+
+  // ── Knesmerte-trend: maks smerte per dag (sparkline, ingen eksterne bibliotek) ──
+  const painByDate = {};
+  knee.forEach(k => {
+    const vals = [k.before_score, k.during_score, k.after_score, k.day_after_score].filter(v => v != null);
+    if (vals.length) { const m = Math.max(...vals); if (painByDate[k.date] == null || m > painByDate[k.date]) painByDate[k.date] = m; }
+  });
+  const painDates = Object.keys(painByDate).sort();
+  html += `<h2 class="sec">${t('sec_pain_trend')}</h2>`;
+  if (painDates.length) {
+    const series = painDates.map(d => painByDate[d]);
+    const cur = series[series.length - 1];
+    const avg = Math.round(series.reduce((a, b) => a + b, 0) / series.length * 10) / 10;
+    const mx  = Math.max(...series);
+    const W = 600, H = 60, pad = 4, n = series.length;
+    const X = i => n <= 1 ? W / 2 : pad + i * (W - 2 * pad) / (n - 1);
+    const Y = v => H - pad - (v / 10) * (H - 2 * pad);
+    const pts = series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    html += `<div class="summary-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div class="sum-box"><div class="sum-num">${cur}</div><div class="sum-lbl">${t('pt_current')}</div></div>
+      <div class="sum-box"><div class="sum-num">${avg}</div><div class="sum-lbl">${t('pt_avg')}</div></div>
+      <div class="sum-box"><div class="sum-num">${mx}</div><div class="sum-lbl">${t('pt_max')}</div></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;border:1px solid #eee;border-radius:6px">
+      <polyline fill="none" stroke="#2b5fb0" stroke-width="2" points="${pts}"/>
+    </svg>`;
+  } else html += `<div class="empty">${t('none_pain')}</div>`;
+
+  html += `<h2 class="sec">${t('sec_gym')}</h2>`;
 
   if(gym.length){
     html += `<table><thead><tr>

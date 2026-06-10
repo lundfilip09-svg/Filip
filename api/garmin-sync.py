@@ -3,7 +3,7 @@
 # Cron: kl. 07:45 norsk tid (05:45 UTC) hver dag.
 #
 # Logikk:
-#   - Uten ?date: backfiller de SISTE 5 DAGENE (i dag + 4 bakover). Datoer som
+#   - Uten ?date: backfiller de SISTE 7 DAGENE (i dag + 6 bakover). Datoer som
 #     allerede har søvndata i Supabase hoppes over, så Garmin-innlogging skjer
 #     bare når minst én dag mangler. Logger inn ÉN gang for hele intervallet.
 #   - Søvndata lagres under oppvåkningsdatoen; daglig statistikk (RHR, HRV, skritt,
@@ -225,7 +225,7 @@ class handler(BaseHTTPRequestHandler):
             dates = [target_date]
         else:
             t0 = datetime.date.today()
-            dates = [(t0 - datetime.timedelta(days=i)).isoformat() for i in range(5)]
+            dates = [(t0 - datetime.timedelta(days=i)).isoformat() for i in range(7)]
 
         # Hopp over datoer som allerede har søvndata (med mindre ?force=1).
         # Da slipper vi å logge inn i Garmin når alt allerede ligger inne.

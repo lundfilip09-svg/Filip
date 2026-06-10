@@ -920,16 +920,25 @@ function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
   // ── Priority 2-3: Calendar ────────────────────────────────────────────
   const tmrw    = new Date(); tmrw.setDate(tmrw.getDate() + 1);
   const tmrwStr = tmrw.toDateString();
+
+  // Check tomorrow's planned session from weekPlan to avoid suggesting heavy prep for rest days
+  const tmrwPlanIndex = (tmrw.getDay() + 6) % 7; // tomorrow's weekPlan index (0=Mon)
+  const tmrwPlanText = (weekPlan[tmrwPlanIndex] || '').trim();
+  const tmrwIsRest = !tmrwPlanText || /^hvile/i.test(tmrwPlanText) || /^fri$/i.test(tmrwPlanText);
+  const tmrwIsRehab = /^rehab/i.test(tmrwPlanText);
+
   const compTomorrow = _calUpcoming.some(e => {
     const d = new Date(e.start?.dateTime || (e.start?.date + 'T12:00:00'));
     return d.toDateString() === tmrwStr &&
       /stevne|konkurranse|competition|meet|race/i.test(e.summary || '');
   });
-  const heavyTomorrow = !compTomorrow && _calUpcoming.some(e => {
+  // Only suggest heavy tomorrow if plan says it's not a rest/rehab day
+  const heavyTomorrow = !tmrwIsRest && !tmrwIsRehab && !compTomorrow && _calUpcoming.some(e => {
     const d = new Date(e.start?.dateTime || (e.start?.date + 'T12:00:00'));
     return d.toDateString() === tmrwStr &&
       /styrke|sprint|friidrett|trening/i.test(e.summary || '');
   });
+
   if (compTomorrow) {
     items.push({ id: 'cal-comp', priority: 2, cat: 'kalender', type: 'info',
       text: t('dash.focus_restitusjon') });

@@ -324,10 +324,12 @@ function isViewingToday() {
   return viewDate === new Date().toLocaleDateString('sv');
 }
 
-function minToHM(min) {
+function minToHM(min, lang = null) {
   if (!min) return '–';
   const h = Math.floor(min / 60), m = min % 60;
-  return h > 0 ? `${h}t${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
+  const hLabel = (lang || _lang) === 'en' ? 'h' : 't';
+  const mLabel = (lang || _lang) === 'en' ? 'm' : 'm';
+  return h > 0 ? `${h}${hLabel}${m > 0 ? ' ' + m + mLabel : ''}` : `${m}${mLabel}`;
 }
 function minToH(min) { return min ? +(min / 60).toFixed(2) : null; }
 function sleepHoursStr(h) {
@@ -785,10 +787,13 @@ function renderChart(metric, days) {
         tooltip: {
           backgroundColor:'rgba(10,10,13,0.97)', titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
           borderColor:'rgba(255,255,255,0.08)', borderWidth:1, padding:10, cornerRadius:8,
-          filter: item => item.dataset.label !== '8t mål' && item.parsed.y > 0,
+          filter: item => item.parsed.y > 0,
           callbacks: {
             label: ctx => {
-              if (metric === 'sleep') return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}${_lang === 'en' ? 'h' : 't'}`;
+              if (metric === 'sleep') {
+                const mins = Math.round(ctx.parsed.y * 60);
+                return `${ctx.dataset.label}: ${minToHM(mins)}`;
+              }
               return `${ctx.dataset.label}: ${ctx.parsed.y}`;
             },
           },

@@ -42,7 +42,13 @@
       "Bash(node --check /Users/09fillun/Dev/Dashboard/api/ai-chat.js)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/utils.js)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/api/kalender.js)",
-      "Bash(node --check /Users/09fillun/Dev/Dashboard/api/google-calendar.js)"
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/api/google-calendar.js)",
+      "Bash(node scripts/check-nav.mjs)",
+      "Bash(sed 's/id=\"diaryLink\"/id=\"BROKEN\"/' dashboard.html)",
+      "Bash(cp /tmp/dashboard_broken.html dashboard.html)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(sed -i '' 's/id=\"BROKEN\"/id=\"diaryLink\"/' /Users/09fillun/Dev/Dashboard/dashboard.html)",
+      "Bash(node /Users/09fillun/Dev/Dashboard/scripts/check-nav.mjs)"
     ]
   }
 }
