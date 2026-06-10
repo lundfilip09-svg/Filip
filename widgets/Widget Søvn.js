@@ -71,13 +71,20 @@ function addPhaseBar(parent, s, w, h){
   }
 }
 
+// Formaterer minutter som "Xt Ym" hvis >= 60, ellers "Ym".
+function minsLabel(mins){
+  if(mins==null) return "–";
+  if(mins < 60) return `${mins}m`;
+  return `${Math.floor(mins/60)}t ${mins%60}m`;
+}
+
 // Liten legende-rad: farget prikk + minutter.
 function addLegend(parent, label, mins, color){
   const row = parent.addStack(); row.centerAlignContent();
   const dot = row.addStack(); dot.backgroundColor = color; dot.size = new Size(8,8); dot.cornerRadius = 4;
   row.addSpacer(4);
   const l = row.addText(`${label} `); l.textColor = DIM; l.font = Font.systemFont(9);
-  const v = row.addText(mins!=null ? `${mins}m` : "–"); v.textColor = FG; v.font = Font.mediumSystemFont(9);
+  const v = row.addText(minsLabel(mins)); v.textColor = FG; v.font = Font.mediumSystemFont(9);
 }
 
 // 7-dagers søvnscore som mini-stolpediagram (DrawContext). last7 = nyeste først.
@@ -150,7 +157,7 @@ function buildMedium(s){
   const w = new ListWidget();
   const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
   w.setPadding(13,15,12,15); w.url = DEEPLINK;
-  header(w, "😴 Søvn");
+  header(w, "💤 Søvn");
   w.addSpacer(8);
 
   const body = w.addStack(); body.centerAlignContent();
@@ -192,7 +199,7 @@ function buildLarge(data){
   const w = new ListWidget();
   const g = new LinearGradient(); g.colors=[BG1,BG2]; g.locations=[0,1]; w.backgroundGradient=g;
   w.setPadding(15,16,14,16); w.url = DEEPLINK;
-  header(w, "😴 Søvn");
+  header(w, "💤 Søvn");
   w.addSpacer(10);
 
   const body = w.addStack(); body.centerAlignContent();

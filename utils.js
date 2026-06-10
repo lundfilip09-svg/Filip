@@ -438,6 +438,14 @@ const TRANSLATIONS = {
     'ai.clear': 'Tøm samtale', 'ai.cleared': 'Samtale tømt',
     'ai.copy_report': 'Kopier AI-helserapport', 'ai.report_building': 'Bygger rapport…',
     'ai.report_copied': 'AI-helserapport kopiert til utklippstavlen', 'ai.report_copy_fail': 'Kunne ikke kopiere — prøv igjen',
+    // Diagnose-melding (kort skadestatus til trener/fysio, deterministisk)
+    'ai.copy_diag': 'Kopier diagnose', 'ai.diag_copied': 'Diagnose kopiert til utklippstavlen',
+    'diag.header': 'Skadestatus', 'diag.none': 'Ingen aktive plager.',
+    'diag.last7': 'Siste 7 dager: {n} økter, snitt RPE {rpe}/100, maks knesmerte {pain}/10.',
+    'inj.since': 'siden',
+    'inj.side_left': 'venstre', 'inj.side_right': 'høyre', 'inj.side_both': 'begge',
+    'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderat', 'inj.sev_severe': 'alvorlig',
+    'inj.st_active': 'aktiv', 'inj.st_improving': 'i bedring',
     // Ukesrapporter (søn–lør, auto-generert lørdag morgen, lagret i Supabase)
     'ws.panel_title': 'Ukesrapporter', 'ws.regenerate': '↻ Lag på nytt',
     'ws.generating': 'Lager…', 'ws.week_ending': 'Uke t.o.m. {date}',
@@ -898,6 +906,14 @@ const TRANSLATIONS = {
     'ai.clear': 'Clear chat', 'ai.cleared': 'Chat cleared',
     'ai.copy_report': 'Copy AI Health Report', 'ai.report_building': 'Building report…',
     'ai.report_copied': 'AI health report copied to clipboard', 'ai.report_copy_fail': 'Could not copy — try again',
+    // Diagnosis message (short injury status for coach/physio, deterministic)
+    'ai.copy_diag': 'Copy diagnosis', 'ai.diag_copied': 'Diagnosis copied to clipboard',
+    'diag.header': 'Injury status', 'diag.none': 'No active issues.',
+    'diag.last7': 'Last 7 days: {n} sessions, avg RPE {rpe}/100, max knee pain {pain}/10.',
+    'inj.since': 'since',
+    'inj.side_left': 'left', 'inj.side_right': 'right', 'inj.side_both': 'both',
+    'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderate', 'inj.sev_severe': 'severe',
+    'inj.st_active': 'active', 'inj.st_improving': 'improving',
     // Weekly reports (Sun–Sat, auto-generated Saturday morning, stored in Supabase)
     'ws.panel_title': 'Weekly reports', 'ws.regenerate': '↻ Regenerate',
     'ws.generating': 'Generating…', 'ws.week_ending': 'Week ending {date}',

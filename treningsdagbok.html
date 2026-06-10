@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Treningsdagbok — Eksport</title>
 <!--
-  B7: Treningsdagbok / PDF-eksport.
-  Selvstendig side (egne stiler + egne oversettelser) for å unngå kollisjon med
-  andre filer. Ren HVIT PDF via window.print() — ingen eksterne bibliotek.
-  Innhold: økter (gym_log) + sprintøkter (sprint_log) + knesmerte + RPE +
-  notater + dato, for valgt periode (default siste 4 uker). Norsk/engelsk-switch.
+  B7 v2: Treningsdagbok / PDF-eksport — for trener/fysio + egen månedsgjennomgang.
+  Selvstendig side (egne stiler + egne oversettelser). Ren HVIT PDF via
+  window.print() — ingen eksterne bibliotek.
+  Struktur: profil → sammendrag → skader → smertetrend → ukentlig belastning →
+  ÉN samlet kronologisk øktlogg (gym + sprint + aktiviteter). Norsk/engelsk.
 -->
 <style>
   :root { --ink:#1a1a1a; --muted:#666; --line:#ddd; --accent:#2b5fb0; --bg:#fff; }
@@ -45,6 +45,7 @@
   .doc-sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
   .doc-meta { margin-top: 10px; font-size: 12px; color: var(--muted); }
   h2.sec { font-size: 16px; margin: 26px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+  .sec-note { font-size: 11px; color: var(--muted); margin: -6px 0 8px; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px;
        text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
@@ -60,12 +61,12 @@
   .sum-num { font-size: 22px; font-weight: 700; }
   .sum-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .loading { text-align: center; padding: 40px; color: var(--muted); }
-  .ai-summary {
-    border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0;
-    background: #f0f4ff; padding: 14px 16px; margin-bottom: 20px; line-height: 1.65;
-    font-size: 13px;
-  }
-  .ai-summary h2.sec { color: var(--accent); border-bottom-color: rgba(43,95,176,0.25); margin-top: 0; }
+  /* Kategori-badges i øktloggen — kun ramme/farge, print-vennlig */
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 8px;
+           border-radius: 10px; border: 1px solid; white-space: nowrap; }
+  .b-gym    { color: #2b5fb0; border-color: #2b5fb0; }
+  .b-sprint { color: #2e9e5b; border-color: #2e9e5b; }
+  .b-act    { color: #c07a2e; border-color: #c07a2e; }
   @media print {
     body { background: #fff; }
     .controls { display: none !important; }
@@ -89,16 +90,11 @@
   </div>
   <button class="btn ghost" onclick="loadReport()" data-i18n="update">Oppdater</button>
   <button class="btn" onclick="window.print()" data-i18n="save_pdf">Lagre som PDF</button>
-  <button class="btn ghost" onclick="genAiSummary()" data-i18n="gen_ai_btn">Generer AI-oppsummering</button>
   <button class="btn link" onclick="setLang(_lang==='no'?'en':'no')" id="langBtn" data-i18n="langBtn">🇺🇸 English</button>
   <button class="btn link" onclick="location.href='sprint.html'" data-i18n="back">← Tilbake</button>
 </div>
 
 <div class="page">
-  <div id="aiSummary" class="ai-summary" style="display:none">
-    <h2 class="sec" data-i18n="ai_title">AI-oppsummering</h2>
-    <div id="aiSummaryText"></div>
-  </div>
   <div id="doc">
     <div class="loading" data-i18n="loading">Laster…</div>
   </div>
@@ -110,15 +106,18 @@
 const TR = {
   no: {
     from:'Fra', to:'Til', update:'Oppdater', save_pdf:'Lagre som PDF', back:'← Tilbake',
-    loading:'Laster…', title:'Treningsdagbok', subtitle:'Filip Lund — sprinter (100/200m) & styrke',
-    period:'Periode', generated:'Generert', athlete:'Utøver',
-    sec_summary:'Sammendrag', sec_gym:'Styrke- & treningsøkter', sec_sprint:'Sprintøkter',
+    loading:'Laster…', title:'Treningsdagbok',
+    subtitle:'Filip Lund — sprinter (100/200m) & styrke · f. 2009 · 187 cm / 70 kg',
+    period:'Periode', generated:'Generert', pb:'PB',
+    sec_summary:'Sammendrag',
     s_sessions:'Økter', s_sprints:'Sprintløp', s_avg_rpe:'Snitt RPE', s_pain_free:'Smertefrie dager',
-    th_date:'Dato', th_type:'Type', th_notes:'Notater', th_pain:'Knesmerte (f/u/e/d.e.)',
-    th_dist:'Distanse', th_kind:'Type', th_time:'Tid', th_rpe:'RPE', th_dur:'Varighet',
-    none_gym:'Ingen økter i perioden.', none_sprint:'Ingen sprintøkter i perioden.',
-    sec_act:'Aktiviteter (fotball, basket m.m.)', none_act:'Ingen aktiviteter i perioden.',
     s_acts:'Aktiviteter', s_load:'Total belastning (sRPE)',
+    th_date:'Dato', th_cat:'Kategori', th_type:'Innhold', th_notes:'Notater',
+    th_pain:'Smerte (f/u/e/d.e.)', th_rpe:'RPE', th_dur:'Varighet',
+    cat_gym:'Styrke', cat_sprint:'Sprint', cat_act:'Aktivitet',
+    sec_log:'Øktlogg', none_log:'Ingen økter i perioden.',
+    pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Gjelder venstre kne der ikke annet er notert.',
+    sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag.',
     langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil',
     sec_injuries:'Skader & status', none_injuries:'Ingen aktive plager registrert.',
     sec_pain_trend:'Knesmerte-trend', none_pain:'Ingen knesmerte registrert i perioden.',
@@ -129,21 +128,22 @@ const TR = {
     st_active:'aktiv', st_improving:'bedring', st_archived:'arkivert',
     bp_knee:'Kne', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hoftebøyer', bp_hip:'Hofte',
     bp_shoulder:'Skulder', bp_back:'Rygg', bp_neck:'Nakke', bp_ankle:'Ankel', bp_calf:'Legg',
-    bp_achilles:'Akilles', bp_foot:'Fot', bp_other:'Annet',
-    gen_ai_btn:'Generer AI-oppsummering', ai_title:'AI-oppsummering',
-    ai_generating:'Genererer oppsummering…', ai_error:'Feil ved generering — prøv igjen.'
+    bp_achilles:'Akilles', bp_foot:'Fot', bp_other:'Annet'
   },
   en: {
     from:'From', to:'To', update:'Update', save_pdf:'Save as PDF', back:'← Back',
-    loading:'Loading…', title:'Training Diary', subtitle:'Filip Lund — sprinter (100/200m) & strength',
-    period:'Period', generated:'Generated', athlete:'Athlete',
-    sec_summary:'Summary', sec_gym:'Strength & training sessions', sec_sprint:'Sprint sessions',
+    loading:'Loading…', title:'Training Diary',
+    subtitle:'Filip Lund — sprinter (100/200m) & strength · b. 2009 · 187 cm / 70 kg (6′2″, 154 lbs)',
+    period:'Period', generated:'Generated', pb:'PB',
+    sec_summary:'Summary',
     s_sessions:'Sessions', s_sprints:'Sprint runs', s_avg_rpe:'Avg RPE', s_pain_free:'Pain-free days',
-    th_date:'Date', th_type:'Type', th_notes:'Notes', th_pain:'Knee pain (b/d/a/d.a.)',
-    th_dist:'Distance', th_kind:'Type', th_time:'Time', th_rpe:'RPE', th_dur:'Duration',
-    none_gym:'No sessions in this period.', none_sprint:'No sprint sessions in this period.',
-    sec_act:'Activities (soccer, basketball etc.)', none_act:'No activities in this period.',
     s_acts:'Activities', s_load:'Total load (sRPE)',
+    th_date:'Date', th_cat:'Category', th_type:'Content', th_notes:'Notes',
+    th_pain:'Pain (b/d/a/d.a.)', th_rpe:'RPE', th_dur:'Duration',
+    cat_gym:'Strength', cat_sprint:'Sprint', cat_act:'Activity',
+    sec_log:'Session log', none_log:'No sessions in this period.',
+    pain_legend:'Pain: before / during / after / day after (0–10). Left knee unless noted otherwise.',
+    sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday.',
     langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error',
     sec_injuries:'Injuries & status', none_injuries:'No active issues recorded.',
     sec_pain_trend:'Knee pain trend', none_pain:'No knee pain recorded in this period.',
@@ -154,14 +154,12 @@ const TR = {
     st_active:'active', st_improving:'improving', st_archived:'archived',
     bp_knee:'Knee', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hip flexor', bp_hip:'Hip',
     bp_shoulder:'Shoulder', bp_back:'Back', bp_neck:'Neck', bp_ankle:'Ankle', bp_calf:'Calf',
-    bp_achilles:'Achilles', bp_foot:'Foot', bp_other:'Other',
-    gen_ai_btn:'Generate AI summary', ai_title:'AI Summary',
-    ai_generating:'Generating summary…', ai_error:'Error generating summary — please try again.'
+    bp_achilles:'Achilles', bp_foot:'Foot', bp_other:'Other'
   }
 };
 let _lang = localStorage.getItem('lang') || 'no';
 function t(k){ return (TR[_lang] && TR[_lang][k]) || TR.no[k] || k; }
-function setLang(l){ _lang = l; localStorage.setItem('lang', l); applyLang(); loadReport(); }
+function setLang(l){ _lang = l; localStorage.setItem('lang', l); applyLang(); if(_data) render(); }
 function applyLang(){
   document.documentElement.lang = _lang;
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
@@ -211,10 +209,23 @@ function fmtD(ds){
   const loc = _lang==='en' ? 'en-GB' : 'nb-NO';
   return d.toLocaleDateString(loc, { day:'2-digit', month:'short', year:'numeric' });
 }
+function fmtDM(ds){
+  if(!ds) return '';
+  const d = new Date(ds+'T12:00:00');
+  const loc = _lang==='en' ? 'en-GB' : 'nb-NO';
+  return d.toLocaleDateString(loc, { day:'2-digit', month:'short' });
+}
 function painCls(s){ if(s==null) return ''; return s<=3?'lo':s<=5?'mid':'hi'; }
 function painCell(b,d,a,da){
+  if([b,d,a,da].every(v=>v==null)) return '–';
   const fmt = v => v==null ? '–' : `<span class="pain ${painCls(v)}">${v}</span>`;
   return `${fmt(b)} / ${fmt(d)} / ${fmt(a)} / ${fmt(da)}`;
+}
+// Mandag i uka datoen ligger i (YYYY-MM-DD)
+function weekStart(ds){
+  const d = new Date(ds+'T12:00:00');
+  d.setDate(d.getDate() - (d.getDay()+6)%7);
+  return d.toISOString().slice(0,10);
 }
 
 function trBody(bp){ if(bp && bp.startsWith('body.')){ const k='bp_'+bp.slice(5), v=t(k); return v===k?bp:v; } return bp||''; }
@@ -243,27 +254,27 @@ async function loadReport(){
   const from = document.getElementById('fromDate').value;
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
-  const aiEl = document.getElementById('aiSummary');
-  if (aiEl) { aiEl.style.display = 'none'; document.getElementById('aiSummaryText').innerHTML = ''; }
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const [gym, knee, sprint, acts, inj] = await Promise.all([
+  const [gym, knee, sprint, acts, inj, recs] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('knee_pain').select('*').gte('date', from).lte('date', to),
     db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('activity_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('injuries').select('*').in('status', ['active','improving']).order('updated_at', {ascending:false}),
+    db.from('sprint_records').select('distance,best_time').order('distance', {ascending:true}),
   ]);
-  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[], injuries: inj.data||[], from, to };
+  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[],
+            injuries: inj.data||[], records: recs.data||[], from, to };
   render();
 }
 
 function render(){
-  const { gym, knee, sprint, acts, injuries, from, to } = _data;
+  const { gym, knee, sprint, acts, injuries, records, from, to } = _data;
   // Knesmerte koblet til dato (for gym-rader)
   const kneeByDate = {};
   knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
 
-  // Sammendrag — gym-RPE og aktivitets-RPE teller nå med i snittet
+  // Sammendrag — gym-RPE og aktivitets-RPE teller med i snittet
   const sprintDates = [...new Set(sprint.map(s=>s.date))];
   const sprintRpeByDate = {}; sprint.forEach(s => { if(sprintRpeByDate[s.date]==null && s.rpe!=null) sprintRpeByDate[s.date]=s.rpe; });
   const allRpe = [...gym.map(g=>g.rpe), ...sprintDates.map(d=>sprintRpeByDate[d]), ...acts.map(a=>a.rpe)].filter(v=>v!=null);
@@ -280,10 +291,14 @@ function render(){
   });
   totLoad = Math.round(totLoad);
 
+  // PB-linje fra sprint_records
+  const pbLine = records.filter(r => r.best_time!=null)
+    .map(r => `${r.distance} ${Number(r.best_time).toFixed(2)}s`).join(' · ');
+
   let html = `
     <div class="doc-head">
       <h1 class="doc-title">${t('title')}</h1>
-      <div class="doc-sub">${t('subtitle')}</div>
+      <div class="doc-sub">${t('subtitle')}${pbLine ? ` · ${t('pb')}: ${pbLine}` : ''}</div>
       <div class="doc-meta">${t('period')}: ${fmtD(from)} – ${fmtD(to)} · ${t('generated')}: ${fmtD(new Date().toISOString().slice(0,10))}</div>
     </div>
 
@@ -343,149 +358,97 @@ function render(){
     </svg>`;
   } else html += `<div class="empty">${t('none_pain')}</div>`;
 
-  html += `<h2 class="sec">${t('sec_gym')}</h2>`;
+  // ── Ukentlig belastning (sRPE per uke, man–søn) ───────────────
+  const loadByWeek = {};
+  const addLoad = (ds, v) => { const w = weekStart(ds); loadByWeek[w] = (loadByWeek[w]||0) + v; };
+  gym.forEach(g => addLoad(g.date, srpe(g.duration_min, _SRPE_DEF.gym, g.rpe)));
+  acts.forEach(a => addLoad(a.date, srpe(a.duration_min, _SRPE_DEF.act, a.rpe)));
+  sprintDates.forEach(d => {
+    const durRow = sprint.find(s => s.date===d && s.duration_min!=null);
+    addLoad(d, srpe(durRow?.duration_min, _SRPE_DEF.sprint, sprintRpeByDate[d]));
+  });
+  // Alle uker i perioden — også 0-uker, hull er informasjon
+  const weeks = [];
+  for(let w = weekStart(from); w <= to; ){
+    weeks.push(w);
+    const d = new Date(w+'T12:00:00'); d.setDate(d.getDate()+7);
+    w = d.toISOString().slice(0,10);
+  }
+  html += `<h2 class="sec">${t('sec_load_week')}</h2><div class="sec-note">${t('load_note')}</div>`;
+  if (weeks.length) {
+    const vals = weeks.map(w => Math.round(loadByWeek[w]||0));
+    const mxV = Math.max(...vals, 1);
+    const W2 = 600, H2 = 110, padB = 18, padT = 14;
+    const bw = Math.min(70, (W2 - 20) / weeks.length * 0.7);
+    const step = (W2 - 20) / weeks.length;
+    let bars = '';
+    vals.forEach((v, i) => {
+      const h = (H2 - padB - padT) * v / mxV;
+      const x = 10 + i*step + (step-bw)/2;
+      const y = H2 - padB - h;
+      bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="#2b5fb0" opacity="0.85"/>
+        <text x="${(x+bw/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#1a1a1a" font-weight="600">${v||''}</text>
+        <text x="${(x+bw/2).toFixed(1)}" y="${H2-5}" text-anchor="middle" font-size="9" fill="#666">${fmtDM(weeks[i])}</text>`;
+    });
+    html += `<svg viewBox="0 0 ${W2} ${H2}" width="100%" style="display:block;border:1px solid #eee;border-radius:6px">${bars}</svg>`;
+  }
 
-  if(gym.length){
+  // ── ÉN samlet kronologisk øktlogg ─────────────────────────────
+  const rows = [];
+  gym.forEach(g => rows.push({
+    date: g.date, cat: 'gym',
+    type: trType(g.session_type||''),
+    dur: g.duration_min, rpe: g.rpe,
+    pain: (() => { const k = kneeByDate[g.date]; return k ? painCell(k.before_score,k.during_score,k.after_score,k.day_after_score) : '–'; })(),
+    note: g.session_notes || kneeByDate[g.date]?.notes || ''
+  }));
+  sprintDates.forEach(d => {
+    const rs = sprint.filter(s => s.date===d);
+    const runs = rs.map(s => `${s.distance||''} ${trType((s.type||'').split(':')[0])}${s.time_seconds!=null ? ' '+(+s.time_seconds).toFixed(2)+'s' : ''}`.trim());
+    const p = rs.find(s => [s.knee_before,s.knee_during,s.knee_after,s.knee_day_after].some(v=>v!=null));
+    rows.push({
+      date: d, cat: 'sprint',
+      type: runs.join(', '),
+      dur: rs.find(s=>s.duration_min!=null)?.duration_min, rpe: sprintRpeByDate[d],
+      pain: p ? painCell(p.knee_before,p.knee_during,p.knee_after,p.knee_day_after) : '–',
+      note: [...new Set(rs.map(s=>s.notes).filter(Boolean))].join(' · ')
+    });
+  });
+  acts.forEach(a => {
+    const label = a.activity_type === 'Annet' && a.activity_label
+      ? a.activity_label
+      : trType(a.activity_type||'') + (a.activity_label && a.activity_type !== 'Annet' ? ` (${a.activity_label})` : '');
+    rows.push({
+      date: a.date, cat: 'act',
+      type: label,
+      dur: a.duration_min, rpe: a.rpe,
+      pain: painCell(a.knee_before,a.knee_during,a.knee_after,a.knee_day_after),
+      note: a.notes || ''
+    });
+  });
+  rows.sort((a,b) => b.date.localeCompare(a.date));
+
+  html += `<h2 class="sec">${t('sec_log')}</h2><div class="sec-note">${t('pain_legend')}</div>`;
+  if (rows.length) {
     html += `<table><thead><tr>
-      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_dur')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
+      <th>${t('th_date')}</th><th>${t('th_cat')}</th><th>${t('th_type')}</th>
+      <th>${t('th_dur')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
     </tr></thead><tbody>`;
-    gym.forEach(g => {
-      const k = kneeByDate[g.date];
+    rows.forEach(r => {
       html += `<tr>
-        <td class="num">${fmtD(g.date)}</td>
-        <td>${esc(trType(g.session_type||''))}</td>
-        <td class="num">${g.duration_min!=null ? g.duration_min+' min' : '–'}</td>
-        <td class="num">${g.rpe!=null ? g.rpe : '–'}</td>
-        <td class="num">${k ? painCell(k.before_score,k.during_score,k.after_score,k.day_after_score) : '–'}</td>
-        <td class="notes">${esc(g.session_notes || k?.notes || '')}</td>
+        <td class="num">${fmtDM(r.date)}</td>
+        <td><span class="badge b-${r.cat}">${t('cat_'+r.cat)}</span></td>
+        <td>${esc(r.type)}</td>
+        <td class="num">${r.dur!=null ? r.dur+' min' : '–'}</td>
+        <td class="num">${r.rpe!=null ? r.rpe : '–'}</td>
+        <td class="num">${r.pain}</td>
+        <td class="notes">${esc(r.note)}</td>
       </tr>`;
     });
     html += `</tbody></table>`;
-  } else html += `<div class="empty">${t('none_gym')}</div>`;
-
-  html += `<h2 class="sec">${t('sec_sprint')}</h2>`;
-  if(sprint.length){
-    html += `<table><thead><tr>
-      <th>${t('th_date')}</th><th>${t('th_dist')}</th><th>${t('th_kind')}</th>
-      <th>${t('th_time')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
-    </tr></thead><tbody>`;
-    sprint.forEach(s => {
-      html += `<tr>
-        <td class="num">${fmtD(s.date)}</td>
-        <td>${esc(s.distance||'')}</td>
-        <td>${esc(trType(s.type||''))}</td>
-        <td class="num">${s.time_seconds!=null ? (+s.time_seconds).toFixed(2)+'s' : '–'}</td>
-        <td class="num">${s.rpe!=null ? s.rpe : '–'}</td>
-        <td class="num">${painCell(s.knee_before,s.knee_during,s.knee_after,s.knee_day_after)}</td>
-        <td class="notes">${esc(s.notes||'')}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-  } else html += `<div class="empty">${t('none_sprint')}</div>`;
-
-  // Aktiviteter (soccer/basket m.m.) — kjernen i USA-loggen
-  html += `<h2 class="sec">${t('sec_act')}</h2>`;
-  if(acts.length){
-    html += `<table><thead><tr>
-      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_dur')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
-    </tr></thead><tbody>`;
-    acts.forEach(a => {
-      const label = a.activity_type === 'Annet' && a.activity_label
-        ? a.activity_label
-        : trType(a.activity_type||'') + (a.activity_label && a.activity_type !== 'Annet' ? ` (${a.activity_label})` : '');
-      html += `<tr>
-        <td class="num">${fmtD(a.date)}</td>
-        <td>${esc(label)}</td>
-        <td class="num">${a.duration_min!=null ? a.duration_min+' min' : '–'}</td>
-        <td class="num">${a.rpe!=null ? a.rpe : '–'}</td>
-        <td class="num">${painCell(a.knee_before,a.knee_during,a.knee_after,a.knee_day_after)}</td>
-        <td class="notes">${esc(a.notes||'')}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-  } else html += `<div class="empty">${t('none_act')}</div>`;
+  } else html += `<div class="empty">${t('none_log')}</div>`;
 
   document.getElementById('doc').innerHTML = html;
-}
-
-async function genAiSummary() {
-  if (!_data) return;
-  const summaryEl = document.getElementById('aiSummary');
-  const textEl    = document.getElementById('aiSummaryText');
-  summaryEl.style.display = 'block';
-  textEl.innerHTML = `<em>${t('ai_generating')}</em>`;
-
-  const { gym, knee, sprint, acts, from, to } = _data;
-  const sprintDates = [...new Set(sprint.map(s => s.date))];
-  const sprintRpeByDate = {};
-  sprint.forEach(s => { if (sprintRpeByDate[s.date] == null && s.rpe != null) sprintRpeByDate[s.date] = s.rpe; });
-  const allRpe = [...gym.map(g => g.rpe), ...sprintDates.map(d => sprintRpeByDate[d]), ...acts.map(a => a.rpe)].filter(v => v != null);
-  const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a, b) => a + b, 0) / allRpe.length) : null;
-  let totLoad = 0;
-  gym.forEach(g  => totLoad += srpe(g.duration_min, _SRPE_DEF.gym,    g.rpe));
-  acts.forEach(a => totLoad += srpe(a.duration_min, _SRPE_DEF.act,    a.rpe));
-  sprintDates.forEach(d => {
-    const durRow = sprint.find(s => s.date === d && s.duration_min != null);
-    totLoad += srpe(durRow?.duration_min, _SRPE_DEF.sprint, sprintRpeByDate[d]);
-  });
-
-  const painByDate = {};
-  knee.forEach(k => {
-    const vals = [k.before_score, k.during_score, k.after_score, k.day_after_score].filter(v => v != null);
-    if (vals.length) { const m = Math.max(...vals); if (painByDate[k.date] == null || m > painByDate[k.date]) painByDate[k.date] = m; }
-  });
-  const kneeStr = Object.entries(painByDate).sort(([a],[b]) => a.localeCompare(b))
-    .map(([d,v]) => `${d}:${v}/10`).join(', ') || 'none recorded';
-
-  const gymStr = gym.length
-    ? gym.map(g => `${g.date} ${g.session_type||''} ${g.duration_min != null ? g.duration_min+'min' : ''} RPE=${g.rpe??'–'}`).join('; ')
-    : 'none';
-
-  const sprintStr = sprintDates.length
-    ? sprintDates.map(d => {
-        const rows = sprint.filter(s => s.date === d);
-        const runs = rows.map(s => `${s.distance} ${(s.type||'').split(':')[0]}`).join(', ');
-        return `${d} [${runs}] RPE=${sprintRpeByDate[d]??'–'}`;
-      }).join('; ')
-    : 'none';
-
-  const actStr = acts.length
-    ? acts.map(a => `${a.date} ${a.activity_type} ${a.duration_min != null ? a.duration_min+'min' : ''} RPE=${a.rpe??'–'}`).join('; ')
-    : 'none';
-
-  const prompt =
-`Training period report for Filip Lund (17yo, sprinter 100/200m, left knee patellar tendinopathy):
-
-Period: ${from} – ${to}
-Stats: ${gym.length} gym sessions, ${sprintDates.length} sprint sessions (${sprint.length} runs), ${acts.length} activities. Avg RPE: ${avgRpe??'n/a'}/100. Total sRPE load: ${Math.round(totLoad)}.
-
-Knee pain (max per day, scale 0–10): ${kneeStr}
-
-Gym sessions: ${gymStr}
-
-Sprint sessions: ${sprintStr}
-
-Other activities: ${actStr}
-
-Write:
-1. A 3–4 sentence summary of this training period: load balance, knee pain trend, rest vs. training distribution.
-2. 1–2 specific actionable recommendations for the upcoming week.
-Be concise and factual. Answer in English.`;
-
-  try {
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { textEl.innerHTML = `<em style="color:#c0392b">${t('ai_error')}</em>`; return; }
-    const res = await fetch('/api/ai-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ message: prompt, history: [], localDate: new Date().toISOString().slice(0,10), tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
-    });
-    if (!res.ok) throw new Error(res.status);
-    const { reply } = await res.json();
-    textEl.innerHTML = '<p>' + esc(reply).replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
-  } catch {
-    textEl.innerHTML = `<em style="color:#c0392b">${t('ai_error')}</em>`;
-  }
 }
 
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }

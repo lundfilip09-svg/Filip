@@ -67,14 +67,14 @@ function run(argv) {
   // --- Menylinje (kompakt) ---
   const sTxt = s && s.score != null ? "💤" + s.score : "💤–";
   const kTxt = kneeVal != null ? "🦵" + kneeVal : "🦵–";
-  const cTxt = "✅" + todos.length;
+  const cTxt = "📋" + todos.length;
   out.push(sTxt + "  " + kTxt + "  " + cTxt + " | size=13");
   out.push("---");
 
   // --- Søvn ---
   out.push("Søvn siste natt | size=14 color=" + sleepCol(s && s.score));
   if (s) {
-    let line = "😴 " + (s.score != null ? s.score : "–");
+    let line = "💤 " + (s.score != null ? s.score : "–");
     if (s.hours != null) line += " · " + s.hours + "t";
     if (s.hrv != null)   line += " · HRV " + s.hrv;
     if (s.rhr != null)   line += " · RHR " + s.rhr;

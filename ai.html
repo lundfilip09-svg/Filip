@@ -299,6 +299,7 @@
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
       <button class="btn btn-ghost btn-sm" id="copyReportBtn" onclick="copyHealthReport()" style="font-size:11px" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
+      <button class="btn btn-ghost btn-sm" id="copyDiagBtn" onclick="copyInjuryStatus()" style="font-size:11px" data-i18n="ai.copy_diag">Kopier diagnose</button>
       <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
     </div>
   </div>
@@ -951,6 +952,70 @@ Based strictly on sports science, tendon adaptation timelines, and my tracking d
 
     const ok = await writeClip(report);
     toast(ok ? t('ai.report_copied') : t('ai.report_copy_fail'));
+  } catch (e) {
+    toast(t('ai.report_copy_fail'));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Kopier diagnose: kort skadestatus til trener/fysio ──────────────────────
+// Deterministisk (ingen AI/tokens) — bygges fra injuries + siste 7 dagers
+// logger, på aktivt språk. NB: injuries.note er fritekst og kopieres som den
+// er (kun første setning) — logg notater på engelsk hvis mottakeren er engelsk.
+async function copyInjuryStatus() {
+  const btn = document.getElementById('copyDiagBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
+    const [inj, knee, gym, sprint, act] = await Promise.all([
+      db.from('injuries').select('body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
+      db.from('knee_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
+      db.from('gym_log').select('date,rpe').gte('date', cutoff),
+      db.from('sprint_log').select('date,rpe').gte('date', cutoff),
+      db.from('activity_log').select('date,rpe').gte('date', cutoff),
+    ]);
+    const I = inj.data || [], K = knee.data || [], G = gym.data || [],
+          S = sprint.data || [], A = act.data || [];
+
+    const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
+    const fmtDM = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' }) : '–';
+    const firstSentence = s => {
+      const x = String(s || '').trim();
+      if (!x) return '';
+      const m = x.match(/^[\s\S]*?[.!?](?=\s|$)/);
+      const f = (m ? m[0] : x).trim();
+      return f.length > 140 ? f.slice(0, 137) + '…' : f;
+    };
+
+    const lines = I.map(i => {
+      const part = t(i.body_part); // 'body.knee' → «Kne» / «Knee»
+      const side = i.side ? ` (${t('inj.side_' + i.side)})` : '';
+      const sev  = i.severity ? t('inj.sev_' + i.severity) + ', ' : '';
+      const st   = t('inj.st_' + i.status);
+      const note = firstSentence(i.note);
+      return `• ${part}${side} — ${sev}${st} ${t('inj.since')} ${fmtDM(i.start_date)}${note ? ': ' + note : ''}`;
+    });
+
+    // Siste 7 dager: økter (sprint telles per dato), snitt-RPE, maks knesmerte
+    const sprintDates = [...new Set(S.map(s => s.date))];
+    const rpeByDate = {};
+    S.forEach(s => { if (rpeByDate[s.date] == null && s.rpe != null) rpeByDate[s.date] = s.rpe; });
+    const allRpe = [...G.map(g => g.rpe), ...sprintDates.map(d => rpeByDate[d]), ...A.map(a => a.rpe)].filter(v => v != null);
+    const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a, b) => a + b, 0) / allRpe.length) : null;
+    let maxPain = null;
+    K.forEach(k => [k.before_score, k.during_score, k.after_score, k.day_after_score]
+      .forEach(v => { if (v != null && (maxPain == null || v > maxPain)) maxPain = v; }));
+
+    const today = new Date().toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
+    const msg = `${t('diag.header')} — Filip Lund, ${today}
+
+${lines.length ? lines.join('\n') : t('diag.none')}
+
+${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? '–', pain: maxPain ?? '–' })}`;
+
+    const ok = await writeClip(msg);
+    toast(ok ? t('ai.diag_copied') : t('ai.report_copy_fail'));
   } catch (e) {
     toast(t('ai.report_copy_fail'));
   } finally {

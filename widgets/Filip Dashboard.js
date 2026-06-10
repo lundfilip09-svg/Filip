@@ -209,7 +209,7 @@ function buildSmall(data){
 
   const n = (data.todos||[]).length;
   const tRow = w.addStack(); tRow.centerAlignContent();
-  const tIcon = tRow.addText("✅ "); tIcon.font=Font.systemFont(13);
+  const tIcon = tRow.addText("📋 "); tIcon.font=Font.systemFont(13);
   const tNum = tRow.addText(`${n}`); tNum.textColor=FG; tNum.font=Font.boldSystemFont(15);
   const tc = tRow.addText(n===1 ? "  gjøremål" : "  gjøremål"); tc.textColor=DIM; tc.font=Font.systemFont(9);
 
