@@ -73,23 +73,46 @@ export default async function handler(req, res) {
     return vals.length ? Math.max(...vals) : null;
   };
 
+  // 7-dagers vindu (UTC, dato-streng) for treningsbelastning + søvn-historikk.
+  const dayMs = 86400000;
+  const cutoff7 = new Date(Date.now() - 6 * dayMs).toISOString().slice(0, 10);
+
+  // Normaliser én belastnings-rad fra de tre kildetabellene til felles form.
+  // session_type-kolonnen heter forskjellig per tabell (session_type / type /
+  // activity_type). RPE lagres på 1–100-skala (migrasjon 018).
+  const loadRow = (r, typeKey, source) => ({
+    date: r.date,
+    rpe: r.rpe,
+    duration_min: r.duration_min,
+    session_type: r[typeKey] || null,
+    source,
+  });
+
   try {
-    // limit=2 → rad [0] = i dag/siste, rad [1] = forrige loggførte dag ("i går").
-    // Vi bruker forrige loggførte rad, ikke en hard kalenderdato, så trenden
-    // ikke forsvinner hver gang en dag uten logg hopper over.
-    const [sleepRows, kneeRows, todoRows] = await Promise.all([
-      // Siste to netter: nyeste rad etter dato
-      sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr&order=date.desc&limit=2', cfg),
-      // Siste to kne-logger: nyeste rad etter dato
-      sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
-      // Aktive gjøremål med forfallsdato, nærmeste først
-      sb('todos?select=title,due_date,list_name,important&completed=eq.false&due_date=not.is.null&order=due_date.asc&limit=6', cfg),
-    ]);
+    // health_data limit=7 → rad [0] = siste natt, rad [1] = forrige loggførte
+    // natt ("i går"), alle 7 brukes til søvn-historikk-stolpene (Large-widget).
+    const [sleepRows, kneeRows, todoRows, gymLoad, sprintLoad, actLoad, weeklyRows] =
+      await Promise.all([
+        sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,light_sleep_minutes,rem_sleep_minutes,awake_minutes,sleep_start,sleep_end&order=date.desc&limit=7', cfg),
+        sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
+        sb('todos?select=title,due_date,list_name,important&completed=eq.false&due_date=not.is.null&order=due_date.asc&limit=6', cfg),
+        sb(`gym_log?select=date,rpe,duration_min,session_type&date=gte.${cutoff7}&order=date.desc`, cfg),
+        sb(`sprint_log?select=date,rpe,duration_min,type&date=gte.${cutoff7}&order=date.desc`, cfg),
+        sb(`activity_log?select=date,rpe,duration_min,activity_type&date=gte.${cutoff7}&order=date.desc`, cfg),
+        sb('weekly_summaries?select=week_start,content_no,content_en&order=week_start.desc&limit=1', cfg),
+      ]);
 
     const sleep = sleepRows[0] || null;
     const knee = kneeRows[0] || null;
     const sleepPrev = sleepRows[1] || null;
     const kneePrev = kneeRows[1] || null;
+    const weekly = (weeklyRows && weeklyRows[0]) || null;
+
+    const last7load = [
+      ...(gymLoad || []).map(r => loadRow(r, 'session_type', 'gym')),
+      ...(sprintLoad || []).map(r => loadRow(r, 'type', 'sprint')),
+      ...(actLoad || []).map(r => loadRow(r, 'activity_type', 'activity')),
+    ];
 
     return res.status(200).json({
       generated_at: new Date().toISOString(),
@@ -99,6 +122,12 @@ export default async function handler(req, res) {
         hours: sleep.sleep_hours,
         hrv: sleep.hrv,
         rhr: sleep.rhr,
+        deep_sleep_minutes: sleep.deep_sleep_minutes,
+        light_sleep_minutes: sleep.light_sleep_minutes,
+        rem_sleep_minutes: sleep.rem_sleep_minutes,
+        awake_minutes: sleep.awake_minutes,
+        sleep_start: sleep.sleep_start,
+        sleep_end: sleep.sleep_end,
       },
       knee: knee && {
         date: knee.date,
@@ -116,8 +145,20 @@ export default async function handler(req, res) {
       })),
       // Forrige loggførte dag — driver trend-pilene i widgetene.
       yesterday: {
-        sleep: sleepPrev ? { score: sleepPrev.sleep_score } : null,
+        sleep: sleepPrev ? { score: sleepPrev.sleep_score, hrv: sleepPrev.hrv } : null,
         knee: kneePrev ? { worst_score: worstKnee(kneePrev) } : null,
+      },
+      // Siste 7 loggførte netter (nyeste først): til søvnscore-stolper.
+      last7sleep: (sleepRows || []).map(r => ({ date: r.date, sleep_score: r.sleep_score })),
+      // Siste 7 dager rå treningsøkter fra alle tre kilder. Widgeten regner
+      // sRPE selv (varighet × RPE/10) og summerer per dag.
+      last7load,
+      // Siste ukesrapport. content_no/content_en er DB-kolonnenavnene; eksponeres
+      // som summary_no/summary_en for widgeten.
+      weekly_summary: weekly && {
+        week_start: weekly.week_start,
+        summary_no: weekly.content_no,
+        summary_en: weekly.content_en,
       },
     });
   } catch (e) {
