@@ -845,10 +845,10 @@ async function copyHealthReport() {
   try {
     const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
     const [health, knee, gym, sprint, activity, records, physio, injuries] = await Promise.all([
-      db.from('health_data').select('date,sleep_score,hrv,rhr').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('health_data').select('date,sleep_score,hrv,rhr,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes').gte('date', cutoff).order('date', { ascending: false }),
       db.from('knee_pain').select('date,before_score,during_score,after_score,day_after_score,notes').gte('date', cutoff).order('date', { ascending: false }),
-      db.from('gym_log').select('date,session_type,rpe').gte('date', cutoff).order('date', { ascending: false }),
-      db.from('sprint_log').select('date,distance,type,rpe').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('gym_log').select('date,session_type,rpe,session_notes,duration_min').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('sprint_log').select('date,distance,type,rpe,notes,duration_min').gte('date', cutoff).order('date', { ascending: false }),
       db.from('activity_log').select('date,activity_type,activity_label,duration_min,rpe').gte('date', cutoff).order('date', { ascending: false }),
       db.from('sprint_records').select('distance,best_time').order('distance', { ascending: true }),
       db.from('physio_notes').select('date,therapist,note').order('date', { ascending: false }).limit(3),
@@ -894,21 +894,35 @@ async function copyHealthReport() {
       const wd = new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
       const parts = [];
       const h = hM[ds];
-      parts.push(`Sleep score: ${h && h.sleep_score != null ? h.sleep_score : '–'}`);
+      parts.push(`Sleep score: ${h && h.sleep_score != null ? h.sleep_score : '–'}${h && h.sleep_hours != null ? ' (' + Number(h.sleep_hours).toFixed(1) + 'h)' : ''}`);
       if (h && (h.hrv != null || h.rhr != null)) parts.push(`HRV ${h.hrv ?? '–'} / RHR ${h.rhr ?? '–'}`);
+      if (h) { const _st = (h.deep_sleep_minutes||0)+(h.rem_sleep_minutes||0)+(h.light_sleep_minutes||0); if (_st > 10) parts.push(`Sleep stages: Deep ${Math.round((h.deep_sleep_minutes||0)/_st*100)}% / REM ${Math.round((h.rem_sleep_minutes||0)/_st*100)}%`); }
       const k = kM[ds];
       parts.push(`Knee pain before/during/after/next-day: ${k ? `${k.before_score ?? '–'}/${k.during_score ?? '–'}/${k.after_score ?? '–'}/${k.day_after_score ?? '–'}` : 'not logged'}`);
       const sess = [];
-      (gM[ds] || []).forEach(g => sess.push(`Strength${g.session_type ? ' (' + g.session_type + ')' : ''}${g.rpe != null ? ' RPE ' + g.rpe : ''}`));
-      (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + s.distance : ''}${s.type ? ' ' + s.type : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}`));
+      (gM[ds] || []).forEach(g => sess.push(`Strength${g.session_type ? ' (' + g.session_type + ')' : ''}${g.duration_min ? ' ' + g.duration_min + 'min' : ''}${g.rpe != null ? ' RPE ' + g.rpe : ''}${g.session_notes ? ' — ' + g.session_notes : ''}`));
+      (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + s.distance : ''}${s.type ? ' ' + s.type : ''}${s.duration_min ? ' ' + s.duration_min + 'min' : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}${s.notes ? ' — ' + s.notes : ''}`));
       (aM[ds] || []).forEach(a => sess.push(`${a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type}${a.duration_min ? ' ' + a.duration_min + 'min' : ''}${a.rpe != null ? ' RPE ' + a.rpe : ''}`));
       parts.push(`Sessions: ${sess.length ? sess.join('; ') : 'rest / none logged'}`);
       dayLines.push(`${ds} (${wd}): ${parts.join(' | ')}`);
     }
 
+    // Dynamisk miljø: Norge til aug 2026, deretter USA
+    const _inUSA = new Date() >= new Date('2026-08-20');
+    const _envLocation = _inUSA
+      ? 'Fergus Falls, Minnesota, USA (High School Exchange VG2 at Hillcrest)'
+      : 'Norway (home; starting US High School Exchange at Hillcrest, Fergus Falls MN in Aug 2026)';
+    const _envActivities = _inUSA
+      ? 'Combining High School Soccer / American Football (2–3×/week) with Sprint Training and Strength/Rehab.'
+      : 'Sprint training + strength/rehab at Norna-Salhus IL, ~5–6×/week.';
+    const _q1 = _inUSA
+      ? 'Analyze if my knee pain trend indicates that my current soccer/football/sprint load is safe or causing regression.'
+      : 'Analyze if my knee pain trend indicates that my current sprint/strength load is safe or causing regression.';
+
     const report =
 `=== ATHLETE CONTEXT ===
 Name: Filip Lund (born 2009) — competitive 100m/200m sprinter, Norway
+Height: 187 cm / Weight: 70 kg
 Main Events: ${eventsLine}
 Current Club: Norna-Salhus IL (Norway)
 Coaching Team: Erlend Sæterstøl, Jørgen Homstad, Joakim Dang, Sondre Amundsen
@@ -923,15 +937,15 @@ Latest Physio/Clinical Notes (live from tracker, newest first):
 ${physioBlock}
 
 === CURRENT ENVIRONMENT ===
-Location: Fergus Falls, Minnesota (High School Exchange VG2 at Hillcrest).
-Current Activities: Combining High School Soccer (2-3x week) with Sprint Training (1x week) and Strength/Rehab (2x week).
+Location: ${_envLocation}
+Current Activities: ${_envActivities}
 
 === RECENT TRACKING DATA (LAST 7 DAYS) ===
 ${dayLines.join('\n')}
 
 === YOUR ROLE AS AN EXPERT SPRINT & REHAB COACH ===
 Based strictly on sports science, tendon adaptation timelines, and my tracking data above:
-1. Analyze if my knee pain trend indicates that my current soccer/sprint load is safe or causing regression.
+1. ${_q1}
 2. Give me a concrete recommendation for my training load TOMORROW.
 3. Highlight any red flags I need to watch out for in my upcoming sessions.`;
 

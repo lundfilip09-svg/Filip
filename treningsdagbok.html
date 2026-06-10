@@ -60,6 +60,12 @@
   .sum-num { font-size: 22px; font-weight: 700; }
   .sum-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .loading { text-align: center; padding: 40px; color: var(--muted); }
+  .ai-summary {
+    border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0;
+    background: #f0f4ff; padding: 14px 16px; margin-bottom: 20px; line-height: 1.65;
+    font-size: 13px;
+  }
+  .ai-summary h2.sec { color: var(--accent); border-bottom-color: rgba(43,95,176,0.25); margin-top: 0; }
   @media print {
     body { background: #fff; }
     .controls { display: none !important; }
@@ -83,12 +89,19 @@
   </div>
   <button class="btn ghost" onclick="loadReport()" data-i18n="update">Oppdater</button>
   <button class="btn" onclick="window.print()" data-i18n="save_pdf">Lagre som PDF</button>
+  <button class="btn ghost" onclick="genAiSummary()" data-i18n="gen_ai_btn">Generer AI-oppsummering</button>
   <button class="btn link" onclick="setLang(_lang==='no'?'en':'no')" id="langBtn" data-i18n="langBtn">🇺🇸 English</button>
   <button class="btn link" onclick="location.href='sprint.html'" data-i18n="back">← Tilbake</button>
 </div>
 
-<div class="page" id="doc">
-  <div class="loading" data-i18n="loading">Laster…</div>
+<div class="page">
+  <div id="aiSummary" class="ai-summary" style="display:none">
+    <h2 class="sec" data-i18n="ai_title">AI-oppsummering</h2>
+    <div id="aiSummaryText"></div>
+  </div>
+  <div id="doc">
+    <div class="loading" data-i18n="loading">Laster…</div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -116,7 +129,9 @@ const TR = {
     st_active:'aktiv', st_improving:'bedring', st_archived:'arkivert',
     bp_knee:'Kne', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hoftebøyer', bp_hip:'Hofte',
     bp_shoulder:'Skulder', bp_back:'Rygg', bp_neck:'Nakke', bp_ankle:'Ankel', bp_calf:'Legg',
-    bp_achilles:'Akilles', bp_foot:'Fot', bp_other:'Annet'
+    bp_achilles:'Akilles', bp_foot:'Fot', bp_other:'Annet',
+    gen_ai_btn:'Generer AI-oppsummering', ai_title:'AI-oppsummering',
+    ai_generating:'Genererer oppsummering…', ai_error:'Feil ved generering — prøv igjen.'
   },
   en: {
     from:'From', to:'To', update:'Update', save_pdf:'Save as PDF', back:'← Back',
@@ -139,7 +154,9 @@ const TR = {
     st_active:'active', st_improving:'improving', st_archived:'archived',
     bp_knee:'Knee', bp_hamstring:'Hamstring', bp_glute:'Glute', bp_hipflexor:'Hip flexor', bp_hip:'Hip',
     bp_shoulder:'Shoulder', bp_back:'Back', bp_neck:'Neck', bp_ankle:'Ankle', bp_calf:'Calf',
-    bp_achilles:'Achilles', bp_foot:'Foot', bp_other:'Other'
+    bp_achilles:'Achilles', bp_foot:'Foot', bp_other:'Other',
+    gen_ai_btn:'Generate AI summary', ai_title:'AI Summary',
+    ai_generating:'Generating summary…', ai_error:'Error generating summary — please try again.'
   }
 };
 let _lang = localStorage.getItem('lang') || 'no';
@@ -226,6 +243,8 @@ async function loadReport(){
   const from = document.getElementById('fromDate').value;
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
+  const aiEl = document.getElementById('aiSummary');
+  if (aiEl) { aiEl.style.display = 'none'; document.getElementById('aiSummaryText').innerHTML = ''; }
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
   const [gym, knee, sprint, acts, inj] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
@@ -387,6 +406,86 @@ function render(){
   } else html += `<div class="empty">${t('none_act')}</div>`;
 
   document.getElementById('doc').innerHTML = html;
+}
+
+async function genAiSummary() {
+  if (!_data) return;
+  const summaryEl = document.getElementById('aiSummary');
+  const textEl    = document.getElementById('aiSummaryText');
+  summaryEl.style.display = 'block';
+  textEl.innerHTML = `<em>${t('ai_generating')}</em>`;
+
+  const { gym, knee, sprint, acts, from, to } = _data;
+  const sprintDates = [...new Set(sprint.map(s => s.date))];
+  const sprintRpeByDate = {};
+  sprint.forEach(s => { if (sprintRpeByDate[s.date] == null && s.rpe != null) sprintRpeByDate[s.date] = s.rpe; });
+  const allRpe = [...gym.map(g => g.rpe), ...sprintDates.map(d => sprintRpeByDate[d]), ...acts.map(a => a.rpe)].filter(v => v != null);
+  const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a, b) => a + b, 0) / allRpe.length) : null;
+  let totLoad = 0;
+  gym.forEach(g  => totLoad += srpe(g.duration_min, _SRPE_DEF.gym,    g.rpe));
+  acts.forEach(a => totLoad += srpe(a.duration_min, _SRPE_DEF.act,    a.rpe));
+  sprintDates.forEach(d => {
+    const durRow = sprint.find(s => s.date === d && s.duration_min != null);
+    totLoad += srpe(durRow?.duration_min, _SRPE_DEF.sprint, sprintRpeByDate[d]);
+  });
+
+  const painByDate = {};
+  knee.forEach(k => {
+    const vals = [k.before_score, k.during_score, k.after_score, k.day_after_score].filter(v => v != null);
+    if (vals.length) { const m = Math.max(...vals); if (painByDate[k.date] == null || m > painByDate[k.date]) painByDate[k.date] = m; }
+  });
+  const kneeStr = Object.entries(painByDate).sort(([a],[b]) => a.localeCompare(b))
+    .map(([d,v]) => `${d}:${v}/10`).join(', ') || 'none recorded';
+
+  const gymStr = gym.length
+    ? gym.map(g => `${g.date} ${g.session_type||''} ${g.duration_min != null ? g.duration_min+'min' : ''} RPE=${g.rpe??'–'}`).join('; ')
+    : 'none';
+
+  const sprintStr = sprintDates.length
+    ? sprintDates.map(d => {
+        const rows = sprint.filter(s => s.date === d);
+        const runs = rows.map(s => `${s.distance} ${(s.type||'').split(':')[0]}`).join(', ');
+        return `${d} [${runs}] RPE=${sprintRpeByDate[d]??'–'}`;
+      }).join('; ')
+    : 'none';
+
+  const actStr = acts.length
+    ? acts.map(a => `${a.date} ${a.activity_type} ${a.duration_min != null ? a.duration_min+'min' : ''} RPE=${a.rpe??'–'}`).join('; ')
+    : 'none';
+
+  const prompt =
+`Training period report for Filip Lund (17yo, sprinter 100/200m, left knee patellar tendinopathy):
+
+Period: ${from} – ${to}
+Stats: ${gym.length} gym sessions, ${sprintDates.length} sprint sessions (${sprint.length} runs), ${acts.length} activities. Avg RPE: ${avgRpe??'n/a'}/100. Total sRPE load: ${Math.round(totLoad)}.
+
+Knee pain (max per day, scale 0–10): ${kneeStr}
+
+Gym sessions: ${gymStr}
+
+Sprint sessions: ${sprintStr}
+
+Other activities: ${actStr}
+
+Write:
+1. A 3–4 sentence summary of this training period: load balance, knee pain trend, rest vs. training distribution.
+2. 1–2 specific actionable recommendations for the upcoming week.
+Be concise and factual. Answer in English.`;
+
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { textEl.innerHTML = `<em style="color:#c0392b">${t('ai_error')}</em>`; return; }
+    const res = await fetch('/api/ai-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ message: prompt, history: [], localDate: new Date().toISOString().slice(0,10), tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+    });
+    if (!res.ok) throw new Error(res.status);
+    const { reply } = await res.json();
+    textEl.innerHTML = '<p>' + esc(reply).replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+  } catch {
+    textEl.innerHTML = `<em style="color:#c0392b">${t('ai_error')}</em>`;
+  }
 }
 
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
