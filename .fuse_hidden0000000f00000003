@@ -460,7 +460,6 @@
       <a href="kalender.html"  class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
@@ -608,14 +607,6 @@
         </div>
       </div>
 
-      <!-- Ukeslast (sRPE) -->
-      <div class="card" style="padding:14px" id="weekLoadCard">
-        <div class="widget-label" data-i18n="tp.week_load">Ukeslast (sRPE)</div>
-        <div id="weekLoadBody">
-          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
-        </div>
-      </div>
-
       <!-- Hurtighandlinger -->
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="physio-trigger" onclick="openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
@@ -644,7 +635,6 @@
         <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)" data-i18n="tp.act_swim">Svømming</button>
         <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)" data-i18n="tp.act_cycle">Sykling</button>
         <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)" data-i18n="tp.act_basketball">Basketball</button>
-        <button class="act-type-btn" data-type="Amerikansk fotball" onclick="selectActType(this)" data-i18n="tp.act_amfootball">Amerikansk fotball</button>
         <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)" data-i18n="tp.act_walk">Turgåing</button>
         <button class="act-type-btn" data-type="Rolig dag" onclick="selectActType(this)" data-i18n="tp.act_easy">Rolig dag</button>
         <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>
@@ -664,10 +654,6 @@
       <div id="actReplacedWrap" style="display:none;margin-bottom:12px">
         <div class="act-field-label" data-i18n="tp.act_replaced">Erstattet planlagt økt (valgfritt)</div>
         <input class="input-sm" id="actReplacedLabel" type="text" placeholder="F.eks. Sprint — tok det rolig pga hamstring" data-i18n-placeholder="tp.act_replaced_ph" style="width:100%;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:12px">
-        <div class="act-field-label" data-i18n="tp.duration">Varighet (min)</div>
-        <input class="input-sm" id="actDuration" type="number" min="5" max="600" step="5" placeholder="60" style="width:110px">
       </div>
       <div style="margin-bottom:12px;max-width:260px" id="actRpeHost"></div>
       <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.knee">Knesmerte</div>
@@ -691,13 +677,6 @@
       <div class="act-modal-hd">
         <span class="act-modal-title" data-i18n="tp.edit_weekly_plan">Rediger ukeplan</span>
         <button class="act-modal-close" onclick="closeEditWeeklyPlan()">✕</button>
-      </div>
-      <!-- Presets: lagre/bytt navngitte ukeplaner («Norge vår», «USA football», …) -->
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-        <select class="input-sm" id="wpPresetSel" style="flex:1;min-width:130px"></select>
-        <button class="btn btn-ghost btn-sm" onclick="applyWeekPreset()" data-i18n="tp.preset_apply">Bruk</button>
-        <button class="btn btn-ghost btn-sm" onclick="saveWeekPreset()" data-i18n="tp.preset_save">Lagre som…</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteWeekPreset()" data-i18n="tp.preset_delete">Slett</button>
       </div>
       <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       <button class="act-save-btn" onclick="saveWeeklyPlan()" data-i18n="tp.save_plan">Lagre plan</button>
@@ -887,74 +866,10 @@ function openEditWeeklyPlan() {
     </div>`).join('');
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
   document.getElementById('wp-day-0')?.focus();
-  loadWeekPresets();   // async, fyller dropdown
 }
 
 function closeEditWeeklyPlan() {
   document.getElementById('weeklyPlanModal').classList.add('hidden');
-}
-
-// ── Ukeplan-presets (migrasjon 027) ────────────────────────────────────────
-// «Bruk» fyller bare inputfeltene — «Lagre plan» committer som vanlig, så du
-// kan se og justere før planen tas i bruk.
-let _wpPresets = [];
-
-async function loadWeekPresets() {
-  try {
-    const { data } = await db.from('week_plan_presets').select('*').order('name');
-    _wpPresets = data || [];
-  } catch (e) { _wpPresets = []; }
-  const sel = document.getElementById('wpPresetSel');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = `<option value="">${escHtml(t('tp.preset_none'))}</option>` +
-    _wpPresets.map(p => `<option value="${escHtml(String(p.id))}">${escHtml(p.name)}</option>`).join('');
-  if (cur && _wpPresets.some(p => String(p.id) === cur)) sel.value = cur;
-}
-
-function _selectedPreset() {
-  const id = document.getElementById('wpPresetSel')?.value;
-  return _wpPresets.find(p => String(p.id) === id) || null;
-}
-
-function applyWeekPreset() {
-  const p = _selectedPreset();
-  if (!p) { toast(t('tp.preset_pick'), 'err'); return; }
-  [0, 1, 2, 3, 4, 5, 6].forEach(d => {
-    const inp = document.getElementById(`wp-day-${d}`);
-    if (inp) inp.value = p.plan?.[d] ?? '';
-  });
-  toast(t('tp.preset_applied_hint'));
-}
-
-async function saveWeekPreset() {
-  const name = (prompt(t('tp.preset_name_prompt')) || '').trim();
-  if (!name) return;
-  const plan = {};
-  [0, 1, 2, 3, 4, 5, 6].forEach(d => {
-    plan[d] = document.getElementById(`wp-day-${d}`)?.value.trim() || '';
-  });
-  const existing = _wpPresets.find(p => p.name.toLowerCase() === name.toLowerCase());
-  let error;
-  if (existing) ({ error } = await db.from('week_plan_presets')
-    .update({ plan, updated_at: new Date().toISOString() }).eq('id', existing.id));
-  else ({ error } = await db.from('week_plan_presets').insert({ user_id: userId, name, plan }));
-  if (error) { toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
-  await loadWeekPresets();
-  const sel = document.getElementById('wpPresetSel');
-  const saved = _wpPresets.find(p => p.name === name);
-  if (sel && saved) sel.value = String(saved.id);
-  toast(t('tp.preset_saved'));
-}
-
-async function deleteWeekPreset() {
-  const p = _selectedPreset();
-  if (!p) { toast(t('tp.preset_pick'), 'err'); return; }
-  if (!confirm(t('tp.preset_delete_confirm', { name: p.name }))) return;
-  const { error } = await db.from('week_plan_presets').delete().eq('id', p.id);
-  if (error) { toast(t('tp.delete_error'), 'err'); return; }
-  await loadWeekPresets();
-  toast(t('tp.preset_deleted'));
 }
 
 async function saveWeeklyPlan() {
@@ -1366,59 +1281,6 @@ async function loadSessionHistory() {
   renderSessionGrid();
   renderKneeDash();
   renderTrends();
-  renderWeekLoad();
-}
-
-// ── Ukeslast (sRPE): Σ varighet × RPE/10 per uke, siste 6 uker ─────────────
-// Manglende varighet → nøkterne defaults (gym 60 / sprint 75 / aktivitet 60 min)
-// slik at gamle rader uten duration_min teller med. Sprint telles per økt
-// (dato), ikke per løp. RPE-skalaen er 1–100 → /10 gir klassisk Foster-sRPE.
-const SRPE_DEF = { gym: 60, sprint: 75, activity: 60 };
-async function renderWeekLoad() {
-  const el = document.getElementById('weekLoadBody');
-  if (!el) return;
-  const mondays = [];
-  for (let i = 5; i >= 0; i--) mondays.push(getMondayForOffset(-i));
-  const fromIso = localISODate(mondays[0]);
-  let gym = [], spr = [], act = [];
-  try {
-    const [g, s, a] = await Promise.all([
-      db.from('gym_log').select('date,rpe,duration_min').gte('date', fromIso),
-      db.from('sprint_log').select('date,rpe,duration_min').gte('date', fromIso),
-      db.from('activity_log').select('date,rpe,duration_min').gte('date', fromIso),
-    ]);
-    gym = g.data || []; spr = s.data || []; act = a.data || [];
-  } catch (e) { el.innerHTML = '<div class="empty" style="font-size:11px">—</div>'; return; }
-
-  const w0 = mondays[0].getTime();
-  const weekIdx = ds => Math.floor((new Date(ds + 'T12:00:00').getTime() - w0) / (7 * 86400000));
-  const loads = [0, 0, 0, 0, 0, 0];
-  const add = (ds, min, rpe) => {
-    const i = weekIdx(ds);
-    if (i >= 0 && i < 6) loads[i] += (min || 0) * ((rpe || 0) / 10);
-  };
-  gym.forEach(r => add(r.date, r.duration_min ?? SRPE_DEF.gym, r.rpe));
-  act.forEach(r => add(r.date, r.duration_min ?? SRPE_DEF.activity, r.rpe));
-  const sprSeen = {};
-  spr.forEach(r => {
-    if (sprSeen[r.date]) return;
-    sprSeen[r.date] = 1;
-    const durRow = spr.find(x => x.date === r.date && x.duration_min != null);
-    add(r.date, durRow?.duration_min ?? SRPE_DEF.sprint, r.rpe);
-  });
-
-  const max = Math.max(1, ...loads);
-  el.innerHTML = `<div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px">` +
-    loads.map((v, i) => {
-      const d = mondays[i];
-      const cur = i === 5;
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-        <div style="font-size:8px;font-family:var(--font-mono);color:var(--text-secondary)">${v ? Math.round(v) : ''}</div>
-        <div style="width:100%;max-width:26px;height:${Math.max(2, Math.round(v / max * 44))}px;border-radius:3px;background:${cur ? 'var(--accent-blue)' : 'rgba(255,255,255,0.14)'}"></div>
-        <div style="font-size:8px;font-family:var(--font-mono);color:var(--text-tertiary)">${d.getDate()}.${d.getMonth() + 1}</div>
-      </div>`;
-    }).join('') + `</div>
-    <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">${t('tp.week_load_hint')}</div>`;
 }
 
 // ── #5: Trend-oversikt (kne, søvn, belastning, siste 14 dager) ──────
@@ -1666,7 +1528,7 @@ function renderSessionGrid() {
         const a   = entry.item;
         const aid = 'act-' + a.id;
         const isOpen = _openDetail === aid;
-        const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
+        const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
         const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
         const hasPain = [a.knee_before, a.knee_during, a.knee_after, a.knee_day_after].some(v => v != null);
         const actEmoji = '';
@@ -1676,7 +1538,7 @@ function renderSessionGrid() {
             style="border-top-color:rgba(242,192,99,0.3)"
             onclick="toggleSessionDetail('${aid}')">
             <div class="sess-name">${escHtml(label)}</div>
-            <div class="sess-meta">${hasPain ? buildPainSummary(kneeAct) : ''}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}</div>
+            <div class="sess-meta">${hasPain ? buildPainSummary(kneeAct) : ''}<span class="act-tag">${escHtml(a.activity_type)}</span>${metaExtra}${rpeExtra}</div>
             ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
           </div>
           ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
@@ -1885,18 +1747,11 @@ async function autoSaveSessionNotes(gymId, value) {
   if (!error) g.session_notes = notes;
 }
 
-function trActType(type) {
-  const m = { 'Fotball':'tp.act_soccer', 'Amerikansk fotball':'tp.act_amfootball', 'Padel':'tp.act_padel',
-              'Svømming':'tp.act_swim', 'Sykling':'tp.act_cycle', 'Basketball':'tp.act_basketball',
-              'Turgåing':'tp.act_walk', 'Rolig dag':'tp.act_easy', 'Annet':'tp.act_other' };
-  return m[type] ? t(m[type]) : type;
-}
-
 function buildActDetailHtml(a) {
   const aid     = 'act-' + a.id;
   const d       = new Date(a.date + 'T12:00:00');
   const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const label   = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
+  const label   = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : a.activity_type;
   const actEmoji = { Fotball:'', Padel:'', Svømming:'', Sykling:'', Turgåing:'' }[a.activity_type] || '';
 
   const cpSteps = [
@@ -1945,12 +1800,6 @@ function buildActDetailHtml(a) {
       <input type="number" min="1" max="100" class="sess-edit-input"
         value="${a.rpe ?? ''}" placeholder="—"
         onblur="autoSaveActField('${a.id}','rpe',this.value)">
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
-      <input type="number" min="5" max="600" step="5" class="sess-edit-input"
-        value="${a.duration_min ?? ''}" placeholder="—"
-        onblur="autoSaveActField('${a.id}','duration_min',this.value)">
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.knee')}</div>
@@ -2149,8 +1998,6 @@ function openActModal() {
   document.getElementById('actDate').value = today();
 
   document.getElementById('actRpeHost').innerHTML = rpeSliderHTML('actRpe');
-  const ad = document.getElementById('actDuration');
-  if (ad) ad.value = '';
   document.getElementById('actNotes').value = '';
   document.getElementById('actKneeBefore').value = '';
   document.getElementById('actKneeDuring').value = '';
@@ -2184,7 +2031,7 @@ function selectActType(btn) {
   btn.classList.add('selected');
   _actType = btn.dataset.type;
   document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
-  document.getElementById('actSoccerLevel').style.display = (_actType === 'Fotball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
+  document.getElementById('actSoccerLevel').style.display = _actType === 'Fotball' ? 'block' : 'none';
 
   // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
   const replacedWrap = document.getElementById('actReplacedWrap');
@@ -2209,9 +2056,8 @@ async function saveActivity() {
   let actLabel = null;
   if (_actType === 'Annet')          actLabel = document.getElementById('actCustomLabel').value.trim() || null;
   else if (_actType === 'Rolig dag') actLabel = document.getElementById('actReplacedLabel').value.trim() || null;
-  else if (_actType === 'Fotball' || _actType === 'Amerikansk fotball') actLabel = _soccerLevel;
-  const durRaw     = document.getElementById('actDuration')?.value;
-  const duration   = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
+  else if (_actType === 'Fotball')   actLabel = _soccerLevel;
+  const duration   = null;
   const rpe        = rpeValue('actRpe');
   const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);
   const kneeDuring = document.getElementById('actKneeDuring').value === '' ? null : Number(document.getElementById('actKneeDuring').value);

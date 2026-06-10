@@ -38,7 +38,8 @@
       "Bash(node -e ' *)",
       "Bash(git -C /Users/09fillun/Library/CloudStorage/OneDrive-EgillDanielsenStiftelse/Lundikken/Friidrett/Dashboard diff --stat HEAD)",
       "Bash(node --check sprint.html)",
-      "Bash(node --check treningsplan.html)"
+      "Bash(node --check treningsplan.html)",
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/api/ai-chat.js)"
     ]
   }
 }

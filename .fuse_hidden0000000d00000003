@@ -407,11 +407,6 @@
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
 
     /* History */
-    .hist-sets-toggle { cursor: pointer; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 3px; }
-    .hist-sets-toggle:hover { color: var(--text-secondary); }
-    .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 9px; font-family: var(--font-mono); }
-    .hist-ex-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .hist-ex-vol { color: var(--text-tertiary); flex-shrink: 0; }
     .hist-row { display: flex; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; font-family: var(--font-mono); }
     .hist-row:last-child { border-bottom: none; }
     .hist-date { color: var(--text-tertiary); width: 58px; flex-shrink: 0; font-size: 10px; }
@@ -478,8 +473,7 @@
       <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
-    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
-    <button id="unitBtn" onclick="toggleUnit()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;font-family:var(--font-mono);padding:4px 8px" title="kg ↔ lbs">kg</button>
+
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
@@ -547,10 +541,9 @@
 
     <!-- B1: Progressive Overload-coach -->
     <div class="po-card" id="poCard" style="display:none">
-      <div class="po-hd" onclick="togglePoCard()" style="cursor:pointer">
+      <div class="po-hd">
         <span class="po-title">💪 <span data-i18n="po.title">Overload-coach</span></span>
         <span class="po-sub" data-i18n="po.subtitle">Forslag til neste økt</span>
-        <span class="po-sub" id="poToggleLbl" style="margin-left:auto"></span>
       </div>
       <div id="poBody"></div>
     </div>
@@ -586,7 +579,7 @@
           </svg>
           <div class="ring-txt">
             <div class="ring-pct" id="ringPct">0%</div>
-            <div class="ring-sub" data-i18n="gym.ring_done">ferdig</div>
+            <div class="ring-sub">ferdig</div>
           </div>
         </div>
         <div class="ring-stats">
@@ -629,7 +622,7 @@
       <div class="tool-item" id="ti-notes" onclick="toggleTool('notes')">
         <div class="tool-icon">📋</div>
         <div class="tool-name" data-i18n="gym.notes">Notater</div>
-        <div class="tool-val" id="notesVal" data-i18n="gym.notes_zero">0 notater</div>
+        <div class="tool-val" id="notesVal">0 notater</div>
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-notes">
@@ -743,9 +736,6 @@ let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 
 let _isSavingLog      = false;
-let _loggedThisSession = false;  // satt i saveLog — vakter «Ny økt» mot tap av ulagret økt
-let _sessionDurationMin = null;  // sRPE: faktisk øktvarighet fra timeren (settes i finishWorkout)
-let _offlineRetryArmed  = false;
 let _dayAfterSession  = null;  // { gymId, kneeId, date, sessionType }
 let _dayAfterScore    = null;
 let workoutState  = 'idle';
@@ -1006,8 +996,11 @@ function tryRestoreSession(data) {
 }
 
 
-// ── Service Worker ─────────────────────────────────────────────────
-// (registreres globalt i utils.js)
+// ── Service Worker registration ────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 // Send a message to the active Service Worker (if any)
 function swPost(msg) {
   navigator.serviceWorker?.ready
@@ -1094,8 +1087,6 @@ async function init() {
     renderAll();                   // re-rendrer vektinput i gjeldende enhet
     renderGymRpe(rpeValue('gymRpe'));
     applyLang();
-    updateProgress();              // «x / y sett» i aktivt språk
-    try { updateNotesCount(); } catch (e) {}
     if (openEx) { activeDrawer = null; openDrawer(openEx); }   // gjenåpne + konverter sett-vekter
   };
   await loadGymHistory();
@@ -1423,27 +1414,8 @@ function renderWarmup() {
 }
 
 // ── B1: Progressive Overload-coach ──────────────────────────────────
-const PO_PAIN_LIMIT   = 4;   // logget knesmerte > dette ⇒ ikke foreslå progresjon
-const PO_COLLAPSE_KEY = 'po_collapsed';
-
-// Vis en kg-verdi avrundet til vektsteg i gjeldende enhet (2.5 kg / 5 lbs),
-// så anbefalinger alltid matcher skiver («Try 70 lbs», ikke «Try 71.7 lbs»).
-function poDisplayWeight(kg) {
-  const v = fromKg(kg);
-  if (v === '') return '';
-  const step = weightStep(true);
-  return Math.round(v / step) * step;
-}
-
-function togglePoCard() {
-  const body = document.getElementById('poBody');
-  if (!body) return;
-  const collapse = body.style.display !== 'none';
-  body.style.display = collapse ? 'none' : '';
-  try { localStorage.setItem(PO_COLLAPSE_KEY, collapse ? '1' : '0'); } catch (e) {}
-  const lbl = document.getElementById('poToggleLbl');
-  if (lbl) lbl.textContent = collapse ? t('po.expand') : t('po.collapse');
-}
+const PO_PAIN_LIMIT = 4;   // logget knesmerte > dette ⇒ ikke foreslå progresjon
+let _poCache = {};         // exercise_name → siste sett-historikk (per sesjon)
 
 async function renderOverloadCoach() {
   const card = document.getElementById('poCard');
@@ -1456,24 +1428,21 @@ async function renderOverloadCoach() {
 
   const names = [...new Set(dayExs.map(e => e.exercise_name))];
   const { data, error } = await db.from('set_log')
-    .select('exercise_name,weight_kg,reps,date,set_index,knee_max')
+    .select('exercise_name,weight_kg,reps,date,knee_max')
     .in('exercise_name', names)
     .order('date', { ascending: false })
     .limit(400);
   if (error) { card.style.display = 'none'; return; }
 
-  // Grupper per øvelse → per dato. ALLE sett den dagen beholdes — progresjon
-  // vurderes ut fra hele settbildet, ikke bare det tyngste settet.
+  // Grupper per øvelse → per dato (én "økt" = ett datapunkt, beste vekt den dagen)
   const byEx = {};
   (data || []).forEach(r => {
-    ((byEx[r.exercise_name] ||= {})[r.date] ||= []).push(r);
+    (byEx[r.exercise_name] ||= {});
+    const d = byEx[r.exercise_name];
+    if (!d[r.date] || (r.weight_kg ?? 0) > (d[r.date].weight_kg ?? 0)) {
+      d[r.date] = { weight_kg: r.weight_kg, reps: r.reps, knee_max: r.knee_max };
+    }
   });
-
-  // Persistert kollaps-tilstand + toggle-etikett
-  const collapsed = (() => { try { return localStorage.getItem(PO_COLLAPSE_KEY) === '1'; } catch (e) { return false; } })();
-  body.style.display = collapsed ? 'none' : '';
-  const lbl = document.getElementById('poToggleLbl');
-  if (lbl) lbl.textContent = collapsed ? t('po.expand') : t('po.collapse');
 
   if (!Object.keys(byEx).length) {
     card.style.display = '';
@@ -1481,67 +1450,38 @@ async function renderOverloadCoach() {
     return;
   }
 
-  // Toppvekt for en økt (brukes til platå-sammenligning på tvers av datoer)
-  const sessTop = rows => {
-    const ws = rows.map(r => r.weight_kg).filter(w => w != null);
-    return ws.length ? Math.max(...ws) : null;
-  };
-
-  const htmlRows = names.map(name => {
+  const rows = names.map(name => {
     const hist = byEx[name];
     if (!hist) return '';
     const dates = Object.keys(hist).sort().reverse();   // nyeste først
-    const sets  = [...hist[dates[0]]].sort((a, b) => (a.set_index ?? 0) - (b.set_index ?? 0));
-    const ws    = sets.map(s => s.weight_kg).filter(w => w != null);
-    const wMax  = ws.length ? Math.max(...ws) : null;
-    const wMin  = ws.length ? Math.min(...ws) : null;
-    const uniform  = ws.length > 0 && wMax === wMin;
-    const lastPain = Math.max(0, ...sets.map(s => s.knee_max ?? 0));   // hele økta, ikke ett sett
-    const repsArr  = sets.map(s => String(s.reps ?? '').trim()).filter(Boolean);
-    const repsUniform = repsArr.length > 0 && repsArr.every(r => r === repsArr[0]);
+    const last  = hist[dates[0]];
+    const lastW = last.weight_kg;
+    const lastR = last.reps || '';
+    const lastPain = last.knee_max ?? 0;
 
-    // Platå: påfølgende økter (fra nyeste) med samme toppvekt
+    // Platå: hvor mange påfølgende økter (fra nyeste) med samme vekt
     let plateau = 1;
     for (let i = 1; i < dates.length; i++) {
-      if (wMax != null && sessTop(hist[dates[i]]) === wMax) plateau++;
+      if ((hist[dates[i]].weight_kg ?? null) === (lastW ?? null)) plateau++;
       else break;
     }
 
-    // Progresjonslogikk (double progression):
-    //   smerte > grense        → hold
-    //   blandet vekt i økta    → ingen økning; jevn ut på snittvekt (bevarer tonnasje)
-    //   jevn vekt, platå ≥ 3   → vurder variasjon
-    //   jevn vekt              → +2.5 kg
     let recCls, recTxt;
     if (lastPain > PO_PAIN_LIMIT) {
       recCls = 'hold'; recTxt = t('po.hold_pain', { p: lastPain });
-    } else if (wMax != null && wMax > 0) {
-      if (!uniform) {
-        const avg    = ws.reduce((a, b) => a + b, 0) / ws.length;
-        const target = Math.round(avg / 2.5) * 2.5;   // kanonisk kg-steg
-        recCls = 'hold'; recTxt = t('po.even_out', { n: sets.length, w: poDisplayWeight(target), u: weightUnit() });
-      } else if (plateau >= 3) {
-        recCls = 'hold'; recTxt = t('po.plateau', { n: plateau });
-      } else {
-        recCls = 'up'; recTxt = t('po.try', { w: poDisplayWeight(wMax + 2.5), u: weightUnit() });
+    } else if (lastW != null && lastW > 0) {
+      if (plateau >= 3) { recCls = 'hold'; recTxt = t('po.plateau', { n: plateau }); }
+      else {
+        const next = Math.round((lastW + 2.5) * 2) / 2;   // +2.5 kg, halvkilo-presisjon (kanonisk)
+        recCls = 'up'; recTxt = t('po.try', { w: fromKg(next) });
       }
     } else {
       recCls = 'flat'; recTxt = t('po.keep');
     }
 
-    // «Sist»-visning: ekte settbilde, ikke bare toppsettet
-    let lastLbl;
-    if (wMax == null) {
-      lastLbl = repsArr.length ? t('po.try_reps', { r: repsArr[0] }) : '';
-    } else if (uniform) {
-      lastLbl = repsUniform
-        ? t('po.last', { w: fromKg(wMax), r: repsArr[0], u: weightUnit() })
-        : t('po.last_sets', { n: sets.length, w: fromKg(wMax), u: weightUnit() });
-    } else {
-      const list = sets.map(s => s.weight_kg == null ? '—' : fromKg(s.weight_kg)).join('/');
-      lastLbl = t('po.last_mixed', { list, u: weightUnit() });
-    }
-
+    const lastLbl = lastW != null
+      ? t('po.last', { w: fromKg(lastW), r: lastR })
+      : (lastR ? t('po.try_reps', { r: lastR }) : '');
     return `<div class="po-item">
       <span class="po-ex">${escHtml(name)}</span>
       <span class="po-last">${escHtml(lastLbl)}</span>
@@ -1550,7 +1490,7 @@ async function renderOverloadCoach() {
   }).filter(Boolean).join('');
 
   card.style.display = '';
-  body.innerHTML = htmlRows || `<div class="po-empty">${t('po.no_data')}</div>`;
+  body.innerHTML = rows || `<div class="po-empty">${t('po.no_data')}</div>`;
 }
 
 // ── Workout ────────────────────────────────────────────────────────
@@ -1653,8 +1593,9 @@ function renderExRow(ex, day, num, isWarmup) {
             style="width:48px"
             data-exercise-id="${ex.id}"
             onclick="event.stopPropagation()"
+            onblur="saveWeight(this.dataset.exerciseId, toKg(this.value))"
             onchange="saveWeight(this.dataset.exerciseId, toKg(this.value))">
-          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">${weightUnit()}</span>` : ''}
+          <span style="color:var(--text-tertiary);font-family:var(--font-mono)">${t('po.kg')}</span>` : ''}
         </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
@@ -1721,7 +1662,7 @@ function renderDrawer(exId) {
     </div>
     <table class="drawer-table">
       <thead><tr>
-        <th style="width:28px">${t('gym.col_sets')}</th><th>${t('gym.col_reps')}</th><th>${t('gym.col_weight', { u: weightUnit() })}</th>
+        <th style="width:28px">${t('gym.col_sets')}</th><th>${t('gym.col_reps')}</th><th>${t('gym.col_weight')}</th>
         <th style="width:32px">✓</th><th>${t('gym.col_notes')}</th><th style="width:28px"></th>
       </tr></thead>
       <tbody id="drawer-body-${exId}">
@@ -1748,7 +1689,7 @@ function drawerRow(exId, i, s) {
       onclick="toggleSetDone('${exId}',${i})">${s.done ? '✓' : ''}</button></td>
     <td><input class="set-inp set-notes-inp" type="text" value="${escHtml(s.notes)}"
       onchange="setData['${exId}'][${i}].notes=this.value;saveDraft()" placeholder="—"></td>
-    <td><button class="set-remove" onclick="removeSet('${exId}',${i})" title="${t('gym.remove_set')}">−</button></td>
+    <td><button class="set-remove" onclick="removeSet('${exId}',${i})" title="Fjern sett">−</button></td>
   </tr>`;
 }
 
@@ -1757,7 +1698,7 @@ function toggleSetDone(exId, setIdx) {
   if (!d || !d[setIdx]) return;
   d[setIdx].done = !d[setIdx].done;
   if (!completedSets[exId]) completedSets[exId] = new Set();
-  if (d[setIdx].done) { completedSets[exId].add(setIdx); startRest(preferredRest()); }
+  if (d[setIdx].done) { completedSets[exId].add(setIdx); startRest(180); }
   else completedSets[exId].delete(setIdx);
   const row = document.getElementById(`drow-${exId}-${setIdx}`);
   if (row) row.classList.toggle('set-done', d[setIdx].done);
@@ -1782,7 +1723,7 @@ function addSet(exId) {
 function removeSet(exId, i) {
   const d = setData[exId];
   if (!d) return;
-  if (d.length <= 1) { toast(t('gym.min_one_set'), 'err'); return; }
+  if (d.length <= 1) { toast('Minst 1 sett kreves', 'err'); return; }
   // Shift completedSets indices after removal
   if (completedSets[exId]) {
     const updated = new Set();
@@ -1799,22 +1740,10 @@ function removeSet(exId, i) {
   updateProgress();
 }
 
-// Representativ vekt for økta: hyppigste vekt blant settene (tie → tyngste).
-// Brukes som øvelsens standardvekt — IKKE bare første sett med vekt, som ville
-// gitt feil ved pyramide-/fallende sett (30/25/20/20 → 20, ikke 30).
-function representativeWeight(exId) {
-  const rows = (setData[exId] || []).filter(r =>
-    r.weight !== '' && r.weight != null && !isNaN(parseFloat(r.weight)));
-  if (!rows.length) return null;
-  const freq = {};
-  rows.forEach(r => { const w = parseFloat(r.weight); freq[w] = (freq[w] || 0) + 1; });
-  return parseFloat(Object.entries(freq)
-    .sort((a, b) => (b[1] - a[1]) || (parseFloat(b[0]) - parseFloat(a[0])))[0][0]);
-}
-
 async function saveSetWeights(exId) {
-  const w = representativeWeight(exId);
-  if (w != null) await saveWeight(exId, w);
+  if (!setData[exId]) return;
+  const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
+  if (s) await saveWeight(exId, s.weight);
 }
 
 async function completeExercise(exId) {
@@ -1823,8 +1752,8 @@ async function completeExercise(exId) {
   initSetData(exId);
   if (!completedSets[exId]) completedSets[exId] = new Set();
   setData[exId].forEach((s, i) => { s.done = true; completedSets[exId].add(i); });
-  const w = representativeWeight(exId);
-  if (w != null) await saveWeight(exId, w);
+  const s = setData[exId].find(r => r.weight !== '' && r.weight !== undefined && !isNaN(parseFloat(r.weight)));
+  if (s) await saveWeight(exId, s.weight);
   closeDrawer();
   updateExRowStatus(exId);
   updateProgress();
@@ -1881,7 +1810,7 @@ function updateSbActiveEx(exId) {
   const done = completedSets[exId]?.size || 0;
   el.innerHTML = `<div class="sb-ex-name">${escHtml(ex.exercise_name)}</div>
     <div class="sb-ex-vol">${ex.sets} × ${escHtml(ex.reps)}</div>
-    <div class="sb-ex-prog">${t('gym.sets_done', { done, total: ex.sets })}</div>`;
+    <div class="sb-ex-prog">${done} av ${ex.sets} sett fullført</div>`;
 }
 
 function updateNextEx() {
@@ -1904,8 +1833,6 @@ function startWorkout() {
   setData       = {};
   activeDrawer  = null;
   activeExId    = null;
-  _loggedThisSession  = false;
-  _sessionDurationMin = null;
   setWS('active');
   clearInterval(elapsedTimer);
   elapsedTimer = setInterval(() => { updateElapsed(); updateRingTimer(); }, 1000);
@@ -1919,25 +1846,17 @@ function startWorkout() {
 
 function finishWorkout() {
   clearInterval(elapsedTimer);
-  // sRPE: ta vare på faktisk varighet før timeren nullstilles
-  _sessionDurationMin = workoutStart
-    ? Math.max(1, Math.round((Date.now() - workoutStart) / 60000)) : null;
   workoutStart = null;
   stopRest();
   if (activeDrawer) closeDrawer();
   const sbNotes = document.getElementById('sidebarNotes')?.value || '';
   if (sbNotes) document.getElementById('sessionNotes').value = sbNotes;
   const total = getTotalSets(), done = getDoneSets();
-  document.getElementById('doneStats').textContent = t('gym.sets_done', { done, total })
-    + (_sessionDurationMin ? ` · ${_sessionDurationMin} min` : '');
+  document.getElementById('doneStats').textContent = t('gym.sets_done', { done, total });
   setWS('done');
 }
 
 function resetWorkout() {
-  // Vakt: i done-tilstand med fullførte sett som ikke er lagret → bekreft først
-  const hasUnsaved = Object.values(setData).some(arr => (arr || []).some(s => s.done));
-  if (workoutState === 'done' && hasUnsaved && !_loggedThisSession &&
-      !confirm(t('gym.reset_unsaved_confirm'))) return;
   clearInterval(elapsedTimer);
   stopRest();
   workoutStart = null; completedSets = {}; setData = {}; activeDrawer = null; activeExId = null;
@@ -1977,7 +1896,7 @@ function updateProgress() {
   const fill  = document.getElementById('ringFill');
   if (fill) fill.style.strokeDashoffset = 188.5 - (188.5 * pct / 100);
   const sc = document.getElementById('sbSetCount');
-  if (sc) sc.textContent = t('gym.sets_progress', { done, total });
+  if (sc) sc.textContent = `${done} / ${total} sett`;
 }
 
 // ── Shortcuts ──────────────────────────────────────────────────────
@@ -2009,7 +1928,7 @@ function updateNotesCount() {
   const el  = document.getElementById('notesVal');
   if (!el || !ta) return;
   const n = ta.value.trim().split('\n').filter(l => l.trim()).length;
-  el.textContent = n ? (n === 1 ? t('gym.lines_one') : t('gym.lines_many', { n })) : t('gym.notes_zero');
+  el.textContent = n ? `${n} linje${n > 1 ? 'r' : ''}` : '0 notater';
   saveSession();
 }
 
@@ -2021,21 +1940,11 @@ function startCustomRest() {
   if (total < 5 || total > 600) { toast(t('gym.rest_range'), 'err'); return; }
   startRest(total);
 }
-// Husk sist brukte hvile-lengde (auto-start ved avhuket sett bruker denne, ikke fast 3:00)
-const REST_PREF_KEY = 'gym_rest_pref';
-function preferredRest() {
-  try {
-    const v = parseInt(localStorage.getItem(REST_PREF_KEY), 10);
-    return (v >= 5 && v <= 600) ? v : 180;
-  } catch (e) { return 180; }
-}
-
 function startRest(seconds) {
   stopRest();
   restStartedAt = Date.now();
   restDuration  = seconds;
   restPaused    = false;
-  try { localStorage.setItem(REST_PREF_KEY, String(seconds)); } catch (e) {}
   saveSession();
   // Tell Service Worker to fire a background notification when timer ends
   swPost({ type: 'START_TIMER', seconds,
@@ -2164,7 +2073,7 @@ async function saveWeight(exId, val) {
     { exercise_id: exId, weight_kg: kg, updated_at: new Date().toISOString() },
     { onConflict: 'exercise_id' }
   );
-  if (!error) toast(t('gym.weight_saved', { name: ex?.exercise_name ?? exId, w: fromKg(kg), u: weightUnit() }));
+  if (!error) toast(t('gym.weight_saved', { name: ex?.exercise_name ?? exId, w: fromKg(kg) }));
 }
 
 // ── CRUD ───────────────────────────────────────────────────────────
@@ -2257,16 +2166,8 @@ async function saveLog() {
     const _d = getDay(activeDay);
     const sessionType = _d ? dayLabel(_d) : activeDay;
     const gymRpe = rpeValue('gymRpe');
-    const gRes = await db.from('gym_log').insert({
-      date, session_type: sessionType, session_notes: notes, rpe: gymRpe,
-      duration_min: _sessionDurationMin,                       // sRPE (migrasjon 026)
-    });
-    if (gRes.error) {
-      // Offline? Behold draft og lagre automatisk når nettet er tilbake.
-      if (!navigator.onLine) armOfflineResave();
-      else toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err');
-      return;
-    }
+    const gRes = await db.from('gym_log').insert({ date, session_type: sessionType, session_notes: notes, rpe: gymRpe });
+    if (gRes.error) { toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err'); return; }
     const kRes = await db.from('knee_pain').insert({
       date, session_type: sessionType,
       before_score: kneePain['before'], during_score: kneePain['during'],
@@ -2297,27 +2198,14 @@ async function saveLog() {
       if (sRes.error) { /* stille — set_log er sekundær, økta er allerede lagret */ }
     }
 
-    _loggedThisSession = true;
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
     await loadGymHistory();
-    renderOverloadCoach();   // ny set_log-data → oppdater forslagene
   } finally {
     _isSavingLog = false;
     if (btn) btn.disabled = false;
   }
-}
-
-// Offline-vakt: draften ligger trygt i localStorage — re-kjør saveLog ved reconnect.
-function armOfflineResave() {
-  toast(t('gym.offline_retry'), 'err');
-  if (_offlineRetryArmed) return;
-  _offlineRetryArmed = true;
-  window.addEventListener('online', () => {
-    _offlineRetryArmed = false;
-    saveLog();
-  }, { once: true });
 }
 
 function clearLog() {
@@ -2365,16 +2253,6 @@ async function loadGymHistory() {
     el.innerHTML = `<div class="empty">${t('gym.no_history')}</div>`; return;
   }
 
-  // Settdata for de viste datoene → «6 øv · 16 sett» + utvidbar detalj per øvelse.
-  // (Matches på dato — to gym-økter samme dag deler visning, akseptabelt.)
-  let setMap = {};
-  try {
-    const sDates = [...new Set(sessions.map(g => g.date))];
-    const { data: setRows } = await db.from('set_log')
-      .select('date,exercise_name,weight_kg,reps,set_index').in('date', sDates);
-    (setRows || []).forEach(r => { (setMap[r.date] ||= []).push(r); });
-  } catch (e) { /* settdetalj er tilleggsinfo — visningen funker uten */ }
-
   function fmtSessDate(ds) {
     return new Date(ds + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'short', day:'numeric', month:'short' });
   }
@@ -2398,39 +2276,12 @@ async function loadGymHistory() {
       `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`
     ).join(' · ');
 
-    // Settoppsummering + utvidbar per-øvelse-detalj
-    const sRows = setMap[g.date] || [];
-    let setsHtml = '';
-    if (sRows.length) {
-      const byName = {};
-      sRows.forEach(r => { (byName[r.exercise_name] ||= []).push(r); });
-      const summary = t('gym.hist_sets', { ex: Object.keys(byName).length, sets: sRows.length })
-        + (g.rpe != null ? ` · RPE ${g.rpe}` : '');
-      const detail = Object.entries(byName).map(([n, rows]) => {
-        rows.sort((a, b) => (a.set_index ?? 0) - (b.set_index ?? 0));
-        const ws      = rows.map(r => r.weight_kg);
-        const hasW    = ws.some(w => w != null);
-        const uniform = hasW && ws.every(w => w === ws[0]);
-        const repsArr = rows.map(r => String(r.reps ?? '').trim());
-        const repsU   = repsArr.every(r => r === repsArr[0]);
-        let vol;
-        if (!hasW)         vol = `${rows.length} × ${escHtml(repsU ? (repsArr[0] || '—') : repsArr.join('/'))}`;
-        else if (uniform)  vol = `${rows.length} × ${fromKg(ws[0])} ${weightUnit()}` + (repsU && repsArr[0] ? ` × ${escHtml(repsArr[0])}` : '');
-        else               vol = `${ws.map(w => w == null ? '—' : fromKg(w)).join('/')} ${weightUnit()}`;
-        return `<div class="hist-ex-row"><span class="hist-ex-name">${escHtml(n)}</span><span class="hist-ex-vol">${vol}</span></div>`;
-      }).join('');
-      setsHtml = `<div class="hist-sets-toggle" onclick="toggleHistSets('${g.id}')">
-          <span id="hist-arrow-${g.id}">▸</span> ${escHtml(summary)}</div>
-        <div id="hist-sets-${g.id}" style="display:none;padding:3px 0 1px">${detail}</div>`;
-    }
-
     return `<div id="hist-wrap-${g.id}" class="gym-history-item">
       <div class="hist-row" style="align-items:flex-start;padding:8px 0">
         <div style="flex:1;min-width:0">
           <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:2px">${fmtSessDate(g.date)}</div>
           <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(displaySessionType(g.session_type))}</div>
           <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
-          ${setsHtml}
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
         <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="${t('delete')}">✕</button>
@@ -2474,15 +2325,6 @@ async function deleteGymSession(gymId, kneePainId) {
 
 function toggleKneeEdit(gymId) {
   document.getElementById(`knee-edit-${gymId}`)?.classList.toggle('open');
-}
-
-function toggleHistSets(id) {
-  const el  = document.getElementById(`hist-sets-${id}`);
-  if (!el) return;
-  const show = el.style.display === 'none';
-  el.style.display = show ? '' : 'none';
-  const arrow = document.getElementById(`hist-arrow-${id}`);
-  if (arrow) arrow.textContent = show ? '▾' : '▸';
 }
 
 async function saveKneeEdit(gymId, kneeId, date, sessionType) {
@@ -2696,9 +2538,7 @@ function playTimerDone() {
   }
 }
 
-// ── Day-after pain reminder ──────────────────────────────────────
-// Gjelder ALLE gårsdagens gym-økter (ikke bare rehab): dagen-etter-smerte er
-// nøkkelmålet for belastningsstyring ved patellar tendinopati.
+// ── Day-after rehab pain reminder ────────────────────────────────
 async function checkDayAfterRehab() {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -2707,6 +2547,7 @@ async function checkDayAfterRehab() {
   const { data: sessions } = await db.from('gym_log')
     .select('id, session_type, date')
     .eq('date', yDate)
+    .ilike('session_type', '%rehab%')
     .limit(1);
 
   if (!sessions?.length) return;
@@ -2715,7 +2556,7 @@ async function checkDayAfterRehab() {
   const { data: kneeRows } = await db.from('knee_pain')
     .select('id, day_after_score')
     .eq('date', yDate)
-    .eq('session_type', gym.session_type || '')
+    .ilike('session_type', '%rehab%')
     .limit(1);
 
   const knee = kneeRows?.[0];
@@ -2729,8 +2570,7 @@ async function checkDayAfterRehab() {
   const btnsEl  = document.getElementById('dayAfterPainBtns');
   if (!banner) return;
 
-  if (subEl) subEl.textContent = `${displaySessionType(gym.session_type)} · ` +
-    new Date(yDate + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
+  if (subEl) subEl.textContent = `Rehab ${yDate}`;
   if (btnsEl) btnsEl.innerHTML = [...Array(11)].map((_,i) =>
     `<button class="mini-pain-btn" data-da-score="${i}" onclick="selectDayAfterPain(${i})">${i}</button>`
   ).join('');

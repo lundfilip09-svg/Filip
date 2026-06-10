@@ -187,6 +187,7 @@ const TRANSLATIONS = {
     'online_again': 'Online igjen',
     'tp.duration': 'Varighet (min)',
     'tp.week_load': 'Ukeslast (sRPE)',
+    'tp.week_load_hint': 'min × RPE/10 — gym + sprint + aktiviteter',
     'tp.preset_none': 'Velg preset…',
     'tp.preset_apply': 'Bruk',
     'tp.preset_save': 'Lagre som…',
@@ -226,6 +227,8 @@ const TRANSLATIONS = {
     'sprint.edit_pb': 'Rediger', 'sprint.pb_saved': 'PB oppdatert',
     'sprint.pb_invalid': 'Ugyldig tid — skriv et positivt desimaltall (f.eks. 11.52)',
     'sprint.reset_baseline': 'Nullstill baseline', 'sprint.baseline_reset': 'Baseline nullstilt til {time}s',
+    'sprint.edit_goal': 'Endre mål', 'sprint.goal_saved': 'Mål oppdatert til {time}s',
+    'sprint.goal_invalid': 'Ugyldig måltid', 'sprint.goal_col_missing': 'Mangler kolonne — kjør 028_sprint_goal_time.sql i Supabase',
     'sprint.lvl_label': 'Akselerasjon', 'sprint.lvl_low': 'Lav', 'sprint.lvl_mid': 'Middels', 'sprint.lvl_high': 'Høy',
     'tp.soccer_lvl': 'Intensitet',
     // Søvn
@@ -642,6 +645,7 @@ const TRANSLATIONS = {
     'online_again': 'Back online',
     'tp.duration': 'Duration (min)',
     'tp.week_load': 'Weekly load (sRPE)',
+    'tp.week_load_hint': 'min × RPE/10 — gym + sprint + activities',
     'tp.preset_none': 'Choose preset…',
     'tp.preset_apply': 'Apply',
     'tp.preset_save': 'Save as…',
@@ -681,6 +685,8 @@ const TRANSLATIONS = {
     'sprint.edit_pb': 'Edit', 'sprint.pb_saved': 'PB updated',
     'sprint.pb_invalid': 'Invalid time — enter a positive decimal (e.g. 11.52)',
     'sprint.reset_baseline': 'Reset baseline', 'sprint.baseline_reset': 'Baseline reset to {time}s',
+    'sprint.edit_goal': 'Edit goal', 'sprint.goal_saved': 'Goal updated to {time}s',
+    'sprint.goal_invalid': 'Invalid goal time', 'sprint.goal_col_missing': 'Missing column — run 028_sprint_goal_time.sql in Supabase',
     'sprint.lvl_label': 'Acceleration', 'sprint.lvl_low': 'Low', 'sprint.lvl_mid': 'Med', 'sprint.lvl_high': 'High',
     'tp.soccer_lvl': 'Intensity',
     // Søvn

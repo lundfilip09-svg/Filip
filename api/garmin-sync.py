@@ -3,10 +3,13 @@
 # Cron: kl. 07:45 norsk tid (05:45 UTC) hver dag.
 #
 # Logikk:
-#   - Søvndata hentes fra I DAG (datoen du våknet — Garmin lagrer søvn under oppvåkningsdato)
-#   - Daglig statistikk (RHR, HRV, skritt, body battery) hentes fra I DAG
-#   - Alt lagres under dagens dato
-#   - Støtter ?date=YYYY-MM-DD for manuell kjøring på spesifikk dato
+#   - Uten ?date: backfiller de SISTE 5 DAGENE (i dag + 4 bakover). Datoer som
+#     allerede har søvndata i Supabase hoppes over, så Garmin-innlogging skjer
+#     bare når minst én dag mangler. Logger inn ÉN gang for hele intervallet.
+#   - Søvndata lagres under oppvåkningsdatoen; daglig statistikk (RHR, HRV, skritt,
+#     body battery) hentes for samme dato.
+#   - Støtter ?date=YYYY-MM-DD for manuell kjøring på én spesifikk dato
+#   - ?force=1 henter på nytt selv om dataene finnes
 #
 # Env-variabler i Vercel:
 #   GARMIN_EMAIL, GARMIN_PASSWORD, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -50,20 +53,12 @@ def garmin_login(email, password):
     return garmin
 
 
-def fetch_garmin_data(target_date=None):
-    email    = os.environ["GARMIN_EMAIL"].strip()
-    password = os.environ["GARMIN_PASSWORD"].strip()
-
-    today     = datetime.date.today().isoformat()
-    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-
-    # Lagre under ønsket dato (default: i dag)
-    save_date = target_date or today
-
-    # Søvn hentes fra datoen du VÅKNET (i dag) – Garmin lagrer søvn under oppvåkningsdatoen
-    sleep_date = target_date or today
-
-    garmin = garmin_login(email, password)
+def fetch_for_date(garmin, save_date):
+    """Henter søvn/HRV/RHR/body battery for ÉN dato fra en allerede innlogget
+    garmin-klient. Søvn lagres under oppvåkningsdatoen (= save_date)."""
+    # Søvn hentes fra datoen du VÅKNET – Garmin lagrer søvn under oppvåkningsdatoen
+    sleep_date = save_date
+    stats_date = save_date
     result = {"date": save_date}
 
     # ── Søvn ────────────────────────────────────────────────────────────────
@@ -110,8 +105,7 @@ def fetch_garmin_data(target_date=None):
     except Exception:
         result["_sleep_error"] = traceback.format_exc()
 
-    # ── Daglig statistikk (hentes fra DAGENS dato) ───────────────────────────
-    stats_date = target_date or today
+    # ── Daglig statistikk ────────────────────────────────────────────────────
     try:
         stats = garmin.get_stats(stats_date)
         if stats.get("restingHeartRate"):
@@ -224,11 +218,21 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"ok": False, "error": "forbidden"}).encode("utf-8"))
             return
 
-        # Vakt: hvis dagens søvn allerede ligger i Supabase, hopp over uten å logge inn i Garmin.
-        # Gjør 30-min-polling billig og unngår at Garmin rate-limiter/låser kontoen.
-        check_date = target_date or datetime.date.today().isoformat()
-        if not force and already_has_sleep(check_date):
-            body = json.dumps({"ok": True, "skipped": "already_have_sleep", "date": check_date}, indent=2)
+        # Datoer som skal sjekkes:
+        #   ?date=YYYY-MM-DD → bare den dagen.
+        #   ellers           → de siste 5 dagene (i dag + 4 bakover) for backfill.
+        if target_date:
+            dates = [target_date]
+        else:
+            t0 = datetime.date.today()
+            dates = [(t0 - datetime.timedelta(days=i)).isoformat() for i in range(5)]
+
+        # Hopp over datoer som allerede har søvndata (med mindre ?force=1).
+        # Da slipper vi å logge inn i Garmin når alt allerede ligger inne.
+        to_fetch = [d for d in dates if force or not already_has_sleep(d)]
+
+        if not to_fetch:
+            body = json.dumps({"ok": True, "skipped": "already_have_sleep", "dates": dates}, indent=2)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -236,22 +240,29 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            row    = fetch_garmin_data(target_date)
-            public = {k: v for k, v in row.items() if not k.startswith("_")}
+            email    = os.environ["GARMIN_EMAIL"].strip()
+            password = os.environ["GARMIN_PASSWORD"].strip()
+            garmin   = garmin_login(email, password)   # logg inn ÉN gang for hele intervallet
 
-            # Ikke overskriv eksisterende data med ufullstendig henting
-            # Krev minst sleep_hours ELLER sleep_score for å lagre
-            has_sleep = public.get("sleep_hours") or public.get("sleep_score")
-            if not has_sleep:
-                warnings = {k: v for k, v in row.items() if k.startswith("_")}
-                warnings["_skip_reason"] = "Ingen søvndata hentet fra Garmin — lagring hoppet over for å unngå å overskrive eksisterende data"
-                body = json.dumps({"ok": False, "data": public, "warnings": warnings}, indent=2)
-                self.send_response(200)
-            else:
-                save_to_supabase(row)
-                warnings = {k: v for k, v in row.items() if k.startswith("_")}
-                body = json.dumps({"ok": True, "data": public, "warnings": warnings}, indent=2)
-                self.send_response(200)
+            saved, skipped_no_sleep, warnings = [], [], {}
+            for d in sorted(to_fetch):                 # eldste dato først
+                row    = fetch_for_date(garmin, d)
+                public = {k: v for k, v in row.items() if not k.startswith("_")}
+                for k, v in row.items():
+                    if k.startswith("_"):
+                        warnings[f"{d}{k}"] = v
+                # Ikke overskriv eksisterende data med ufullstendig henting:
+                # krev minst sleep_hours ELLER sleep_score for å lagre.
+                if public.get("sleep_hours") or public.get("sleep_score"):
+                    save_to_supabase(row)
+                    saved.append(public)
+                else:
+                    skipped_no_sleep.append(d)
+
+            body = json.dumps({"ok": True, "saved": saved,
+                               "skipped_no_sleep": skipped_no_sleep,
+                               "warnings": warnings}, indent=2)
+            self.send_response(200)
         except Exception as e:
             body = json.dumps({"ok": False, "error": str(e), "trace": traceback.format_exc()}, indent=2)
             self.send_response(500)

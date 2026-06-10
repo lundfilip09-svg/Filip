@@ -251,6 +251,12 @@
 
     <div class="form-group" style="max-width:260px;margin-bottom:14px" id="logRpeHost"></div>
 
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label" data-i18n="tp.duration">Varighet (min)</label>
+      <input type="number" id="logDuration" class="input-sm" min="5" max="600" step="5"
+        placeholder="—" style="width:110px" title="sRPE: varighet × RPE/10">
+    </div>
+
     <div style="margin-bottom:12px">
       <div class="form-label" style="margin-bottom:8px" data-i18n="knee.pain_0_10">Knesmerte (0–10)</div>
       <div class="knee-log-row">
@@ -345,6 +351,7 @@ let sprintLog = [];
 let _pbData = {};          // distance → { best_time, date }
 let _lastGoalBest = {};    // distance → best_time (for re-render on lang change)
 let _goalBaselines = {};   // distance → baseline_time (override from sprint_records)
+let _goalOverrides = {};   // distance → goal_time (override of GOALS-default from sprint_records)
 
 const DRAFT_KEY = 'sprint_form_draft';
 
@@ -562,13 +569,14 @@ const GOALS = [
 
 async function loadSprintGoals() {
   const { data } = await db.from('sprint_records')
-    .select('distance,best_time,baseline_time')
+    .select('*')
     .in('distance', ['100m','200m']);
   const best = {};
   (data || []).forEach(r => {
     // Supabase numeric leses som string → tving til tall så .toFixed/matte funker.
     best[r.distance] = r.best_time != null ? +r.best_time : r.best_time;
     if (r.baseline_time != null) _goalBaselines[r.distance] = +r.baseline_time;
+    if (r.goal_time     != null) _goalOverrides[r.distance] = +r.goal_time;
   });
   _lastGoalBest = best;
   renderSprintGoals(best);
@@ -578,10 +586,11 @@ function renderSprintGoals(best) {
   _lastGoalBest = best;
   const el = document.getElementById('sprintGoals');
   el.innerHTML = GOALS.map(g => {
+    const goalVal = _goalOverrides[g.dist] ?? g.goal;
     const pb    = best[g.dist] ?? g.start;
     const start = _goalBaselines[g.dist] ?? g.start;
-    const pct   = Math.min(100, Math.max(0, (start - pb) / (start - g.goal) * 100));
-    const delta = pb - g.goal;
+    const pct   = Math.min(100, Math.max(0, (start - pb) / (start - goalVal) * 100));
+    const delta = pb - goalVal;
     const deltaStr  = delta <= 0 ? t('sprint.goal_reached') : t('sprint.from_goal', { n: delta.toFixed(2) });
     const deltaColor = delta <= 0 ? 'var(--success)' : 'var(--text-tertiary)';
     return `<div class="goal-row">
@@ -589,10 +598,20 @@ function renderSprintGoals(best) {
         <span class="goal-name">${g.dist}</span>
         <div class="goal-vals">
           PB: <span>${pb.toFixed(2)}s</span>
-          &nbsp;·&nbsp; ${t('sprint.goal')}: <span>${g.goal.toFixed(2)}s</span>
+          &nbsp;·&nbsp; ${t('sprint.goal')}: <span>${goalVal.toFixed(2)}s</span>
           &nbsp;·&nbsp; <span style="color:${deltaColor}">${deltaStr}</span>
         </div>
-        <button class="btn-reset-baseline" onclick="resetBaseline('${g.dist}')">${t('sprint.reset_baseline')}</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-reset-baseline" onclick="editGoal('${g.dist}')">${t('sprint.edit_goal')}</button>
+          <button class="btn-reset-baseline" onclick="resetBaseline('${g.dist}')">${t('sprint.reset_baseline')}</button>
+        </div>
+      </div>
+      <div id="goal-edit-${g.dist}" style="display:none" class="pb-edit-wrap">
+        <input class="pb-edit-inp" id="goal-inp-${g.dist}" type="number" step="0.01" min="0.01" placeholder="sek" data-i18n-placeholder="unit.sec" value="${goalVal.toFixed(2)}">
+        <div class="pb-edit-actions">
+          <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="saveGoal('${g.dist}')">${t('save')}</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cancelGoalEdit('${g.dist}')">${t('cancel')}</button>
+        </div>
       </div>
       <div class="goal-bar-bg">
         <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${g.color}"></div>
@@ -611,6 +630,22 @@ async function resetBaseline(dist) {
   toast(t('sprint.baseline_reset', { time: pb.toFixed(2) }));
 }
 
+function editGoal(dist)       { document.getElementById(`goal-edit-${dist}`).style.display = ''; }
+function cancelGoalEdit(dist) { document.getElementById(`goal-edit-${dist}`).style.display = 'none'; }
+
+async function saveGoal(dist) {
+  const v = parseFloat(document.getElementById(`goal-inp-${dist}`).value);
+  if (!v || v <= 0 || isNaN(v)) { toast(t('sprint.goal_invalid'), 'err'); return; }
+  const { error } = await db.from('sprint_records').upsert({ distance: dist, goal_time: v }, { onConflict: 'distance' });
+  if (error) {
+    toast(/goal_time/.test(error.message) ? t('sprint.goal_col_missing') : error.message, 'err');
+    return;
+  }
+  _goalOverrides[dist] = v;
+  renderSprintGoals(_lastGoalBest);
+  toast(t('sprint.goal_saved', { time: v.toFixed(2) }));
+}
+
 // ── Log session ───────────────────────────────────────────────────────────
 async function logSession() {
   if (_isSavingLog) return;
@@ -622,10 +657,13 @@ async function logSession() {
     const date  = document.getElementById('logDate').value || today();
     const rpe   = rpeValue('logRpe');
     const notes = document.getElementById('logNotes').value.trim();
+    // sRPE: øktvarighet (samme verdi på alle løp den økta — grupperes per dato ved lesing)
+    const durRaw = document.getElementById('logDuration')?.value;
+    const duration_min = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
 
     const inserts = runs.map(r => ({
       date, distance: r.distance, type: r.type, time_seconds: r.time,
-      rpe, notes,
+      rpe, notes, duration_min,
       knee_before:    skKnee.before,
       knee_during:    skKnee.during,
       knee_after:     skKnee.after,

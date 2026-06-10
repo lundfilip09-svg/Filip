@@ -55,7 +55,7 @@
   .pain.lo { color: #2e9e5b; } .pain.mid { color: #c79a2e; } .pain.hi { color: #c0392b; }
   .notes { color: #444; font-style: italic; }
   .empty { color: var(--muted); padding: 8px; }
-  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
   .sum-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
   .sum-num { font-size: 22px; font-weight: 700; }
   .sum-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -83,7 +83,7 @@
   </div>
   <button class="btn ghost" onclick="loadReport()" data-i18n="update">Oppdater</button>
   <button class="btn" onclick="window.print()" data-i18n="save_pdf">Lagre som PDF</button>
-  <button class="btn link" onclick="setLang(_lang==='no'?'en':'no')" id="langBtn">🇺🇸 English</button>
+  <button class="btn link" onclick="setLang(_lang==='no'?'en':'no')" id="langBtn" data-i18n="langBtn">🇺🇸 English</button>
   <button class="btn link" onclick="location.href='sprint.html'" data-i18n="back">← Tilbake</button>
 </div>
 
@@ -101,9 +101,11 @@ const TR = {
     period:'Periode', generated:'Generert', athlete:'Utøver',
     sec_summary:'Sammendrag', sec_gym:'Styrke- & treningsøkter', sec_sprint:'Sprintøkter',
     s_sessions:'Økter', s_sprints:'Sprintløp', s_avg_rpe:'Snitt RPE', s_pain_free:'Smertefrie dager',
-    th_date:'Dato', th_type:'Type', th_notes:'Notater', th_pain:'Knesmerte (f/u/e)',
-    th_dist:'Distanse', th_kind:'Type', th_time:'Tid', th_rpe:'RPE',
+    th_date:'Dato', th_type:'Type', th_notes:'Notater', th_pain:'Knesmerte (f/u/e/d.e.)',
+    th_dist:'Distanse', th_kind:'Type', th_time:'Tid', th_rpe:'RPE', th_dur:'Varighet',
     none_gym:'Ingen økter i perioden.', none_sprint:'Ingen sprintøkter i perioden.',
+    sec_act:'Aktiviteter (fotball, basket m.m.)', none_act:'Ingen aktiviteter i perioden.',
+    s_acts:'Aktiviteter', s_load:'Total belastning (sRPE)',
     langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil'
   },
   en: {
@@ -112,9 +114,11 @@ const TR = {
     period:'Period', generated:'Generated', athlete:'Athlete',
     sec_summary:'Summary', sec_gym:'Strength & training sessions', sec_sprint:'Sprint sessions',
     s_sessions:'Sessions', s_sprints:'Sprint runs', s_avg_rpe:'Avg RPE', s_pain_free:'Pain-free days',
-    th_date:'Date', th_type:'Type', th_notes:'Notes', th_pain:'Knee pain (b/d/a)',
-    th_dist:'Distance', th_kind:'Type', th_time:'Time', th_rpe:'RPE',
+    th_date:'Date', th_type:'Type', th_notes:'Notes', th_pain:'Knee pain (b/d/a/d.a.)',
+    th_dist:'Distance', th_kind:'Type', th_time:'Time', th_rpe:'RPE', th_dur:'Duration',
     none_gym:'No sessions in this period.', none_sprint:'No sprint sessions in this period.',
+    sec_act:'Activities (soccer, basketball etc.)', none_act:'No activities in this period.',
+    s_acts:'Activities', s_load:'Total load (sRPE)',
     langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error'
   }
 };
@@ -128,6 +132,42 @@ function applyLang(){
 
 let db, _data = null;
 
+// ── Oversettelse av lagrede typenavn ────────────────────────────────
+// session_type lagres på språket som var aktivt ved lagring («Mandag · Styrke
+// Kapasitet» eller «Monday · Strength Capacity»). Oversett del for del slik at
+// rapporten er konsistent på valgt språk — viktig når US-trenere skal lese den.
+const _WORD_MAP = [
+  // [norsk, engelsk] — sammenlignes lowercase
+  ['mandag','Monday'], ['tirsdag','Tuesday'], ['onsdag','Wednesday'], ['torsdag','Thursday'],
+  ['fredag','Friday'], ['lørdag','Saturday'], ['søndag','Sunday'],
+  ['styrke kapasitet','Strength Capacity'], ['styrke power','Strength Power'],
+  ['styrke','Strength'], ['sirkulasjon & mobilitet','Mobility & Conditioning'],
+  ['daglig rehab','Daily Rehab'], ['rehab','Rehab'], ['hvile','Rest'],
+  ['fotball','Soccer'], ['amerikansk fotball','American football'], ['svømming','Swimming'],
+  ['sykling','Cycling'], ['turgåing','Walking'], ['rolig dag','Easy day'], ['annet','Other'],
+  ['trening','Training'], ['stevne','Competition'],
+  ['lav','low'], ['middels','medium'], ['høy','high'],
+];
+function trWord(raw){
+  const s = String(raw || '').trim();
+  if(!s) return s;
+  const lo = s.toLowerCase();
+  for(const [no, en] of _WORD_MAP){
+    if(lo === no)              return _lang === 'en' ? en : s;
+    if(lo === en.toLowerCase()) return _lang === 'en' ? s : no.replace(/(^|\s|&\s)\S/g, c => c.toUpperCase());
+  }
+  return s;
+}
+function trType(raw){
+  return String(raw || '').split('·').map(p =>
+    p.split(':').map(q => trWord(q)).join(':')
+  ).join(' · ');
+}
+
+// sRPE: varighet × RPE/10 — manglende varighet får nøkterne defaults
+const _SRPE_DEF = { gym: 60, sprint: 75, act: 60 };
+function srpe(dur, def, rpe){ return (dur ?? def) * ((rpe || 0) / 10); }
+
 function fmtD(ds){
   if(!ds) return '';
   const d = new Date(ds+'T12:00:00');
@@ -135,9 +175,9 @@ function fmtD(ds){
   return d.toLocaleDateString(loc, { day:'2-digit', month:'short', year:'numeric' });
 }
 function painCls(s){ if(s==null) return ''; return s<=3?'lo':s<=5?'mid':'hi'; }
-function painCell(b,d,a){
+function painCell(b,d,a,da){
   const fmt = v => v==null ? '–' : `<span class="pain ${painCls(v)}">${v}</span>`;
-  return `${fmt(b)} / ${fmt(d)} / ${fmt(a)}`;
+  return `${fmt(b)} / ${fmt(d)} / ${fmt(a)} / ${fmt(da)}`;
 }
 
 async function init(){
@@ -162,25 +202,38 @@ async function loadReport(){
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const [gym, knee, sprint] = await Promise.all([
+  const [gym, knee, sprint, acts] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('knee_pain').select('*').gte('date', from).lte('date', to),
     db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
+    db.from('activity_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
   ]);
-  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], from, to };
+  _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[], from, to };
   render();
 }
 
 function render(){
-  const { gym, knee, sprint, from, to } = _data;
+  const { gym, knee, sprint, acts, from, to } = _data;
   // Knesmerte koblet til dato (for gym-rader)
   const kneeByDate = {};
   knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
 
-  // Sammendrag
-  const allRpe = [...gym.map(()=>null), ...sprint.map(s=>s.rpe)].filter(v=>v!=null);
+  // Sammendrag — gym-RPE og aktivitets-RPE teller nå med i snittet
+  const sprintDates = [...new Set(sprint.map(s=>s.date))];
+  const sprintRpeByDate = {}; sprint.forEach(s => { if(sprintRpeByDate[s.date]==null && s.rpe!=null) sprintRpeByDate[s.date]=s.rpe; });
+  const allRpe = [...gym.map(g=>g.rpe), ...sprintDates.map(d=>sprintRpeByDate[d]), ...acts.map(a=>a.rpe)].filter(v=>v!=null);
   const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a,b)=>a+b,0)/allRpe.length) : null;
   const painFree = knee.filter(k => [k.before_score,k.during_score,k.after_score].every(v=>v==null||v<=2)).length;
+
+  // Total sRPE-belastning (min × RPE/10); sprint telles per økt (dato)
+  let totLoad = 0;
+  gym.forEach(g => totLoad += srpe(g.duration_min, _SRPE_DEF.gym, g.rpe));
+  acts.forEach(a => totLoad += srpe(a.duration_min, _SRPE_DEF.act, a.rpe));
+  sprintDates.forEach(d => {
+    const durRow = sprint.find(s => s.date===d && s.duration_min!=null);
+    totLoad += srpe(durRow?.duration_min, _SRPE_DEF.sprint, sprintRpeByDate[d]);
+  });
+  totLoad = Math.round(totLoad);
 
   let html = `
     <div class="doc-head">
@@ -193,7 +246,9 @@ function render(){
     <div class="summary-grid">
       <div class="sum-box"><div class="sum-num">${gym.length}</div><div class="sum-lbl">${t('s_sessions')}</div></div>
       <div class="sum-box"><div class="sum-num">${sprint.length}</div><div class="sum-lbl">${t('s_sprints')}</div></div>
+      <div class="sum-box"><div class="sum-num">${acts.length}</div><div class="sum-lbl">${t('s_acts')}</div></div>
       <div class="sum-box"><div class="sum-num">${avgRpe ?? '–'}</div><div class="sum-lbl">${t('s_avg_rpe')} ${t('rpe_scale')}</div></div>
+      <div class="sum-box"><div class="sum-num">${totLoad || '–'}</div><div class="sum-lbl">${t('s_load')}</div></div>
       <div class="sum-box"><div class="sum-num">${painFree}</div><div class="sum-lbl">${t('s_pain_free')}</div></div>
     </div>
 
@@ -201,14 +256,16 @@ function render(){
 
   if(gym.length){
     html += `<table><thead><tr>
-      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
+      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_dur')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
     </tr></thead><tbody>`;
     gym.forEach(g => {
       const k = kneeByDate[g.date];
       html += `<tr>
         <td class="num">${fmtD(g.date)}</td>
-        <td>${esc(g.session_type||'')}</td>
-        <td class="num">${k ? painCell(k.before_score,k.during_score,k.after_score) : '–'}</td>
+        <td>${esc(trType(g.session_type||''))}</td>
+        <td class="num">${g.duration_min!=null ? g.duration_min+' min' : '–'}</td>
+        <td class="num">${g.rpe!=null ? g.rpe : '–'}</td>
+        <td class="num">${k ? painCell(k.before_score,k.during_score,k.after_score,k.day_after_score) : '–'}</td>
         <td class="notes">${esc(g.session_notes || k?.notes || '')}</td>
       </tr>`;
     });
@@ -225,15 +282,37 @@ function render(){
       html += `<tr>
         <td class="num">${fmtD(s.date)}</td>
         <td>${esc(s.distance||'')}</td>
-        <td>${esc(s.type||'')}</td>
+        <td>${esc(trType(s.type||''))}</td>
         <td class="num">${s.time_seconds!=null ? (+s.time_seconds).toFixed(2)+'s' : '–'}</td>
         <td class="num">${s.rpe!=null ? s.rpe : '–'}</td>
-        <td class="num">${painCell(s.knee_before,s.knee_during,s.knee_after)}</td>
+        <td class="num">${painCell(s.knee_before,s.knee_during,s.knee_after,s.knee_day_after)}</td>
         <td class="notes">${esc(s.notes||'')}</td>
       </tr>`;
     });
     html += `</tbody></table>`;
   } else html += `<div class="empty">${t('none_sprint')}</div>`;
+
+  // Aktiviteter (soccer/basket m.m.) — kjernen i USA-loggen
+  html += `<h2 class="sec">${t('sec_act')}</h2>`;
+  if(acts.length){
+    html += `<table><thead><tr>
+      <th>${t('th_date')}</th><th>${t('th_type')}</th><th>${t('th_dur')}</th><th>${t('th_rpe')}</th><th>${t('th_pain')}</th><th>${t('th_notes')}</th>
+    </tr></thead><tbody>`;
+    acts.forEach(a => {
+      const label = a.activity_type === 'Annet' && a.activity_label
+        ? a.activity_label
+        : trType(a.activity_type||'') + (a.activity_label && a.activity_type !== 'Annet' ? ` (${a.activity_label})` : '');
+      html += `<tr>
+        <td class="num">${fmtD(a.date)}</td>
+        <td>${esc(label)}</td>
+        <td class="num">${a.duration_min!=null ? a.duration_min+' min' : '–'}</td>
+        <td class="num">${a.rpe!=null ? a.rpe : '–'}</td>
+        <td class="num">${painCell(a.knee_before,a.knee_during,a.knee_after,a.knee_day_after)}</td>
+        <td class="notes">${esc(a.notes||'')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else html += `<div class="empty">${t('none_act')}</div>`;
 
   document.getElementById('doc').innerHTML = html;
 }
