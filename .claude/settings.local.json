@@ -52,7 +52,8 @@
       "Bash(python3 -)",
       "Bash(python3 -c \"import sys; print\\(repr\\(sys.stdin.read\\(\\)\\)\\)\")",
       "Bash(sed -n '451,458p' /Users/09fillun/Dev/Dashboard/utils.js)",
-      "Bash(sed -n '911,918p' /Users/09fillun/Dev/Dashboard/utils.js)"
+      "Bash(sed -n '911,918p' /Users/09fillun/Dev/Dashboard/utils.js)",
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/api/widget.js)"
     ]
   }
 }

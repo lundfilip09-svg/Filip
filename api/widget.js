@@ -83,7 +83,7 @@ export default async function handler(req, res) {
   const loadRow = (r, typeKey, source) => ({
     date: r.date,
     rpe: r.rpe,
-    duration_min: r.duration_min,
+    duration_min: r.duration_min ?? (source === 'sprint' ? 75 : 60),
     session_type: r[typeKey] || null,
     source,
   });
