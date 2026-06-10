@@ -75,7 +75,9 @@ export default async function handler(req, res) {
 
   // 7-dagers vindu (UTC, dato-streng) for treningsbelastning + søvn-historikk.
   const dayMs = 86400000;
-  const cutoff7 = new Date(Date.now() - 6 * dayMs).toISOString().slice(0, 10);
+  const cutoff7  = new Date(Date.now() -  6 * dayMs).toISOString().slice(0, 10);
+  const cutoff14 = new Date(Date.now() - 13 * dayMs).toISOString().slice(0, 10);
+  const cutoff8  = new Date(Date.now() -  7 * dayMs).toISOString().slice(0, 10);
 
   // Normaliser én belastnings-rad fra de tre kildetabellene til felles form.
   // session_type-kolonnen heter forskjellig per tabell (session_type / type /
@@ -91,7 +93,8 @@ export default async function handler(req, res) {
   try {
     // health_data limit=7 → rad [0] = siste natt, rad [1] = forrige loggførte
     // natt ("i går"), alle 7 brukes til søvn-historikk-stolpene (Large-widget).
-    const [sleepRows, kneeRows, todoRows, gymLoad, sprintLoad, actLoad, weeklyRows] =
+    const [sleepRows, kneeRows, todoRows, gymLoad, sprintLoad, actLoad, weeklyRows,
+           gymPrev, sprintPrev, actPrev] =
       await Promise.all([
         sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,light_sleep_minutes,rem_sleep_minutes,awake_minutes,sleep_start,sleep_end&order=date.desc&limit=7', cfg),
         sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
@@ -100,6 +103,9 @@ export default async function handler(req, res) {
         sb(`sprint_log?select=date,rpe,duration_min,type&date=gte.${cutoff7}&order=date.desc`, cfg),
         sb(`activity_log?select=date,rpe,duration_min,activity_type&date=gte.${cutoff7}&order=date.desc`, cfg),
         sb('weekly_summaries?select=week_start,content_no,content_en&order=week_start.desc&limit=1', cfg),
+        sb(`gym_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
+        sb(`sprint_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
+        sb(`activity_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
       ]);
 
     const sleep = sleepRows[0] || null;
@@ -112,6 +118,11 @@ export default async function handler(req, res) {
       ...(gymLoad || []).map(r => loadRow(r, 'session_type', 'gym')),
       ...(sprintLoad || []).map(r => loadRow(r, 'type', 'sprint')),
       ...(actLoad || []).map(r => loadRow(r, 'activity_type', 'activity')),
+    ];
+    const prev7load = [
+      ...(gymPrev || []).map(r => loadRow(r, 'session_type', 'gym')),
+      ...(sprintPrev || []).map(r => loadRow(r, 'type', 'sprint')),
+      ...(actPrev || []).map(r => loadRow(r, 'activity_type', 'activity')),
     ];
 
     return res.status(200).json({
@@ -153,6 +164,7 @@ export default async function handler(req, res) {
       // Siste 7 dager rå treningsøkter fra alle tre kilder. Widgeten regner
       // sRPE selv (varighet × RPE/10) og summerer per dag.
       last7load,
+      prev7load,
       // Siste ukesrapport. content_no/content_en er DB-kolonnenavnene; eksponeres
       // som summary_no/summary_en for widgeten.
       weekly_summary: weekly && {
