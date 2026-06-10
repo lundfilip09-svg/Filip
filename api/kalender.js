@@ -31,8 +31,40 @@ async function fetchRange(token, calId, timeMin, timeMax) {
   return (await r.json()).items || [];
 }
 
+// Write (PATCH) or delete (DELETE) a single Google Calendar event by id.
+// For recurring events the caller decides which id to pass:
+//   instance id  → affects only that one occurrence
+//   recurringEventId → affects the whole series
+async function googleWrite(method, token, calId, eventId, body) {
+  const url = `${CAL_BASE}/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`;
+  const r = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) {
+    const detail = await r.text();
+    const err = new Error(detail || `Google ${method} failed`);
+    err.status = r.status;
+    throw err;
+  }
+  return r.status === 204 ? {} : r.json(); // DELETE returns empty body
+}
+
+function readBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch { return {}; } }
+  return req.body;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -43,16 +75,42 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Google Calendar env vars not configured' });
 
   try {
+    const token = await refreshAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
+
+    // ── Update event: title and/or time ──
+    if (req.method === 'PATCH') {
+      const { eventId, summary, start, end } = readBody(req);
+      if (!eventId) return res.status(400).json({ error: 'eventId required' });
+      const patch = {};
+      if (summary !== undefined) patch.summary = summary;
+      if (start) patch.start = start;
+      if (end)   patch.end   = end;
+      const updated = await googleWrite('PATCH', token, GOOGLE_CALENDAR_ID, eventId, patch);
+      return res.status(200).json({ event: updated });
+    }
+
+    // ── Delete event: single instance or whole series (caller picks the id) ──
+    if (req.method === 'DELETE') {
+      const { eventId } = { ...req.query, ...readBody(req) };
+      if (!eventId) return res.status(400).json({ error: 'eventId required' });
+      await googleWrite('DELETE', token, GOOGLE_CALENDAR_ID, eventId, null);
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Read range (default GET) ──
     const { start, end } = req.query;
     const startDate = start ? new Date(start + 'T00:00:00') : (() => {
       const d = new Date(); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d;
     })();
     const endDate = end ? new Date(end + 'T23:59:59') : new Date(startDate.getTime() + 42 * 86400000);
 
-    const token  = await refreshAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
     const events = await fetchRange(token, GOOGLE_CALENDAR_ID, startDate.toISOString(), endDate.toISOString());
     return res.status(200).json({ events });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // 401/403 from Google = refresh token lacks write scope (calendar.events)
+    if (err.status === 401 || err.status === 403) {
+      return res.status(403).json({ error: 'scope', detail: err.message });
+    }
+    return res.status(err.status || 500).json({ error: err.message });
   }
 }

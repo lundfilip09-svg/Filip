@@ -142,12 +142,15 @@ const TRANSLATIONS = {
     // B1 — progressive overload-coach
     'po.title': 'Overload-coach', 'po.subtitle': 'Forslag til neste økt',
     'po.no_data': 'Logg noen økter, så foreslår jeg progresjon her.',
-    'po.try': 'Prøv {w} kg', 'po.try_reps': 'Prøv {r}',
+    'po.try': 'Prøv {w} {u}', 'po.try_reps': 'Prøv {r}',
     'po.hold_pain': 'Hold vekt — du logget smerte ({p}) sist',
     'po.plateau': 'Platå i {n} økter — vurder variasjon',
     'po.progress': '↑ klar for mer', 'po.keep': 'Behold',
-    'po.last': 'Sist: {w} kg × {r}', 'po.kg': 'kg',
+    'po.last': 'Sist: {w} {u} × {r}',
     'po.collapse': 'Skjul', 'po.expand': 'Vis coach',
+    'po.even_out': 'Jevn ut: {n} × {w} {u}',
+    'po.last_sets': 'Sist: {n} × {w} {u}',
+    'po.last_mixed': 'Sist: {list} {u}',
     'gym.knee_panel': 'Knesmerte — Logg',
     'gym.select_exercise_first': 'Velg en øvelse først',
     'gym.exercise_added': '{name} lagt til',
@@ -155,7 +158,7 @@ const TRANSLATIONS = {
     'gym.fill_sets_reps': 'Fyll inn sett og reps',
     'gym.knee_not_saved': 'Knesmerte ikke lagret: {msg}',
     'gym.select_pain_score': 'Velg smertescore 0–10',
-    'gym.weight_saved': '{name}: {w} kg lagret',
+    'gym.weight_saved': '{name}: {w} {u} lagret',
     'gym.session': 'Økt', 'gym.session_done': 'Økt fullført!', 'gym.save_in_sidebar': 'Lagre i sidepanelet →',
     'gym.dismiss': 'Avvis', 'gym.today_session': 'Dagens økt', 'gym.knee_before_session': 'Knesmerte — Før økt',
     'gym.session_status': 'Øktstatus', 'gym.active_exercise': 'Aktiv øvelse', 'gym.no_active_exercise': 'Ingen aktiv øvelse',
@@ -167,10 +170,33 @@ const TRANSLATIONS = {
     'gym.exercise_ph': 'Øvelse', 'gym.sets_ph': 'Sett', 'gym.reps_ph': 'Reps',
     'gym.daily_rehab': 'Daglig Rehab', 'gym.no_warmup_data': 'Ingen oppvarmingsdata',
     'gym.loading_exercises': 'Laster øvelser…', 'gym.col_sets': 'Sett', 'gym.col_reps': 'Reps',
-    'gym.col_weight': 'Vekt (kg)', 'gym.col_notes': 'Notater', 'gym.complete_exercise': 'Fullfør øvelse',
+    'gym.col_weight': 'Vekt ({u})', 'gym.col_notes': 'Notater', 'gym.complete_exercise': 'Fullfør øvelse',
     'gym.all_done': 'Alle øvelser fullført ✓', 'gym.no_warmup_phase': 'Ingen oppvarmingsdata',
     'gym.rest_range': 'Velg mellom 5 sek og 10 min', 'gym.fill_day_after': 'Kan fylles inn dagen etter',
     'gym.notif_rest_done': 'Hviletimer ferdig', 'gym.notif_rest_body': 'Tid for neste sett!',
+    'gym.sets_progress': '{done} / {total} sett',
+    'gym.ring_done': 'ferdig',
+    'gym.notes_zero': '0 notater',
+    'gym.lines_one': '1 linje', 'gym.lines_many': '{n} linjer',
+    'gym.min_one_set': 'Minst 1 sett kreves',
+    'gym.remove_set': 'Fjern sett',
+    'gym.hist_sets': '{ex} øv · {sets} sett',
+    'gym.reset_unsaved_confirm': 'Økta er ikke lagret — starte ny uten å lagre?',
+    'gym.offline_retry': 'Ingen nett — økta lagres automatisk når du er online igjen',
+    'offline_now': 'Du er offline — viser sist lagrede data',
+    'online_again': 'Online igjen',
+    'tp.duration': 'Varighet (min)',
+    'tp.week_load': 'Ukeslast (sRPE)',
+    'tp.preset_none': 'Velg preset…',
+    'tp.preset_apply': 'Bruk',
+    'tp.preset_save': 'Lagre som…',
+    'tp.preset_delete': 'Slett',
+    'tp.preset_pick': 'Velg en preset først',
+    'tp.preset_name_prompt': 'Navn på preset (f.eks. «USA football»)',
+    'tp.preset_saved': 'Preset lagret',
+    'tp.preset_deleted': 'Preset slettet',
+    'tp.preset_delete_confirm': 'Slette preset «{name}»?',
+    'tp.preset_applied_hint': 'Fylt inn — trykk «Lagre plan» for å ta i bruk',
     // Sprint
     'sprint.personal_records': 'Personlige rekorder',
     'sprint.goals': 'Sprintmål', 'sprint.log': 'Logg økt',
@@ -321,6 +347,9 @@ const TRANSLATIONS = {
     'kal.quick_add_ph': 'Sprint torsdag 17:00…', 'kal.events': 'Hendelser',
     'kal.next_event': 'Neste hendelse', 'kal.no_events_use_quick': 'Ingen hendelser<br>Bruk «Rask legg til» →',
     'kal.no_time': 'Uten tid', 'kal.gcal_readonly': 'Google Calendar · skrivebeskyttet',
+    'kal.gcal_recurring': 'Gjentakende', 'kal.scope_this': 'Denne dagen', 'kal.scope_series': 'Hele serien',
+    'kal.gcal_del_confirm': 'Slette denne Google-hendelsen?', 'kal.gcal_del_series_confirm': 'Slette HELE serien?',
+    'kal.gcal_err_scope': 'Mangler skrivetilgang til Google. Tokenet må fornyes med kalender-scope.',
     'kal.title_lbl': 'Tittel', 'kal.start': 'Start', 'kal.end': 'Slutt',
     'kal.category': 'Kategori', 'kal.notes': 'Notater',
     'kal.cat_styrke': 'Styrke', 'kal.cat_stevne': 'Stevne', 'kal.cat_kirke': 'Kirke',
@@ -393,7 +422,7 @@ const TRANSLATIONS = {
     'tp.save_activity': 'Lagre aktivitet', 'tp.act_notes_ph': 'Kommentarer, inntrykk…',
     'tp.act_custom_ph': 'F.eks. Volleyball', 'tp.act_replaced_ph': 'F.eks. Sprint — tok det rolig pga hamstring',
     'tp.act_soccer': 'Fotball', 'tp.act_swim': 'Svømming', 'tp.act_cycle': 'Sykling',
-    'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel',
+    'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Amerikansk fotball',
     'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
     'tp.rest_rehab': 'Hvile & rehab', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
@@ -568,12 +597,15 @@ const TRANSLATIONS = {
     // B1 — progressive overload coach
     'po.title': 'Overload coach', 'po.subtitle': 'Suggestions for next session',
     'po.no_data': 'Log a few sessions and I’ll suggest progression here.',
-    'po.try': 'Try {w} lbs', 'po.try_reps': 'Try {r}',
+    'po.try': 'Try {w} {u}', 'po.try_reps': 'Try {r}',
     'po.hold_pain': 'Hold weight — you logged pain ({p}) last time',
     'po.plateau': 'Plateau for {n} sessions — consider variation',
     'po.progress': '↑ ready for more', 'po.keep': 'Keep',
-    'po.last': 'Last: {w} lbs × {r}', 'po.kg': 'lbs',
+    'po.last': 'Last: {w} {u} × {r}',
     'po.collapse': 'Hide', 'po.expand': 'Show coach',
+    'po.even_out': 'Even out: {n} × {w} {u}',
+    'po.last_sets': 'Last: {n} × {w} {u}',
+    'po.last_mixed': 'Last: {list} {u}',
     'gym.knee_panel': 'Knee Pain — Log',
     'gym.select_exercise_first': 'Select an exercise first',
     'gym.exercise_added': '{name} added',
@@ -581,7 +613,7 @@ const TRANSLATIONS = {
     'gym.fill_sets_reps': 'Enter sets and reps',
     'gym.knee_not_saved': 'Knee pain not saved: {msg}',
     'gym.select_pain_score': 'Select a pain score 0–10',
-    'gym.weight_saved': '{name}: {w} lbs saved',
+    'gym.weight_saved': '{name}: {w} {u} saved',
     'gym.session': 'Session', 'gym.session_done': 'Session complete!', 'gym.save_in_sidebar': 'Save in the sidebar →',
     'gym.dismiss': 'Dismiss', 'gym.today_session': "Today's session", 'gym.knee_before_session': 'Knee pain — Before session',
     'gym.session_status': 'Session status', 'gym.active_exercise': 'Active exercise', 'gym.no_active_exercise': 'No active exercise',
@@ -593,10 +625,33 @@ const TRANSLATIONS = {
     'gym.exercise_ph': 'Exercise', 'gym.sets_ph': 'Sets', 'gym.reps_ph': 'Reps',
     'gym.daily_rehab': 'Daily Rehab', 'gym.no_warmup_data': 'No warm-up data',
     'gym.loading_exercises': 'Loading exercises…', 'gym.col_sets': 'Sets', 'gym.col_reps': 'Reps',
-    'gym.col_weight': 'Weight (lbs)', 'gym.col_notes': 'Notes', 'gym.complete_exercise': 'Complete exercise',
+    'gym.col_weight': 'Weight ({u})', 'gym.col_notes': 'Notes', 'gym.complete_exercise': 'Complete exercise',
     'gym.all_done': 'All exercises done ✓', 'gym.no_warmup_phase': 'No warm-up data',
     'gym.rest_range': 'Choose between 5 sec and 10 min', 'gym.fill_day_after': 'Can be filled in the day after',
     'gym.notif_rest_done': 'Rest timer done', 'gym.notif_rest_body': 'Time for the next set!',
+    'gym.sets_progress': '{done} / {total} sets',
+    'gym.ring_done': 'done',
+    'gym.notes_zero': '0 notes',
+    'gym.lines_one': '1 line', 'gym.lines_many': '{n} lines',
+    'gym.min_one_set': 'At least 1 set required',
+    'gym.remove_set': 'Remove set',
+    'gym.hist_sets': '{ex} ex · {sets} sets',
+    'gym.reset_unsaved_confirm': 'Session not saved — start a new one without saving?',
+    'gym.offline_retry': 'Offline — the session will save automatically when you reconnect',
+    'offline_now': "You're offline — showing last saved data",
+    'online_again': 'Back online',
+    'tp.duration': 'Duration (min)',
+    'tp.week_load': 'Weekly load (sRPE)',
+    'tp.preset_none': 'Choose preset…',
+    'tp.preset_apply': 'Apply',
+    'tp.preset_save': 'Save as…',
+    'tp.preset_delete': 'Delete',
+    'tp.preset_pick': 'Pick a preset first',
+    'tp.preset_name_prompt': 'Preset name (e.g. “USA football”)',
+    'tp.preset_saved': 'Preset saved',
+    'tp.preset_deleted': 'Preset deleted',
+    'tp.preset_delete_confirm': 'Delete preset “{name}”?',
+    'tp.preset_applied_hint': 'Filled in — press “Save plan” to apply',
     // Sprint
     'sprint.personal_records': 'Personal Records',
     'sprint.goals': 'Sprint Goals', 'sprint.log': 'Log Session',
@@ -747,6 +802,9 @@ const TRANSLATIONS = {
     'kal.quick_add_ph': 'Sprint Thursday 17:00…', 'kal.events': 'Events',
     'kal.next_event': 'Next event', 'kal.no_events_use_quick': 'No events<br>Use “Quick add” →',
     'kal.no_time': 'No time', 'kal.gcal_readonly': 'Google Calendar · read-only',
+    'kal.gcal_recurring': 'Recurring', 'kal.scope_this': 'This day', 'kal.scope_series': 'Whole series',
+    'kal.gcal_del_confirm': 'Delete this Google event?', 'kal.gcal_del_series_confirm': 'Delete the WHOLE series?',
+    'kal.gcal_err_scope': 'No write access to Google. The token must be renewed with calendar scope.',
     'kal.title_lbl': 'Title', 'kal.start': 'Start', 'kal.end': 'End',
     'kal.category': 'Category', 'kal.notes': 'Notes',
     'kal.cat_styrke': 'Strength', 'kal.cat_stevne': 'Competition', 'kal.cat_kirke': 'Church',
@@ -819,7 +877,7 @@ const TRANSLATIONS = {
     'tp.save_activity': 'Save activity', 'tp.act_notes_ph': 'Comments, impressions…',
     'tp.act_custom_ph': 'E.g. Volleyball', 'tp.act_replaced_ph': 'E.g. Sprint — took it easy due to hamstring',
     'tp.act_soccer': 'Soccer', 'tp.act_swim': 'Swimming', 'tp.act_cycle': 'Cycling',
-    'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel',
+    'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Football',
     'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
     'tp.rest_rehab': 'Rest & rehab', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
@@ -865,26 +923,41 @@ function t(key, vars = {}) {
 
 function fmtLocale() { return _lang === 'en' ? 'en-GB' : 'no-NO'; }
 
-// ── Vekt-enhet (kg ↔ lbs), bundet til språk: no = kg, en = lbs ──────────────
+// ── Vekt-enhet (kg ↔ lbs) ────────────────────────────────────────────────────
 // All lagring/in-memory er ALLTID i kg (kanonisk). Konverter kun ved
 // visning (fromKg) og inntasting (toKg).
+// Enheten er FRIKOBLET fra språk: localStorage 'unit' ('kg'|'lbs') vinner.
+// Uten eksplisitt valg følges språket som før (no=kg, en=lbs) — bakoverkompatibelt.
 const LB_PER_KG = 2.2046226218;
-function weightUnit() { return _lang === 'en' ? 'lbs' : 'kg'; }
+function weightUnit() {
+  try {
+    const u = localStorage.getItem('unit');
+    if (u === 'kg' || u === 'lbs') return u;
+  } catch (e) {}
+  return _lang === 'en' ? 'lbs' : 'kg';
+}
+function toggleUnit() {
+  const next = weightUnit() === 'kg' ? 'lbs' : 'kg';
+  try { localStorage.setItem('unit', next); } catch (e) {}
+  // Sidene re-rendrer vektvisninger via samme hook som språkbytte
+  if (typeof onLangChange === 'function') onLangChange();
+  else applyLang();
+}
 // kg (number|''|null) → tall i gjeldende enhet for visning ('' hvis tomt)
 function fromKg(kg) {
   if (kg === '' || kg == null || isNaN(parseFloat(kg))) return '';
   const n = parseFloat(kg);
-  return _lang === 'en' ? Math.round(n * LB_PER_KG * 10) / 10 : Math.round(n * 100) / 100;
+  return weightUnit() === 'lbs' ? Math.round(n * LB_PER_KG * 10) / 10 : Math.round(n * 100) / 100;
 }
 // verdi i gjeldende enhet → kg (number, eller NaN hvis ugyldig)
 function toKg(val) {
   const n = parseFloat(val);
   if (isNaN(n)) return NaN;
-  return _lang === 'en' ? Math.round((n / LB_PER_KG) * 100) / 100 : n;
+  return weightUnit() === 'lbs' ? Math.round((n / LB_PER_KG) * 100) / 100 : n;
 }
 // steg for vektinput i gjeldende enhet (2.5 kg ≈ 5 lbs)
 function weightStep(big = true) {
-  if (_lang === 'en') return big ? 5 : 1;
+  if (weightUnit() === 'lbs') return big ? 5 : 1;
   return big ? 2.5 : 0.5;
 }
 
@@ -905,6 +978,15 @@ function applyLang() {
   });
   const btn = document.getElementById('langBtn');
   if (btn) btn.textContent = _lang === 'no' ? '🇺🇸' : '🇳🇴';
+  const ub = document.getElementById('unitBtn');
+  if (ub) ub.textContent = weightUnit();
+}
+
+// ── Offline-status + Service Worker (alle sider) ────────────────────────────
+window.addEventListener('offline', () => { try { toast(t('offline_now'), 'err'); } catch (e) {} });
+window.addEventListener('online',  () => { try { toast(t('online_again')); } catch (e) {} });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 function toggleLang() {

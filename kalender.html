@@ -447,6 +447,7 @@
       <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
       <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
     </div>
+    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>
@@ -604,6 +605,7 @@ let miniMonth      = { year: new Date().getFullYear(), month: new Date().getMont
 let gcalEvents     = [];
 let customEvents   = [];
 let activeEventId  = null;
+let gcalScope      = 'this';   // 'this' = kun denne forekomsten, 'series' = hele gjentakende serien
 let viewMode       = 'agenda';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -743,6 +745,7 @@ async function loadGCalRange() {
       startTime: e.start?.dateTime ? fmtTime(new Date(e.start.dateTime)) : null,
       endTime:   e.end?.dateTime   ? fmtTime(new Date(e.end.dateTime))   : null,
       allDay: !!e.start?.date, gcalId: e.id,
+      recurringEventId: e.recurringEventId || null,
     }));
   } catch { gcalEvents = []; }
 }
@@ -966,14 +969,41 @@ function renderEventDetail() {
   if (card) card.style.display = 'block';
 
   if (ev.source === 'gcal') {
-    const c = getEventColor(ev);
+    const isRec = !!ev.recurringEventId;
+    const scopeToggle = isRec ? `
+      <div class="ev-field">
+        <div class="ev-field-label">${t('kal.gcal_recurring')}</div>
+        <div class="ev-cat-grid">
+          <button class="ev-cat-btn${gcalScope === 'this'   ? ' active' : ''}" onclick="setGcalScope('this')">${t('kal.scope_this')}</button>
+          <button class="ev-cat-btn${gcalScope === 'series' ? ' active' : ''}" onclick="setGcalScope('series')">${t('kal.scope_series')}</button>
+        </div>
+      </div>` : '';
     el.innerHTML = `
       <div class="ev-detail">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px">${escHtml(ev.title)}</div>
-        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:10px">
-          ${ev.allDay ? t('kal.all_day') : (ev.startTime + (ev.endTime ? ' – ' + ev.endTime : ''))} · ${ev.date}
+        <div class="ev-gcal-notice" style="margin-bottom:10px">Google Calendar</div>
+        <div class="ev-field">
+          <div class="ev-field-label">${t('kal.title_lbl')}</div>
+          <input class="ev-input" id="gf-title" value="${escHtml(ev.title)}">
         </div>
-        <div class="ev-gcal-notice" data-i18n="kal.gcal_readonly">Google Calendar · skrivebeskyttet</div>
+        <div class="ev-field">
+          <div class="ev-field-label">${t('date')}</div>
+          <input class="ev-input ev-input-sm" id="gf-date" type="date" value="${ev.date}">
+        </div>
+        <div class="ev-row2">
+          <div class="ev-field">
+            <div class="ev-field-label">${t('kal.start')}</div>
+            <input class="ev-input ev-input-sm" id="gf-start" type="time" value="${ev.startTime || ''}">
+          </div>
+          <div class="ev-field">
+            <div class="ev-field-label">${t('kal.end')}</div>
+            <input class="ev-input ev-input-sm" id="gf-end" type="time" value="${ev.endTime || ''}">
+          </div>
+        </div>
+        ${scopeToggle}
+        <div class="ev-actions">
+          <button class="ev-save-btn" onclick="saveActiveGcalEvent()">${t('save')}</button>
+          <button class="ev-del-btn" onclick="deleteActiveGcalEvent()">🗑</button>
+        </div>
       </div>`;
     return;
   }
@@ -1146,6 +1176,7 @@ function selectDay(dateStr) {
 
 function openEvent(id) {
   activeEventId = id;
+  gcalScope = 'this';
   renderDayView(toLocalStr(selectedDate));
   renderEventDetail();
 }
@@ -1193,6 +1224,65 @@ async function deleteActiveEvent() {
   customEvents = customEvents.filter(e => e.id !== activeEventId);
   activeEventId = null;
   toast(t('kal.deleted'));
+  renderAll();
+}
+
+// ── Google Calendar: rediger / slett ───────────────────────────────────────
+function setGcalScope(s) { gcalScope = s; renderEventDetail(); }
+
+function gcalTimeObjs(date, startTime, endTime) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Oslo';
+  if (!startTime) { // heldags: Google sin sluttdato er eksklusiv (+1 dag)
+    const nd = new Date(date + 'T00:00:00'); nd.setDate(nd.getDate() + 1);
+    return { start: { date }, end: { date: toLocalStr(nd) } };
+  }
+  return {
+    start: { dateTime: `${date}T${startTime}:00`, timeZone: tz },
+    end:   { dateTime: `${date}T${(endTime || startTime)}:00`, timeZone: tz },
+  };
+}
+
+// 'this' → instans-id (kun den dagen), 'series' → master-id (hele serien)
+function gcalTargetId(ev) {
+  return (ev.recurringEventId && gcalScope === 'series') ? ev.recurringEventId : ev.gcalId;
+}
+
+async function saveActiveGcalEvent() {
+  const ev = gcalEvents.find(e => e.id === activeEventId);
+  if (!ev) return;
+  const title = document.getElementById('gf-title')?.value.trim();
+  const date  = document.getElementById('gf-date')?.value;
+  const start = document.getElementById('gf-start')?.value || null;
+  const end   = document.getElementById('gf-end')?.value   || null;
+  if (!title || !date) { toast(t('kal.save_error'), 'err'); return; }
+
+  const times = gcalTimeObjs(date, start, end);
+  const r = await fetch('/api/kalender', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId: gcalTargetId(ev), summary: title, start: times.start, end: times.end }),
+  });
+  if (!r.ok) { toast(r.status === 403 ? t('kal.gcal_err_scope') : t('kal.save_error'), 'err'); return; }
+  toast(t('kal.updated'));
+  await loadGCalRange();
+  renderAll();
+}
+
+async function deleteActiveGcalEvent() {
+  const ev = gcalEvents.find(e => e.id === activeEventId);
+  if (!ev) return;
+  const series = ev.recurringEventId && gcalScope === 'series';
+  const msg = series ? t('kal.gcal_del_series_confirm') : t('kal.gcal_del_confirm');
+  if (!confirm(`${msg} "${ev.title}"`)) return;
+  const r = await fetch('/api/kalender', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId: gcalTargetId(ev) }),
+  });
+  if (!r.ok) { toast(r.status === 403 ? t('kal.gcal_err_scope') : t('kal.del_error'), 'err'); return; }
+  activeEventId = null;
+  toast(t('kal.deleted'));
+  await loadGCalRange();
   renderAll();
 }
 
