@@ -1036,6 +1036,14 @@ function injectNav() {
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>`;
+  // Bevar horisontal scroll-posisjon i nav-stripa på tvers av sidebytter
+  const navTabs = nav.querySelector('.nav-tabs');
+  if (navTabs) {
+    const saved = sessionStorage.getItem('navScrollLeft');
+    if (saved) navTabs.scrollLeft = +saved;
+    navTabs.addEventListener('scroll', () =>
+      sessionStorage.setItem('navScrollLeft', navTabs.scrollLeft), { passive: true });
+  }
 }
 injectNav();
 
