@@ -525,24 +525,6 @@
         <div id="evDetailContent"></div>
       </div>
 
-      <div class="rp-card">
-        <div class="rp-label" data-i18n="kal.today">I dag</div>
-        <div class="focus-stats">
-          <div class="focus-stat">
-            <div class="focus-stat-val" id="ds-sleep">–</div>
-            <div class="focus-stat-lbl" data-i18n="nav.sovn">Søvn</div>
-          </div>
-          <div class="focus-stat">
-            <div class="focus-stat-val" id="ds-knee">–</div>
-            <div class="focus-stat-lbl" data-i18n="knee.pain">Kne</div>
-          </div>
-          <div class="focus-stat">
-            <div class="focus-stat-val" id="ds-events">–</div>
-            <div class="focus-stat-lbl" data-i18n="kal.events">Events</div>
-          </div>
-        </div>
-      </div>
-
       <div class="rp-card" id="nextEventCard">
         <div class="rp-label" data-i18n="kal.next_event">Neste hendelse</div>
         <div class="next-ev-row" id="nextEvContent">
@@ -846,8 +828,6 @@ function renderDayView(dateStr) {
   document.getElementById('dvDateBig').textContent = fmtDateLong(d);
   document.getElementById('dvMeta').textContent =
     `Uke ${getISOWeek(d)} · ${evts.length} hendelse${evts.length !== 1 ? 'r' : ''}`;
-  document.getElementById('ds-events').textContent = evts.length || '0';
-
   if (viewMode === 'agenda') renderAgenda(dateStr);
   else renderTimeline(dateStr);
 
@@ -1456,26 +1436,6 @@ function getISOWeek(d) {
   const w1 = new Date(tmp.getFullYear(), 0, 4);
   return 1 + Math.round(((tmp-w1)/86400000 - 3 + (w1.getDay()+6)%7)/7);
 }
-// ── Daily stats ────────────────────────────────────────────────────────────
-async function loadDailyStats() {
-  if (!db) return;
-  const [sleepRes, kneeRes] = await Promise.all([
-    db.from('health_data').select('sleep_hours').order('date',{ascending:false}).limit(1),
-    db.from('knee_pain').select('after_score').order('date',{ascending:false}).order('id',{ascending:false}).limit(1),
-  ]);
-  const sleep = sleepRes.data?.[0]?.sleep_hours;
-  const knee  = kneeRes.data?.[0]?.after_score;
-  document.getElementById('ds-sleep').textContent = sleep != null ? fmtSleepHM(sleep) : '–';
-  document.getElementById('ds-knee').textContent  = knee  != null ? knee        : '–';
-}
-
-// Formater desimaltimer (f.eks. 8.61) som "8t 37m"
-function fmtSleepHM(hours) {
-  const totalMin = Math.round(hours * 60);
-  const h = Math.floor(totalMin / 60), m = totalMin % 60;
-  return m > 0 ? `${h}t ${m}m` : `${h}t`;
-}
-
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   document.querySelector('[data-p="kalender"]').classList.add('active');
@@ -1494,7 +1454,7 @@ function fmtSleepHM(hours) {
   }
 
   applyLang();
-  await Promise.all([loadGCalRange(), loadCustomEvents(), loadDailyStats()]);
+  await Promise.all([loadGCalRange(), loadCustomEvents()]);
   renderAll();
 
   setInterval(() => {

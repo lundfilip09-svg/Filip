@@ -62,7 +62,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
          sprintRecords, weeklyPlan, planOverrides,
          knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData] = await Promise.all([
     sb('health_data',
-      'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood&order=date.desc&limit=7'),
+      'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood,body_battery,stress_avg&order=date.desc&limit=7'),
     sb('sprint_log', 'select=*&order=date.desc&limit=7'),
     sb('gym_log', 'select=*&order=date.desc&limit=7'),
     sb('knee_pain', 'select=*&order=date.desc&limit=7'),

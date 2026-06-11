@@ -364,16 +364,43 @@ function getArchInsight(d) {
   return { text: t('sovn.arch_normal'), color:'var(--text-tertiary)' };
 }
 
+// Beredskap: kontinuerlig score vektet av søvnscore (40 %), HRV mot egen
+// 28-dagers baseline (25 %), body battery (20 %) og RHR mot baseline (15 %).
+// Komponenter som mangler omfordeles. 100 % krever at restitusjonsmarkørene
+// faktisk er over din normal — høy søvnscore alene holder ikke.
+function getReadinessBaselines(excludeDate) {
+  const hist = (chartData || []).filter(r => r.date !== excludeDate);
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  return {
+    hrv: avg(hist.map(r => r.hrv).filter(v => v != null)),
+    rhr: avg(hist.map(r => r.rhr).filter(v => v != null)),
+  };
+}
+
 function getReadinessInsight(d) {
   if (!d || !d.sleep_score) return { status: t('sovn.missing'), desc:'', color:'var(--text-tertiary)', level:0 };
-  const sc = d.sleep_score, hrv = d.hrv, rhr = d.rhr;
-  if (sc >= 85 && rhr && rhr < 58)
-    return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color:'#6BE3A4', level:100 };
-  if (sc >= 70)
-    return { status: t('sovn.ready_good'),     desc: t('sovn.ready_good_desc'),     color:'#6BE3A4', level:72 };
-  if (sc >= 55)
-    return { status: t('sovn.ready_moderate'), desc: t('sovn.ready_moderate_desc'), color:'#F2C063', level:45 };
-  return { status: t('sovn.ready_rest'),       desc: t('sovn.ready_rest_desc'),     color:'#FF6B6B', level:20 };
+  const base = getReadinessBaselines(d.date);
+
+  // Komponenter 0–100; 70 = «som din normal»
+  const parts = [[d.sleep_score, 0.4]];
+  if (d.hrv != null && base.hrv) {
+    const ratio = d.hrv / base.hrv;                                   // 1.0 = normal
+    parts.push([Math.max(0, Math.min(100, 70 + (ratio - 1) * 250)), 0.25]); // ±12 % HRV ≈ ±30 poeng
+  }
+  if (d.body_battery != null) {
+    parts.push([d.body_battery, 0.2]);                                // morgenlading, allerede 0–100
+  }
+  if (d.rhr != null && base.rhr) {
+    const diff = d.rhr - base.rhr;                                    // + = forhøyet puls
+    parts.push([Math.max(0, Math.min(100, 70 - diff * 10)), 0.15]);   // +3 bpm ≈ −30 poeng
+  }
+  const wSum  = parts.reduce((a, [, w]) => a + w, 0);
+  const level = Math.round(parts.reduce((a, [v, w]) => a + v * w, 0) / wSum);
+
+  if (level >= 85) return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color:'#6BE3A4', level };
+  if (level >= 65) return { status: t('sovn.ready_good'),     desc: t('sovn.ready_good_desc'),     color:'#6BE3A4', level };
+  if (level >= 45) return { status: t('sovn.ready_moderate'), desc: t('sovn.ready_moderate_desc'), color:'#F2C063', level };
+  return { status: t('sovn.ready_rest'),       desc: t('sovn.ready_rest_desc'),     color:'#FF6B6B', level };
 }
 
 // ── Render: Hero ───────────────────────────────────────────────────────────
@@ -637,13 +664,23 @@ function renderReadiness(d) {
     const sc = d.sleep_score;
     indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
   }
+  const base = getReadinessBaselines(d?.date);
   if (d?.hrv) {
-    const hrv = d.hrv;
-    indicators.push({ label:'HRV', val:`${hrv}ms`, status: hrv >= 50 ? t('sovn.hrv_good') : hrv >= 35 ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: hrv >= 50 ? '#6BE3A4' : hrv >= 35 ? '#F2C063' : '#FF6B6B' });
+    // Relativt til egen baseline når den finnes, ellers absolutte terskler
+    const ratio = base.hrv ? d.hrv / base.hrv : null;
+    const good  = ratio != null ? ratio >= 0.95 : d.hrv >= 50;
+    const low   = ratio != null ? ratio >= 0.85 : d.hrv >= 35;
+    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? '#6BE3A4' : low ? '#F2C063' : '#FF6B6B' });
   }
   if (d?.rhr) {
-    const rhr = d.rhr;
-    indicators.push({ label: t('sovn.rhr'), val:`${rhr} bpm`, status: rhr < 53 ? 'Optimal ✓' : rhr < 61 ? t('sovn.rhr_normal') : rhr < 69 ? t('sovn.rhr_elevated') : t('sovn.rhr_high'), color: rhr < 61 ? '#6BE3A4' : rhr < 69 ? '#F2C063' : '#FF6B6B' });
+    const diff = base.rhr != null ? d.rhr - base.rhr : null;
+    const good = diff != null ? diff <= 1 : d.rhr < 61;
+    const mid  = diff != null ? diff <= 4 : d.rhr < 69;
+    indicators.push({ label: t('sovn.rhr'), val:`${d.rhr} bpm`, status: good ? t('sovn.rhr_normal') : mid ? t('sovn.rhr_elevated') : t('sovn.rhr_high'), color: good ? '#6BE3A4' : mid ? '#F2C063' : '#FF6B6B' });
+  }
+  if (d?.body_battery != null) {
+    const bb = d.body_battery;
+    indicators.push({ label: t('sovn.bb_label'), val:`${bb}/100`, status: `${bb}/100`, color: bb >= 75 ? '#6BE3A4' : bb >= 50 ? '#F2C063' : '#FF6B6B' });
   }
 
   el.innerHTML = `
@@ -664,7 +701,9 @@ function renderReadiness(d) {
 }
 
 // ── Render: All ────────────────────────────────────────────────────────────
+let _lastStatsEntry = null;
 function renderStats(d) {
+  _lastStatsEntry = d;
   renderHero(d);
   renderMetrics(d);
   renderArch(d);
@@ -836,6 +875,8 @@ async function loadChartData() {
     .gte('date', `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`).order('date');
   chartData = data || [];
   renderChart(chartMetric, chartDays);
+  // Baselines (HRV/RHR-snitt) kommer fra chartData — regn beredskap på nytt
+  if (_lastStatsEntry) renderReadiness(_lastStatsEntry);
 }
 
 function setChartMetric(metric) {

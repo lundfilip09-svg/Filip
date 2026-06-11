@@ -142,6 +142,15 @@ def fetch_for_date(garmin, save_date):
     except Exception:
         result["_bb_error"] = traceback.format_exc()
 
+    # ── Stress (snitt for dagen, 0–100; Garmin bruker negative for «mangler») ─
+    try:
+        stress = garmin.get_stress_data(stats_date)
+        avg = stress.get("avgStressLevel") if isinstance(stress, dict) else None
+        if avg is not None and avg >= 0:
+            result["stress_avg"] = avg
+    except Exception:
+        result["_stress_error"] = traceback.format_exc()
+
     return result
 
 
