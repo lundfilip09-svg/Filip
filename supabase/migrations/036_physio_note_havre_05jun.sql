@@ -1,7 +1,7 @@
--- 2026-06-08-physio-note-havre-05jun.sql
+-- 036 (opprinnelig 2026-06-08-physio-note-havre-05jun.sql)
+-- ⚠️ ERSTATTET AV 038 — IKKE KJØR. Beholdt kun som historikk.
+-- (E-postoppslaget feiler også: auth-brukeren er lundfilip09@gmail.com.)
 -- Engangs-insert: fysio-notat fra Andreas Havre, fredag 5. juni 2026.
--- Kjør i Supabase SQL Editor (kjører som postgres → forbi RLS).
--- user_id hentes fra innlogget bruker via e-post (enkeltbrukersystem).
 
 INSERT INTO physio_notes (date, therapist, note, user_id)
 VALUES (

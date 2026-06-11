@@ -132,8 +132,6 @@
     .goal-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
     .btn-reset-baseline { background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; color: var(--text-tertiary); cursor: pointer; font-size: 9px; font-family: var(--font-mono); padding: 2px 8px; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
     .btn-reset-baseline:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.25); }
-    .pb-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 9px; font-family: var(--font-mono); padding: 0; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.15s; line-height: 1; }
-    .pb-edit-btn:hover { color: var(--text-primary); }
     .pb-edit-wrap { margin-top: 6px; display: flex; flex-direction: column; gap: 5px; }
     .pb-edit-inp { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; padding: 3px 6px; width: 100%; box-sizing: border-box; text-align: center; }
     .pb-edit-inp:focus { outline: none; border-color: rgba(91,164,245,0.4); }
@@ -515,47 +513,15 @@ async function loadPBs() {
     const r = byDist[d];
     const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
     const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
-    const editable = d !== '60m_celler';
-    const editBtn  = editable ? `<button class="pb-edit-btn" onclick="editPB('${d}')">${t('sprint.edit_pb')}</button>` : '';
     return `<div class="pb-cell" id="pb-${d}">
-      <div class="pb-dist" style="display:flex;align-items:center;justify-content:space-between;gap:4px">${distLabel(d)}${editBtn}</div>
+      <div class="pb-dist">${distLabel(d)}</div>
       <div id="pb-display-${d}">
         <div class="pb-time">${r?.best_time != null ? (+r.best_time).toFixed(2) : '–'}</div>
         <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       </div>
-      ${editable ? `<div id="pb-edit-${d}" style="display:none" class="pb-edit-wrap">
-        <input class="pb-edit-inp" id="pb-inp-time-${d}" type="number" step="0.01" min="0.01" placeholder="sek" data-i18n-placeholder="unit.sec" value="${r?.best_time != null ? (+r.best_time).toFixed(2) : ''}">
-        <input class="pb-edit-inp" id="pb-inp-date-${d}" type="date" value="${r?.date || ''}">
-        <div class="pb-edit-actions">
-          <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="savePB('${d}')">${t('save')}</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cancelPBEdit('${d}')">${t('cancel')}</button>
-        </div>
-      </div>` : ''}
       <div class="pb-bar" style="background:${barClr}"></div>
     </div>`;
   }).join('');
-}
-
-function editPB(dist) {
-  document.getElementById(`pb-display-${dist}`).style.display = 'none';
-  document.getElementById(`pb-edit-${dist}`).style.display = '';
-}
-
-function cancelPBEdit(dist) {
-  document.getElementById(`pb-edit-${dist}`).style.display = 'none';
-  document.getElementById(`pb-display-${dist}`).style.display = '';
-}
-
-async function savePB(dist) {
-  const timeVal = parseFloat(document.getElementById(`pb-inp-time-${dist}`).value);
-  const dateVal = document.getElementById(`pb-inp-date-${dist}`).value;
-  if (!timeVal || timeVal <= 0 || isNaN(timeVal)) { toast(t('sprint.pb_invalid'), 'err'); return; }
-  const rec = { distance: dist, best_time: timeVal };
-  if (dateVal) rec.date = dateVal;
-  const { error } = await db.from('sprint_records').upsert(rec, { onConflict: 'distance' });
-  if (error) { toast(error.message, 'err'); return; }
-  toast(t('sprint.pb_saved'));
-  await Promise.all([loadPBs(), loadSprintGoals()]);
 }
 
 // ── Sprint goals ──────────────────────────────────────────────────────────
