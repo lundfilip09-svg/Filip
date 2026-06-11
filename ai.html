@@ -989,7 +989,7 @@ async function copyInjuryStatus() {
       const sents = x.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
       const out = sents.slice(0, 2);
       sents.forEach(s => {
-        if (/^(provoserer|hjelper|unngår|avoid|helps|aggravate)/i.test(s) && !out.includes(s)) out.push(s);
+        if (/^(provoserer|hjelper|unngår|vurdert|rehab-progresjon|avoid|helps|aggravate|assessed)/i.test(s) && !out.includes(s)) out.push(s);
       });
       const res = out.join(' ');
       return res.length > 400 ? res.slice(0, 397) + '…' : res;

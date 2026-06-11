@@ -117,7 +117,7 @@ const TR = {
     cat_gym:'Styrke', cat_sprint:'Sprint', cat_act:'Aktivitet',
     sec_log:'Øktlogg', none_log:'Ingen økter i perioden.',
     pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Gjelder venstre kne der ikke annet er notert.',
-    sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag. Manglende varighet estimeres: rehab 45, styrke 120, sprint 75, aktivitet 60 min.',
+    sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag. Manglende varighet estimeres: rehab 35, styrke 120, sprint 75, aktivitet 60 min.',
     langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil',
     sec_injuries:'Skader & status', none_injuries:'Ingen aktive plager registrert.',
     sec_pain_trend:'Knesmerte-trend', none_pain:'Ingen knesmerte registrert i perioden.',
@@ -143,7 +143,7 @@ const TR = {
     cat_gym:'Strength', cat_sprint:'Sprint', cat_act:'Activity',
     sec_log:'Session log', none_log:'No sessions in this period.',
     pain_legend:'Pain: before / during / after / day after (0–10). Left knee unless noted otherwise.',
-    sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday. Missing durations estimated: rehab 45, strength 120, sprint 75, activity 60 min.',
+    sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday. Missing durations estimated: rehab 35, strength 120, sprint 75, activity 60 min.',
     langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error',
     sec_injuries:'Injuries & status', none_injuries:'No active issues recorded.',
     sec_pain_trend:'Knee pain trend', none_pain:'No knee pain recorded in this period.',
@@ -203,13 +203,13 @@ function trType(raw){
 function distLabel(d){ return String(d ?? '').replace(/(\d+\s*k?m)_([a-zA-ZæøåÆØÅ]+)/g, '$1 ($2)'); }
 
 // Varighet: timer glemmes ofte (start trykkes på slutten av økta) — alt under
-// 10 min regnes som «ikke målt» og vises som «–». Belastning estimeres da med
-// typiske varigheter per økttype i stedet.
-function realDur(d){ return (d != null && d >= 10) ? d : null; }
+// 20 min regnes som «ikke målt» og vises som «–». Belastning estimeres da
+// med typiske varigheter per økttype.
+function realDur(d){ return (d != null && d >= 20) ? d : null; }
 
 // sRPE: varighet × RPE/10 — manglende/ugyldig varighet får typiske defaults:
-// rehab 45 min, styrke 120 min, sprint 75 min, aktivitet 60 min
-const _SRPE_DEF = { gym: 120, rehab: 45, sprint: 75, act: 60 };
+// rehab 35 min, styrke 120 min, sprint 75 min, aktivitet 60 min
+const _SRPE_DEF = { gym: 120, rehab: 35, sprint: 75, act: 60 };
 function gymDef(sessionType){ return /rehab/i.test(sessionType || '') ? _SRPE_DEF.rehab : _SRPE_DEF.gym; }
 function srpe(dur, def, rpe){ return (realDur(dur) ?? def) * ((rpe || 0) / 10); }
 

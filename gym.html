@@ -164,11 +164,7 @@
     .sec-divider { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
     .sec-count { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 1px 7px; border-radius: 8px; }
 
-    /* Superset bracket */
     .ex-section { margin-bottom: 14px; }
-    .ex-section.multi { border-left: 2px solid rgba(91,164,245,0.28); padding-left: 0; }
-    .ex-section.multi .ex-row { margin-left: 10px; }
-    .ex-section.multi .sec-hd { padding-left: 10px; }
 
     /* Exercise row */
     .ex-row-wrap { }
@@ -1386,16 +1382,29 @@ function renderWarmup() {
     const exDay     = ex.day || (isFri ? 'friday_warmup' : 'warmup');
     const cirKeyFallback = exDay === 'friday_warmup' ? friCirKey : baseCirKey;
     if (isSyk) {
+      const curName = ex.exercise_name || 'Sykkel';
+      const inList = CARDIO_MACHINES.some(([n]) => n === curName);
+      const opts = (inList ? CARDIO_MACHINES : [[curName, cardioIcon(curName)], ...CARDIO_MACHINES])
+        .map(([n, e]) => `<option value="${escHtml(n)}"${n === curName ? ' selected' : ''}>${e} ${escHtml(n)}</option>`).join('');
       zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"
         draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(ex.section || cirKeyFallback)}"
         ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
         <div class="circ-row">
           <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
-          <div class="circ-icon">🚴</div>
-          <div>
-            <div class="circ-name">${escHtml(ex.exercise_name)}</div>
+          <div class="circ-icon">${cardioIcon(curName)}</div>
+          <div style="flex:1">
+            <div class="circ-name">${escHtml(curName)}</div>
             <div class="circ-meta">${escHtml(ex.reps || '8–10 min')}</div>
           </div>
+          <button class="edit-knee-btn" style="opacity:0.6" title="${t('gym.cardio_edit')}"
+            onclick="event.stopPropagation();toggleCardioEdit('${ex.id}')">✎</button>
+        </div>
+        <div class="ex-edit-form" id="cardio-edit-${ex.id}">
+          <select class="input-sm" id="cardio-name-${ex.id}">${opts}</select>
+          <input class="input-sm" id="cardio-reps-${ex.id}" value="${escHtml(ex.reps || '5–8 min')}"
+            placeholder="${t('gym.cardio_time_ph')}">
+          <button class="btn btn-success btn-sm" onclick="saveCardio('${ex.id}')">✓</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleCardioEdit('${ex.id}')">✕</button>
         </div>
       </div>`;
     } else {
@@ -1594,16 +1603,48 @@ async function addSection(day, formId) {
   toast(t('gym.section_added'));
 }
 
+// Endre seksjonsnavn: oppdaterer alle øvelser i seksjonen (workout_program
+// har ingen egen seksjonstabell — seksjoner finnes via øvelsenes section-felt)
+async function renameSection(day, oldLabel, formId) {
+  const newName = document.getElementById(`${formId}-name`)?.value?.trim();
+  if (!newName || newName === oldLabel) {
+    document.getElementById(formId)?.classList.remove('open');
+    return;
+  }
+  if (allExercises[day]?.[newName]) { toast(t('gym.section_exists'), 'err'); return; }
+  const { error } = await db.from('workout_program')
+    .update({ section: newName }).eq('day', day).eq('section', oldLabel);
+  if (error) { toast(error.message, 'err'); return; }
+  // Bytt nøkkel i minnet uten å miste seksjonsrekkefølgen
+  const old = allExercises[day] || {};
+  const renamed = {};
+  for (const k of Object.keys(old)) {
+    const nk = k === oldLabel ? newName : k;
+    renamed[nk] = old[k];
+    if (k === oldLabel) renamed[nk].forEach(e => e.section = newName);
+  }
+  allExercises[day] = renamed;
+  renderAll();
+  toast(t('gm.saved'));
+}
+
 function renderSectionBlock(label, exs, day) {
   const addId   = `add-${day}-${label.replace(/\s/g,'_')}`;
-  const isMulti = exs.length > 1;
+  const renId   = `secren-${day}-${label.replace(/\s/g,'_')}`;
   const totSets = exs.reduce((a, e) => a + e.sets, 0);
-  return `<div class="ex-section${isMulti ? ' multi' : ''}" data-day="${escHtml(day)}" data-section="${escHtml(label)}"
+  return `<div class="ex-section" data-day="${escHtml(day)}" data-section="${escHtml(label)}"
     ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
     <div class="sec-hd">
       <span class="sec-label">${escHtml(label)}</span>
+      <button class="edit-knee-btn" style="opacity:0.55" title="${t('gym.rename_section')}"
+        onclick="document.getElementById('${renId}').classList.toggle('open')">✎</button>
       <span class="sec-divider"></span>
       <span class="sec-count">${exs.length} ${t('gym.ex_unit')} · ${totSets} ${t('gym.sets_unit')}</span>
+    </div>
+    <div class="add-ex-form" id="${renId}">
+      <input class="input-sm" value="${escHtml(label)}" id="${renId}-name">
+      <button class="btn btn-success btn-sm" onclick="renameSection('${escHtml(day)}','${escHtml(label)}','${renId}')">✓</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${renId}').classList.remove('open')">✕</button>
     </div>
     ${exs.map((ex, i) => renderExRow(ex, day, i + 1, false)).join('')}
     <div class="add-ex-form" id="${addId}">
@@ -2198,6 +2239,37 @@ async function deleteExercise(id) {
 }
 
 function toggleEditEx(id) { document.getElementById(`edit-form-${id}`)?.classList.toggle('open'); }
+
+// ── Kondisjonsmaskin i oppvarming: redigerbar maskin + tid ──────────────────
+const CARDIO_MACHINES = [
+  ['Sykkel', '🚴'], ['Tredemølle', '🏃'], ['Ellipse', '🌀'], ['Romaskin', '🚣'],
+  ['SkiErg', '⛷️'], ['Stairmaster', '🪜'], ['Gange', '🚶'],
+];
+function cardioIcon(name) {
+  const n = String(name || '').toLowerCase();
+  if (/tredemølle|treadmill|løp|run/.test(n)) return '🏃';
+  if (/ellipse|elliptical/.test(n)) return '🌀';
+  if (/romaskin|row/.test(n)) return '🚣';
+  if (/ski/.test(n)) return '⛷️';
+  if (/stair|trapp/.test(n)) return '🪜';
+  if (/gange|walk|gå/.test(n)) return '🚶';
+  return '🚴';
+}
+function toggleCardioEdit(id) { document.getElementById(`cardio-edit-${id}`)?.classList.toggle('open'); }
+async function saveCardio(id) {
+  const name = document.getElementById(`cardio-name-${id}`)?.value?.trim();
+  const reps = document.getElementById(`cardio-reps-${id}`)?.value?.trim();
+  if (!name || !reps) { toast(t('gym.fill_sets_reps'), 'err'); return; }
+  const { error } = await db.from('workout_program').update({ exercise_name: name, reps }).eq('id', id);
+  if (error) { toast(error.message, 'err'); return; }
+  for (const d of Object.keys(allExercises))
+    for (const s of Object.keys(allExercises[d])) {
+      const ex = allExercises[d][s].find(e => String(e.id) === String(id));
+      if (ex) { ex.exercise_name = name; ex.reps = reps; }
+    }
+  renderAll();
+  toast(t('gm.saved'));
+}
 
 async function saveExMeta(id) {
   const name = document.getElementById(`edit-name-${id}`)?.value.trim();
