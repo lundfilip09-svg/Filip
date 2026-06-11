@@ -1,6 +1,11 @@
 // scripts/check-nav.mjs
-// Verifies that <nav class="main-nav"> is consistent across all 8 HTML pages.
-// Exit 0 = OK, exit 1 = drift detected.
+// Nav har ÉN kilde: NAV_TABS/injectNav() i utils.js. Sidene har bare en
+// placeholder. Denne sjekken verifiserer at:
+//   1) alle 8 sider har <nav class="main-nav" data-nav> (gym også data-unit)
+//   2) ingen side har gammel inline nav-markup (nav-tab utenfor utils.js)
+//   3) utils.js lastes ETTER nav-elementet (ellers finner injectNav() den ikke)
+//   4) utils.js-templaten dekker alle 8 faner + diary/lang/unit/logout-knappene
+// Exit 0 = OK, exit 1 = drift.
 
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -12,52 +17,32 @@ const FILES = [
   'ai.html', 'dashboard.html', 'gym.html', 'sprint.html',
   'sovn.html', 'gjoremal.html', 'kalender.html', 'treningsplan.html',
 ];
-
 const NAV_PAGES = ['ai', 'dashboard', 'gym', 'sprint', 'sovn', 'gjoremal', 'kalender', 'treningsplan'];
 
-function extractNav(html) {
-  const start = html.indexOf('<nav class="main-nav">');
-  if (start === -1) return null;
-  let depth = 0, i = start;
-  while (i < html.length) {
-    if (html.startsWith('<nav', i) && (html[i + 4] === ' ' || html[i + 4] === '>')) depth++;
-    if (html.startsWith('</nav>', i)) { depth--; if (depth === 0) return html.slice(start, i + 6); }
-    i++;
-  }
-  return null;
-}
-
 let failed = false;
+const err = (m) => { console.error('FAIL ' + m); failed = true; };
 
 for (const file of FILES) {
   const html = readFileSync(join(ROOT, file), 'utf8');
-  const nav  = extractNav(html);
-  const errs = [];
-
-  if (!nav) {
-    console.error(`FAIL ${file}: no <nav class="main-nav"> found`);
-    failed = true;
-    continue;
-  }
-
-  for (const page of NAV_PAGES) {
-    if (!nav.includes(`data-p="${page}"`)) errs.push(`missing data-p="${page}"`);
-  }
-
-  if (!nav.includes('id="diaryLink"') || !nav.includes('href="treningsdagbok.html"'))
-    errs.push('missing diaryLink (id="diaryLink" href="treningsdagbok.html")');
-
-  if (!nav.includes('id="langBtn"'))
-    errs.push('missing langBtn');
-
-  if (!nav.includes('onclick="signOut()"'))
-    errs.push('missing signOut button');
-
-  if (errs.length) {
-    console.error(`FAIL ${file}:\n${errs.map(e => `  - ${e}`).join('\n')}`);
-    failed = true;
-  }
+  if (!/<nav class="main-nav" data-nav( data-unit)?><\/nav>/.test(html))
+    err(`${file}: mangler tom <nav class="main-nav" data-nav>-placeholder`);
+  if (file === 'gym.html' && !html.includes('data-nav data-unit'))
+    err('gym.html: mangler data-unit (kg/lbs-knappen)');
+  if (html.includes('class="nav-tab"'))
+    err(`${file}: har fortsatt inline nav-markup — skal kun ligge i utils.js`);
+  const navPos = html.indexOf('<nav class="main-nav"');
+  const utilsPos = html.indexOf('src="utils.js"');
+  if (navPos >= 0 && utilsPos >= 0 && utilsPos < navPos)
+    err(`${file}: utils.js lastes før nav — injectNav() finner den ikke`);
 }
 
+const utils = readFileSync(join(ROOT, 'utils.js'), 'utf8');
+for (const p of NAV_PAGES) {
+  if (!utils.includes(`'${p}.html', '${p}', 'nav.${p}'`))
+    err(`utils.js: NAV_TABS mangler/avviker for «${p}»`);
+}
+for (const frag of ['function injectNav', 'id="diaryLink"', 'id="langBtn"', 'id="unitBtn"', 'signOut()'])
+  if (!utils.includes(frag)) err(`utils.js: nav-templaten mangler «${frag}»`);
+
 if (failed) process.exit(1);
-console.log('nav OK');
+console.log('nav OK — én kilde i utils.js, placeholder i alle 8 sider');

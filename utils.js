@@ -49,6 +49,11 @@ const TRANSLATIONS = {
     'dash.go_to_sprint': 'Gå til sprint →',
     'dash.recovery_day': 'Restitusjonsdag', 'dash.tomorrow': 'I morgen', 'dash.overdue': 'Forfalt',
     'dash.all_ok': 'Alt ser bra ut i dag', 'dash.no_pain': 'Ingen smertelogg',
+    'dash.load_pain': 'Belastning × knesmerte',
+    'dash.acwr_label': 'ACWR (7d:28d)',
+    'dash.pain_label': 'Knesmerte (0–10)',
+    'dash.risk_line': 'Risikogrense 1.5',
+    'dash.load_pain_empty': 'For lite data til ACWR ennå',
     'dash.no_imp_todos': 'Ingen viktige gjøremål',
     'dash.todo_err': 'Kunne ikke fullføre gjøremål',
     'dash.untitled': '(uten tittel)', 'dash.allday': 'Heldags',
@@ -518,6 +523,11 @@ const TRANSLATIONS = {
     'dash.go_to_sprint': 'Go to sprint →',
     'dash.recovery_day': 'Recovery day', 'dash.tomorrow': 'Tomorrow', 'dash.overdue': 'Overdue',
     'dash.all_ok': 'All looks good today', 'dash.no_pain': 'No pain log',
+    'dash.load_pain': 'Load × knee pain',
+    'dash.acwr_label': 'ACWR (7d:28d)',
+    'dash.pain_label': 'Knee pain (0–10)',
+    'dash.risk_line': 'Risk threshold 1.5',
+    'dash.load_pain_empty': 'Not enough data for ACWR yet',
     'dash.no_imp_todos': 'No important tasks',
     'dash.todo_err': 'Could not complete task',
     'dash.untitled': '(untitled)', 'dash.allday': 'All day',
@@ -994,6 +1004,38 @@ function weightStep(big = true) {
   if (weightUnit() === 'lbs') return big ? 5 : 1;
   return big ? 2.5 : 0.5;
 }
+
+// ── Felles nav (én kilde — injiseres i <nav class="main-nav" data-nav>) ─────
+// Sidene har kun en tom placeholder; markupen her er eneste kilde.
+// data-unit på placeholderen → kg/lbs-knapp tas med (kun gym).
+// Aktiv fane settes fortsatt av siden selv: [data-p="…"].classList.add('active')
+const NAV_TABS = [
+  ['ai.html', 'ai', 'nav.ai', 'AI'],
+  ['dashboard.html', 'dashboard', 'nav.dashboard', 'Dashboard'],
+  ['gym.html', 'gym', 'nav.gym', 'Gym'],
+  ['sprint.html', 'sprint', 'nav.sprint', 'Sprint'],
+  ['sovn.html', 'sovn', 'nav.sovn', 'Søvn'],
+  ['gjoremal.html', 'gjoremal', 'nav.gjoremal', 'Gjøremål'],
+  ['kalender.html', 'kalender', 'nav.kalender', 'Kalender'],
+  ['treningsplan.html', 'treningsplan', 'nav.treningsplan', 'Treningsoversikt'],
+];
+function injectNav() {
+  const nav = document.querySelector('nav.main-nav[data-nav]');
+  if (!nav) return;
+  const withUnit = nav.dataset.unit !== undefined;
+  nav.innerHTML = `
+  <div class="nav-inner">
+    <div class="nav-tabs">
+      ${NAV_TABS.map(([href, p, key, txt]) =>
+        `<a href="${href}" class="nav-tab" data-p="${p}" data-i18n="${key}">${txt}</a>`).join('\n      ')}
+    </div>
+    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
+    ${withUnit ? '<button id="unitBtn" onclick="toggleUnit()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;font-family:var(--font-mono);padding:4px 8px" title="kg ↔ lbs">kg</button>' : ''}
+    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
+    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
+  </div>`;
+}
+injectNav();
 
 function applyLang() {
   document.documentElement.lang = _lang === 'en' ? 'en' : 'no';

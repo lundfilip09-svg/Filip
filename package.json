@@ -2,7 +2,9 @@
   "name": "dashboard",
   "version": "1.0.0",
   "scripts": {
-    "check:nav": "node scripts/check-nav.mjs"
+    "check:nav": "node scripts/check-nav.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check": "npm run -s check:i18n && npm run -s check:nav"
   },
   "dependencies": {}
 }

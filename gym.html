@@ -462,24 +462,7 @@
 </head>
 <body data-ws="idle">
 
-<nav class="main-nav">
-  <div class="nav-inner">
-    <div class="nav-tabs">
-      <a href="ai.html"           class="nav-tab" data-p="ai"          data-i18n="nav.ai">AI</a>
-      <a href="dashboard.html"    class="nav-tab" data-p="dashboard"   data-i18n="nav.dashboard">Dashboard</a>
-      <a href="gym.html"          class="nav-tab" data-p="gym"         data-i18n="nav.gym">Gym</a>
-      <a href="sprint.html"       class="nav-tab" data-p="sprint"      data-i18n="nav.sprint">Sprint</a>
-      <a href="sovn.html"         class="nav-tab" data-p="sovn"        data-i18n="nav.sovn">Søvn</a>
-      <a href="gjoremal.html"     class="nav-tab" data-p="gjoremal"    data-i18n="nav.gjoremal">Gjøremål</a>
-      <a href="kalender.html"     class="nav-tab" data-p="kalender"    data-i18n="nav.kalender">Kalender</a>
-      <a href="treningsplan.html" class="nav-tab" data-p="treningsplan" data-i18n="nav.treningsplan">Treningsoversikt</a>
-    </div>
-    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
-    <button id="unitBtn" onclick="toggleUnit()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;font-family:var(--font-mono);padding:4px 8px" title="kg ↔ lbs">kg</button>
-    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
-  </div>
-</nav>
+<nav class="main-nav" data-nav data-unit></nav>
 
 <main class="page">
 <div class="gym-shell">
@@ -1125,7 +1108,9 @@ async function loadData() {
     else if (w.exercise_name) weights[w.exercise_name] = w.weight_kg;
   });
   _applyLocalExOrders();
-  await seedRehabIfEmpty();
+  // Seed kun hvis program-spørringen faktisk lyktes — en feilet/tom respons
+  // (utløpt token, nettverksfeil) skal ALDRI utløse re-seeding (ga duplikater).
+  if (!prog.error) await seedRehabIfEmpty();
   await migrateWarmupData();
 }
 
@@ -1214,15 +1199,22 @@ function oppdaterTidsestimat() {
 // ── Rehab ──────────────────────────────────────────────────────────
 async function seedRehabIfEmpty() {
   if ((allExercises['rehab']?.['Rehab'] || []).length > 0) return;
+  // Dobbeltsjekk mot DB før insert: in-memory kan være tom selv om rader
+  // finnes (race/feilet last). Seed kun øvelser som faktisk mangler i DB.
+  const { data: existing, error: exErr } = await db.from('workout_program')
+    .select('exercise_name').eq('day', 'rehab');
+  if (exErr) return;   // usikker DB-tilstand → ikke seed
+  const existingNames = new Set((existing || []).map(e => e.exercise_name.toLowerCase()));
   const defaults = [
     { name: 'Spanish Squat ISO',                   sets: 2, reps: '35–45 sek', sort_order: 0 },
-    { name: 'Ankelstrekk mot vegg (Knee-to-wall)', sets: 2, reps: '12 reps',   sort_order: 1 },
+    { name: 'Ankelstrekk mot vegg (knee-to-wall)', sets: 2, reps: '12/side',   sort_order: 1 },
     { name: 'Hip Swivels',                         sets: 1, reps: '10 reps',   sort_order: 2 },
     { name: 'Face pulls med strikk',               sets: 2, reps: '15 reps',   sort_order: 3 },
   ];
   if (!allExercises['rehab']) allExercises['rehab'] = {};
   if (!allExercises['rehab']['Rehab']) allExercises['rehab']['Rehab'] = [];
   for (const d of defaults) {
+    if (existingNames.has(d.name.toLowerCase())) continue;
     const { data, error } = await db.from('workout_program').insert({
       day: 'rehab', section: 'Rehab', exercise_name: d.name,
       sets: d.sets, reps: d.reps, sort_order: d.sort_order,
@@ -1818,6 +1810,7 @@ function addSet(exId) {
   const i = d.length;
   d.push({ done: false, weight: last?.weight ?? (weights[exId] ?? weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
   document.getElementById(`drawer-body-${exId}`)?.insertAdjacentHTML('beforeend', drawerRow(exId, i, d[i]));
+  saveSession();
 }
 
 function removeSet(exId, i) {
@@ -1838,6 +1831,7 @@ function removeSet(exId, i) {
   saveDraft();
   updateExRowStatus(exId);
   updateProgress();
+  saveSession();
 }
 
 // Representativ vekt for økta: hyppigste vekt blant settene (tie → tyngste).
@@ -1869,6 +1863,7 @@ async function completeExercise(exId) {
   closeDrawer();
   updateExRowStatus(exId);
   updateProgress();
+  saveSession();
   const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
   if (next) setTimeout(() => openDrawer(next.id), 160);
   else updateNextEx();
@@ -1890,6 +1885,7 @@ function toggleExDone(exId) {
   updateExRowStatus(exId);
   updateProgress();
   updateNextEx();
+  saveSession();
 }
 
 function updateExRowStatus(exId) {
@@ -2230,10 +2226,13 @@ async function addExercise(day, section, formId) {
 
 async function deleteExercise(id) {
   if (!confirm(t('confirm.delete_exercise'))) return;
-  await db.from('workout_program').delete().eq('id', id);
+  // Feilsjekk: en stille feilet sletting så «vellykket» ut i UI, men raden
+  // kom tilbake ved neste lasting.
+  const { error } = await db.from('workout_program').delete().eq('id', id);
+  if (error) { toast(t('gym.save_error'), 'err'); return; }
   for (const d of Object.keys(allExercises))
     for (const s of Object.keys(allExercises[d]))
-      allExercises[d][s] = allExercises[d][s].filter(e => e.id !== id);
+      allExercises[d][s] = allExercises[d][s].filter(e => String(e.id) !== String(id));
   renderAll();
   toast(t('gym.exercise_deleted'));
 }

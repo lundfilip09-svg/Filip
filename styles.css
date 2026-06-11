@@ -362,3 +362,60 @@ body { animation: pageFadeIn 0.18s ease; }
 .rpe-slider::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,0.25); cursor: pointer;
 }
+
+/* ── Delte komponenter — ekstrahert fra sidene (falde fase 3) ─────────── */
+.hist-date-group { margin-bottom: 20px; }
+.hist-date-label {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px;
+    }
+.hist-sessions { display: flex; flex-direction: column; gap: 4px; }
+.sess-card {
+      background: var(--card-bg); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 14px 16px;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+.sess-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
+.sess-card.expanded { border-color: rgba(91,164,245,0.3); }
+.sess-tag {
+      font-size: 9px; font-family: var(--font-mono); padding: 2px 7px; border-radius: 10px;
+      background: rgba(107,227,164,0.1); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2);
+    }
+.sess-pain {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+    }
+.sess-pain-val { font-weight: 600; }
+.sess-pain-val.pain-low  { color: #6BE3A4; }
+.sess-pain-val.pain-mid  { color: var(--warning); }
+.sess-pain-val.pain-high { color: #FF6B6B; }
+.sess-notes-preview {
+      font-size: 10px; color: var(--text-tertiary); margin-top: 7px; line-height: 1.5;
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+.sess-detail.open { display: block; }
+.sess-detail-hd {
+      display: flex; align-items: baseline;
+      justify-content: space-between; margin-bottom: 14px;
+    }
+.sess-detail-close {
+      background: none; border: none; color: var(--text-tertiary);
+      cursor: pointer; font-size: 14px; padding: 2px 4px;
+    }
+.sess-edit-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.sess-edit-lbl { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+.sess-edit-input {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+      color: var(--text-primary); font-family: var(--font-mono); font-size: 12px;
+      padding: 4px 6px; text-align: center;
+    }
+.sess-edit-input:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+.sess-edit-textarea {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 5px;
+      color: var(--text-secondary); font-family: inherit; font-size: 11px;
+      padding: 6px 8px; line-height: 1.5; resize: vertical; min-height: 52px;
+    }
+.sess-edit-textarea:focus { outline: none; border-color: rgba(91,164,245,0.4); }

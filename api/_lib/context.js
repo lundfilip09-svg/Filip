@@ -2,6 +2,10 @@
 // Delt kontekstbygging for AI-endepunktene (ai-chat.js og weekly-summary.js).
 // Filer i api/_lib/ blir IKKE egne Vercel-endepunkter (underscore-prefiks).
 
+// ACWR-formelen bor i /acwr.js (delt med klienten — dashboardets load×smerte-graf).
+import '../../acwr.js';
+const AcwrCore = globalThis.AcwrCore;
+
 export const SYSTEM_PROMPT = `Du er en personlig trenings- og rehabiliteringsassistent for Filip Lund (17 år). Filip er sprinter (100m, 200m) og styrketrener. Mål: Sub 11.10 på 100m og 22.30 på 200m.
 
 SKADER/PLAGER: Filip styrer selv en plageliste (se [PLAGER/SKADER]-blokken). DETTE er den autoritative, oppdaterte oversikten — kroppsdel, side, status, alvorlighet og notat.
@@ -91,15 +95,12 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   const _daysAgo = (ds) => Math.floor((_now - new Date(ds + 'T12:00:00')) / 86400000);
   const _avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
-  const _loadEvents = [
-    ...(Array.isArray(sprint28) ? sprint28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
-    ...(Array.isArray(gym28) ? gym28 : []).map(r => ({ date: r.date, load: (r.rpe || 60) / 10 })),
-    ...(Array.isArray(act28) ? act28 : []).map(r => ({ date: r.date, load: (r.rpe || 50) / 10 })),
-  ].filter(e => e.date && _daysAgo(e.date) >= 0);
-  const within28 = _loadEvents.filter(e => _daysAgo(e.date) < 28);
-  const acute   = _loadEvents.filter(e => _daysAgo(e.date) < 7).reduce((a, e) => a + e.load, 0);
-  const chronic = within28.reduce((a, e) => a + e.load, 0) / 4;
-  const acwr = (within28.length >= 8 && chronic > 0) ? (acute / chronic) : null;
+  const _loadEvents = AcwrCore.buildLoadEvents({
+    sprint: Array.isArray(sprint28) ? sprint28 : [],
+    gym: Array.isArray(gym28) ? gym28 : [],
+    activity: Array.isArray(act28) ? act28 : [],
+  });
+  const { acwr } = AcwrCore.acwrOn(_loadEvents, _todayISO);
 
   const _kneeMax = (k) => Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0, k.day_after_score ?? 0);
   const knee60 = Array.isArray(knee28) ? knee28 : [];
