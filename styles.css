@@ -13,6 +13,18 @@
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* ── View Transitions (sidebytte) ─────────────────────────────────────────
+   Native cross-document overgang — erstatter den gamle 130ms JS-faden.
+   Nettlesere uten støtte (eldre Safari/Firefox) får vanlig navigasjon. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: 80ms ease-out both vt-out; }
+::view-transition-new(root) { animation: 110ms ease-in both vt-in; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in  { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+
 /* ── Reset & base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

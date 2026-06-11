@@ -1,17 +1,20 @@
 // sw.js — Service Worker: offline-skall + hviletimer-varsler
 //
-// 1) OFFLINE (PWA): app-skallet (alle sider + styles/utils/ikoner) pre-caches,
-//    og alle vellykkede GET-svar (inkl. Supabase REST-les) caches fortløpende.
-//    Strategi: network-first med cache-fallback → alltid ferskt på nett,
-//    sist lagrede data uten nett. Skriving (POST/PATCH/DELETE) røres aldri —
+// 1) SIDER + STATISKE FILER: stale-while-revalidate — cachet versjon serveres
+//    UMIDDELBART (ingen vent på nett), fersk versjon hentes i bakgrunnen og
+//    legges i cache til neste besøk. Endret ETag → SW_UPDATED-melding til
+//    klientene (utils.js viser toast). Gir ~0 ms sidebytte i både nettleser
+//    og PWA.
+// 2) DATA (Supabase REST-les): network-first → alltid ferskt på nett, sist
+//    lagrede data uten nett. Skriving (POST/PATCH/DELETE) røres aldri —
 //    sidene håndterer feil selv (gym-økta auto-lagres ved reconnect).
 //    Online-tjenester (AI-chat, Garmin-synk, Google Calendar) er online-only.
-// 2) TIMER: mottar START_TIMER/CANCEL_TIMER fra gym.html og fyrer
+// 3) TIMER: mottar START_TIMER/CANCEL_TIMER fra gym.html og fyrer
 //    systemvarsel når nedtellingen er ferdig (uendret oppførsel).
 //
 // Bump VERSION ved endringer her — gamle cacher ryddes i activate.
 
-const VERSION = 'dash-v1';
+const VERSION = 'dash-v2';
 const SHELL = [
   '/', '/dashboard.html', '/gym.html', '/sprint.html', '/sovn.html',
   '/gjoremal.html', '/kalender.html', '/treningsplan.html', '/ai.html',
@@ -52,6 +55,37 @@ async function networkFirst(req) {
   }
 }
 
+// stale-while-revalidate: cachet svar serveres umiddelbart, ferskt hentes i
+// bakgrunnen. notify=true → SW_UPDATED-melding hvis innholdet endret seg
+// (ETag/Last-Modified), så utils.js kan vise «ny versjon»-toast.
+async function staleWhileRevalidate(req, notify = false) {
+  const cache = await caches.open(VERSION);
+  const hit = await cache.match(req);
+  const refresh = (async () => {
+    try {
+      const res = await fetch(req);
+      if (res && res.ok) {
+        if (notify && hit) {
+          const a = hit.headers.get('etag') || hit.headers.get('last-modified');
+          const b = res.headers.get('etag') || res.headers.get('last-modified');
+          if (a && b && a !== b) notifyClients({ type: 'SW_UPDATED' });
+        }
+        await cache.put(req, res.clone());
+      }
+      return res;
+    } catch { return null; }
+  })();
+  if (hit) return hit;                      // umiddelbart fra cache
+  const res = await refresh;                // førstegangsbesøk: vent på nett
+  if (res) return res;
+  throw new Error('offline og ikke i cache');
+}
+
+async function notifyClients(msg) {
+  const cs = await self.clients.matchAll({ includeUncontrolled: true });
+  cs.forEach(c => c.postMessage(msg));
+}
+
 // cache-first (CDN-bibliotek — endres aldri uten URL-endring)
 async function cacheFirst(req) {
   const cache = await caches.open(VERSION);
@@ -67,10 +101,11 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;   // skriving røres aldri
   const url = new URL(req.url);
 
-  // Sidenavigasjon: network-first, fallback cachet side, ellers dashboard
+  // Sidenavigasjon: stale-while-revalidate → cachet side vises umiddelbart,
+  // fersk hentes i bakgrunnen (toast ved endring). Fallback: pre-cachet skall.
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
-      try { return await networkFirst(req); }
+      try { return await staleWhileRevalidate(req, true); }
       catch (err) {
         const cache = await caches.open(VERSION);
         return (await cache.match(url.pathname)) ||
@@ -100,9 +135,10 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Samme origin (statiske filer): network-first med cache-fallback
+  // Samme origin (statiske filer): stale-while-revalidate → umiddelbart fra
+  // cache, oppdateres i bakgrunnen til neste sidelasting
   if (url.origin === self.location.origin) {
-    e.respondWith(networkFirst(req));
+    e.respondWith(staleWhileRevalidate(req));
   }
 });
 

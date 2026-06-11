@@ -190,6 +190,7 @@ const TRANSLATIONS = {
     'gym.offline_retry': 'Ingen nett — økta lagres automatisk når du er online igjen',
     'offline_now': 'Du er offline — viser sist lagrede data',
     'online_again': 'Online igjen',
+    'sw_updated': 'Ny versjon lastet — gjelder fra neste sidebytte',
     'tp.duration': 'Varighet (min)',
     'tp.week_load': 'Ukeslast (sRPE)',
     'tp.week_load_hint': 'min × RPE/10 — gym + sprint + aktiviteter',
@@ -664,6 +665,7 @@ const TRANSLATIONS = {
     'gym.offline_retry': 'Offline — the session will save automatically when you reconnect',
     'offline_now': "You're offline — showing last saved data",
     'online_again': 'Back online',
+    'sw_updated': 'New version loaded — applies on next page change',
     'tp.duration': 'Duration (min)',
     'tp.week_load': 'Weekly load (sRPE)',
     'tp.week_load_hint': 'min × RPE/10 — gym + sprint + activities',
@@ -1063,6 +1065,14 @@ window.addEventListener('offline', () => { try { toast(t('offline_now'), 'err');
 window.addEventListener('online',  () => { try { toast(t('online_again')); } catch (e) {} });
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // SW har hentet en ny sideversjon i bakgrunnen (SWR) — si ifra, maks én gang
+  let _swToastShown = false;
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SW_UPDATED' && !_swToastShown) {
+      _swToastShown = true;
+      try { toast(t('sw_updated')); } catch (err) {}
+    }
+  });
 }
 
 function toggleLang() {
@@ -1227,17 +1237,21 @@ function loadMultiplier(source, typeText, labelText) {
   return 1.5;
 }
 
-// ── Page transition on nav clicks ─────────────────────────────────────────
+// ── Nav-prefetch ──────────────────────────────────────────────────────────
+// Varmer SW-cachen for neste side ved hover (desktop) / touchstart (mobil),
+// så navigasjonen treffer cache. fetch() går gjennom SW-en (SWR) og funker
+// derfor i både Safari og Chrome (<link rel=prefetch> gjør ikke det i Safari).
+// Selve sideovergangen håndteres av View Transitions i styles.css — ingen JS.
 document.addEventListener('DOMContentLoaded', () => {
+  const warmed = new Set();
+  const warm = href => {
+    if (!href || href.startsWith('#') || href.startsWith('javascript') || warmed.has(href)) return;
+    warmed.add(href);
+    try { fetch(href, { credentials: 'same-origin' }).catch(() => {}); } catch (e) {}
+  };
   document.querySelectorAll('a.nav-tab[href]').forEach(a => {
-    a.addEventListener('click', e => {
-      const href = a.getAttribute('href');
-      if (!href || href.startsWith('#') || href.startsWith('javascript')) return;
-      e.preventDefault();
-      document.body.style.transition = 'opacity 0.13s ease, transform 0.13s ease';
-      document.body.style.opacity = '0';
-      document.body.style.transform = 'translateY(-3px)';
-      setTimeout(() => { window.location.href = href; }, 130);
-    });
+    const href = a.getAttribute('href');
+    a.addEventListener('pointerenter', () => warm(href));
+    a.addEventListener('touchstart',   () => warm(href), { passive: true });
   });
 });

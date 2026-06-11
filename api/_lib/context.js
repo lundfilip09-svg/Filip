@@ -113,7 +113,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
 
   const metricLines = [];
   if (acwr != null) {
-    metricLines.push(`ACWR (akutt:kronisk belastning, 7d vs 28d): ${acwr.toFixed(2)}${acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}`);
+    metricLines.push(`ACWR (akutt:kronisk belastning, EWMA 7d:28d): ${acwr.toFixed(2)}${acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}`);
   }
   metricLines.push(`Dager siden siste knesmerte (>2): ${daysSincePain != null ? daysSincePain : 'ingen smerte registrert nylig'}`);
   metricLines.push(`Snitt søvnscore (7d): ${avgSleep != null ? Math.round(avgSleep) : '–'}`);
