@@ -428,6 +428,52 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.err { border-color: rgba(255,107,107,0.28); color: #FF6B6B; }
 
+    /* ── Month View ── */
+    .mv-grid-wrap { padding: 10px 12px 14px; }
+    .mv-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .mv-dow {
+      font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-align: center; padding: 4px 0 8px; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .mv-cell {
+      min-height: 78px; border-radius: 7px; padding: 5px 4px;
+      cursor: pointer; transition: background 0.13s;
+      border: 1px solid transparent;
+      display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+    }
+    .mv-cell:hover:not(.other-month) { background: rgba(255,255,255,0.045); }
+    .mv-cell.other-month { opacity: 0.18; pointer-events: none; }
+    .mv-cell.today { background: rgba(91,164,245,0.07); border-color: rgba(91,164,245,0.2); }
+    .mv-cell.selected { background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.14); }
+    .mv-cell.selected.today { background: rgba(91,164,245,0.1); border-color: rgba(91,164,245,0.3); }
+    .mv-num {
+      font-size: 11px; font-family: var(--font-mono); font-weight: 600;
+      color: var(--text-tertiary); line-height: 1.2; padding: 0 2px; margin-bottom: 1px;
+    }
+    .mv-cell.today .mv-num { color: #5BA4F5; font-weight: 700; }
+    .mv-cell.selected .mv-num { color: var(--text-primary); }
+    .mv-chip {
+      font-size: 8.5px; font-family: var(--font-mono);
+      border-radius: 3px; padding: 1px 5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.5; max-width: 100%;
+    }
+    .mv-more {
+      font-size: 8px; font-family: var(--font-mono); color: rgba(255,255,255,0.22);
+      padding: 0 4px; line-height: 1.4;
+    }
+    .mv-day-panel {
+      border-top: 1px solid rgba(255,255,255,0.05); padding: 11px 15px 13px;
+    }
+    .mv-day-panel-title {
+      font-size: 12px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-secondary); margin-bottom: 8px;
+    }
+    @media (max-width: 640px) {
+      .mv-cell { min-height: 54px; }
+      .mv-chip { display: none; }
+    }
+
     /* Category colors */
     .cat-styrke { --cat: #FFB84D; }
     .cat-stevne { --cat: #F6C453; }
@@ -465,6 +511,7 @@
       <div class="view-toggle">
         <button class="vt-btn active" id="vtAgenda"    onclick="setView('agenda')"   data-i18n="kal.agenda_view">Agenda</button>
         <button class="vt-btn"        id="vtTimeline"  onclick="setView('timeline')" data-i18n="kal.week_view">Tidslinje</button>
+        <button class="vt-btn"        id="vtMonth"     onclick="setView('month')"    data-i18n="kal.month_view">Måned</button>
       </div>
       <div class="kal-nav">
         <button class="kal-nav-btn" onclick="shiftWeek(-1)" data-i18n="kal.prev">‹</button>
@@ -482,7 +529,7 @@
 
     <div class="kal-left">
 
-      <div class="day-view-card">
+      <div class="day-view-card" id="dayViewCard">
         <div class="dv-header">
           <div class="dv-date-big" id="dvDateBig">–</div>
           <div class="dv-meta" id="dvMeta">–</div>
@@ -490,6 +537,11 @@
         <div id="dayViewContent">
           <div class="agenda-empty" style="padding:20px">Laster…</div>
         </div>
+      </div>
+
+      <div class="day-view-card" id="monthViewCard" style="display:none">
+        <div id="mvGrid"></div>
+        <div id="mvDayPanel" style="display:none"></div>
       </div>
 
       <div class="upcoming-card">
@@ -1056,8 +1108,7 @@ function renderEventDetail() {
 // ── Mini month ─────────────────────────────────────────────────────────────
 function renderMiniMonth() {
   const { year, month } = miniMonth;
-  const months = ['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Des'];
-  document.getElementById('mmTitle').textContent = `${months[month]} ${year}`;
+  document.getElementById('mmTitle').textContent = `${_cap(MONTHS_SHORT()[month])} ${year}`;
 
   const firstDay      = new Date(year, month, 1);
   const startDow      = (firstDay.getDay() + 6) % 7;
@@ -1085,6 +1136,91 @@ function renderMiniMonth() {
     cells += `<div class="mm-cell other-month"><div class="mm-num">${d}</div></div>`;
 
   document.getElementById('mmGrid').innerHTML = dowHeaders + cells;
+}
+
+// ── Month View ────────────────────────────────────────────────────────────
+function renderMonthView() {
+  const gridEl    = document.getElementById('mvGrid');
+  const panelEl   = document.getElementById('mvDayPanel');
+  if (!gridEl) return;
+
+  const { year, month } = miniMonth;
+  const firstDay      = new Date(year, month, 1);
+  const startDow      = (firstDay.getDay() + 6) % 7;   // 0=Mon
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const todayStr      = today(), selStr = toLocalStr(selectedDate);
+
+  // Day-of-week headers (Mon–Sun)
+  const dsArr = DAYS_SHORT(); // 0=Sun
+  const dowHeaders = [1,2,3,4,5,6,0].map(i =>
+    `<div class="mv-dow">${_cap(dsArr[i]).slice(0,2)}</div>`
+  ).join('');
+
+  let cells = '';
+  // Prev-month overflow
+  for (let i = startDow - 1; i >= 0; i--)
+    cells += `<div class="mv-cell other-month"><div class="mv-num">${prevMonthDays - i}</div></div>`;
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dStr     = `${year}-${pad(month+1)}-${pad(d)}`;
+    const isToday  = dStr === todayStr;
+    const isSel    = dStr === selStr;
+    const dayEvts  = eventsForDate(dStr);
+
+    const chips = dayEvts.slice(0, 3).map(e => {
+      const c = getEventColor(e);
+      return `<div class="mv-chip" style="background:${hexAlpha(c,0.18)};color:${c}">${escHtml(e.title.slice(0,13))}${e.title.length>13?'…':''}</div>`;
+    }).join('');
+    const more = dayEvts.length > 3
+      ? `<div class="mv-more">+${dayEvts.length - 3}</div>` : '';
+
+    cells += `<div class="mv-cell${isToday?' today':''}${isSel?' selected':''}" onclick="selectDay('${dStr}')">
+      <div class="mv-num">${d}</div>${chips}${more}
+    </div>`;
+  }
+
+  // Next-month filler
+  const total = startDow + daysInMonth;
+  const rem   = (7 - (total % 7)) % 7;
+  for (let d = 1; d <= rem; d++)
+    cells += `<div class="mv-cell other-month"><div class="mv-num">${d}</div></div>`;
+
+  gridEl.innerHTML = `<div class="mv-grid-wrap"><div class="mv-grid">${dowHeaders}${cells}</div></div>`;
+
+  // Update header
+  document.getElementById('headerLabel').innerHTML =
+    `${_cap(MONTHS_FULL()[month])}<span>${year}</span>`;
+
+  // Render selected day panel
+  renderMvDayPanel(toLocalStr(selectedDate));
+}
+
+function renderMvDayPanel(dateStr) {
+  const el = document.getElementById('mvDayPanel');
+  if (!el) return;
+  const evts = eventsForDate(dateStr);
+  if (!evts.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const d = new Date(dateStr + 'T12:00:00');
+  const timed  = evts.filter(e => !e.allDay && e.startTime).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+  const allDay = evts.filter(e => e.allDay);
+  const noTime = evts.filter(e => !e.allDay && !e.startTime);
+  const all    = [...allDay, ...timed, ...noTime];
+  const rows   = all.map(e => {
+    const c = getEventColor(e);
+    const timeStr = e.allDay ? t('kal.whole_day') : (e.startTime || '–');
+    return `<div class="agenda-row" onclick="openEvent('${e.id}')">
+      <div class="ag-time">${timeStr}</div>
+      <div class="ag-dot" style="background:${c}"></div>
+      <div class="ag-title">${escHtml(e.title)}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="mv-day-panel">
+    <div class="mv-day-panel-title">${fmtDateLong(d)}</div>
+    ${rows}
+  </div>`;
 }
 
 // ── Upcoming ───────────────────────────────────────────────────────────────
@@ -1155,8 +1291,9 @@ function renderNextCard() {
   const c        = getEventColor(next);
   const isToday  = next.date === todayStr;
   const dow      = (d.getDay() + 6) % 7;
+  const ds = DAYS_SHORT(), ms = MONTHS_SHORT();
   const dateLabel = isToday ? t('kal.today')
-    : `${NO_DAYS_SHORT[dow === 6 ? 0 : dow + 1] || NO_DAYS_SHORT[dow]} ${d.getDate()}. ${NO_MONTHS_SHORT[d.getMonth()]}`;
+    : `${_cap(ds[(dow + 1) % 7])} ${d.getDate()}. ${_cap(ms[d.getMonth()])}`;
 
   el.innerHTML = `
     <div class="next-ev-bar" style="background:${c}"></div>
@@ -1169,6 +1306,12 @@ function renderNextCard() {
 // ── User actions ───────────────────────────────────────────────────────────
 function selectDay(dateStr) {
   selectedDate = new Date(dateStr + 'T12:00:00');
+  if (viewMode === 'month') {
+    renderMonthView();
+    renderMiniMonth();
+    renderNextCard();
+    return;
+  }
   const selMon = getMonday(selectedDate);
   if (toLocalStr(selMon) !== toLocalStr(weekStart)) weekStart = selMon;
   miniMonth = { year: selectedDate.getFullYear(), month: selectedDate.getMonth() };
@@ -1386,15 +1529,23 @@ async function qaSubmit() {
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function shiftWeek(dir) {
+  if (viewMode === 'month') {
+    miniMonth.month += dir;
+    if (miniMonth.month < 0)  { miniMonth.month = 11; miniMonth.year--; }
+    if (miniMonth.month > 11) { miniMonth.month = 0;  miniMonth.year++; }
+    renderMonthView();
+    renderMiniMonth();
+    return;
+  }
   weekStart = addDays(weekStart, dir * 7);
-  const selStr  = toLocalStr(selectedDate);
   const weekEnd = addDays(weekStart, 6);
   const ws = toLocalStr(weekStart), we = toLocalStr(weekEnd);
+  const selStr = toLocalStr(selectedDate);
   if (selStr < ws || selStr > we) {
     selectedDate = new Date(weekStart); selectedDate.setHours(12,0,0,0);
-    renderDayView(toLocalStr(selectedDate));
   }
   renderWeekStrip();
+  renderDayView(toLocalStr(selectedDate));
   renderMiniMonth();
 }
 
@@ -1417,14 +1568,35 @@ function setView(mode) {
   viewMode = mode;
   document.getElementById('vtAgenda').classList.toggle('active', mode === 'agenda');
   document.getElementById('vtTimeline').classList.toggle('active', mode === 'timeline');
-  renderDayView(toLocalStr(selectedDate));
+  document.getElementById('vtMonth').classList.toggle('active', mode === 'month');
+
+  const dayCard   = document.getElementById('dayViewCard');
+  const monthCard = document.getElementById('monthViewCard');
+  const stripWrap = document.querySelector('.week-strip-wrap');
+
+  if (mode === 'month') {
+    if (dayCard)   dayCard.style.display   = 'none';
+    if (monthCard) monthCard.style.display = 'block';
+    if (stripWrap) stripWrap.style.display = 'none';
+    miniMonth = { year: selectedDate.getFullYear(), month: selectedDate.getMonth() };
+    renderMonthView();
+  } else {
+    if (dayCard)   dayCard.style.display   = 'block';
+    if (monthCard) monthCard.style.display = 'none';
+    if (stripWrap) stripWrap.style.display = '';
+    renderDayView(toLocalStr(selectedDate));
+  }
 }
 
 // ── Render all ─────────────────────────────────────────────────────────────
 function renderAll() {
-  renderWeekStrip();
-  renderDayView(toLocalStr(selectedDate));
-  renderEventDetail();
+  if (viewMode === 'month') {
+    renderMonthView();
+  } else {
+    renderWeekStrip();
+    renderDayView(toLocalStr(selectedDate));
+    renderEventDetail();
+  }
   renderMiniMonth();
   renderUpcoming();
 }
