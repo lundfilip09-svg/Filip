@@ -1822,6 +1822,20 @@ function buildDetailHtml(g, knee) {
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div>
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+        <input type="number" min="1" max="100" class="sess-edit-input"
+          value="${g.rpe ?? ''}" placeholder="—"
+          onblur="autoSaveGymField('${g.id}','rpe',this.value)">
+      </div>
+      <div>
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
+        <input type="number" min="5" max="600" step="5" class="sess-edit-input"
+          value="${g.duration_min ?? ''}" placeholder="—"
+          onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+      </div>
+    </div>
     ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
     <div>
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
@@ -1869,11 +1883,19 @@ function buildSprintDetailHtml(s, knee) {
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('tp.runs', {n: s.runs.length})}</div>
       ${runsHtml}
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-      <input type="number" min="1" max="100" class="sess-edit-input"
-        value="${s.rpe ?? ''}" placeholder="—"
-        onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div>
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+        <input type="number" min="1" max="100" class="sess-edit-input"
+          value="${s.rpe ?? ''}" placeholder="—"
+          onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
+      </div>
+      <div>
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
+        <input type="number" min="5" max="600" step="5" class="sess-edit-input"
+          value="${s.duration_min ?? ''}" placeholder="—"
+          onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+      </div>
     </div>
     ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
     <div>
@@ -1898,7 +1920,22 @@ function toggleSessionDetail(id) {
 async function autoSaveSprintField(date, field, value) {
   const val = field === 'notes' ? (value.trim() || null) : (value === '' ? null : Number(value));
   const { error } = await db.from('sprint_log').update({ [field]: val }).eq('date', date);
-  if (!error) _sprintData.filter(r => r.date === date).forEach(r => { r[field] = val; });
+  if (!error) {
+    _sprintData.filter(r => r.date === date).forEach(r => { r[field] = val; });
+    if (field === 'rpe' || field === 'duration_min') renderWeekLoad();
+  }
+}
+
+async function autoSaveGymField(gymId, field, value) {
+  const g = _sessData.find(s => String(s.id) === String(gymId));
+  if (!g) return;
+  const val = value === '' ? null : Number(value);
+  const col = field === 'rpe' ? 'rpe' : 'duration_min';
+  const { error } = await db.from('gym_log').update({ [col]: val }).eq('id', gymId);
+  if (!error) {
+    g[col] = val;
+    renderWeekLoad();
+  }
 }
 
 async function autoSaveSessionNotes(gymId, value) {
@@ -2243,7 +2280,10 @@ async function autoSaveActField(actId, field, value) {
   if (!row) return;
   const val = field === 'notes' ? (value.trim() || null) : (value === '' ? null : Number(value));
   const { error } = await db.from('activity_log').update({ [field]: val }).eq('id', actId);
-  if (!error) row[field] = val;
+  if (!error) {
+    row[field] = val;
+    if (field === 'rpe' || field === 'duration_min') renderWeekLoad();
+  }
 }
 
 async function deleteActivity(actId) {
