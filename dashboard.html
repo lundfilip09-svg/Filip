@@ -887,7 +887,7 @@ function renderLoadPain() {
       data: dates.map((ds, di) => {
         const v = painByDate[ds] ?? null;
         return v !== null ? { x: di + xOff, y: v, _date: ds } : null;
-      }),
+      }).filter(Boolean),  // parsing:false tåler ikke null-elementer → krasjer Chart.js
       parsing: false,
       yAxisID: 'yP',
       borderColor: PAIN_COLORS[idx % PAIN_COLORS.length],
