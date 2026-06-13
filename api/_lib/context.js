@@ -60,7 +60,12 @@ export async function sbFetch(supabaseUrl, apikey, token, table, params) {
 //   legges på som eksplisitt filter på alle tabeller.
 export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz, userId }) {
   const uf = userId ? `&user_id=eq.${userId}` : '';
-  const sb = (table, params) => sbFetch(supabaseUrl, apikey, token, table, params + uf);
+  // Tabeller UTEN user_id-kolonne (enbruker-app). Å legge uf på disse gir PostgREST 400 →
+  // tom liste — det var derfor ukesrapporten manglet søvn/HRV (health_data) og AI-notater.
+  // injury_pain har sitt eget unntak lenger ned (hentes via sbFetch uten uf).
+  const USERLESS = new Set(['health_data', 'knee_pain', 'sprint_log', 'gym_log', 'sprint_records', 'ai_notes']);
+  const sb = (table, params) =>
+    sbFetch(supabaseUrl, apikey, token, table, params + (USERLESS.has(table) ? '' : uf));
 
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
