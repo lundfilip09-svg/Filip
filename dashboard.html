@@ -346,8 +346,8 @@
     </div>
 
     <div class="card card-knee">
-      <div class="section-title" data-i18n="dash.knee">Knesmerte</div>
-      <div id="kneeCard">
+      <div class="section-title" data-i18n="dash.injuries_card">Skader</div>
+      <div id="injuryStatusCards">
         <div class="sk-row" style="justify-content:space-between">
           <div class="sk-col" style="align-items:center;flex:1">
             <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
@@ -671,40 +671,110 @@ async function loadRehabData() {
   return { lastDate, daysSince, lastKnee: kneeRows?.[0] || null };
 }
 
-// ── Knee pain card ─────────────────────────────────────────────────────────
-async function loadKnee() {
-  const { data } = await db.from('knee_pain')
-    .select('*').order('date', { ascending: false }).order('id', { ascending: false }).limit(1);
-  const el = document.getElementById('kneeCard');
-  if (!data?.length) {
-    el.innerHTML = `<div class="empty">${t('dash.no_pain')}</div>`; return null;
+// ── Injury status cards (generisk, én blokk per alvorlig skade) ────────────
+async function loadInjuryCards() {
+  const { data: injData } = await db.from('injuries')
+    .select('id,body_part,side,status,severity')
+    .eq('severity', 'severe').in('status', ['active', 'improving']);
+  _severeInjuries = injData || [];
+
+  const el = document.getElementById('injuryStatusCards');
+  if (!_severeInjuries.length) {
+    el.innerHTML = `<div class="empty">${t('pain.no_severe')}</div>`;
+    _injuryCardDataCache = { injuries: [], injuryPainRows: [], kneeRow: null };
+    return null;
   }
-  const d = data[0];
-  const phases = [
-    { label: t('knee.before'),   val: d.before_score },
-    { label: t('knee.during'),   val: d.during_score },
-    { label: t('knee.after'),    val: d.after_score },
-    { label: t('knee.dayafter'), val: d.day_after_score },
-  ];
-  el.innerHTML = `
-    <a href="sprint.html" style="text-decoration:none;color:inherit;display:block">
-      <div class="knee-phases">
-        ${phases.map(p => `
-          <div class="knee-phase">
-            <div class="knee-phase-num" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
-            <div class="knee-phase-lbl">${p.label}</div>
-          </div>`).join('')}
-      </div>
-      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:10px;letter-spacing:0.03em">
-        ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
-      </div>
-    </a>`;
-  return d;
+
+  const injIds = _severeInjuries.map(i => i.id);
+  const kneeInj = _severeInjuries.find(i => _isDashKneeInj(i));
+
+  const ipFetch = db.from('injury_pain').select('*')
+    .in('injury_id', injIds).order('date', { ascending: false }).limit(injIds.length * 10);
+  const knFetch = kneeInj
+    ? db.from('knee_pain').select('*').order('date', { ascending: false }).limit(1)
+    : Promise.resolve({ data: [] });
+
+  const [ipRes, knRes] = await Promise.all([ipFetch, knFetch]);
+  const kneeRow = (knRes.data || [])[0] || null;
+
+  _injuryCardDataCache = { injuries: _severeInjuries, injuryPainRows: ipRes.data || [], kneeRow };
+  renderInjuryCards();
+  return kneeRow;   // knee_pain row — compat med renderDailyFokus
+}
+
+function renderInjuryCards() {
+  if (!_injuryCardDataCache) return;
+  const el = document.getElementById('injuryStatusCards');
+  const { injuries, injuryPainRows, kneeRow } = _injuryCardDataCache;
+
+  if (!injuries.length) {
+    el.innerHTML = `<div class="empty">${t('pain.no_severe')}</div>`;
+    return;
+  }
+
+  // Siste injury_pain-rad per skade
+  const latestByInj = {};
+  for (const row of injuryPainRows) {
+    if (!latestByInj[row.injury_id] || row.date > latestByInj[row.injury_id].date) {
+      latestByInj[row.injury_id] = row;
+    }
+  }
+
+  const parts = injuries.map(inj => {
+    let d = latestByInj[inj.id] || null;
+    if (!d && _isDashKneeInj(inj) && kneeRow) {
+      d = { before_score: kneeRow.before_score, during_score: kneeRow.during_score,
+            after_score: kneeRow.after_score, day_after_score: kneeRow.day_after_score,
+            date: kneeRow.date, session_type: kneeRow.session_type };
+    }
+    const name = _dashBodyPartName(inj);
+    if (!d) {
+      return `<div style="margin-bottom:8px">
+        <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px">${escHtml(name)}</div>
+        <div class="empty" style="font-size:11px">${t('dash.no_pain')}</div>
+      </div>`;
+    }
+    const phases = [
+      { label: t('knee.before'),   val: d.before_score },
+      { label: t('knee.during'),   val: d.during_score },
+      { label: t('knee.after'),    val: d.after_score },
+      { label: t('knee.dayafter'), val: d.day_after_score },
+    ];
+    return `<div style="margin-bottom:12px">
+      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px">${escHtml(name)}</div>
+      <a href="sprint.html" style="text-decoration:none;color:inherit;display:block">
+        <div class="knee-phases">
+          ${phases.map(p => `
+            <div class="knee-phase">
+              <div class="knee-phase-num" style="color:${painColor(p.val)}">${p.val ?? '–'}</div>
+              <div class="knee-phase-lbl">${p.label}</div>
+            </div>`).join('')}
+        </div>
+        <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:6px;letter-spacing:0.03em">
+          ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
+        </div>
+      </a>
+    </div>`;
+  });
+
+  el.innerHTML = parts.join('');
 }
 
 // ── Load × knesmerte (ACWR vs smerte, siste 6 uker) ────────────────────────
-let _loadPainCache = null;   // { series, painByDate } — gjenbrukes ved språkbytte
-let _loadPainChart = null;
+let _loadPainCache  = null;   // { series, injuryPainSeries } — gjenbrukes ved språkbytte
+let _loadPainChart  = null;
+let _severeInjuries = [];   // [{id,body_part,side,status,severity}] — deles med loadInjuryCards + loadLoadPain
+let _injuryCardDataCache = null;  // { injuries, injuryPainRows, kneeRow }
+
+function _isDashKneeInj(inj) {
+  const bp = (inj.body_part || '').toLowerCase();
+  return bp === 'body.knee' || bp === 'knee' || bp.includes('kne');
+}
+function _dashBodyPartName(inj) {
+  const part = t(inj.body_part) || inj.body_part;
+  const side = inj.side && inj.side !== '' ? ' ' + t('side.' + inj.side) : '';
+  return part + side;
+}
 
 function _isoDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
@@ -717,43 +787,81 @@ async function loadLoadPain() {
   const since42 = _isoDaysAgo(DAYS - 1);
   const todayISO = _isoDaysAgo(0);
 
-  const [sp, gy, ac, kn] = await Promise.all([
+  const [sp, gy, ac] = await Promise.all([
     db.from('sprint_log').select('date,rpe').gte('date', since70),
     db.from('gym_log').select('date,rpe').gte('date', since70),
     db.from('activity_log').select('date,rpe').gte('date', since70),
-    db.from('knee_pain').select('date,before_score,during_score,after_score,day_after_score').gte('date', since42),
   ]);
+
+  // Hent skader hvis ikke allerede lastet av loadInjuryCards
+  let injuries = _severeInjuries;
+  if (!injuries.length) {
+    const { data: injData } = await db.from('injuries')
+      .select('id,body_part,side,status,severity')
+      .eq('severity', 'severe').in('status', ['active', 'improving']);
+    injuries = injData || [];
+    _severeInjuries = injuries;
+  }
+
+  const injIds = injuries.map(i => i.id);
+  const kneeInj = injuries.find(i => _isDashKneeInj(i));
+
+  const ipFetch = injIds.length
+    ? db.from('injury_pain')
+        .select('injury_id,date,before_score,during_score,after_score,day_after_score')
+        .in('injury_id', injIds).gte('date', since42)
+    : Promise.resolve({ data: [] });
+  const knFetch = kneeInj
+    ? db.from('knee_pain')
+        .select('date,before_score,during_score,after_score,day_after_score').gte('date', since42)
+    : Promise.resolve({ data: [] });
+
+  const [ipRes, knRes] = await Promise.all([ipFetch, knFetch]);
 
   const events = AcwrCore.buildLoadEvents({
     sprint: sp.data || [], gym: gy.data || [], activity: ac.data || [],
   });
   const series = AcwrCore.acwrSeries(events, todayISO, DAYS);
 
-  // Smerte per dag: maks(før/under/etter) på øktdagen, day_after på dagen ETTER
-  // (slik at 24t-etterslepet vises på riktig dato)
-  const painByDate = {};
-  const bump = (date, v) => {
-    if (v == null || !date) return;
-    painByDate[date] = Math.max(painByDate[date] ?? 0, v);
-  };
-  for (const k of (kn.data || [])) {
-    bump(k.date, Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0));
-    if (k.day_after_score != null) {
-      const d = new Date(k.date + 'T12:00:00'); d.setDate(d.getDate() + 1);
-      bump(d.toISOString().slice(0, 10), k.day_after_score);
+  // Per-skade smertekart med knee_pain-fallback for kneet
+  const injuryPainSeries = injuries.map(inj => {
+    const painByDate = {};
+    const bump = (date, v) => {
+      if (v == null || !date) return;
+      painByDate[date] = Math.max(painByDate[date] ?? 0, v);
+    };
+    for (const row of (ipRes.data || [])) {
+      if (row.injury_id !== inj.id) continue;
+      bump(row.date, Math.max(row.before_score ?? 0, row.during_score ?? 0, row.after_score ?? 0));
+      if (row.day_after_score != null) {
+        const d = new Date(row.date + 'T12:00:00'); d.setDate(d.getDate() + 1);
+        bump(d.toISOString().slice(0, 10), row.day_after_score);
+      }
     }
-  }
+    if (_isDashKneeInj(inj)) {
+      for (const k of (knRes.data || [])) {
+        bump(k.date, Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0));
+        if (k.day_after_score != null) {
+          const d = new Date(k.date + 'T12:00:00'); d.setDate(d.getDate() + 1);
+          bump(d.toISOString().slice(0, 10), k.day_after_score);
+        }
+      }
+    }
+    return { inj, painByDate };
+  });
 
-  _loadPainCache = { series, painByDate };
+  _loadPainCache = { series, injuryPainSeries };
   renderLoadPain();
 }
 
 function renderLoadPain() {
   const wrap = document.getElementById('loadPainWrap');
   if (!_loadPainCache) return;
-  const { series, painByDate } = _loadPainCache;
+  const { series, injuryPainSeries } = _loadPainCache;
 
-  if (series.every(p => p.acwr == null)) {
+  const hasAcwr = series.some(p => p.acwr != null);
+  const hasPain  = (injuryPainSeries || []).some(({ painByDate }) => Object.keys(painByDate).length > 0);
+  if (!hasAcwr && !hasPain) {
     wrap.innerHTML = `<div class="empty">${t('dash.load_pain_empty')}</div>`;
     return;
   }
@@ -761,9 +869,18 @@ function renderLoadPain() {
   wrap.innerHTML = '<canvas id="loadPainChart"></canvas>';
   if (_loadPainChart) { _loadPainChart.destroy(); _loadPainChart = null; }
 
-  const dates = series.map(p => p.date);
+  const dates  = series.map(p => p.date);
   const labels = dates.map(ds => fmtDate(ds));
-  const painData = dates.map(ds => painByDate[ds] ?? null);
+
+  const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
+  const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => ({
+    label: _dashBodyPartName(inj),
+    data: dates.map(ds => painByDate[ds] ?? null),
+    yAxisID: 'yP',
+    borderColor: PAIN_COLORS[idx % PAIN_COLORS.length],
+    backgroundColor: PAIN_COLORS[idx % PAIN_COLORS.length],
+    borderWidth: 1.5, pointRadius: 3, tension: 0.2, spanGaps: false, showLine: false,
+  }));
 
   _loadPainChart = new Chart(document.getElementById('loadPainChart'), {
     type: 'line',
@@ -782,13 +899,7 @@ function renderLoadPain() {
           yAxisID: 'yA', borderColor: 'rgba(255,107,107,0.45)', borderWidth: 1,
           borderDash: [5, 4], pointRadius: 0, fill: false,
         },
-        {
-          label: t('dash.pain_label'),
-          data: painData,
-          yAxisID: 'yP', borderColor: '#FF6B6B', backgroundColor: '#FF6B6B',
-          borderWidth: 1.5, pointRadius: 3, tension: 0.2, spanGaps: false,
-          showLine: false,
-        },
+        ...painDatasets,
       ],
     },
     options: {
@@ -1391,7 +1502,7 @@ async function loadCalendar() {
   // Hvert kort har egen feilhåndtering — én feil stopper ikke resten
   const [sleepData, kneeData, rehabData] = await Promise.all([
     loadSleep().catch(e => { console.error('sleep', e); return null; }),
-    loadKnee().catch(e  => { console.error('knee', e);  return null; }),
+    loadInjuryCards().catch(e => { console.error('injuries', e); return null; }),
     loadRehabData().catch(() => null),
     loadTodos().catch(e => { console.error('todos', e); document.getElementById('importantTodos').innerHTML = `<div class="empty">${t('dash.todo_err')}</div>`; }),
     loadCalendar().catch(() => {}),
@@ -1413,8 +1524,8 @@ async function loadCalendar() {
 onLangChange = () => {
   applyLang();
   loadSession();                     // synkron — bygger badge/CTA med t()
-  loadSleep().catch(() => {});       // re-render søvnkort (Dyp-label, timer, dataalder)
-  loadKnee().catch(() => {});        // re-render knekort (fasenavn)
+  loadSleep().catch(() => {});        // re-render søvnkort (Dyp-label, timer, dataalder)
+  renderInjuryCards();               // re-render skadekort (fasenavn, kroppsdelsnavn)
   renderWeekStrip().catch(() => {});
   if (typeof renderDashTodos === 'function') renderDashTodos();
   if (_lastFokusData) renderDailyFokus(_lastFokusData);

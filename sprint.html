@@ -337,16 +337,6 @@ function painClass(s) {
   return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
 }
 
-// Returnerer skaden som er kne (for dobbeltskriving til knee_pain/sprint_log)
-function _kneeInjury() {
-  return _severeInjuries.find(i =>
-    i.body_part === 'body.knee' || /kne|knee/i.test(i.body_part));
-}
-function _kneeScores() {
-  const k = _kneeInjury();
-  return k ? (_injuryScores[k.id] || {}) : {};
-}
-
 // Oversett body_part til visningsnavn (body.knee → «Kne» el. «Knee»)
 function bodyPartName(inj) {
   const base = t(inj.body_part) !== inj.body_part ? t(inj.body_part) : inj.body_part;
@@ -403,20 +393,6 @@ function selectInjuryPain(injId, phase, score) {
   _injuryScores[injId][phase] = score;
   _highlightInjuryBtn(injId, phase, score);
   saveDraft();
-}
-
-// P6: Fjern når knee_pain er fullstendig migrert til injury_pain
-async function _legacyKneeDoubleWrite(date, sessionType, notes) {
-  const ks = _kneeScores();
-  if (Object.values(ks).every(v => v == null)) return;
-  await db.from('knee_pain').insert({
-    date, session_type: sessionType,
-    before_score:    ks.before    ?? null,
-    during_score:    ks.during    ?? null,
-    after_score:     ks.after     ?? null,
-    day_after_score: ks.dayafter  ?? null,
-    notes,
-  });
 }
 
 // ── Injuries (last fra DB ved sidelast) ──────────────────────────────────────
@@ -511,19 +487,6 @@ async function saveManualPain(injId) {
     notes,
   });
   if (error) { toast(t('pain.save_err', { msg: error.message }), 'err'); return; }
-
-  // P6: Double-write for kne-skade
-  const inj = _severeInjuries.find(i => i.id === injId);
-  if (inj && (inj.body_part === 'body.knee' || /kne|knee/i.test(inj.body_part))) {
-    await db.from('knee_pain').insert({
-      date, session_type: 'manual',
-      before_score:    scores.before   ?? null,
-      during_score:    scores.during   ?? null,
-      after_score:     scores.after    ?? null,
-      day_after_score: scores.dayafter ?? null,
-      notes,
-    });
-  }
 
   toast(t('pain.manual_saved'));
   _manualScores[injId] = {};
@@ -733,15 +696,9 @@ async function logSession() {
     const durRaw = document.getElementById('logDuration')?.value;
     const duration_min = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
 
-    const ks = _kneeScores();
     const inserts = runs.map(r => ({
       date, distance: r.distance, type: r.type, time_seconds: r.time,
       rpe, notes, duration_min,
-      // P6: Dobbeltskriving til knee_*-kolonner i sprint_log
-      knee_before:    ks.before    ?? null,
-      knee_during:    ks.during    ?? null,
-      knee_after:     ks.after     ?? null,
-      knee_day_after: ks.dayafter  ?? null,
     }));
 
     // session_type er visningstekst → bruk distLabel, aldri rå koder
@@ -767,9 +724,6 @@ async function logSession() {
       const ipRes = await db.from('injury_pain').insert(injRows);
       if (ipRes.error) toast(t('pain.save_err', { msg: ipRes.error.message }), 'err');
     }
-
-    // P6: Dobbeltskriving til knee_pain (legacy)
-    await _legacyKneeDoubleWrite(date, sessionType, notes);
 
     // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
     const newPBs = [];
@@ -957,7 +911,7 @@ async function saveHistField(date, field, valueStr) {
   }
   const ids = sprintLog.filter(r => r.date === date).map(r => r.id);
   if (!ids.length) return;
-  // Informer bruker om at kne-verdier gjelder alle løp på denne datoen
+  // DEPRECATED (P6): sprint_log.knee_* columns — keep editable until DROP migration
   const kneeFields = ['knee_before','knee_during','knee_after','knee_day_after'];
   if (kneeFields.includes(field) && ids.length > 1 && value !== null) {
     toast(t('sprint.updating', {n: ids.length}), 'ok');
@@ -985,7 +939,7 @@ async function deleteSprintDate(date) {
   toast(t('sprint.deleted'));
 }
 
-// ── Knee trend — reads from knee_pain (before_score/during_score/...) ─────
+// ── Knee trend — DEPRECATED (P6): reads knee_pain; keep until injury_pain trend panel replaces it ──
 async function loadKneeTrend() {
   // Order by created_at (newest first), fall back to date if column missing
   let { data, error } = await db.from('knee_pain')
@@ -1076,6 +1030,7 @@ function closeKneeEdit() {
   document.getElementById('kneeEditPanel').style.display = 'none';
 }
 
+// DEPRECATED (P6): edits knee_pain rows; keep until trend panel is replaced with injury_pain
 async function saveKneeInline() {
   if (_editingKneeIdx === null) return;
   const d        = _kneeTrendData[_editingKneeIdx];

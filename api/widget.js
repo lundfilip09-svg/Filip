@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     // health_data limit=7 → rad [0] = siste natt, rad [1] = forrige loggførte
     // natt ("i går"), alle 7 brukes til søvn-historikk-stolpene (Large-widget).
     const [sleepRows, kneeRows, todoRows, gymLoad, sprintLoad, actLoad, weeklyRows,
-           gymPrev, sprintPrev, actPrev] =
+           gymPrev, sprintPrev, actPrev, injuriesRows] =
       await Promise.all([
         sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,light_sleep_minutes,rem_sleep_minutes,awake_minutes,sleep_start,sleep_end&order=date.desc&limit=7', cfg),
         sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
@@ -106,13 +106,63 @@ export default async function handler(req, res) {
         sb(`gym_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
         sb(`sprint_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
         sb(`activity_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
+        sb('injuries?select=id,body_part,side,status,severity&severity=eq.severe&status=in.(active,improving)&order=updated_at.desc&limit=10', cfg),
       ]);
 
+    // Phase 2: injury_pain for severe injuries (needs IDs from phase 1).
+    // injury_pain har ingen user_id → hentes direkte uten user-filter.
+    // Filtrering på injury_id skoper til riktig bruker (service_role bypasser uansett RLS).
+    const severeInjs = Array.isArray(injuriesRows) ? injuriesRows : [];
+    const severeIds  = severeInjs.map(i => i.id).filter(Boolean);
+    let injPainRows = [];
+    if (severeIds.length) {
+      const ipData = await sb(
+        `injury_pain?select=id,injury_id,date,session_type,before_score,during_score,after_score,day_after_score&injury_id=in.(${severeIds.join(',')})&order=date.desc&limit=50`,
+        cfg
+      );
+      injPainRows = Array.isArray(ipData) ? ipData : [];
+    }
+
+    // Siste injury_pain-rad per skade og forrige rad (for trendutspeiling i widget)
+    const injPainLatest = {};   // injuryId → nyeste rad
+    const injPainPrev   = {};   // injuryId → nest-nyeste rad
+    for (const row of injPainRows) {
+      if (!injPainLatest[row.injury_id]) {
+        injPainLatest[row.injury_id] = row;
+      } else if (!injPainPrev[row.injury_id]) {
+        injPainPrev[row.injury_id] = row;
+      }
+    }
+
     const sleep = sleepRows[0] || null;
-    const knee = kneeRows[0] || null;
     const sleepPrev = sleepRows[1] || null;
-    const kneePrev = kneeRows[1] || null;
     const weekly = (weeklyRows && weeklyRows[0]) || null;
+
+    // knee: les fra injury_pain for kne-skaden, fall tilbake til knee_pain
+    const isKneeBodyPart = (inj) => {
+      const bp = (inj.body_part || '').toLowerCase();
+      return bp === 'body.knee' || bp === 'knee' || bp.includes('kne');
+    };
+    const kneeInj = severeInjs.find(isKneeBodyPart);
+    const kneeIpRow  = kneeInj ? (injPainLatest[kneeInj.id] || null) : null;
+    const kneeIpPrev = kneeInj ? (injPainPrev[kneeInj.id]   || null) : null;
+    const kneeRow  = kneeRows[0] || null;
+    const kneePrev = kneeRows[1] || null;
+
+    // Normaliser til felles knee-shape (injury_pain → field-mapping → same names)
+    const toKneeShape = (ipRow) => ipRow ? {
+      date: ipRow.date, session_type: ipRow.session_type,
+      before: ipRow.before_score, during: ipRow.during_score,
+      after: ipRow.after_score, day_after: ipRow.day_after_score,
+    } : null;
+    const kneeOut = kneeIpRow
+      ? toKneeShape(kneeIpRow)
+      : kneeRow && { date: kneeRow.date, session_type: kneeRow.session_type,
+          before: kneeRow.before_score, during: kneeRow.during_score,
+          after: kneeRow.after_score, day_after: kneeRow.day_after_score };
+    const kneePrevOut = kneeIpPrev
+      ? { worst_score: worstKnee(kneeIpPrev) }
+      : kneePrev ? { worst_score: worstKnee(kneePrev) } : null;
 
     const last7load = [
       ...(gymLoad || []).map(r => loadRow(r, 'session_type', 'gym')),
@@ -140,14 +190,27 @@ export default async function handler(req, res) {
         sleep_start: sleep.sleep_start,
         sleep_end: sleep.sleep_end,
       },
-      knee: knee && {
-        date: knee.date,
-        session_type: knee.session_type,
-        before: knee.before_score,
-        during: knee.during_score,
-        after: knee.after_score,
-        day_after: knee.day_after_score,
-      },
+      // knee: bakoverkompatibel — leser fra injury_pain for kne-skaden, fallback knee_pain
+      knee: kneeOut,
+      // injuries: ett objekt per alvorlig aktiv/bedring-skade med siste smertedata
+      injuries: severeInjs.map(inj => {
+        const latest = injPainLatest[inj.id] || null;
+        return {
+          id: inj.id,
+          body_part: inj.body_part,
+          side: inj.side,
+          status: inj.status,
+          severity: inj.severity,
+          latest_pain: latest ? {
+            date: latest.date,
+            session_type: latest.session_type,
+            before: latest.before_score,
+            during: latest.during_score,
+            after: latest.after_score,
+            day_after: latest.day_after_score,
+          } : null,
+        };
+      }),
       todos: (todoRows || []).map(t => ({
         title: t.title,
         due_date: t.due_date,
@@ -157,7 +220,7 @@ export default async function handler(req, res) {
       // Forrige loggførte dag — driver trend-pilene i widgetene.
       yesterday: {
         sleep: sleepPrev ? { score: sleepPrev.sleep_score, hrv: sleepPrev.hrv } : null,
-        knee: kneePrev ? { worst_score: worstKnee(kneePrev) } : null,
+        knee: kneePrevOut,
       },
       // Siste 7 loggførte netter (nyeste først): til søvnscore-stolper.
       last7sleep: (sleepRows || []).map(r => ({ date: r.date, sleep_score: r.sleep_score })),

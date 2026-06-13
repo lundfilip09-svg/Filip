@@ -55,7 +55,9 @@
       "Bash(sed -n '911,918p' /Users/09fillun/Dev/Dashboard/utils.js)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/api/widget.js)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/sprint.html)",
-      "Bash(node --check /Users/09fillun/Dev/Dashboard/gym.html)"
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/gym.html)",
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/api/_lib/context.js)",
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/treningsplan.html)"
     ]
   }
 }

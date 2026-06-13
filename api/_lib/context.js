@@ -84,17 +84,39 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     // Fysio-/naprapat-notater (siste 10) — autoritativ kilde til behandlingsråd
     sb('physio_notes', 'select=date,therapist,note&order=date.desc&limit=10'),
     // Plageliste — aktive/bedring/arkiverte skader, autoritativ status
-    sb('injuries', 'select=body_part,side,status,severity,start_date,note&order=updated_at.desc&limit=20'),
+    sb('injuries', 'select=id,body_part,side,status,severity,start_date,note&order=updated_at.desc&limit=20'),
   ]);
 
-  // ── B6: forhåndsberegnede nøkkeltall ──────────────────────────────
+  // ── Fase 2: injury_pain per alvorlig aktiv skade (trenger ID-er fra fase 1) ──
   const _todayISO = (typeof localDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(localDate))
     ? localDate
     : new Date().toISOString().slice(0, 10);
-  const _now = new Date(_todayISO + 'T12:00:00');
+  const _now    = new Date(_todayISO + 'T12:00:00');
   const _daysAgo = (ds) => Math.floor((_now - new Date(ds + 'T12:00:00')) / 86400000);
-  const _avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const _avg    = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const _kneeMax = (k) => Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0, k.day_after_score ?? 0);
 
+  const _isKneeBodyPart = (inj) => {
+    const bp = (inj.body_part || '').toLowerCase();
+    return bp === 'body.knee' || bp === 'knee' || bp.includes('kne');
+  };
+
+  const _allInjuries = Array.isArray(injuriesData) ? injuriesData : [];
+  const _severeInj   = _allInjuries.filter(i => i.severity === 'severe' && i.status !== 'archived');
+  const _severeIds   = _severeInj.map(i => i.id).filter(Boolean);
+
+  // injury_pain har ingen user_id-kolonne → bruk sbFetch direkte (uten uf-filter).
+  // Filtrering på injury_id impliserer riktig bruker siden _severeIds kom fra sb() med uf.
+  let injPainRows = [];
+  if (_severeIds.length) {
+    const ipData = await sbFetch(
+      supabaseUrl, apikey, token, 'injury_pain',
+      `select=id,injury_id,date,session_type,before_score,during_score,after_score,day_after_score,source&injury_id=in.(${_severeIds.join(',')})&order=date.desc&limit=200`
+    );
+    injPainRows = Array.isArray(ipData) ? ipData : [];
+  }
+
+  // ── B6: forhåndsberegnede nøkkeltall ──────────────────────────────
   const _loadEvents = AcwrCore.buildLoadEvents({
     sprint: Array.isArray(sprint28) ? sprint28 : [],
     gym: Array.isArray(gym28) ? gym28 : [],
@@ -102,10 +124,32 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   });
   const { acwr } = AcwrCore.acwrOn(_loadEvents, _todayISO);
 
-  const _kneeMax = (k) => Math.max(k.before_score ?? 0, k.during_score ?? 0, k.after_score ?? 0, k.day_after_score ?? 0);
   const knee60 = Array.isArray(knee28) ? knee28 : [];
-  const lastPainDay = knee60.filter(k => _kneeMax(k) > 2).map(k => k.date).sort().pop() || null;
-  const daysSincePain = lastPainDay ? _daysAgo(lastPainDay) : null;
+
+  // Felles leksikon for body_part / side (brukes av metrics, injuries-blokk og pain-logg)
+  const BODY_NO = { 'body.knee':'Kne','body.hamstring':'Hamstring','body.glute':'Glute',
+    'body.hipflexor':'Hoftebøyer','body.hip':'Hofte','body.shoulder':'Skulder','body.back':'Rygg',
+    'body.neck':'Nakke','body.ankle':'Ankel','body.calf':'Legg','body.achilles':'Akilles','body.foot':'Fot','body.other':'Annet' };
+  const SIDE_NO = { left:'venstre', right:'høyre', both:'begge' };
+  const STAT_NO = { active:'AKTIV', improving:'BEDRING', archived:'arkivert' };
+  const SEV_NO  = { mild:'mild', moderate:'moderat', severe:'alvorlig' };
+  const _fmtName = (inj) => (BODY_NO[inj.body_part] || inj.body_part) + (inj.side && SIDE_NO[inj.side] ? ' ' + SIDE_NO[inj.side] : '');
+
+  // Per-skade "dager siden smerte": injury_pain primær, knee_pain fallback for kne
+  const injDaysSince = _severeInj.map(inj => {
+    const ipRows = injPainRows.filter(r => r.injury_id === inj.id && _daysAgo(r.date) <= 60);
+    const ipLastPain = ipRows.filter(r => _kneeMax(r) > 2).map(r => r.date).sort().pop() || null;
+    let dsp = ipLastPain ? _daysAgo(ipLastPain) : null;
+    if (dsp === null && _isKneeBodyPart(inj)) {
+      const kLast = knee60.filter(k => _kneeMax(k) > 2).map(k => k.date).sort().pop() || null;
+      if (kLast) dsp = _daysAgo(kLast);
+    }
+    return { inj, dsp, latestScore: ipRows[0] ? _kneeMax(ipRows[0]) : null };
+  });
+
+  // Legacyfallback: bruk knee_pain alene hvis ingen alvorlige skader er registrert
+  const _legacyLastPainDay = knee60.filter(k => _kneeMax(k) > 2).map(k => k.date).sort().pop() || null;
+  const _legacyDaysSince   = _legacyLastPainDay ? _daysAgo(_legacyLastPainDay) : null;
 
   const avgSleep = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.sleep_score).filter(v => v != null));
   const avgHrv   = _avg((Array.isArray(healthData) ? healthData : []).map(h => h.hrv).filter(v => v != null));
@@ -115,7 +159,17 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   if (acwr != null) {
     metricLines.push(`ACWR (akutt:kronisk belastning, EWMA 7d:28d): ${acwr.toFixed(2)}${acwr > 1.5 ? ' ⚠️ over 1.5 = forhøyet skaderisiko' : ''}`);
   }
-  metricLines.push(`Dager siden siste knesmerte (>2): ${daysSincePain != null ? daysSincePain : 'ingen smerte registrert nylig'}`);
+  if (_severeInj.length) {
+    injDaysSince.forEach(({ inj, dsp, latestScore }) => {
+      const name = _fmtName(inj);
+      metricLines.push(
+        `Dager siden siste ${name}-smerte (>2): ${dsp != null ? dsp : 'ingen registrert nylig'}` +
+        (latestScore != null ? ` (siste registrerte: ${latestScore}/10)` : '')
+      );
+    });
+  } else {
+    metricLines.push(`Dager siden siste knesmerte (>2): ${_legacyDaysSince != null ? _legacyDaysSince : 'ingen smerte registrert nylig'}`);
+  }
   metricLines.push(`Snitt søvnscore (7d): ${avgSleep != null ? Math.round(avgSleep) : '–'}`);
   metricLines.push(`Snitt HRV (7d): ${avgHrv != null ? Math.round(avgHrv) : '–'} ms`);
   metricLines.push(`Snitt hvilepuls (7d): ${avgRhr != null ? Math.round(avgRhr) : '–'}`);
@@ -130,13 +184,7 @@ ${notesArr.map(n => `- (${n.date}) ${n.note}`).join('\n')}`
     : '';
 
   // Plageliste — aktive/bedring øverst, arkiverte til slutt
-  const BODY_NO = { 'body.knee':'Kne','body.hamstring':'Hamstring','body.glute':'Glute',
-    'body.hipflexor':'Hoftebøyer','body.hip':'Hofte','body.shoulder':'Skulder','body.back':'Rygg',
-    'body.neck':'Nakke','body.ankle':'Ankel','body.calf':'Legg','body.achilles':'Akilles','body.foot':'Fot','body.other':'Annet' };
-  const SIDE_NO = { left:'venstre', right:'høyre', both:'begge' };
-  const STAT_NO = { active:'AKTIV', improving:'BEDRING', archived:'arkivert' };
-  const SEV_NO  = { mild:'mild', moderate:'moderat', severe:'alvorlig' };
-  const injAll = Array.isArray(injuriesData) ? injuriesData : [];
+  const injAll = _allInjuries;
   const injActive = injAll.filter(i => i.status !== 'archived');
   const injArchived = injAll.filter(i => i.status === 'archived');
   const fmtInj = i => {
@@ -193,6 +241,26 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     ? rows.map(r => { const { user_id, id, created_at, ...rest } = r; return rest; })
     : rows;
 
+  // Per-skade smerte-logg: injury_pain primær, knee_pain fallback for kne-skaden
+  let painLogHeader, painLogBlock;
+  if (_severeInj.length) {
+    painLogHeader = '[SMERTE-LOGGER — SISTE 7 PER AKTIV SKADE]';
+    const parts = _severeInj.map(inj => {
+      const name = _fmtName(inj);
+      const rows = injPainRows.filter(r => r.injury_id === inj.id).slice(0, 7);
+      if (rows.length === 0 && _isKneeBodyPart(inj)) {
+        const kpRows = (Array.isArray(kneePainData) ? kneePainData : []).slice(0, 7);
+        return `${name} (fra knee_pain, fallback):\n${JSON.stringify(stripMeta(kpRows))}`;
+      }
+      if (rows.length === 0) return `${name}: (ingen registrert)`;
+      return `${name}:\n${JSON.stringify(rows.map(({ id: _i, injury_id: _ij, source: _s, ...r }) => r))}`;
+    });
+    painLogBlock = parts.join('\n\n');
+  } else {
+    painLogHeader = '[KNESMERTE-LOGGER — SISTE 7]';
+    painLogBlock  = JSON.stringify(stripMeta(kneePainData));
+  }
+
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
@@ -219,8 +287,8 @@ ${JSON.stringify(stripMeta(sprintData))}
 [GYM-LOGGER — SISTE 7]
 ${JSON.stringify(stripMeta(gymData))}
 
-[KNESMERTE-LOGGER — SISTE 7]
-${JSON.stringify(stripMeta(kneePainData))}
+${painLogHeader}
+${painLogBlock}
 
 [ANDRE AKTIVITETER — SISTE 7 (fotball, basket, padel, svømming, rolig dag osv)]
 ${JSON.stringify(stripMeta(activityData))}`;

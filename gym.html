@@ -2350,20 +2350,6 @@ function selectGymInjuryPain(injId, phase, score) {
   saveDraft();
 }
 
-// P6: Fjern når knee_pain er fullstendig migrert til injury_pain
-async function _legacyGymKneeDoubleWrite(date, sessionType, notes) {
-  const ks = kneePain; // use the authoritative kneePain state (synced from injury)
-  if (Object.values(ks).every(v => v == null)) return;
-  await db.from('knee_pain').insert({
-    date, session_type: sessionType,
-    before_score:    ks.before      ?? null,
-    during_score:    ks.during      ?? null,
-    after_score:     ks.after       ?? null,
-    day_after_score: ks['day-after']?? null,
-    notes,
-  });
-}
-
 async function loadSevereInjuries() {
   const { data } = await db.from('injuries')
     .select('id, body_part, side, status, severity')
@@ -2454,19 +2440,6 @@ async function saveGymManualPain(injId) {
     notes,
   });
   if (error) { toast(t('pain.save_err', { msg: error.message }), 'err'); return; }
-
-  // P6: Double-write for kne
-  const inj = _severeInjuries.find(i => i.id === injId);
-  if (inj && (inj.body_part === 'body.knee' || /kne|knee/i.test(inj.body_part))) {
-    await db.from('knee_pain').insert({
-      date, session_type: 'manual',
-      before_score:    scores.before   ?? null,
-      during_score:    scores.during   ?? null,
-      after_score:     scores.after    ?? null,
-      day_after_score: scores.dayafter ?? null,
-      notes,
-    });
-  }
 
   toast(t('pain.manual_saved'));
   _gymManualScores[injId] = {};
@@ -2652,9 +2625,6 @@ async function saveLog() {
       if (ipRes.error) toast(t('pain.save_err', { msg: ipRes.error.message }), 'err');
     }
 
-    // P6: Double-write til knee_pain (legacy)
-    await _legacyGymKneeDoubleWrite(date, sessionType, notes);
-
     // B1: lagre sett-historikk for progressive overload-coachen.
     const kneeMax = Math.max(0,
       kneePain['before'] ?? 0, kneePain['during'] ?? 0,
@@ -2730,11 +2700,12 @@ async function loadGymHistory() {
 
   if (sessions.length) {
     const dates = [...new Set(sessions.map(g => g.date))];
+    // DEPRECATED (P6): knee_pain read-fallback — keep until DROP migration
     const { data: kneeData, error: kneeErr } = await db.from('knee_pain')
       .select('*').in('date', dates);
     (kneeData || []).forEach(k => { kneeMap[k.date + '|' + (k.session_type || '')] = k; });
   } else {
-    // Fallback: build from knee_pain for non-sprint sessions
+    // DEPRECATED (P6): knee_pain read-fallback — keep until DROP migration
     const { data: kneeData, error: kneeErr } = await db.from('knee_pain')
       .select('*')
       .not('session_type', 'ilike', 'Sprint%')
@@ -2851,6 +2822,7 @@ async function loadGymHistory() {
 async function deleteGymSession(gymId, kneePainId) {
   if (!confirm(t('confirm.delete_session'))) return;
   const ops = [db.from('gym_log').delete().eq('id', gymId)];
+  // DEPRECATED (P6): knee_pain delete — keep until DROP migration
   if (kneePainId) ops.push(db.from('knee_pain').delete().eq('id', kneePainId));
   const results = await Promise.all(ops);
   if (results.some(r => r.error)) { toast(t('gym.delete_error'), 'err'); return; }
@@ -2871,6 +2843,7 @@ function toggleHistSets(id) {
   if (arrow) arrow.textContent = show ? '▾' : '▸';
 }
 
+// DEPRECATED (P6): edits knee_pain rows from history panel — keep until injury_pain replaces it
 async function saveKneeEdit(gymId, kneeId, date, sessionType) {
   const before   = parseInt(document.getElementById(`ke-before-${gymId}`).value);
   const during   = parseInt(document.getElementById(`ke-during-${gymId}`).value);
@@ -3131,6 +3104,7 @@ function selectDayAfterPain(score) {
   });
 }
 
+// DEPRECATED (P6): writes day-after score to knee_pain — keep until injury_pain day-after banner
 async function saveDayAfterPain() {
   if (_dayAfterScore === null || !_dayAfterSession) { toast(t('gym.select_pain_score'), 'err'); return; }
   const { date, sessionType, kneeId } = _dayAfterSession;
@@ -3154,7 +3128,7 @@ function dismissDayAfterBanner() {
   if (banner) banner.style.display = 'none';
 }
 
-// ── Autosave knee pain in history panel ───────────────────────────
+// ── DEPRECATED (P6): knee_pain autosave in history panel — keep until injury_pain replaces it ──
 async function autoSaveKnee(gymId, date, sessionType) {
   const panel = document.getElementById(`knee-edit-${gymId}`);
   if (!panel) return;
