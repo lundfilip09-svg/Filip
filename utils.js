@@ -170,6 +170,7 @@ const TRANSLATIONS = {
     'gym.tap_exercise': 'Trykk på en øvelse for å begynne', 'gym.next_exercise': 'Neste øvelse',
     'gym.tools': 'Verktøy', 'gym.rest_timer': 'Hviletimer', 'gym.not_running': 'Ikke i drift',
     'gym.notes': 'Notater', 'gym.notes_ph': 'Kommentarer…', 'gym.register_pain': 'Registrer smerte',
+    'gym.live_pain': 'Smerte',
     'gym.add_set_br': 'Legg til<br>sett', 'gym.jump_next_br': 'Hopp til<br>neste', 'gym.finish_br': 'Fullfør<br>økt',
     'gym.date': 'Dato', 'gym.after_session': 'Etter økt', 'gym.day_after': 'Dagen etter',
     'gym.exercise_ph': 'Øvelse', 'gym.sets_ph': 'Sett', 'gym.reps_ph': 'Reps',
@@ -179,6 +180,15 @@ const TRANSLATIONS = {
     'gym.all_done': 'Alle øvelser fullført ✓', 'gym.no_warmup_phase': 'Ingen oppvarmingsdata',
     'gym.rest_range': 'Velg mellom 5 sek og 10 min', 'gym.fill_day_after': 'Kan fylles inn dagen etter',
     'gym.notif_rest_done': 'Hviletimer ferdig', 'gym.notif_rest_body': 'Tid for neste sett!',
+    'notif.enable': 'Slå på varsler', 'notif.enabled': 'Varsler på ✓',
+    'notif.denied': 'Varsler er avslått — slå på i telefonens innstillinger',
+    'notif.unsupported': 'Varsler støttes ikke her',
+    'notif.ios_install': 'Legg appen til på Hjem-skjermen først (Del → Legg til på Hjem-skjerm)',
+    'notif.no_vapid': 'Serveren mangler VAPID-nøkler', 'notif.error': 'Kunne ikke slå på varsler',
+    'gm.reminder': 'Påminnelse', 'gm.add_reminder': 'Påminnelse', 'gm.reminder_set': 'Påminnelse satt',
+    'gm.reminder_cleared': 'Påminnelse fjernet', 'gm.reminder_at': 'Påminnelse {time}',
+    'gm.reminder_past': 'Velg et tidspunkt frem i tid', 'gm.clear_reminder': 'Fjern påminnelse',
+    'gm.reminder_body': 'Påminnelse',
     'gym.sets_progress': '{done} / {total} sett',
     'gym.ring_done': 'ferdig',
     'gym.notes_zero': '0 notater',
@@ -655,6 +665,7 @@ const TRANSLATIONS = {
     'gym.tap_exercise': 'Tap an exercise to begin', 'gym.next_exercise': 'Next exercise',
     'gym.tools': 'Tools', 'gym.rest_timer': 'Rest timer', 'gym.not_running': 'Not running',
     'gym.notes': 'Notes', 'gym.notes_ph': 'Comments…', 'gym.register_pain': 'Log pain',
+    'gym.live_pain': 'Pain',
     'gym.add_set_br': 'Add<br>set', 'gym.jump_next_br': 'Jump to<br>next', 'gym.finish_br': 'Finish<br>session',
     'gym.date': 'Date', 'gym.after_session': 'After session', 'gym.day_after': 'Day after',
     'gym.exercise_ph': 'Exercise', 'gym.sets_ph': 'Sets', 'gym.reps_ph': 'Reps',
@@ -664,6 +675,15 @@ const TRANSLATIONS = {
     'gym.all_done': 'All exercises done ✓', 'gym.no_warmup_phase': 'No warm-up data',
     'gym.rest_range': 'Choose between 5 sec and 10 min', 'gym.fill_day_after': 'Can be filled in the day after',
     'gym.notif_rest_done': 'Rest timer done', 'gym.notif_rest_body': 'Time for the next set!',
+    'notif.enable': 'Enable notifications', 'notif.enabled': 'Notifications on ✓',
+    'notif.denied': 'Notifications blocked — enable in your phone settings',
+    'notif.unsupported': 'Notifications not supported here',
+    'notif.ios_install': 'Add the app to your Home Screen first (Share → Add to Home Screen)',
+    'notif.no_vapid': 'Server is missing VAPID keys', 'notif.error': 'Could not enable notifications',
+    'gm.reminder': 'Reminder', 'gm.add_reminder': 'Reminder', 'gm.reminder_set': 'Reminder set',
+    'gm.reminder_cleared': 'Reminder cleared', 'gm.reminder_at': 'Reminder {time}',
+    'gm.reminder_past': 'Pick a time in the future', 'gm.clear_reminder': 'Clear reminder',
+    'gm.reminder_body': 'Reminder',
     'gym.sets_progress': '{done} / {total} sets',
     'gym.ring_done': 'done',
     'gym.notes_zero': '0 notes',
@@ -1203,6 +1223,112 @@ async function getConfig() {
   if (cfg.error) throw new Error(cfg.error);
   sessionStorage.setItem('app_config', JSON.stringify(cfg));
   return cfg;
+}
+
+// ── Web Push (varsler som fyrer mens du er i andre apper) ───────────────────
+// Hviletimeren og gjøremål-påminnelser bruker dette. iOS dreper service
+// worker-en i bakgrunnen, så ekte Web Push (VAPID) er eneste pålitelige vei.
+// MERK iOS: krever at PWA-en er lagt til på Hjem-skjermen først.
+function notifSupported() {
+  return ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+}
+function notifPermission() {
+  return ('Notification' in window) ? Notification.permission : 'unsupported';
+}
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+async function getAccessToken() {
+  try {
+    if (typeof db === 'undefined' || !db) return null;
+    const { data } = await db.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch { return null; }
+}
+
+// Be om tillatelse + abonner. MÅ kalles fra en bruker-gest (klikk) pga iOS.
+async function enableNotifications(opts = {}) {
+  if (!notifSupported()) { toast(t('notif.unsupported'), 'err'); return false; }
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS && !standalone) { toast(t('notif.ios_install'), 'err'); return false; }
+
+  let perm = Notification.permission;
+  if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch { perm = 'denied'; } }
+  if (perm !== 'granted') { toast(t('notif.denied'), 'err'); return false; }
+
+  try {
+    const cfg = await getConfig();
+    if (!cfg.vapidPublicKey) { toast(t('notif.no_vapid'), 'err'); return false; }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(cfg.vapidPublicKey),
+      });
+    }
+    const token = await getAccessToken();
+    const r = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+    if (!r.ok) throw new Error('subscribe ' + r.status);
+    if (!opts.silent) toast(t('notif.enabled'));
+    return true;
+  } catch (e) {
+    toast(t('notif.error'), 'err');
+    return false;
+  }
+}
+
+// Sørg for at varsler er klare. Hvis ikke gitt tillatelse → prøv enable (gest).
+async function ensurePushReady() {
+  if (!notifSupported()) return false;
+  if (Notification.permission === 'granted') {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) return true;
+    } catch {}
+    return enableNotifications({ silent: true });
+  }
+  return enableNotifications();
+}
+
+// Planlegg et server-levert varsel.
+// opts: { kind, title, body, tag, url, delaySeconds | fireAt, todoId }
+async function schedulePush(opts) {
+  try {
+    const token = await getAccessToken();
+    if (!token) return null;
+    const r = await fetch('/api/push/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(opts),
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+// Kanseller et planlagt varsel. opts: { id } eller { todoId }
+async function cancelPush(opts) {
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch('/api/push/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(opts),
+    });
+  } catch {}
 }
 
 // ── Auto-hent søvn ────────────────────────────────────────────────────────

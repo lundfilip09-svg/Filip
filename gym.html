@@ -609,6 +609,9 @@
           <input type="number" id="restCustomSec" class="rest-custom-input" min="0" max="59" placeholder="sek" data-i18n-placeholder="unit.sec">
           <button class="rest-preset" onclick="startCustomRest()">Start</button>
         </div>
+        <div class="rest-notif-row" id="restNotifRow" style="margin-top:8px;display:none">
+          <button class="rest-preset" style="width:100%" onclick="enableRestNotifications()">🔔 <span data-i18n="notif.enable">Slå på varsler</span></button>
+        </div>
       </div>
 
       <div class="tool-item" id="ti-notes" onclick="toggleTool('notes')">
@@ -625,13 +628,14 @@
 
       <div class="tool-item" id="ti-knee" onclick="toggleTool('knee')">
         <div class="tool-icon">🦵</div>
-        <div class="tool-name" data-i18n="knee.pain">Knesmerte</div>
+        <div class="tool-name" data-i18n="gym.live_pain">Smerte</div>
         <div class="tool-val" id="kneeVal" data-i18n="gym.register_pain">Registrer smerte</div>
         <div class="tool-arr">›</div>
       </div>
       <div class="tool-body" id="tb-knee">
+        <div class="pain-phase-pills" id="sbInjPills" style="margin-bottom:7px;display:none"></div>
         <div class="mini-pain-row" id="sbKneeButtons" style="margin-bottom:6px"></div>
-        <div class="pain-phase-pills">
+        <div class="pain-phase-pills" id="sbPhasePills">
           <button class="pain-phase-pill" id="pp-before"    onclick="setSbPhase('before')" data-i18n="knee.before">Før</button>
           <button class="pain-phase-pill active" id="pp-during" onclick="setSbPhase('during')" data-i18n="knee.during">Under</button>
           <button class="pain-phase-pill" id="pp-after"     onclick="setSbPhase('after')" data-i18n="knee.after">Etter</button>
@@ -723,6 +727,7 @@ const kneePain   = { before: null, during: null, after: null, 'day-after': null 
 let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
 let _injuryScores   = {};   // {injuryId: {before, during, after, dayafter}}
 let _gymManualScores = {};  // {injuryId: {before, during, after, dayafter}}
+let _histInjuryPain  = {};  // `${injuryId}|${date}` → injury_pain-rad (for historikk-skuffen)
 
 let _isSavingLog      = false;
 let _loggedThisSession = false;  // satt i saveLog — vakter «Ny økt» mot tap av ulagret økt
@@ -743,6 +748,7 @@ let restDuration        = 0;      // total seconds — persisted
 let restPaused          = false;
 let restPausedRemaining = 0;
 let sbKneePhase   = 'during';
+let _liveInjId    = null;   // valgt skade i live-smerte-verktøyet (tb-knee)
 
 const SESSION_KEY = 'gym_session_v2';
 const DRAFT_KEY   = 'gym_form_draft';
@@ -791,6 +797,7 @@ function saveDraft() {
       sidebarNotes: document.getElementById('sidebarNotes')?.value  || '',
       setData,
       kneePain: { ...kneePain },
+      injuryScores: _injuryScores,
     }));
   } catch(e) {}
 }
@@ -806,6 +813,7 @@ function restoreDraft() {
     // user-added sets bleeding into a new session
     if (d.setData && d.logDate === today()) setData = d.setData;
     if (d.kneePain)     Object.assign(kneePain, d.kneePain);
+    if (d.injuryScores) Object.assign(_injuryScores, d.injuryScores);
     if (d.logDate)      document.getElementById('logDate').value = d.logDate;
     if (d.sessionNotes) document.getElementById('sessionNotes').value = d.sessionNotes;
     if (d.sidebarNotes) {
@@ -932,6 +940,7 @@ function saveSession() {
     ),
     setData,
     kneePain: { ...kneePain },
+    injuryScores: _injuryScores,
     restStartedAt,
     restDuration,
     notes: document.getElementById('sidebarNotes')?.value || '',
@@ -979,6 +988,7 @@ function tryRestoreSession(data) {
     Object.entries(data.completedSets || {}).forEach(([k, v]) => { completedSets[k] = new Set(v); });
     setData = data.setData || {};
     Object.assign(kneePain, data.kneePain || {});
+    Object.assign(_injuryScores, data.injuryScores || {});
     if (data.restStartedAt && data.restDuration) {
       restStartedAt = data.restStartedAt;
       restDuration  = data.restDuration;
@@ -1001,9 +1011,12 @@ function swPost(msg) {
 async function init() {
   document.getElementById('logDate').value = today();
   applyLang();
-  // Request notification permission on load so timer fires system alerts
-  if (typeof Notification !== 'undefined' && Notification.permission === 'default')
-    Notification.requestPermission();
+  // Vis «Slå på varsler»-knappen i hviletimeren hvis tillatelse mangler.
+  // (iOS krever bruker-gest for å spørre — derfor en knapp, ikke auto-prompt.)
+  refreshRestNotifBtn();
+  // Hvis alt tillatt: sørg for at push-abonnementet er lagret server-side.
+  if (typeof notifPermission === 'function' && notifPermission() === 'granted'
+      && typeof ensurePushReady === 'function') ensurePushReady();
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
@@ -1079,13 +1092,14 @@ async function init() {
     renderInjuryBeforeBlocks();
     renderInjuryDoneBlocks();
     renderGymManualPainForms();
+    renderLiveInjurySelector();
     updateProgress();              // «x / y sett» i aktivt språk
     try { updateNotesCount(); } catch (e) {}
     if (openEx) { activeDrawer = null; openDrawer(openEx); }   // gjenåpne + konverter sett-vekter
   };
+  await loadSevereInjuries();   // _severeInjuries før historikk-skuffen rendres per-skade
   await loadGymHistory();
   await checkDayAfterRehab();
-  await loadSevereInjuries();
   applyLang();
 }
 
@@ -2123,6 +2137,43 @@ function preferredRest() {
   } catch (e) { return 180; }
 }
 
+// ── Hviletimer-varsel via Web Push ────────────────────────────────────────
+// swPost (SW setTimeout) dekker forgrunn/kort bakgrunn, men iOS dreper SW-en
+// i bakgrunnen. Ekte Web Push (server → telefon) er det som faktisk fyrer mens
+// du er i andre apper. Samme tag ('rest-timer') gjør at de kollapser til ÉTT
+// varsel hvis begge skulle fyre.
+let restPushId = null;
+function _loadRestPushId() { try { return localStorage.getItem('gym_rest_push_id') || null; } catch { return null; } }
+async function scheduleRestPush(seconds) {
+  await cancelRestPush();
+  try { if (typeof ensurePushReady === 'function') ensurePushReady(); } catch (e) {}
+  try {
+    const r = await schedulePush({
+      kind: 'rest', delaySeconds: seconds, tag: 'rest-timer', url: '/gym.html',
+      title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body'),
+    });
+    if (r && r.id) { restPushId = r.id; try { localStorage.setItem('gym_rest_push_id', r.id); } catch (e) {} }
+  } catch (e) {}
+}
+async function cancelRestPush() {
+  const id = restPushId || _loadRestPushId();
+  restPushId = null;
+  try { localStorage.removeItem('gym_rest_push_id'); } catch (e) {}
+  if (id && typeof cancelPush === 'function') { try { await cancelPush({ id }); } catch (e) {} }
+}
+// Bruker-gest: slå på varsler fra hviletimer-verktøyet.
+async function enableRestNotifications() {
+  if (typeof enableNotifications !== 'function') return;
+  const ok = await enableNotifications();
+  if (ok) { const row = document.getElementById('restNotifRow'); if (row) row.style.display = 'none'; }
+}
+function refreshRestNotifBtn() {
+  const row = document.getElementById('restNotifRow');
+  if (!row) return;
+  const granted = typeof notifPermission === 'function' && notifPermission() === 'granted';
+  row.style.display = granted ? 'none' : '';
+}
+
 function startRest(seconds) {
   stopRest();
   restStartedAt = Date.now();
@@ -2130,9 +2181,10 @@ function startRest(seconds) {
   restPaused    = false;
   try { localStorage.setItem(REST_PREF_KEY, String(seconds)); } catch (e) {}
   saveSession();
-  // Tell Service Worker to fire a background notification when timer ends
+  // 1) SW setTimeout — øyeblikkelig/forgrunn. 2) Web Push — bakgrunn (iOS).
   swPost({ type: 'START_TIMER', seconds,
     title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body') });
+  scheduleRestPush(seconds);
   resumeRestTimer();
   const rv = document.getElementById('restVal');
   if (rv) rv.textContent = fmtRest(seconds);
@@ -2145,6 +2197,7 @@ function startRest(seconds) {
 function stopRest() {
   clearInterval(restTimerInt); restTimerInt = null;
   swPost({ type: 'CANCEL_TIMER' }); // cancel any pending SW notification
+  cancelRestPush();                 // cancel pending Web Push too
   restStartedAt = null; restDuration = 0;
   restPaused = false; restPausedRemaining = 0;
   const el = document.getElementById('restDisplay');
@@ -2160,14 +2213,21 @@ function toggleRestPause() {
   const btn = document.getElementById('restPauseBtn');
   const el  = document.getElementById('restDisplay');
   if (restPaused) {
-    restStartedAt = Date.now() - (restDuration - restPausedRemaining) * 1000;
+    const remaining = restPausedRemaining;
+    restStartedAt = Date.now() - (restDuration - remaining) * 1000;
     restPaused = false;
     if (el) { el.classList.add('running'); el.classList.remove('done'); }
     if (btn) btn.textContent = '⏸';
+    // Re-arm both varslingsveier med gjenstående tid
+    swPost({ type: 'START_TIMER', seconds: remaining,
+      title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body') });
+    scheduleRestPush(remaining);
     resumeRestTimer();
   } else {
     restPausedRemaining = getRestRemaining();
     clearInterval(restTimerInt); restTimerInt = null;
+    swPost({ type: 'CANCEL_TIMER' });
+    cancelRestPush();
     restPaused = true;
     if (el) el.classList.remove('running');
     if (btn) btn.textContent = '▶';
@@ -2220,37 +2280,76 @@ function selectPain(phase, score) {
   saveDraft();
 }
 
+// Live-verktøyets fase-token ('day-after') → _injuryScores-nøkkel ('dayafter')
+function _phaseToInjKey(p) { return p === 'day-after' ? 'dayafter' : p; }
+function _phaseLabel(p) { return t('knee.' + _phaseToInjKey(p)); }
+
+// Live-smerte (tb-knee): skriver til valgt skade via selectGymInjuryPain.
 function selectSbPain(score) {
-  kneePain[sbKneePhase] = score;
-  document.querySelectorAll('.mini-pain-btn').forEach(b => {
-    const s = parseInt(b.dataset.sbScore);
-    b.className = 'mini-pain-btn' + (s === score ? ' ' + painClass(score) : '');
-  });
-  document.querySelectorAll(`[data-phase="${sbKneePhase}"]`).forEach(b => {
-    b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
-  });
-  const kv = document.getElementById('kneeVal');
-  if (kv) kv.textContent = `${score} (${sbKneePhase})`;
+  if (!_liveInjId) { toast(t('pain.no_severe'), 'err'); return; }
+  selectGymInjuryPain(_liveInjId, _phaseToInjKey(sbKneePhase), score);  // _injuryScores + kne-sync + saveDraft
+  _refreshSbButtons(score);
   saveSession();
-  saveDraft();
 }
 
 function setSbPhase(phase) {
   sbKneePhase = phase;
-  document.querySelectorAll('.pain-phase-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#sbPhasePills .pain-phase-pill').forEach(p => p.classList.remove('active'));
   document.getElementById(`pp-${phase}`)?.classList.add('active');
-  const cur = kneePain[phase];
-  document.querySelectorAll('.mini-pain-btn').forEach(b => {
+  _refreshSbButtons();
+}
+
+// Bygg skadevelger-pillsene i live-verktøyet fra _severeInjuries.
+function renderLiveInjurySelector() {
+  const el = document.getElementById('sbInjPills');
+  if (!el) return;
+  if (!_severeInjuries.length) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    _liveInjId = null;
+    _refreshSbButtons();
+    return;
+  }
+  // Velg standard skade: kne hvis den finnes, ellers første.
+  if (!_liveInjId || !_severeInjuries.some(i => i.id === _liveInjId)) {
+    const knee = _kneeInjury();
+    _liveInjId = knee ? knee.id : _severeInjuries[0].id;
+  }
+  // Bare vis pills når det er noe å velge mellom.
+  el.style.display = _severeInjuries.length > 1 ? 'flex' : 'none';
+  el.innerHTML = _severeInjuries.map(inj =>
+    `<button class="pain-phase-pill${inj.id === _liveInjId ? ' active' : ''}"
+       onclick="selectLiveInjury('${inj.id}')">${escHtml(bodyPartName(inj))}</button>`
+  ).join('');
+  _refreshSbButtons();
+}
+
+function selectLiveInjury(injId) {
+  _liveInjId = injId;
+  document.querySelectorAll('#sbInjPills .pain-phase-pill').forEach(p => p.classList.remove('active'));
+  const pills = [...document.querySelectorAll('#sbInjPills .pain-phase-pill')];
+  const idx   = _severeInjuries.findIndex(i => i.id === injId);
+  if (idx >= 0 && pills[idx]) pills[idx].classList.add('active');
+  _refreshSbButtons();
+}
+
+// Oppdater mini-knappene + tool-val ut fra valgt skade/fase.
+function _refreshSbButtons(forceScore) {
+  const scores = (_liveInjId && _injuryScores[_liveInjId]) || {};
+  const cur = forceScore != null ? forceScore : scores[_phaseToInjKey(sbKneePhase)];
+  document.querySelectorAll('#sbKneeButtons .mini-pain-btn').forEach(b => {
     const s = parseInt(b.dataset.sbScore);
-    b.className = 'mini-pain-btn' + (cur !== null && cur !== undefined && s === cur ? ' ' + painClass(cur) : '');
+    b.className = 'mini-pain-btn' + (cur != null && s === cur ? ' ' + painClass(cur) : '');
   });
+  const kv = document.getElementById('kneeVal');
+  if (kv) kv.textContent = (cur != null) ? `${cur} · ${_phaseLabel(sbKneePhase)}` : t('gym.register_pain');
 }
 
 // ── Generisk injury-pain helpers ────────────────────────────────────────────
-function _kneeInjury() {
-  return _severeInjuries.find(i =>
-    i.body_part === 'body.knee' || /kne|knee/i.test(i.body_part));
+function _isKneeInjury(inj) {
+  return !!inj && (inj.body_part === 'body.knee' || /kne|knee/i.test(inj.body_part || ''));
 }
+function _kneeInjury() { return _severeInjuries.find(_isKneeInjury); }
 function _gymKneeScores() {
   const k = _kneeInjury();
   return k ? (_injuryScores[k.id] || {}) : {};
@@ -2363,6 +2462,7 @@ async function loadSevereInjuries() {
   renderInjuryBeforeBlocks();
   renderInjuryDoneBlocks();
   renderGymManualPainForms();
+  renderLiveInjurySelector();
 }
 
 // ── Manuell smerteregistrering (gym-sidebar) ──────────────────────────────────
@@ -2682,6 +2782,7 @@ function clearLog() {
   });
   renderInjuryBeforeBlocks();
   renderInjuryDoneBlocks();
+  renderLiveInjurySelector();
   document.getElementById('sessionNotes').value = '';
   document.getElementById('logDate').value = today();
   renderGymRpe();
@@ -2732,6 +2833,20 @@ async function loadGymHistory() {
     (setRows || []).forEach(r => { (setMap[r.date] ||= []).push(r); });
   } catch (e) { /* settdetalj er tilleggsinfo — visningen funker uten */ }
 
+  // Per-skade smerte (injury_pain er kilde-til-sannhet) for de viste datoene.
+  _histInjuryPain = {};
+  try {
+    const iDates = [...new Set(sessions.map(g => g.date))];
+    if (iDates.length) {
+      const { data: ipRows } = await db.from('injury_pain').select('*').in('date', iDates);
+      (ipRows || []).forEach(r => {
+        const key = `${r.injury_id}|${r.date}`;
+        if (!_histInjuryPain[key] || (r.created_at || '') > (_histInjuryPain[key].created_at || ''))
+          _histInjuryPain[key] = r;
+      });
+    }
+  } catch (e) { /* injury_pain er tillegg — knee_pain-fallback dekker gammel historikk */ }
+
   function fmtSessDate(ds) {
     return new Date(ds + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'short', day:'numeric', month:'short' });
   }
@@ -2740,20 +2855,76 @@ async function loadGymHistory() {
     if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
     if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
   }
+  // Smerteverdier for én rad (injury_pain → ev. knee_pain-fallback for kne).
+  function _painLine(row) {
+    return [
+      { l:t('knee.before'),   v: row?.before_score },
+      { l:t('knee.during'),   v: row?.during_score },
+      { l:t('knee.after'),    v: row?.after_score },
+      { l:t('knee.dayafter'), v: row?.day_after_score },
+    ].map(p => `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`).join(' · ');
+  }
+  function _histRow(inj, g, knee) {
+    return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
+  }
+  // Oppsummeringslinje(r) under hver økt — per-skade hvis skader finnes, ellers legacy kne.
+  function painSummaryHtml(g, knee) {
+    if (!_severeInjuries.length) return _painLine(knee);
+    return _severeInjuries.map(inj =>
+      `<div style="margin-bottom:1px"><span style="color:var(--text-secondary)">${escHtml(bodyPartName(inj))}</span> — ${_painLine(_histRow(inj, g, knee))}</div>`
+    ).join('');
+  }
+  // Redigerbar smerteblokk per økt — per-skade (injury_pain) eller legacy kne (knee_pain).
+  function painEditHtml(g, knee, kneeId) {
+    const st = escHtml(g.session_type || '');
+    if (_severeInjuries.length) {
+      const blocks = _severeInjuries.map(inj => {
+        const row = _histRow(inj, g, knee);
+        const fields = [
+          { l:t('knee.before'),      f:'before_score',    v:row?.before_score },
+          { l:t('knee.during'),      f:'during_score',    v:row?.during_score },
+          { l:t('knee.after'),       f:'after_score',     v:row?.after_score },
+          { l:t('tp.knee_dayafter'), f:'day_after_score', v:row?.day_after_score },
+        ];
+        return `<div style="margin-bottom:8px">
+          <div style="font-size:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
+          <div class="knee-edit-row" style="flex-wrap:wrap;gap:4px">${fields.map(p =>
+            `<span class="knee-edit-label">${p.l}</span>
+             <input class="input-sm" type="number" min="0" max="10" value="${p.v ?? ''}" style="width:42px"
+               onblur="autoSaveGymInjuryPain('${inj.id}','${g.date}','${st}','${p.f}',this.value)">`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="knee-edit-panel" id="knee-edit-${g.id}">${blocks}
+        <div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">${t('close')}</button></div>
+      </div>`;
+    }
+    // Back-compat: ingen registrerte skader → legacy kne-redigering (knee_pain)
+    const blurSave = `autoSaveKnee('${g.id}','${g.date}','${st}')`;
+    return `<div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
+      <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
+        <span class="knee-edit-label">${t('knee.before')}</span>
+        <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}"
+          value="${knee?.before_score ?? ''}" style="width:42px" onblur="${blurSave}">
+        <span class="knee-edit-label">${t('knee.during')}</span>
+        <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}"
+          value="${knee?.during_score ?? ''}" style="width:42px" onblur="${blurSave}">
+        <span class="knee-edit-label">${t('knee.after')}</span>
+        <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}"
+          value="${knee?.after_score ?? ''}" style="width:42px" onblur="${blurSave}">
+        <span class="knee-edit-label">${t('tp.knee_dayafter')}</span>
+        <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}"
+          value="${knee?.day_after_score ?? ''}" style="width:42px" onblur="${blurSave}"
+          title="${t('gym.fill_day_after')}">
+      </div>
+      <div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">${t('close')}</button></div>
+    </div>`;
+  }
 
   el.innerHTML = sessions.map(g => {
     const knee    = g._knee || kneeMap[g.date + '|' + (g.session_type || '')] || null;
     const kneeId  = knee?.id || '';
-    const blurSave = `autoSaveKnee('${g.id}','${g.date}','${escHtml(g.session_type || '')}')`;
-
-    const painStr = [
-      { l:t('knee.before'),       v: knee?.before_score },
-      { l:t('knee.during'),       v: knee?.during_score },
-      { l:t('knee.after'),        v: knee?.after_score },
-      { l:t('knee.dayafter'),     v: knee?.day_after_score },
-    ].map(p =>
-      `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`
-    ).join(' · ');
+    const painStr = painSummaryHtml(g, knee);
 
     // Settoppsummering + utvidbar per-øvelse-detalj
     const sRows = setMap[g.date] || [];
@@ -2792,26 +2963,7 @@ async function loadGymHistory() {
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
         <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="${t('delete')}">✕</button>
       </div>
-      <div class="knee-edit-panel" id="knee-edit-${g.id}" data-knee-id="${kneeId}">
-        <div class="knee-edit-row" style="margin-bottom:6px;flex-wrap:wrap;gap:4px">
-          <span class="knee-edit-label">${t('knee.before')}</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-before-${g.id}"
-            value="${knee?.before_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">${t('knee.during')}</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-during-${g.id}"
-            value="${knee?.during_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">${t('knee.after')}</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-after-${g.id}"
-            value="${knee?.after_score ?? ''}" style="width:42px" onblur="${blurSave}">
-          <span class="knee-edit-label">${t('tp.knee_dayafter')}</span>
-          <input class="input-sm" type="number" min="0" max="10" id="ke-dayafter-${g.id}"
-            value="${knee?.day_after_score ?? ''}" style="width:42px" onblur="${blurSave}"
-            title="${t('gym.fill_day_after')}">
-        </div>
-        <div style="display:flex;gap:5px">
-          <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${g.id}')">${t('close')}</button>
-        </div>
-      </div>
+      ${painEditHtml(g, knee, kneeId)}
     </div>`;
   }).join('') +
   `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
@@ -3051,7 +3203,7 @@ function playTimerDone() {
   // Vibrate on mobile (pattern: short-pause-short)
   try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body') }); } catch(e) {}
+    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body'), tag: 'rest-timer' }); } catch(e) {}
   }
 }
 
@@ -3148,6 +3300,24 @@ async function autoSaveKnee(gymId, date, sessionType) {
     if (data?.id) { panel.dataset.kneeId = String(data.id); kneeId = String(data.id); }
   }
   await loadGymHistory();
+}
+
+// Per-skade smerte-redigering i historikk-skuffen → injury_pain (samme mønster som treningsplan).
+// Oppdaterer bare den lokale mappen (re-rendrer ikke) så skuffen blir stående åpen.
+async function autoSaveGymInjuryPain(injId, date, sessionType, field, value) {
+  const numVal = value === '' ? null : Number(value);
+  if (numVal != null && (isNaN(numVal) || numVal < 0 || numVal > 10)) return;
+  const key      = `${injId}|${date}`;
+  const existing = _histInjuryPain[key];
+  if (existing) {
+    const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
+    if (!error) _histInjuryPain[key][field] = numVal;
+  } else {
+    const { data, error } = await db.from('injury_pain').insert({
+      injury_id: injId, date, session_type: sessionType, source: 'gym', [field]: numVal,
+    }).select().single();
+    if (!error && data) _histInjuryPain[key] = data;
+  }
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────
