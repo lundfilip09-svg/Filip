@@ -178,6 +178,28 @@ nøkkel-paritet brutt.
 
 ---
 
+## ✅ PROMPT 3.1 — Fiks skjulte overlappende smertepunkter (dashboard.html)
+
+Punktene fra to skader med samme verdi samme dag la oppå hverandre; nederste (gul) ble skjult.
+
+```
+PROBLEM: I grafen "BELASTNING × SMERTE" tegnes hamstring-punktene under kne-punktene når
+begge har samme verdi samme dag (oftest 0), så de gule forsvinner bak de røde.
+
+KRAV:
+- IKKE endre y-verdien (ekte 0–10 smerteskala — ingen vertikal jitter).
+- Skill sammenfallende punkter horisontalt: gi hver alvorlig-skade-serie en liten
+  x-forskyvning (dodge) på en brøkdel av en dag, symmetrisk fordelt rundt selve dagen.
+  Generisk for N skader — ikke hardkod 2.
+- Tooltip skal vise ekte dato (ikke den forskjøvne) — behold ekte dato i punktets rådata.
+- I tillegg: litt mindre radius på serien som tegnes sist, så overlapp uansett synes.
+
+STOPP: et punkt skjuler et annet; y-verdi forskjøvet; tooltip viser feil dato;
+node --check feiler.
+```
+
+---
+
 ## PROMPT 4 — Treningsplan: rehab-kort + trend per skade
 
 ```

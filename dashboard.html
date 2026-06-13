@@ -872,15 +872,32 @@ function renderLoadPain() {
   const dates  = series.map(p => p.date);
   const labels = dates.map(ds => fmtDate(ds));
 
+  // Horizontal dodge: spread N pain series symmetrically around each day's x-position
+  // so overlapping points (same date, same value) are still visible side by side.
+  // y-values are never modified. Tooltip title uses data-array index → real date label.
+  const N          = (injuryPainSeries || []).length;
+  const DODGE_STEP = N > 1 ? 0.18 : 0;
+
   const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
-  const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => ({
-    label: _dashBodyPartName(inj),
-    data: dates.map(ds => painByDate[ds] ?? null),
-    yAxisID: 'yP',
-    borderColor: PAIN_COLORS[idx % PAIN_COLORS.length],
-    backgroundColor: PAIN_COLORS[idx % PAIN_COLORS.length],
-    borderWidth: 1.5, pointRadius: 3, tension: 0.2, spanGaps: false, showLine: false,
-  }));
+  const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => {
+    const xOff = (idx - (N - 1) / 2) * DODGE_STEP;
+    return {
+      label: _dashBodyPartName(inj),
+      // {x: dateIndex + offset, y: painValue} — offset is cosmetic only; _date carries real date
+      data: dates.map((ds, di) => {
+        const v = painByDate[ds] ?? null;
+        return v !== null ? { x: di + xOff, y: v, _date: ds } : null;
+      }),
+      parsing: false,
+      yAxisID: 'yP',
+      borderColor: PAIN_COLORS[idx % PAIN_COLORS.length],
+      backgroundColor: PAIN_COLORS[idx % PAIN_COLORS.length],
+      borderWidth: 1.5,
+      pointRadius: idx < N - 1 ? 4 : 3,  // earlier (bottom) series slightly larger → visible behind top
+      hoverRadius: 6,
+      tension: 0.2, spanGaps: false, showLine: false,
+    };
+  });
 
   _loadPainChart = new Chart(document.getElementById('loadPainChart'), {
     type: 'line',
@@ -889,13 +906,15 @@ function renderLoadPain() {
       datasets: [
         {
           label: t('dash.acwr_label'),
-          data: series.map(p => p.acwr),
+          data: series.map((p, i) => ({ x: i, y: p.acwr })),
+          parsing: false,
           yAxisID: 'yA', borderColor: '#6BE3A4', backgroundColor: 'rgba(107,227,164,0.08)',
           borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true, fill: true,
         },
         {
           label: t('dash.risk_line'),
-          data: dates.map(() => 1.5),
+          data: dates.map((_, i) => ({ x: i, y: 1.5 })),
+          parsing: false,
           yAxisID: 'yA', borderColor: 'rgba(255,107,107,0.45)', borderWidth: 1,
           borderDash: [5, 4], pointRadius: 0, fill: false,
         },
@@ -914,16 +933,25 @@ function renderLoadPain() {
         tooltip: {
           backgroundColor: 'rgba(10,10,13,0.97)', titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
           borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10, cornerRadius: 8,
-          filter: item => item.datasetIndex !== 1 && item.parsed.y != null,
+          filter: item => item.datasetIndex !== 1 && item.parsed.y != null && !isNaN(item.parsed.y),
           callbacks: {
+            title: items => items.length ? (labels[items[0].dataIndex] || '') : '',
             label: ctx => `${ctx.dataset.label}: ${ctx.datasetIndex === 0 ? ctx.parsed.y.toFixed(2) : ctx.parsed.y}`,
           },
         },
       },
       scales: {
         x: {
+          type: 'linear',
+          min: -0.5,
+          max: dates.length - 0.5,
           grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-          ticks: { color: '#6B6964', font: { family: 'ui-monospace', size: 9 }, maxRotation: 45, maxTicksLimit: 14 },
+          ticks: {
+            color: '#6B6964', font: { family: 'ui-monospace', size: 9 },
+            maxRotation: 45, maxTicksLimit: 14, stepSize: 1,
+            // Only show label at integer positions (the actual date indices)
+            callback: (v) => { const i = Math.round(v); return Math.abs(v - i) < 0.01 && i >= 0 && i < labels.length ? labels[i] : null; },
+          },
         },
         yA: {
           position: 'left', min: 0, suggestedMax: 2,
