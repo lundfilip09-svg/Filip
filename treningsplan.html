@@ -187,6 +187,17 @@
     .sess-meta {
       display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
     }
+    .sess-dur-wrap {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .sess-dur-input {
+      width: 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px; color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 11px; text-align: center; padding: 2px 4px;
+    }
+    .sess-dur-input:focus { outline: none; border-color: var(--accent-blue); }
 
     
 
@@ -1736,7 +1747,14 @@ function renderSessionGrid() {
             style="border-top-color:rgba(107,227,164,0.3)"
             onclick="toggleSessionDetail('${g.id}')">
             <div class="sess-name">${escHtml(displaySessionType(g.session_type))}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(g.date, knee)}<span class="sess-tag">${t('tp.gym_badge')}</span></div>
+            <div class="sess-meta">${buildPainSummaryForDate(g.date, knee)}<span class="sess-tag">${t('tp.gym_badge')}</span>
+              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+                  value="${g.duration_min ?? ''}" placeholder="—"
+                  onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+                <span>min</span>
+              </span>
+            </div>
             ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
           </div>
           ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
@@ -1750,7 +1768,14 @@ function renderSessionGrid() {
             style="border-top-color:rgba(91,164,245,0.3)"
             onclick="toggleSessionDetail('${sid}')">
             <div class="sess-name">Sprint · ${escHtml(distSummary)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(s.date, knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span></div>
+            <div class="sess-meta">${buildPainSummaryForDate(s.date, knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span>
+              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+                  value="${s.duration_min ?? ''}" placeholder="—"
+                  onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+                <span>min</span>
+              </span>
+            </div>
             ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
           </div>
           ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
@@ -1769,7 +1794,14 @@ function renderSessionGrid() {
             style="border-top-color:rgba(242,192,99,0.3)"
             onclick="toggleSessionDetail('${aid}')">
             <div class="sess-name">${escHtml(label)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}</div>
+            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}
+              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+                  value="${a.duration_min ?? ''}" placeholder="—"
+                  onblur="autoSaveActField('${a.id}','duration_min',this.value)">
+                <span>min</span>
+              </span>
+            </div>
             ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
           </div>
           ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
