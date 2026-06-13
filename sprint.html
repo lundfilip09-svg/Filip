@@ -198,27 +198,7 @@
         placeholder="—" style="width:110px" title="sRPE: varighet × RPE/10">
     </div>
 
-    <div style="margin-bottom:12px">
-      <div class="form-label" style="margin-bottom:8px" data-i18n="knee.pain_0_10">Knesmerte (0–10)</div>
-      <div class="knee-log-row">
-        <div class="knee-row-item">
-          <span class="knee-row-label" data-i18n="knee.before_session">Før økt</span>
-          <div class="pain-row" id="sk-before"></div>
-        </div>
-        <div class="knee-row-item">
-          <span class="knee-row-label" data-i18n="knee.during_session">Under økt</span>
-          <div class="pain-row" id="sk-during"></div>
-        </div>
-        <div class="knee-row-item">
-          <span class="knee-row-label" data-i18n="knee.after_session">Etter økt</span>
-          <div class="pain-row" id="sk-after"></div>
-        </div>
-        <div class="knee-row-item">
-          <span class="knee-row-label" data-i18n="knee.dayafter">Dagen etter</span>
-          <div class="pain-row" id="sk-dayafter"></div>
-        </div>
-      </div>
-    </div>
+    <div id="injuryPainBlocks" style="margin-bottom:12px"></div>
 
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label" data-i18n="notes">Notater</label>
@@ -262,6 +242,12 @@
     </div>
   </div>
 
+  <!-- Manuell smerteregistrering (tilbakedatering) -->
+  <div class="card" id="manualPainCard" style="display:none">
+    <div class="section-title" data-i18n="pain.manual_entry">Manuell registrering</div>
+    <div id="manualPainForms"></div>
+  </div>
+
   <!-- History -->
   <div class="card">
     <div class="section-title" data-i18n="tp.history">Økthistorikk</div>
@@ -281,7 +267,9 @@ applyLang();
 
 // distLabel kommer fra utils.js («60m_flying» → «60m (flying)»)
 
-const skKnee = { before: null, during: null, after: null, dayafter: null };
+let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
+let _injuryScores   = {};   // {injuryId: {before, during, after, dayafter}}
+let _manualScores   = {};   // {injuryId: {before, during, after, dayafter}}
 let _isSavingLog  = false;
 let _sprintLevel  = 'høy'; // valgt akselerasjonsnivå for belastning (default: høy = 3.0)
 let runs     = [];   // [{ distance, type, time }]
@@ -302,14 +290,14 @@ function selectSprintLevel(btn) {
 
 function saveDraft() {
   const draft = {
-    date:    document.getElementById('logDate').value,
-    dist:    document.getElementById('logDist').value,
-    type:    document.getElementById('logType').value,
-    level:   _sprintLevel,
-    rpe:     rpeValue('logRpe'),
-    notes:   document.getElementById('logNotes').value,
-    runs:    runs,
-    skKnee:  { ...skKnee },
+    date:         document.getElementById('logDate').value,
+    dist:         document.getElementById('logDist').value,
+    type:         document.getElementById('logType').value,
+    level:        _sprintLevel,
+    rpe:          rpeValue('logRpe'),
+    notes:        document.getElementById('logNotes').value,
+    runs:         runs,
+    injuryScores: _injuryScores,
   };
   localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
 }
@@ -335,12 +323,8 @@ function restoreDraft() {
     if (d.rpe != null) renderLogRpe(d.rpe);
     if (d.notes) document.getElementById('logNotes').value = d.notes;
     if (Array.isArray(d.runs)) { runs = d.runs; renderRuns(); }
-    if (d.skKnee) {
-      ['before','during','after','dayafter'].forEach(p => {
-        if (d.skKnee[p] !== null && d.skKnee[p] !== undefined) {
-          selPain(p, d.skKnee[p]);
-        }
-      });
+    if (d.injuryScores && typeof d.injuryScores === 'object') {
+      Object.assign(_injuryScores, d.injuryScores);
     }
   } catch (e) { /* ugyldig draft, ignorer */ }
 }
@@ -352,25 +336,207 @@ document.getElementById('logDate').value = today();
 function painClass(s) {
   return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
 }
-function painHint(i) {
-  // Ingen farge-antydning før valg — alle knapper nøytrale, så det er tydelig
-  // hvilke faser som IKKE er fylt ut (ingen 0 ser ut som "valgt").
-  return '';
+
+// Returnerer skaden som er kne (for dobbeltskriving til knee_pain/sprint_log)
+function _kneeInjury() {
+  return _severeInjuries.find(i =>
+    i.body_part === 'body.knee' || /kne|knee/i.test(i.body_part));
 }
-function buildPainRow(phase) {
-  const el = document.getElementById(`sk-${phase}`);
-  el.innerHTML = [...Array(11)].map((_,i) =>
-    `<button type="button" class="pain-btn" data-phase="${phase}" data-s="${i}" onclick="selPain('${phase}',${i});this.blur()">${i}</button>`
-  ).join('');
+function _kneeScores() {
+  const k = _kneeInjury();
+  return k ? (_injuryScores[k.id] || {}) : {};
 }
-function selPain(phase, score) {
-  skKnee[phase] = score;
-  document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
+
+// Oversett body_part til visningsnavn (body.knee → «Kne» el. «Knee»)
+function bodyPartName(inj) {
+  const base = t(inj.body_part) !== inj.body_part ? t(inj.body_part) : inj.body_part;
+  if (!inj.side || inj.side === 'none') return base;
+  const sideStr = t(`side.${inj.side}`);
+  return sideStr !== `side.${inj.side}` ? `${base} (${sideStr.toLowerCase()})` : base;
+}
+
+function renderInjuryPainBlocks(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!_severeInjuries.length) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--text-tertiary);font-style:italic;padding:4px 0">${t('pain.no_severe')}</div>`;
+    return;
+  }
+  const phases = [
+    { id: 'before',   label: 'knee.before_session' },
+    { id: 'during',   label: 'knee.during_session' },
+    { id: 'after',    label: 'knee.after_session' },
+    { id: 'dayafter', label: 'knee.dayafter' },
+  ];
+  el.innerHTML = _severeInjuries.map(inj => `
+<div style="margin-bottom:12px">
+  <div class="form-label" style="margin-bottom:8px">${escHtml(bodyPartName(inj))} (0–10)</div>
+  <div class="knee-log-row">${phases.map(ph => `
+    <div class="knee-row-item">
+      <span class="knee-row-label" data-i18n="${ph.label}">${t(ph.label)}</span>
+      <div class="pain-row" id="ip-${inj.id}-${ph.id}"></div>
+    </div>`).join('')}
+  </div>
+</div>`).join('');
+  _severeInjuries.forEach(inj => {
+    phases.forEach(ph => {
+      const row = document.getElementById(`ip-${inj.id}-${ph.id}`);
+      if (!row) return;
+      row.innerHTML = [...Array(11)].map((_,i) =>
+        `<button type="button" class="pain-btn" data-inj="${inj.id}" data-ph="${ph.id}" data-s="${i}"
+          onclick="selectInjuryPain('${inj.id}','${ph.id}',${i});this.blur()">${i}</button>`
+      ).join('');
+      const cur = (_injuryScores[inj.id] || {})[ph.id];
+      if (cur != null) _highlightInjuryBtn(inj.id, ph.id, cur);
+    });
+  });
+}
+
+function _highlightInjuryBtn(injId, phase, score) {
+  document.querySelectorAll(`[data-inj="${injId}"][data-ph="${phase}"]`).forEach(b => {
     b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
   });
+}
+
+function selectInjuryPain(injId, phase, score) {
+  if (!_injuryScores[injId]) _injuryScores[injId] = {};
+  _injuryScores[injId][phase] = score;
+  _highlightInjuryBtn(injId, phase, score);
   saveDraft();
 }
-['before','during','after','dayafter'].forEach(buildPainRow);
+
+// P6: Fjern når knee_pain er fullstendig migrert til injury_pain
+async function _legacyKneeDoubleWrite(date, sessionType, notes) {
+  const ks = _kneeScores();
+  if (Object.values(ks).every(v => v == null)) return;
+  await db.from('knee_pain').insert({
+    date, session_type: sessionType,
+    before_score:    ks.before    ?? null,
+    during_score:    ks.during    ?? null,
+    after_score:     ks.after     ?? null,
+    day_after_score: ks.dayafter  ?? null,
+    notes,
+  });
+}
+
+// ── Injuries (last fra DB ved sidelast) ──────────────────────────────────────
+async function loadSevereInjuries() {
+  const { data } = await db.from('injuries')
+    .select('id, body_part, side, status, severity')
+    .in('status', ['active', 'improving'])
+    .eq('severity', 'severe');
+  _severeInjuries = data || [];
+  _severeInjuries.forEach(inj => {
+    if (!_injuryScores[inj.id])
+      _injuryScores[inj.id] = { before: null, during: null, after: null, dayafter: null };
+  });
+  renderInjuryPainBlocks('injuryPainBlocks');
+  renderManualPainForms();
+}
+
+// ── Manuell smerteregistrering ────────────────────────────────────────────────
+function renderManualPainForms() {
+  const card  = document.getElementById('manualPainCard');
+  const forms = document.getElementById('manualPainForms');
+  if (!card || !forms) return;
+  if (!_severeInjuries.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const phases = [
+    { id: 'before',   label: 'knee.before_session' },
+    { id: 'during',   label: 'knee.during_session' },
+    { id: 'after',    label: 'knee.after_session' },
+    { id: 'dayafter', label: 'knee.dayafter' },
+  ];
+  forms.innerHTML = _severeInjuries.map(inj => `
+<div style="margin-bottom:16px">
+  <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);
+    margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em">${escHtml(bodyPartName(inj))}</div>
+  <div class="form-group" style="max-width:180px;margin-bottom:8px">
+    <label class="form-label" data-i18n="date">${t('date')}</label>
+    <input type="date" id="mp-date-${inj.id}" class="input-sm" style="width:100%;box-sizing:border-box">
+  </div>
+  <div class="knee-log-row" style="margin-bottom:8px">${phases.map(ph => `
+    <div class="knee-row-item">
+      <span class="knee-row-label" data-i18n="${ph.label}">${t(ph.label)}</span>
+      <div class="pain-row" id="mp-${inj.id}-${ph.id}"></div>
+    </div>`).join('')}
+  </div>
+  <div class="form-group" style="margin-bottom:8px">
+    <textarea class="input-sm" id="mp-notes-${inj.id}" rows="2"
+      placeholder="${escHtml(t('pain.manual_notes_ph'))}"
+      style="width:100%;resize:none;box-sizing:border-box"></textarea>
+  </div>
+  <button class="btn btn-success btn-sm" onclick="saveManualPain('${inj.id}')"
+    data-i18n="save">${t('save')}</button>
+</div>`).join('<hr style="border-color:rgba(255,255,255,0.07);margin:12px 0">');
+
+  _severeInjuries.forEach(inj => {
+    phases.forEach(ph => {
+      const row = document.getElementById(`mp-${inj.id}-${ph.id}`);
+      if (!row) return;
+      row.innerHTML = [...Array(11)].map((_,i) =>
+        `<button type="button" class="pain-btn" data-injm="${inj.id}" data-phm="${ph.id}" data-s="${i}"
+          onclick="selectManualPain('${inj.id}','${ph.id}',${i});this.blur()">${i}</button>`
+      ).join('');
+    });
+    const dateEl = document.getElementById(`mp-date-${inj.id}`);
+    if (dateEl) dateEl.value = today();
+  });
+}
+
+function selectManualPain(injId, phase, score) {
+  if (!_manualScores[injId]) _manualScores[injId] = {};
+  _manualScores[injId][phase] = score;
+  document.querySelectorAll(`[data-injm="${injId}"][data-phm="${phase}"]`).forEach(b => {
+    b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
+  });
+}
+
+async function saveManualPain(injId) {
+  const scores = _manualScores[injId] || {};
+  if (Object.values(scores).every(v => v == null)) {
+    toast(t('gym.select_pain_score'), 'err'); return;
+  }
+  const dateEl  = document.getElementById(`mp-date-${injId}`);
+  const notesEl = document.getElementById(`mp-notes-${injId}`);
+  const date  = dateEl?.value || today();
+  const notes = notesEl?.value.trim() || null;
+
+  const { error } = await db.from('injury_pain').insert({
+    injury_id: injId, date, source: 'manual',
+    before_score:    scores.before   ?? null,
+    during_score:    scores.during   ?? null,
+    after_score:     scores.after    ?? null,
+    day_after_score: scores.dayafter ?? null,
+    notes,
+  });
+  if (error) { toast(t('pain.save_err', { msg: error.message }), 'err'); return; }
+
+  // P6: Double-write for kne-skade
+  const inj = _severeInjuries.find(i => i.id === injId);
+  if (inj && (inj.body_part === 'body.knee' || /kne|knee/i.test(inj.body_part))) {
+    await db.from('knee_pain').insert({
+      date, session_type: 'manual',
+      before_score:    scores.before   ?? null,
+      during_score:    scores.during   ?? null,
+      after_score:     scores.after    ?? null,
+      day_after_score: scores.dayafter ?? null,
+      notes,
+    });
+  }
+
+  toast(t('pain.manual_saved'));
+  _manualScores[injId] = {};
+  ['before','during','after','dayafter'].forEach(ph => {
+    document.querySelectorAll(`[data-injm="${injId}"][data-phm="${ph}"]`).forEach(b => {
+      b.className = 'pain-btn';
+    });
+  });
+  if (dateEl)  dateEl.value  = today();
+  if (notesEl) notesEl.value = '';
+  await loadKneeTrend();
+}
+
 restoreDraft();
 
 // Lagre draft ved endringer i tekstfelt/select
@@ -567,31 +733,43 @@ async function logSession() {
     const durRaw = document.getElementById('logDuration')?.value;
     const duration_min = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
 
+    const ks = _kneeScores();
     const inserts = runs.map(r => ({
       date, distance: r.distance, type: r.type, time_seconds: r.time,
       rpe, notes, duration_min,
-      knee_before:    skKnee.before,
-      knee_during:    skKnee.during,
-      knee_after:     skKnee.after,
-      knee_day_after: skKnee.dayafter,
+      // P6: Dobbeltskriving til knee_*-kolonner i sprint_log
+      knee_before:    ks.before    ?? null,
+      knee_during:    ks.during    ?? null,
+      knee_after:     ks.after     ?? null,
+      knee_day_after: ks.dayafter  ?? null,
     }));
 
     // session_type er visningstekst → bruk distLabel, aldri rå koder
-    const distList = [...new Set(runs.map(r => distLabel(r.distance)))].join('/');
-    const [logRes, kneeRes] = await Promise.all([
-      db.from('sprint_log').insert(inserts).select(),
-      db.from('knee_pain').insert({
-        date, session_type: `Sprint ${distList} ${runs[0].type.split(':')[0]}`,
-        before_score:    skKnee.before,
-        during_score:    skKnee.during,
-        after_score:     skKnee.after,
-        day_after_score: skKnee.dayafter,
-        notes,
-      }),
-    ]);
+    const distList   = [...new Set(runs.map(r => distLabel(r.distance)))].join('/');
+    const sessionType = `Sprint ${distList} ${runs[0].type.split(':')[0]}`;
 
-    if (logRes.error)  { toast(t('sprint.save_error', {msg: logRes.error.message}), 'err'); return; }
-    if (kneeRes.error) { toast(t('sprint.knee_error', {msg: kneeRes.error.message}), 'err'); }
+    const logRes = await db.from('sprint_log').insert(inserts).select();
+    if (logRes.error) { toast(t('sprint.save_error', {msg: logRes.error.message}), 'err'); return; }
+
+    // Skriv injury_pain for alle alvorlige skader
+    const injRows = _severeInjuries
+      .map(inj => {
+        const s = _injuryScores[inj.id] || {};
+        if (Object.values(s).every(v => v == null)) return null;
+        return {
+          injury_id: inj.id, date, session_type: sessionType, source: 'sprint',
+          before_score: s.before ?? null, during_score: s.during ?? null,
+          after_score: s.after ?? null, day_after_score: s.dayafter ?? null, notes,
+        };
+      })
+      .filter(Boolean);
+    if (injRows.length) {
+      const ipRes = await db.from('injury_pain').insert(injRows);
+      if (ipRes.error) toast(t('pain.save_err', { msg: ipRes.error.message }), 'err');
+    }
+
+    // P6: Dobbeltskriving til knee_pain (legacy)
+    await _legacyKneeDoubleWrite(date, sessionType, notes);
 
     // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
     const newPBs = [];
@@ -623,10 +801,10 @@ async function logSession() {
     renderRuns();
     renderLogRpe();
     document.getElementById('logNotes').value = '';
-    Object.keys(skKnee).forEach(k => { skKnee[k] = null; });
-    ['before','during','after','dayafter'].forEach(p =>
-      document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.className = 'pain-btn')
-    );
+    _severeInjuries.forEach(inj => {
+      _injuryScores[inj.id] = { before: null, during: null, after: null, dayafter: null };
+    });
+    renderInjuryPainBlocks('injuryPainBlocks');
 
     await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
   } finally {
@@ -938,9 +1116,18 @@ async function saveKneeInline() {
       </div>`;
     return;
   }
-  onLangChange = () => { renderHistory(); renderSprintGoals(_lastGoalBest); loadPBs(); loadKneeTrend(); renderLogRpe(rpeValue('logRpe')); applyLang(); };
+  onLangChange = () => {
+    applyLang();
+    renderInjuryPainBlocks('injuryPainBlocks');
+    renderManualPainForms();
+    renderHistory();
+    renderSprintGoals(_lastGoalBest);
+    loadPBs();
+    loadKneeTrend();
+    renderLogRpe(rpeValue('logRpe'));
+  };
   applyLang();
-  await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
+  await Promise.all([loadPBs(), loadSprintGoals(), loadHistory(), loadSevereInjuries()]);
 })();
 </script>
 </body>

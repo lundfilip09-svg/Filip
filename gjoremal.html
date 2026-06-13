@@ -641,7 +641,7 @@
                oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
       </div>
       <div class="gm-add-bottom">
-        <input type="date" id="todoDue">
+        <input type="date" id="todoDue" data-i18n-placeholder="gm.date_placeholder_no">
         <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" data-i18n-title="gm.important_btn" title="Viktig">☆</button>
         <div class="gm-add-spacer"></div>
         <button class="btn btn-primary btn-sm" onclick="addTodo()" data-i18n="gm.add_btn">Legg til</button>

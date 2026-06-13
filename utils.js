@@ -341,6 +341,7 @@ const TRANSLATIONS = {
     'gm.sub_tasks': 'Gjøremål for i dag og fremover',
     'gm.update_error': 'Kunne ikke oppdatere', 'gm.delete_error': 'Kunne ikke slette',
     'gm.rename': 'Gi nytt navn', 'gm.rename_prompt': 'Nytt navn på listen:', 'gm.list_exists': 'Listen finnes allerede', 'gm.list_renamed': 'Liste omdøpt',
+    'gm.date_placeholder_no': 'dd.mm.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Kalender', 'kal.today': 'I dag', 'kal.new_event': 'Ny hendelse', 'kal.add_event': 'Hendelse',
     'kal.add_placeholder': 'Tittel, dato, klokkeslett…',
@@ -473,6 +474,13 @@ const TRANSLATIONS = {
     'ai.err_timeout': 'Forespørselen tok for lang tid (30s) — prøv igjen',
     'ai.err_network': 'Nettverksfeil — sjekk tilkobling og prøv igjen',
     'ai.err_generic': 'Feil {status} — prøv igjen', 'ai.model': 'Sonnet 4.6',
+    // Generisk smertelogg (injury_pain)
+    'pain.block_0_10': 'Smerte (0–10)',
+    'pain.no_severe': 'Ingen aktive alvorlige plager',
+    'pain.manual_entry': 'Manuell registrering',
+    'pain.manual_saved': 'Manuell smerte lagret',
+    'pain.save_err': 'Feil ved lagring av smerte: {msg}',
+    'pain.manual_notes_ph': 'F.eks. etter kamp, trening hjemme…',
     // Login
     'login.sub': 'Logg inn for å fortsette', 'login.email': 'E-post',
     'login.password': 'Passord', 'login.email_ph': 'din@epost.no',
@@ -816,6 +824,7 @@ const TRANSLATIONS = {
     'gm.sub_tasks': 'Tasks for today and ahead',
     'gm.update_error': 'Could not update', 'gm.delete_error': 'Could not delete',
     'gm.rename': 'Rename', 'gm.rename_prompt': 'New list name:', 'gm.list_exists': 'List already exists', 'gm.list_renamed': 'List renamed',
+    'gm.date_placeholder_no': 'mm.dd.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Calendar', 'kal.today': 'Today', 'kal.new_event': 'New event', 'kal.add_event': 'Event',
     'kal.add_placeholder': 'Title, date, time…',
@@ -948,6 +957,13 @@ const TRANSLATIONS = {
     'ai.err_timeout': 'Request timed out (30s) — please try again',
     'ai.err_network': 'Network error — check connection and try again',
     'ai.err_generic': 'Error {status} — please try again', 'ai.model': 'Sonnet 4.6',
+    // Generic pain log (injury_pain)
+    'pain.block_0_10': 'Pain (0–10)',
+    'pain.no_severe': 'No active severe injuries',
+    'pain.manual_entry': 'Manual entry',
+    'pain.manual_saved': 'Manual pain logged',
+    'pain.save_err': 'Pain not saved: {msg}',
+    'pain.manual_notes_ph': 'E.g. after game, home training…',
     // Login
     'login.sub': 'Log in to continue', 'login.email': 'Email',
     'login.password': 'Password', 'login.email_ph': 'your@email.com',
