@@ -126,6 +126,37 @@ injury_pain og gammel kne-kolonne.
 
 ---
 
+## ✅ PROMPT 2.5 — Per-skade smerte i treningsplan.html (økthistorikk)
+
+Fokusert utdrag av P4, kjøres før P3 fordi økthistorikkens redigering fortsatt var
+hardkodet til kne etter P2.
+
+```
+KONTEKST: injuries-tabellen er kilde-til-sannhet. "Alvorlig behandlet" = severity='severe'
+OG status in ('active','improving'). Tospråklig: all synlig tekst via t()/data-i18n, nye
+nøkler i BÅDE no og en i utils.js. node --check + nøkkel-paritet før ferdig.
+
+OPPGAVE: I treningsplan.html viser og redigerer økthistorikken fortsatt KUN kne (hardkodet
+"KNESMERTE" + én "REDIGER SMERTEVERDIER" med fire felt). Gjør den per-skade, akkurat som P2
+gjorde med sprint/gym.
+
+KRAV:
+- Per økt: render én smerteblokk PER aktiv alvorlig skade, lest fra injuries — ikke én
+  hardkodet kne-blokk. Hver blokk merkes med skadenavnet (tospråklig), ikke generisk
+  "KNESMERTE". Det skal stå tydelig hvilken skade man logger på.
+- Last eksisterende verdier fra injury_pain for (injury_id, økt-dato). For kne: fall tilbake
+  til legacy (knee_pain / sprint_log.knee_*) hvis injury_pain mangler.
+- Lagring skriver til injury_pain per skade. Behold dobbeltskriving til de gamle kne-kildene
+  (samme hjelper som P2, P6-fjernbar).
+- Sammendragslinjen per økt ("Før/Under/Etter/D.etter: 0") skal også vises per skade, merket.
+- onLangChange re-rendrer både sammendrag og redigerings-drawer.
+
+STOPP: kneet forsvinner; hamstring kan ikke redigeres; tekst lekker på feil språk;
+node --check feiler; no/en har ulikt antall nøkler.
+```
+
+---
+
 ## PROMPT 3 — Dashboard: statuskort + grafserie per alvorlig skade
 
 ```

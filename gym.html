@@ -191,7 +191,13 @@
     .ex-chk.done { background: rgba(107,227,164,0.16); border-color: rgba(107,227,164,0.5); color: var(--success); }
     .ex-r-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 14px; flex-shrink: 0; }
     .ex-r-info { flex: 1; min-width: 0; }
-    .ex-r-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ex-r-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+    .ex-name-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 12px; padding: 2px 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .ex-r-info:hover .ex-name-edit-btn { opacity: 0.6; }
+    .ex-name-edit-btn:hover { color: var(--accent-blue); opacity: 1 !important; }
+    .ex-name-edit-form { display: none; align-items: center; gap: 6px; padding: 7px 0; }
+    .ex-name-edit-form.open { display: flex; }
+    .ex-name-edit-form input { flex: 1; min-width: 120px; }
     .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 1px; display: flex; align-items: center; gap: 3px; }
     .ex-inline-input {
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
@@ -1621,6 +1627,47 @@ async function renameSection(day, oldLabel, formId) {
   toast(t('gm.saved'));
 }
 
+// ── Exercise name editing ──────────────────────────────────────────
+function toggleExNameEdit(exId) {
+  const form = document.getElementById(`ex-name-edit-form-${exId}`);
+  if (!form) return;
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) {
+    const input = document.getElementById(`ex-name-edit-input-${exId}`);
+    if (input) { input.focus(); input.select(); }
+  }
+}
+
+async function updateExName(exId) {
+  const input = document.getElementById(`ex-name-edit-input-${exId}`);
+  if (!input) return;
+  const newName = input.value.trim();
+  const ex = findExById(exId);
+  if (!ex || !newName || newName === ex.exercise_name) {
+    toggleExNameEdit(exId);
+    return;
+  }
+  const oldName = ex.exercise_name;  // Save old name before updating
+  // Update database
+  const { error } = await db.from('workout_program')
+    .update({ exercise_name: newName }).eq('id', exId);
+  if (error) {
+    toast(t('gym.save_error'), 'err');
+    return;
+  }
+  // Update in-memory
+  ex.exercise_name = newName;
+  // Update weights: if there's a weight under old name, move it to new name
+  if (weights[exId] === undefined && weights[oldName]) {
+    weights[exId] = weights[oldName];
+    delete weights[oldName];
+  }
+  // Close form and re-render
+  toggleExNameEdit(exId);
+  renderAll();
+  toast(t('gm.saved'));
+}
+
 function renderSectionBlock(label, exs, day) {
   const addId   = `add-${day}-${label.replace(/\s/g,'_')}`;
   const renId   = `secren-${day}-${label.replace(/\s/g,'_')}`;
@@ -1672,7 +1719,15 @@ function renderExRow(ex, day, num, isWarmup) {
       <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
       <div class="ex-r-num">${num}</div>
       <div class="ex-r-info">
-        <div class="ex-r-name">${escHtml(ex.exercise_name)}</div>
+        <div class="ex-r-name">
+          <span>${escHtml(ex.exercise_name)}</span>
+          <button class="ex-name-edit-btn" onclick="event.stopPropagation();toggleExNameEdit('${ex.id}')" title="${t('gym.rename_exercise')}">✎</button>
+        </div>
+        <div class="ex-name-edit-form" id="ex-name-edit-form-${ex.id}">
+          <input class="input-sm" value="${escHtml(ex.exercise_name)}" id="ex-name-edit-input-${ex.id}">
+          <button class="btn btn-success btn-sm" onclick="updateExName('${ex.id}')" style="white-space:nowrap">✓</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleExNameEdit('${ex.id}')" style="white-space:nowrap">✕</button>
+        </div>
         <div class="ex-r-vol">
           <input type="number" min="1" class="ex-inline-input" value="${ex.sets}" style="width:32px"
             onclick="event.stopPropagation()"
