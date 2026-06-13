@@ -116,11 +116,11 @@ const TR = {
     th_pain:'Smerte (f/u/e/d.e.)', th_rpe:'RPE', th_dur:'Varighet',
     cat_gym:'Styrke', cat_sprint:'Sprint', cat_act:'Aktivitet',
     sec_log:'Øktlogg', none_log:'Ingen økter i perioden.',
-    pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Gjelder venstre kne der ikke annet er notert.',
+    pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Per registrerte alvorlige skade.',
     sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag. Manglende varighet estimeres: rehab 35, styrke 120, sprint 75, aktivitet 60 min.',
     langBtn:'🇺🇸 English', rpe_scale:'(RPE 1–100)', config_err:'Konfig-feil',
     sec_injuries:'Skader & status', none_injuries:'Ingen aktive plager registrert.',
-    sec_pain_trend:'Knesmerte-trend', none_pain:'Ingen knesmerte registrert i perioden.',
+    sec_pain_trend:'Smertetrend', none_pain:'Ingen smerte registrert i perioden.',
     th_part:'Kroppsdel', th_side:'Side', th_sev:'Alvorlighet', th_status:'Status', th_since:'Siden',
     pt_current:'Nåværende', pt_avg:'Snitt', pt_max:'Maks',
     side_left:'venstre', side_right:'høyre', side_both:'begge',
@@ -142,11 +142,11 @@ const TR = {
     th_pain:'Pain (b/d/a/d.a.)', th_rpe:'RPE', th_dur:'Duration',
     cat_gym:'Strength', cat_sprint:'Sprint', cat_act:'Activity',
     sec_log:'Session log', none_log:'No sessions in this period.',
-    pain_legend:'Pain: before / during / after / day after (0–10). Left knee unless noted otherwise.',
+    pain_legend:'Pain: before / during / after / day after (0–10). Per logged severe injury.',
     sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday. Missing durations estimated: rehab 35, strength 120, sprint 75, activity 60 min.',
     langBtn:'🇳🇴 Norsk', rpe_scale:'(RPE 1–100)', config_err:'Config error',
     sec_injuries:'Injuries & status', none_injuries:'No active issues recorded.',
-    sec_pain_trend:'Knee pain trend', none_pain:'No knee pain recorded in this period.',
+    sec_pain_trend:'Pain trend', none_pain:'No pain recorded in this period.',
     th_part:'Body part', th_side:'Side', th_sev:'Severity', th_status:'Status', th_since:'Since',
     pt_current:'Current', pt_avg:'Avg', pt_max:'Max',
     side_left:'left', side_right:'right', side_both:'both',
@@ -265,31 +265,67 @@ async function loadReport(){
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const [gym, knee, sprint, acts, inj, recs] = await Promise.all([
+  const [gym, knee, sprint, acts, inj, recs, injPain] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('knee_pain').select('*').gte('date', from).lte('date', to),
     db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('activity_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('injuries').select('*').in('status', ['active','improving']).order('updated_at', {ascending:false}),
     db.from('sprint_records').select('distance,best_time').order('distance', {ascending:true}),
+    db.from('injury_pain').select('*').gte('date', from).lte('date', to),
   ]);
   _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[],
-            injuries: inj.data||[], records: recs.data||[], from, to };
+            injuries: inj.data||[], records: recs.data||[], injPain: injPain.data||[], from, to };
   render();
 }
 
+function _isKneeBody(bp){ return bp === 'body.knee' || /kne|knee/i.test(bp || ''); }
+
 function render(){
-  const { gym, knee, sprint, acts, injuries, records, from, to } = _data;
+  const { gym, knee, sprint, acts, injuries, records, injPain, from, to } = _data;
   // Knesmerte koblet til dato (for gym-rader)
   const kneeByDate = {};
   knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
+
+  // Per-skade smerte (injury_pain) — kilde-til-sannhet. Kun alvorlige skader logges.
+  const severeInj = (injuries || []).filter(i => i.severity === 'severe');
+  const ipByKey = {};
+  (injPain || []).forEach(r => {
+    const k = `${r.injury_id}|${r.date}`;
+    if (!ipByKey[k] || (r.created_at || '') > (ipByKey[k].created_at || '')) ipByKey[k] = r;
+  });
+  const _hasVals = r => r && [r.before_score,r.during_score,r.after_score,r.day_after_score].some(v => v != null);
+  // Smertecelle for én dato: per alvorlig skade (injury_pain, kne faller tilbake til
+  // aktivitetens egne knee_*-kolonner). Uten alvorlige skader: legacy enkeltcelle.
+  function painCellMulti(date, legacyKnee){
+    if (!severeInj.length) return _hasVals(legacyKnee)
+      ? painCell(legacyKnee.before_score, legacyKnee.during_score, legacyKnee.after_score, legacyKnee.day_after_score) : '–';
+    const parts = severeInj.map(inj => {
+      const row = ipByKey[`${inj.id}|${date}`] || (_isKneeBody(inj.body_part) ? legacyKnee : null);
+      if (!_hasVals(row)) return null;
+      const name = trBody(inj.body_part) + (inj.side ? ' ' + trSide(inj.side) : '');
+      return `<div><span style="color:#888">${esc(name)}:</span> ${painCell(row.before_score,row.during_score,row.after_score,row.day_after_score)}</div>`;
+    }).filter(Boolean);
+    return parts.length ? parts.join('') : '–';
+  }
 
   // Sammendrag — gym-RPE og aktivitets-RPE teller med i snittet
   const sprintDates = [...new Set(sprint.map(s=>s.date))];
   const sprintRpeByDate = {}; sprint.forEach(s => { if(sprintRpeByDate[s.date]==null && s.rpe!=null) sprintRpeByDate[s.date]=s.rpe; });
   const allRpe = [...gym.map(g=>g.rpe), ...sprintDates.map(d=>sprintRpeByDate[d]), ...acts.map(a=>a.rpe)].filter(v=>v!=null);
   const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a,b)=>a+b,0)/allRpe.length) : null;
-  const painFree = knee.filter(k => [k.before_score,k.during_score,k.after_score].every(v=>v==null||v<=2)).length;
+
+  // Verste smerte per dato på tvers av alle skader: injury_pain + knee_pain (+ sprint/act knee_*).
+  const painByDate = {};
+  const _addWorst = (date, vals) => {
+    const f = vals.filter(v => v != null);
+    if (f.length) { const m = Math.max(...f); if (painByDate[date] == null || m > painByDate[date]) painByDate[date] = m; }
+  };
+  (injPain || []).forEach(r => _addWorst(r.date, [r.before_score,r.during_score,r.after_score,r.day_after_score]));
+  knee.forEach(k => _addWorst(k.date, [k.before_score,k.during_score,k.after_score,k.day_after_score]));
+  sprint.forEach(s => _addWorst(s.date, [s.knee_before,s.knee_during,s.knee_after,s.knee_day_after]));
+  acts.forEach(a => _addWorst(a.date, [a.knee_before,a.knee_during,a.knee_after,a.knee_day_after]));
+  const painFree = Object.values(painByDate).filter(v => v <= 2).length;
 
   // Total sRPE-belastning (min × RPE/10); sprint telles per økt (dato)
   let totLoad = 0;
@@ -341,12 +377,7 @@ function render(){
     html += `</tbody></table>`;
   } else html += `<div class="empty">${t('none_injuries')}</div>`;
 
-  // ── Knesmerte-trend: maks smerte per dag (sparkline, ingen eksterne bibliotek) ──
-  const painByDate = {};
-  knee.forEach(k => {
-    const vals = [k.before_score, k.during_score, k.after_score, k.day_after_score].filter(v => v != null);
-    if (vals.length) { const m = Math.max(...vals); if (painByDate[k.date] == null || m > painByDate[k.date]) painByDate[k.date] = m; }
-  });
+  // ── Smertetrend: maks smerte per dag på tvers av skader (sparkline) ──
   const painDates = Object.keys(painByDate).sort();
   html += `<h2 class="sec">${t('sec_pain_trend')}</h2>`;
   if (painDates.length) {
@@ -409,7 +440,7 @@ function render(){
     date: g.date, cat: 'gym',
     type: trType(g.session_type||''),
     dur: realDur(g.duration_min), rpe: g.rpe,
-    pain: (() => { const k = kneeByDate[g.date]; return k ? painCell(k.before_score,k.during_score,k.after_score,k.day_after_score) : '–'; })(),
+    pain: painCellMulti(g.date, kneeByDate[g.date] || null),
     note: g.session_notes || kneeByDate[g.date]?.notes || ''
   }));
   sprintDates.forEach(d => {
@@ -428,11 +459,12 @@ function render(){
       return `${arr.length}× ${distLabel(dist)}${typeWord}${times.length ? ': ' + times.join(', ') : ''}`;
     });
     const p = rs.find(s => [s.knee_before,s.knee_during,s.knee_after,s.knee_day_after].some(v=>v!=null));
+    const legacyKnee = p ? { before_score:p.knee_before, during_score:p.knee_during, after_score:p.knee_after, day_after_score:p.knee_day_after } : null;
     rows.push({
       date: d, cat: 'sprint',
       type: runs.join(' · '),
       dur: realDur(rs.find(s=>realDur(s.duration_min)!=null)?.duration_min), rpe: sprintRpeByDate[d],
-      pain: p ? painCell(p.knee_before,p.knee_during,p.knee_after,p.knee_day_after) : '–',
+      pain: painCellMulti(d, legacyKnee),
       note: [...new Set(rs.map(s=>s.notes).filter(Boolean))].join(' · ')
     });
   });
@@ -444,7 +476,7 @@ function render(){
       date: a.date, cat: 'act',
       type: label,
       dur: realDur(a.duration_min), rpe: a.rpe,
-      pain: painCell(a.knee_before,a.knee_during,a.knee_after,a.knee_day_after),
+      pain: painCellMulti(a.date, { before_score:a.knee_before, during_score:a.knee_during, after_score:a.knee_after, day_after_score:a.knee_day_after }),
       note: a.notes || ''
     });
   });

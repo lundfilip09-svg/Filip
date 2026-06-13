@@ -64,9 +64,19 @@ function run(argv) {
 
   const kneeVal = k ? (k.during != null ? k.during : (k.after != null ? k.after : null)) : null;
 
+  // Per-skade (d.injuries fra /api/widget). Faller tilbake til kne-kompatfeltet.
+  const BODY_NO = { 'body.knee':'Kne','body.hamstring':'Hamstring','body.glute':'Glute','body.hipflexor':'Hoftebøyer','body.hip':'Hofte','body.shoulder':'Skulder','body.back':'Rygg','body.neck':'Nakke','body.ankle':'Ankel','body.calf':'Legg','body.achilles':'Akilles','body.foot':'Fot','body.other':'Annet' };
+  const SIDE_NO = { left:'v.', right:'h.', both:'beg.' };
+  const injName = (inj) => (BODY_NO[inj.body_part] || inj.body_part || '') + (inj.side && SIDE_NO[inj.side] ? ' ' + SIDE_NO[inj.side] : '');
+  const injPain = (inj) => { const p = inj && inj.latest_pain; return p ? { session_type:p.session_type, before:p.before, during:p.during, after:p.after, day_after:p.day_after, date:p.date } : null; };
+  const severeInj = (d.injuries || []).filter((x) => x && x.latest_pain);
+  let worstAll = null;
+  for (const inj of severeInj) { const w = worstKnee(injPain(inj)); if (w != null && (worstAll == null || w > worstAll)) worstAll = w; }
+  if (worstAll == null) worstAll = worstKnee(k);
+
   // --- Menylinje (kompakt) ---
   const sTxt = s && s.score != null ? "💤" + s.score : "💤–";
-  const kTxt = kneeVal != null ? "🦵" + kneeVal : "🦵–";
+  const kTxt = worstAll != null ? "🦵" + worstAll : "🦵–";
   const cTxt = "📋" + todos.length;
   out.push(sTxt + "  " + kTxt + "  " + cTxt + " | size=13");
   out.push("---");
@@ -83,19 +93,25 @@ function run(argv) {
   } else out.push("Ingen data | color=gray");
   out.push("---");
 
-  // --- Kne ---
-  out.push("Kne (siste logg) | size=14 color=" + kneeCol(kneeVal));
-  if (k) {
-    let line = "🦵 " + (kneeVal != null ? kneeVal + "/10" : "–");
-    if (k.session_type) line += " · " + k.session_type;
-    out.push(line + " | color=" + kneeCol(kneeVal));
+  // --- Smerte (per alvorlig skade; fallback til kne-kompatfeltet) ---
+  const painBlocks = severeInj.length
+    ? severeInj.map((inj) => ({ name: injName(inj), p: injPain(inj) }))
+    : [{ name: "Kne", p: k }];
+  out.push("Smerte (siste logg) | size=14 color=" + kneeCol(worstAll));
+  for (const blk of painBlocks) {
+    const p = blk.p;
+    if (!p) { out.push(blk.name + ": ingen data | color=gray"); continue; }
+    const v = p.during != null ? p.during : (p.after != null ? p.after : null);
+    let line = "🦵 " + blk.name + ": " + (v != null ? v + "/10" : "–");
+    if (p.session_type) line += " · " + p.session_type;
+    out.push(line + " | color=" + kneeCol(v));
     let det = [];
-    if (k.before != null) det.push("før " + k.before);
-    if (k.during != null) det.push("under " + k.during);
-    if (k.after != null)  det.push("etter " + k.after);
+    if (p.before != null) det.push("før " + p.before);
+    if (p.during != null) det.push("under " + p.during);
+    if (p.after != null)  det.push("etter " + p.after);
     if (det.length) out.push(det.join(" · ") + " | size=11 color=gray");
-    if (k.date) out.push(k.date + " | size=11 color=gray");
-  } else out.push("Ingen data | color=gray");
+    if (p.date) out.push(p.date + " | size=11 color=gray");
+  }
   out.push("---");
 
   // --- Trend (vs forrige loggførte dag) ---
@@ -104,7 +120,7 @@ function run(argv) {
   const yS = (y.sleep && y.sleep.score != null) ? y.sleep.score : null;
   const yK = (y.knee && y.knee.worst_score != null) ? y.knee.worst_score : null;
   const tS = (s && s.score != null) ? s.score : null;
-  const tK = worstKnee(k);
+  const tK = worstAll;
 
   // Søvn: høyere = bedre.
   if (tS != null && yS != null) {

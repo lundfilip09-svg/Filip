@@ -23,6 +23,16 @@ function worstKnee(k){
   const v=[k.before,k.during,k.after,k.day_after].filter(x=>x!=null);
   return v.length?Math.max(...v):null;
 }
+// Per-skade (data.injuries fra /api/widget). Faller tilbake til kne-kompatfeltet.
+const _BODY_NO={ 'body.knee':'Kne','body.hamstring':'Hamstring','body.glute':'Glute','body.hipflexor':'Hoftebøyer','body.hip':'Hofte','body.shoulder':'Skulder','body.back':'Rygg','body.neck':'Nakke','body.ankle':'Ankel','body.calf':'Legg','body.achilles':'Akilles','body.foot':'Fot','body.other':'Annet' };
+const _SIDE_NO={ left:'v.', right:'h.', both:'beg.' };
+function injName(inj){ const b=_BODY_NO[inj.body_part]||inj.body_part||''; const s=inj.side&&_SIDE_NO[inj.side]?(' '+_SIDE_NO[inj.side]):''; return (b+s).toUpperCase(); }
+function injPain(inj){ const p=inj&&inj.latest_pain; return p?{session_type:p.session_type,before:p.before,during:p.during,after:p.after,day_after:p.day_after}:null; }
+function worstInjuries(data){
+  let worst=null;
+  for(const inj of (data.injuries||[])){ const w=worstKnee(injPain(inj)); if(w!=null&&(worst==null||w>worst)) worst=w; }
+  return worst!=null?worst:worstKnee(data.knee);
+}
 function hoursLabel(h){
   if(h==null) return "–";
   const m=Math.round(h*60);
@@ -101,24 +111,31 @@ function buildMedium(data){
   const divL=left.addStack(); divL.backgroundColor=C.sep; divL.size=new Size(130,1);
   left.addSpacer(10);
 
-  // KNE
-  const k=data.knee;
-  const kh=left.addStack(); kh.centerAlignContent();
-  lbl(kh, "KNE");
-  if(k&&k.session_type){
-    kh.addSpacer(5);
-    const st=kh.addText(k.session_type); st.textColor=C.s2; st.font=Font.systemFont(9); st.lineLimit=1;
-  }
-  left.addSpacer(4);
-  const kr=left.addStack(); kr.centerAlignContent();
-  [{l:"før",v:k?k.before:null},{l:"und",v:k?k.during:null},{l:"etter",v:k?k.after:null},{l:"d+1",v:k?k.day_after:null}]
-    .forEach((p,i)=>{
-      if(i>0){ const dot=kr.addText("·"); dot.textColor=C.s2; dot.font=Font.systemFont(10); kr.addSpacer(3); }
-      const cell=kr.addStack(); cell.layoutVertically(); cell.centerAlignContent();
-      const cl=cell.addText(p.l); cl.textColor=C.s2; cl.font=Font.systemFont(8); cl.centerAlignText();
-      const cv=cell.addText(p.v!=null?`${p.v}`:"–"); cv.textColor=kneeColor(p.v); cv.font=Font.boldSystemFont(15); cv.centerAlignText();
-      if(i<3) kr.addSpacer(3);
-    });
+  // SMERTE — per alvorlig skade (data.injuries). Fallback: kne-kompatfeltet.
+  const _injList=(data.injuries||[]).filter(x=>x&&x.latest_pain);
+  const painBlocks = _injList.length
+    ? _injList.map(inj=>({ name:injName(inj), p:injPain(inj) }))
+    : [{ name:"KNE", p:data.knee }];
+  painBlocks.forEach((blk,bi)=>{
+    if(bi>0) left.addSpacer(8);
+    const k=blk.p;
+    const kh=left.addStack(); kh.centerAlignContent();
+    lbl(kh, blk.name);
+    if(k&&k.session_type){
+      kh.addSpacer(5);
+      const st=kh.addText(k.session_type); st.textColor=C.s2; st.font=Font.systemFont(9); st.lineLimit=1;
+    }
+    left.addSpacer(4);
+    const kr=left.addStack(); kr.centerAlignContent();
+    [{l:"før",v:k?k.before:null},{l:"und",v:k?k.during:null},{l:"etter",v:k?k.after:null},{l:"d+1",v:k?k.day_after:null}]
+      .forEach((p,i)=>{
+        if(i>0){ const dot=kr.addText("·"); dot.textColor=C.s2; dot.font=Font.systemFont(10); kr.addSpacer(3); }
+        const cell=kr.addStack(); cell.layoutVertically(); cell.centerAlignContent();
+        const cl=cell.addText(p.l); cl.textColor=C.s2; cl.font=Font.systemFont(8); cl.centerAlignText();
+        const cv=cell.addText(p.v!=null?`${p.v}`:"–"); cv.textColor=kneeColor(p.v); cv.font=Font.boldSystemFont(15); cv.centerAlignText();
+        if(i<3) kr.addSpacer(3);
+      });
+  });
 
   body.addSpacer(16);
 
@@ -164,11 +181,11 @@ function buildSmall(data){
   sn.textColor=sleepColor(s&&s.score); sn.font=Font.boldSystemFont(42);
 
   w.addSpacer(7);
-  const worst=worstKnee(data.knee);
+  const worst=worstInjuries(data);
   const kr=w.addStack(); kr.centerAlignContent();
   const kn=kr.addText(worst!=null?`${worst}/10`:"–"); kn.textColor=kneeColor(worst); kn.font=Font.boldSystemFont(15);
   kr.addSpacer(4);
-  kr.addText("kne").textColor=C.s2;
+  kr.addText("smerte").textColor=C.s2;
 
   w.addSpacer(4);
   const n=(data.todos||[]).length;

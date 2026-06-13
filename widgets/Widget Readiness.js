@@ -1,5 +1,6 @@
 // Widget Readiness — Scriptable (Small + Medium)
-// Beredskap 0–100: søvnscore×0.4 + (10−kne)×6 + HRV-norm×0.2
+// Beredskap 0–100: søvnscore×0.4 + (10−smerte)×6 + HRV-norm×0.2
+// smerte = verste verdi på tvers av alle alvorlige skader (kne + hamstring …)
 const BASE  = "https://filip-vita.vercel.app";
 const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
 const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
@@ -32,9 +33,20 @@ function errWidget(msg){
 function compute(data){
   const s=data.sleep;
   if(!s||s.score==null) return null;
-  const k=data.knee;
-  const vals=k?[k.before,k.during,k.after,k.day_after].filter(v=>v!=null):[];
-  const worstK=vals.length?Math.max(...vals):0;
+  // Verste smerte på tvers av alle alvorlige skader; fallback til kne-kompatfeltet.
+  let worstK=0;
+  const _inj=(data.injuries||[]).filter(x=>x&&x.latest_pain);
+  if(_inj.length){
+    for(const inj of _inj){
+      const p=inj.latest_pain;
+      const vs=[p.before,p.during,p.after,p.day_after].filter(v=>v!=null);
+      if(vs.length) worstK=Math.max(worstK,...vs);
+    }
+  } else {
+    const k=data.knee;
+    const vals=k?[k.before,k.during,k.after,k.day_after].filter(v=>v!=null):[];
+    worstK=vals.length?Math.max(...vals):0;
+  }
   const hrv=s.hrv;
   const hrvN=hrv!=null?Math.min(hrv/70*100,100):0;
   let score=Math.round(s.score*0.4+(10-worstK)*6+hrvN*0.2);
@@ -46,7 +58,7 @@ function compute(data){
   return {score,word,color,colorHex,rec,
     parts:{
       sleep:{val:s.score*0.4,max:40},
-      knee: {val:(10-worstK)*6,max:60},
+      pain: {val:(10-worstK)*6,max:60},
       hrv:  {val:hrvN*0.2,max:20,missing:hrv==null},
     }};
 }
@@ -109,7 +121,7 @@ function buildMedium(r){
   const right=body.addStack(); right.layoutVertically();
   const bw=128;
   addBar(right,"Søvn",r.parts.sleep.val,r.parts.sleep.max,C.ok,bw);   right.addSpacer(7);
-  addBar(right,"Kne", r.parts.knee.val, r.parts.knee.max, C.warn,bw); right.addSpacer(7);
+  addBar(right,"Smerte", r.parts.pain.val, r.parts.pain.max, C.warn,bw); right.addSpacer(7);
   addBar(right,r.parts.hrv.missing?"HRV –":"HRV",r.parts.hrv.val,r.parts.hrv.max,new Color("#60a5fa"),bw);
 
   w.addSpacer(9);

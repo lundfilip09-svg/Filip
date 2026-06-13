@@ -270,6 +270,7 @@ applyLang();
 let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
 let _injuryScores   = {};   // {injuryId: {before, during, after, dayafter}}
 let _manualScores   = {};   // {injuryId: {before, during, after, dayafter}}
+let _histInjuryPain = {};   // `${injuryId}|${date}` → injury_pain-rad (historikk)
 let _isSavingLog  = false;
 let _sprintLevel  = 'høy'; // valgt akselerasjonsnivå for belastning (default: høy = 3.0)
 let runs     = [];   // [{ distance, type, time }]
@@ -335,6 +336,10 @@ document.getElementById('logDate').value = today();
 // ── Pain buttons ──────────────────────────────────────────────────────────
 function painClass(s) {
   return s <= 3 ? 'sel-green' : s <= 5 ? 'sel-yellow' : s <= 7 ? 'sel-orange' : 'sel-red';
+}
+
+function _isKneeInjury(inj) {
+  return !!inj && (inj.body_part === 'body.knee' || /kne|knee/i.test(inj.body_part || ''));
 }
 
 // Oversett body_part til visningsnavn (body.knee → «Kne» el. «Knee»)
@@ -773,6 +778,19 @@ async function loadHistory() {
     .order('date', { ascending: false })
     .limit(60);
   sprintLog = data || [];
+  // Per-skade smerte (injury_pain er kilde-til-sannhet) for de viste datoene.
+  _histInjuryPain = {};
+  try {
+    const dates = [...new Set(sprintLog.map(r => r.date))];
+    if (dates.length && _severeInjuries.length) {
+      const { data: ipRows } = await db.from('injury_pain').select('*').in('date', dates);
+      (ipRows || []).forEach(r => {
+        const key = `${r.injury_id}|${r.date}`;
+        if (!_histInjuryPain[key] || (r.created_at || '') > (_histInjuryPain[key].created_at || ''))
+          _histInjuryPain[key] = r;
+      });
+    }
+  } catch (e) { /* injury_pain er tillegg — sprint_log.knee_* dekker gammel historikk */ }
   renderHistory();
   await loadKneeTrend();
 }
@@ -801,14 +819,30 @@ function _buildSessCard(date, runs, isOpen) {
       <span class="history-type">${escHtml((r.type || '').split(':')[0])}</span>
     </div>`).join('');
 
-  const painVals = [
-    { l: t('knee.before'), v: kneeBefore }, { l: t('knee.during'), v: kneeDuring },
-    { l: t('knee.after'), v: kneeAfter }, { l: t('tp.knee_dayafter'), v: kneeDayAfter },
-  ];
-  const hasPain = painVals.some(x => x.v != null);
-  const painSummary = hasPain
-    ? `<span class="sess-pain">${painVals.map(x => `${x.l}: <span class="sess-pain-val ${_painColorClass(x.v)}">${x.v ?? '—'}</span>`).join(' · ')}</span>`
-    : '';
+  // Legacy kne-verdier fra sprint_log.knee_* (fallback for kne-skaden / ingen skader).
+  const kneeLegacy = { before_score: kneeBefore, during_score: kneeDuring,
+                       after_score: kneeAfter, day_after_score: kneeDayAfter };
+  const distList = [...new Set(runs.map(r => distLabel(r.distance)))].join('/');
+  const sessType = `Sprint ${distList}`.trim();
+  const _histRowSp = inj => _histInjuryPain[`${inj.id}|${date}`] || (_isKneeInjury(inj) ? kneeLegacy : null);
+  const _painLineSp = row => [
+    { l: t('knee.before'),      v: row?.before_score },
+    { l: t('knee.during'),      v: row?.during_score },
+    { l: t('knee.after'),       v: row?.after_score },
+    { l: t('tp.knee_dayafter'), v: row?.day_after_score },
+  ].map(x => `${x.l}: <span class="sess-pain-val ${_painColorClass(x.v)}">${x.v ?? '—'}</span>`).join(' · ');
+
+  let painSummary;
+  if (_severeInjuries.length) {
+    painSummary = _severeInjuries.map(inj => {
+      const row = _histRowSp(inj);
+      if (!row || [row.before_score, row.during_score, row.after_score, row.day_after_score].every(v => v == null)) return '';
+      return `<div class="sess-pain"><span style="color:var(--text-secondary)">${escHtml(bodyPartName(inj))}</span> — ${_painLineSp(row)}</div>`;
+    }).filter(Boolean).join('');
+  } else {
+    const hasPain = [kneeBefore, kneeDuring, kneeAfter, kneeDayAfter].some(v => v != null);
+    painSummary = hasPain ? `<span class="sess-pain">${_painLineSp(kneeLegacy)}</span>` : '';
+  }
 
   const card = `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${date}"
     onclick="toggleSprintDetail('${date}')">
@@ -841,7 +875,22 @@ function _buildSessCard(date, runs, isOpen) {
         <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">1–100</span>
       </div>
     </div>
-    <div style="margin-bottom:14px">
+    ${_severeInjuries.length ? _severeInjuries.map(inj => {
+      const row = _histRowSp(inj);
+      return `<div style="margin-bottom:14px">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${escHtml(bodyPartName(inj))}</div>
+      <div class="sess-edit-row">
+        ${[[t('knee.before'),'before_score',row?.before_score],[t('knee.during'),'during_score',row?.during_score],[t('knee.after'),'after_score',row?.after_score],[t('tp.knee_dayafter'),'day_after_score',row?.day_after_score]].map(([lbl,field,val]) => `
+          <div>
+            <div class="sess-edit-lbl">${lbl}</div>
+            <input type="number" min="0" max="10" class="sess-edit-input"
+              value="${val ?? ''}" placeholder="–"
+              onblur="saveHistInjuryPain('${inj.id}','${date}','${escHtml(sessType)}','${field}',this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+          </div>`).join('')}
+      </div>
+    </div>`;
+    }).join('') : `<div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('knee.pain')}</div>
       <div class="sess-edit-row">
         ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) => `
@@ -853,7 +902,7 @@ function _buildSessCard(date, runs, isOpen) {
               onkeydown="if(event.key==='Enter')this.blur()">
           </div>`).join('')}
       </div>
-    </div>
+    </div>`}
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('notes')}</div>
       <textarea class="sess-edit-textarea"
@@ -923,6 +972,33 @@ async function saveHistField(date, field, valueStr) {
   if (['knee_before','knee_during','knee_after','knee_day_after'].includes(field)) {
     loadKneeTrend();
   }
+}
+
+// Per-skade smerte-redigering i historikk → injury_pain (kne-skaden faller tilbake
+// til sprint_log.knee_* ved første redigering hvis ingen injury_pain-rad finnes).
+async function saveHistInjuryPain(injId, date, sessionType, field, valueStr) {
+  const s = valueStr.trim();
+  let numVal;
+  if (s === '') numVal = null;
+  else {
+    const n = Number(s);
+    if (isNaN(n) || n < 0 || n > 10) { toast(t('sprint.pain_range'), 'err'); return; }
+    numVal = n;
+  }
+  const key = `${injId}|${date}`;
+  const existing = _histInjuryPain[key];
+  if (existing) {
+    const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
+    if (error) { toast(t('sprint.save_fail'), 'err'); return; }
+    _histInjuryPain[key][field] = numVal;
+  } else {
+    const { data, error } = await db.from('injury_pain').insert({
+      injury_id: injId, date, session_type: sessionType, source: 'sprint', [field]: numVal,
+    }).select().single();
+    if (error) { toast(t('sprint.save_fail'), 'err'); return; }
+    if (data) _histInjuryPain[key] = data;
+  }
+  refreshHistCard(date);
 }
 
 function refreshHistCard(date) {
@@ -1082,7 +1158,8 @@ async function saveKneeInline() {
     renderLogRpe(rpeValue('logRpe'));
   };
   applyLang();
-  await Promise.all([loadPBs(), loadSprintGoals(), loadHistory(), loadSevereInjuries()]);
+  await loadSevereInjuries();   // _severeInjuries før historikk rendres per-skade
+  await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();
 </script>
 </body>

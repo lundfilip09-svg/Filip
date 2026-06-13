@@ -845,7 +845,7 @@ async function copyHealthReport() {
   toast(t('ai.report_building'));
   try {
     const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
-    const [health, knee, gym, sprint, activity, records, physio, injuries] = await Promise.all([
+    const [health, knee, gym, sprint, activity, records, physio, injuries, injPain] = await Promise.all([
       db.from('health_data').select('date,sleep_score,hrv,rhr,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes').gte('date', cutoff).order('date', { ascending: false }),
       db.from('knee_pain').select('date,before_score,during_score,after_score,day_after_score,notes').gte('date', cutoff).order('date', { ascending: false }),
       db.from('gym_log').select('date,session_type,rpe,session_notes,duration_min').gte('date', cutoff).order('date', { ascending: false }),
@@ -853,12 +853,22 @@ async function copyHealthReport() {
       db.from('activity_log').select('date,activity_type,activity_label,duration_min,rpe').gte('date', cutoff).order('date', { ascending: false }),
       db.from('sprint_records').select('distance,best_time').order('distance', { ascending: true }),
       db.from('physio_notes').select('date,therapist,note').order('date', { ascending: false }).limit(3),
-      db.from('injuries').select('body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
+      db.from('injuries').select('id,body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
+      db.from('injury_pain').select('injury_id,date,before_score,during_score,after_score,day_after_score,created_at').gte('date', cutoff).order('date', { ascending: false }),
     ]);
 
     const H = health.data || [], K = knee.data || [], G = gym.data || [],
           S = sprint.data || [], A = activity.data || [], R = records.data || [],
-          P = physio.data || [], I = injuries.data || [];
+          P = physio.data || [], I = injuries.data || [], IP = injPain.data || [];
+
+    // Per-skade smerte: injury_pain er kilde-til-sannhet (kun alvorlige skader logges).
+    const _isKneeBp = bp => bp === 'body.knee' || /kne|knee/i.test(bp || '');
+    const _sevInj = I.filter(i => i.severity === 'severe');
+    const _ipByKey = {};
+    IP.forEach(r => {
+      const key = `${r.injury_id}|${r.date}`;
+      if (!_ipByKey[key] || (r.created_at || '') > (_ipByKey[key].created_at || '')) _ipByKey[key] = r;
+    });
 
     // PB-linje — live fra sprint_records, fallback til kjente verdier
     const recMap = {};
@@ -899,7 +909,16 @@ async function copyHealthReport() {
       if (h && (h.hrv != null || h.rhr != null)) parts.push(`HRV ${h.hrv ?? '–'} / RHR ${h.rhr ?? '–'}`);
       if (h) { const _st = (h.deep_sleep_minutes||0)+(h.rem_sleep_minutes||0)+(h.light_sleep_minutes||0); if (_st > 10) parts.push(`Sleep stages: Deep ${Math.round((h.deep_sleep_minutes||0)/_st*100)}% / REM ${Math.round((h.rem_sleep_minutes||0)/_st*100)}%`); }
       const k = kM[ds];
-      parts.push(`Knee pain before/during/after/next-day: ${k ? `${k.before_score ?? '–'}/${k.during_score ?? '–'}/${k.after_score ?? '–'}/${k.day_after_score ?? '–'}` : 'not logged'}`);
+      if (_sevInj.length) {
+        const painParts = _sevInj.map(inj => {
+          const row = _ipByKey[`${inj.id}|${ds}`] || (_isKneeBp(inj.body_part) ? k : null);
+          const nm  = (_INJ_BODY_EN[inj.body_part] || inj.body_part) + (inj.side && _INJ_SIDE_EN[inj.side] ? ' ' + _INJ_SIDE_EN[inj.side] : '');
+          return `${nm} pain b/d/a/next: ${row ? `${row.before_score ?? '–'}/${row.during_score ?? '–'}/${row.after_score ?? '–'}/${row.day_after_score ?? '–'}` : 'not logged'}`;
+        });
+        parts.push(painParts.join(' | '));
+      } else {
+        parts.push(`Pain before/during/after/next-day: ${k ? `${k.before_score ?? '–'}/${k.during_score ?? '–'}/${k.after_score ?? '–'}/${k.day_after_score ?? '–'}` : 'not logged'}`);
+      }
       const sess = [];
       (gM[ds] || []).forEach(g => sess.push(`Strength${g.session_type ? ' (' + g.session_type + ')' : ''}${g.duration_min ? ' ' + g.duration_min + 'min' : ''}${g.rpe != null ? ' RPE ' + g.rpe : ''}${g.session_notes ? ' — ' + g.session_notes : ''}`));
       (sM[ds] || []).forEach(s => sess.push(`Sprint${s.distance ? ' ' + distLabel(s.distance) : ''}${s.type ? ' ' + s.type : ''}${s.duration_min ? ' ' + s.duration_min + 'min' : ''}${s.rpe != null ? ' RPE ' + s.rpe : ''}${s.notes ? ' — ' + s.notes : ''}`));
@@ -917,8 +936,8 @@ async function copyHealthReport() {
       ? 'Combining High School Soccer / American Football (2–3×/week) with Sprint Training and Strength/Rehab.'
       : 'Sprint training + strength/rehab at Norna-Salhus IL, ~5–6×/week.';
     const _q1 = _inUSA
-      ? 'Analyze if my knee pain trend indicates that my current soccer/football/sprint load is safe or causing regression.'
-      : 'Analyze if my knee pain trend indicates that my current sprint/strength load is safe or causing regression.';
+      ? 'Analyze if my injury pain trends (per active issue listed above) indicate that my current soccer/football/sprint load is safe or causing regression.'
+      : 'Analyze if my injury pain trends (per active issue listed above) indicate that my current sprint/strength load is safe or causing regression.';
 
     const report =
 `=== ATHLETE CONTEXT ===
@@ -929,9 +948,8 @@ Current Club: Norna-Salhus IL (Norway)
 Coaching Team: Erlend Sæterstøl, Jørgen Homstad, Joakim Dang, Sondre Amundsen
 
 === MEDICAL & INJURY HISTORY ===
-Diagnosis: Patellar tendinopathy (jumper's knee), left knee.
-Onset: January 2026, following a rapid ramp-up in sprint training volume.
-Current Status: Doing daily targeted rehab. Tolerating static/slow heavy loading well, but highly sensitive to high-velocity stretch-shortening cycles (like football and max sprinting).
+Primary diagnosis: Patellar tendinopathy (jumper's knee), left knee — onset January 2026 after a rapid ramp-up in sprint volume. Tolerates static/slow heavy loading well, but is highly sensitive to high-velocity stretch-shortening cycles (football, max sprinting). Doing daily targeted rehab.
+NOTE: This is not the only issue — treat the live list below as the authoritative, current set of injuries, and weigh each one (per-injury pain is in the daily data).
 Active issues (live from tracker):
 ${injBlock}
 Latest Physio/Clinical Notes (live from tracker, newest first):
@@ -968,15 +986,16 @@ async function copyInjuryStatus() {
   if (btn) btn.disabled = true;
   try {
     const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
-    const [inj, knee, gym, sprint, act] = await Promise.all([
+    const [inj, knee, gym, sprint, act, injPain] = await Promise.all([
       db.from('injuries').select('body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
       db.from('knee_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
       db.from('gym_log').select('date,rpe').gte('date', cutoff),
       db.from('sprint_log').select('date,rpe').gte('date', cutoff),
       db.from('activity_log').select('date,rpe').gte('date', cutoff),
+      db.from('injury_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
     ]);
     const I = inj.data || [], K = knee.data || [], G = gym.data || [],
-          S = sprint.data || [], A = act.data || [];
+          S = sprint.data || [], A = act.data || [], IP = injPain.data || [];
 
     const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
     const fmtDM = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' }) : '–';
@@ -1011,9 +1030,11 @@ async function copyInjuryStatus() {
     S.forEach(s => { if (rpeByDate[s.date] == null && s.rpe != null) rpeByDate[s.date] = s.rpe; });
     const allRpe = [...G.map(g => g.rpe), ...sprintDates.map(d => rpeByDate[d]), ...A.map(a => a.rpe)].filter(v => v != null);
     const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a, b) => a + b, 0) / allRpe.length) : null;
+    // Maks smerte siste 7 dager på tvers av ALLE skader: injury_pain + knee_pain-fallback.
     let maxPain = null;
-    K.forEach(k => [k.before_score, k.during_score, k.after_score, k.day_after_score]
-      .forEach(v => { if (v != null && (maxPain == null || v > maxPain)) maxPain = v; }));
+    const _bumpMax = arr => arr.forEach(v => { if (v != null && (maxPain == null || v > maxPain)) maxPain = v; });
+    IP.forEach(r => _bumpMax([r.before_score, r.during_score, r.after_score, r.day_after_score]));
+    K.forEach(k => _bumpMax([k.before_score, k.during_score, k.after_score, k.day_after_score]));
 
     const today = new Date().toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
     const msg = `${t('diag.header')} — Filip Lund, ${today}
