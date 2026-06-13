@@ -931,7 +931,9 @@ function notesText(i) {
 
 function isRest(i) {
   const t = planText(i).toLowerCase();
-  return !t || t.startsWith('hvile') || t.startsWith('fri');
+  if (!t) return true;
+  if (t.startsWith('hvile og rehab') || t.startsWith('hvile & rehab')) return false;
+  return t.startsWith('hvile') || t.startsWith('fri');
 }
 
 function dayDate(i) {
@@ -1620,8 +1622,8 @@ function renderInjuryDash() {
     }
 
     const name = bodyPartName(inj);
-    return `<div style="margin-bottom:10px">
-      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">${escHtml(name)}</div>
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">${escHtml(name)}</div>
       <div class="kd-spark">${bars.join('')}</div>
       <div class="kd-stat" style="margin-top:6px">
         <div class="kd-stat-val ${painFreeNow ? 'good' : ''}">${daysSince}<span style="font-size:11px;color:var(--text-tertiary)"> ${t('tp.days_unit')}</span></div>
@@ -1631,7 +1633,7 @@ function renderInjuryDash() {
   }).join('');
 
   el.innerHTML = `${injHtml}
-    <div class="kd-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px">
+    <div class="kd-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px">
       <div class="kd-stat">
         <div class="kd-stat-val ${streak >= 3 ? 'good' : ''}">${streak >= 3 ? '<span class="kd-streak-fire">🔥</span>' : ''}${streak}</div>
         <div class="kd-stat-lbl">${t('tp.rehab_streak')}</div>
