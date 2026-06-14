@@ -878,9 +878,15 @@ function renderLoadPain() {
   const N          = (injuryPainSeries || []).length;
   const DODGE_STEP = N > 1 ? 0.18 : 0;
 
+  // Smertegrense: smerte >= denne = «spike» → fremhevet stort punkt m/hvit ring.
+  // Default 5 (tendon-rehab «akseptabel smerte»-regel). Endre her ved behov.
+  const PAIN_LIMIT = 5;
+
   const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => {
     const xOff = (idx - (N - 1) / 2) * DODGE_STEP;
+    const col  = PAIN_COLORS[idx % PAIN_COLORS.length];
+    const hi   = c => (c.raw?.y ?? 0) >= PAIN_LIMIT;   // spike?
     return {
       label: _dashBodyPartName(inj),
       // {x: dateIndex + offset, y: painValue} — offset is cosmetic only; _date carries real date
@@ -890,11 +896,16 @@ function renderLoadPain() {
       }).filter(Boolean),  // parsing:false tåler ikke null-elementer → krasjer Chart.js
       parsing: false,
       yAxisID: 'yP',
-      borderColor: PAIN_COLORS[idx % PAIN_COLORS.length],
-      backgroundColor: PAIN_COLORS[idx % PAIN_COLORS.length],
+      borderColor: col,
+      backgroundColor: col,
       borderWidth: 1.5,
-      pointRadius: idx < N - 1 ? 4 : 3,  // earlier (bottom) series slightly larger → visible behind top
-      hoverRadius: 6,
+      // Spikes (>= PAIN_LIMIT) stikker ut: stort punkt, full farge, hvit ring.
+      // Lave verdier dempes (lite + halv-transparent) så de ikke konkurrerer visuelt.
+      pointRadius:          c => hi(c) ? 7.5 : 2.5,
+      pointBackgroundColor: c => hi(c) ? col : col + '55',
+      pointBorderColor:     c => hi(c) ? '#FFFFFF' : 'transparent',
+      pointBorderWidth:     c => hi(c) ? 1.5 : 0,
+      hoverRadius: 9,
       tension: 0.2, spanGaps: false, showLine: false,
     };
   });
@@ -916,7 +927,14 @@ function renderLoadPain() {
           data: dates.map((_, i) => ({ x: i, y: 1.5 })),
           parsing: false,
           yAxisID: 'yA', borderColor: 'rgba(255,107,107,0.45)', borderWidth: 1,
-          borderDash: [5, 4], pointRadius: 0, fill: false,
+          borderDash: [5, 4], pointRadius: 0, fill: false, _noTooltip: true,
+        },
+        {
+          label: t('dash.pain_limit', { n: PAIN_LIMIT }),
+          data: dates.map((_, i) => ({ x: i, y: PAIN_LIMIT })),
+          parsing: false,
+          yAxisID: 'yP', borderColor: 'rgba(255,159,67,0.55)', borderWidth: 1,
+          borderDash: [2, 4], pointRadius: 0, fill: false, _noTooltip: true,
         },
         ...painDatasets,
       ],
@@ -933,7 +951,7 @@ function renderLoadPain() {
         tooltip: {
           backgroundColor: 'rgba(10,10,13,0.97)', titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
           borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10, cornerRadius: 8,
-          filter: item => item.datasetIndex !== 1 && item.parsed.y != null && !isNaN(item.parsed.y),
+          filter: item => !item.dataset._noTooltip && item.parsed.y != null && !isNaN(item.parsed.y),
           callbacks: {
             title: items => items.length ? (labels[items[0].dataIndex] || '') : '',
             label: ctx => `${ctx.dataset.label}: ${ctx.datasetIndex === 0 ? ctx.parsed.y.toFixed(2) : ctx.parsed.y}`,
