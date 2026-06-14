@@ -1118,6 +1118,10 @@ async function deleteSprintDate(date) {
   if (!confirm(t('confirm.delete_runs', { date }))) return;
   const dists = sprintLog.filter(r => r.date === date).map(r => r.distance);
   await db.from('sprint_log').delete().eq('date', date);
+  // Fjern smerterader denne sprint-økta skapte (source='sprint') så de ikke blir
+  // hengende i kne-/skadetrend. Gym- og manuelle smerterader på samme dato røres ikke.
+  await db.from('injury_pain').delete().eq('date', date).eq('source', 'sprint');
+  Object.keys(_histInjuryPain).forEach(k => { if (k.endsWith('|' + date)) delete _histInjuryPain[k]; });
   await recomputeSprintPBs(dists);
   await loadDistances();
   await Promise.all([loadHistory(), loadPBs(), loadSprintGoals()]);
