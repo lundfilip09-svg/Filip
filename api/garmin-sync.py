@@ -164,8 +164,15 @@ def fetch_for_date(garmin, save_date):
             for p in stress.get("bodyBatteryValuesArray") or []:
                 if not isinstance(p, list) or len(p) < 2:
                     continue
-                ts, lvl = p[0], p[-1]
-                if isinstance(ts, (int, float)) and isinstance(lvl, (int, float)) and 0 <= lvl <= 100:
+                ts = p[0]
+                # Format: [timestamp_ms, status, nivå, versjon]. Nivået er
+                # heltallet 0–100 (versjon er en float som 3.0, status en
+                # streng/kode) — plukk det robust uten å treffe versjonen.
+                if len(p) >= 3:
+                    lvl = p[2]
+                else:
+                    lvl = p[1]
+                if isinstance(ts, (int, float)) and isinstance(lvl, int) and 0 <= lvl <= 100:
                     curve.append([int(ts // 1000), int(lvl)])
             avg = stress.get("avgStressLevel")
             if avg is not None and avg >= 0:
