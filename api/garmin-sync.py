@@ -141,17 +141,11 @@ def fetch_for_date(garmin, save_date):
         try:
             summary = garmin.get_stats(stats_date)
             if isinstance(summary, dict):
-                # DIAGNOSE: vis alle body-battery-felt fra sammendraget
-                result["_bb_summary"] = {
-                    k: summary.get(k) for k in summary if "bodyBattery" in k
-                }
                 bb_val = (
                     summary.get("bodyBatteryHighestValue")
                     or summary.get("bodyBatteryMostRecentValue")
                     or summary.get("bodyBatteryAtWakeTime")
                 )
-            else:
-                result["_bb_summary"] = f"type={type(summary).__name__}"
         except Exception:
             result["_bb_summary_error"] = traceback.format_exc()
 
