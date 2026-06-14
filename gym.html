@@ -3003,7 +3003,7 @@ async function loadGymHistory() {
           ${setsHtml}
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
-        <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}')" title="${t('delete')}">✕</button>
+        <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')" title="${t('delete')}">✕</button>
       </div>
       ${painEditHtml(g, knee, kneeId)}
     </div>`;
@@ -3013,13 +3013,21 @@ async function loadGymHistory() {
     text-align:center">${t('gym.full_log')}</a>`;
 }
 
-async function deleteGymSession(gymId, kneePainId) {
+async function deleteGymSession(gymId, kneePainId, date) {
   if (!confirm(t('confirm.delete_session'))) return;
   const ops = [db.from('gym_log').delete().eq('id', gymId)];
   // DEPRECATED (P6): knee_pain delete — keep until DROP migration
   if (kneePainId) ops.push(db.from('knee_pain').delete().eq('id', kneePainId));
   const results = await Promise.all(ops);
   if (results.some(r => r.error)) { toast(t('gym.delete_error'), 'err'); return; }
+  // Fjern foreldreløse smerterader fra denne gym-økta (source='gym') hvis ingen
+  // gym-økt er igjen på datoen. Sprint-/manuelle smerterader på samme dato røres ikke.
+  if (date) {
+    const { data: rest } = await db.from('gym_log').select('id').eq('date', date).limit(1);
+    if (!rest || !rest.length) {
+      await db.from('injury_pain').delete().eq('date', date).eq('source', 'gym');
+    }
+  }
   toast(t('gym.deleted'));
   await loadGymHistory();
 }
