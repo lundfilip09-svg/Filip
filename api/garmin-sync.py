@@ -149,37 +149,57 @@ def fetch_for_date(garmin, save_date):
         except Exception:
             result["_bb_summary_error"] = traceback.format_exc()
 
-        # Hele dagens kurve fra detalj-arrayen. Hvert punkt lagres som
-        # [epoch_sekunder_GMT, nivå] slik at søvnsiden kan tegne en linje.
-        # Brukes også som fallback for dagsverdien (toppen) om sammendraget
-        # mangler feltet.
+        # Hele dagens kurve. Tett serie (~hvert 3. min) ligger i dailyStress-
+        # endepunktet sin bodyBatteryValuesArray ([timestamp_ms, nivå]) — samme
+        # kall vi bruker til stress-snittet. get_body_battery (reports/daily)
+        # gir bare en grov hendelsesserie (~6 punkter), så den brukes kun som
+        # fallback. Hvert punkt lagres som [epoch_sekunder_GMT, nivå].
         curve = []
-        bb_list = garmin.get_body_battery(stats_date)
-        if bb_list and isinstance(bb_list, list):
-            for entry in bb_list:
-                if not isinstance(entry, dict):
+        try:
+            stress = garmin.get_stress_data(stats_date)
+        except Exception:
+            stress = None
+            result["_stress_error"] = traceback.format_exc()
+        if isinstance(stress, dict):
+            for p in stress.get("bodyBatteryValuesArray") or []:
+                if not isinstance(p, list) or len(p) < 2:
                     continue
-                ts_idx, lvl_idx = 0, None
-                for d in entry.get("bodyBatteryValueDescriptorDTOList") or []:
-                    if not isinstance(d, dict):
+                ts, lvl = p[0], p[-1]
+                if isinstance(ts, (int, float)) and isinstance(lvl, (int, float)) and 0 <= lvl <= 100:
+                    curve.append([int(ts // 1000), int(lvl)])
+            avg = stress.get("avgStressLevel")
+            if avg is not None and avg >= 0:
+                result["stress_avg"] = avg
+
+        # Fallback: grov serie fra reports/daily hvis dailyStress mangler kurve.
+        if not curve:
+            bb_list = garmin.get_body_battery(stats_date)
+            if bb_list and isinstance(bb_list, list):
+                for entry in bb_list:
+                    if not isinstance(entry, dict):
                         continue
-                    key = d.get("bodyBatteryValueDescriptorKey")
-                    idx = d.get("bodyBatteryValueDescriptorIndex")
-                    if key == "bodyBatteryLevel":
-                        lvl_idx = idx
-                    elif key == "timestamp":
-                        ts_idx = idx
-                for p in entry.get("bodyBatteryValuesArray") or []:
-                    if not isinstance(p, list) or len(p) <= ts_idx:
-                        continue
-                    if lvl_idx is not None and len(p) > lvl_idx:
-                        lvl = p[lvl_idx]
-                    else:
-                        nums = [x for x in p[1:] if isinstance(x, (int, float)) and 0 <= x <= 100]
-                        lvl = nums[-1] if nums else None
-                    ts = p[ts_idx]
-                    if isinstance(lvl, (int, float)) and isinstance(ts, (int, float)):
-                        curve.append([int(ts // 1000), int(lvl)])
+                    ts_idx, lvl_idx = 0, None
+                    for d in entry.get("bodyBatteryValueDescriptorDTOList") or []:
+                        if not isinstance(d, dict):
+                            continue
+                        key = d.get("bodyBatteryValueDescriptorKey")
+                        idx = d.get("bodyBatteryValueDescriptorIndex")
+                        if key == "bodyBatteryLevel":
+                            lvl_idx = idx
+                        elif key == "timestamp":
+                            ts_idx = idx
+                    for p in entry.get("bodyBatteryValuesArray") or []:
+                        if not isinstance(p, list) or len(p) <= ts_idx:
+                            continue
+                        if lvl_idx is not None and len(p) > lvl_idx:
+                            lvl = p[lvl_idx]
+                        else:
+                            nums = [x for x in p[1:] if isinstance(x, (int, float)) and 0 <= x <= 100]
+                            lvl = nums[-1] if nums else None
+                        ts = p[ts_idx]
+                        if isinstance(lvl, (int, float)) and isinstance(ts, (int, float)):
+                            curve.append([int(ts // 1000), int(lvl)])
+
         curve.sort(key=lambda x: x[0])
         if curve:
             result["body_battery_curve"] = curve
@@ -190,15 +210,6 @@ def fetch_for_date(garmin, save_date):
             result["body_battery"] = round(bb_val)
     except Exception:
         result["_bb_error"] = traceback.format_exc()
-
-    # ── Stress (snitt for dagen, 0–100; Garmin bruker negative for «mangler») ─
-    try:
-        stress = garmin.get_stress_data(stats_date)
-        avg = stress.get("avgStressLevel") if isinstance(stress, dict) else None
-        if avg is not None and avg >= 0:
-            result["stress_avg"] = avg
-    except Exception:
-        result["_stress_error"] = traceback.format_exc()
 
     return result
 
