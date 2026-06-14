@@ -157,6 +157,39 @@ node --check feiler; no/en har ulikt antall nøkler.
 
 ---
 
+## ✅ PROMPT 2.6 — Fullfør per-skade i gym.html (live-smerte + økthistorikk)
+
+P2 gjorde bare «ferdig/lagre»-området i gym.html per-skade. To biter forble kne-only:
+live-smertevelgeren (`kneePain`) og historikk-skuffen (`loadGymHistory`).
+
+```
+KONTEKST: injuries er kilde-til-sannhet. "Alvorlig behandlet" = severity='severe' OG
+status in ('active','improving'). Treningsplan.html (P2.5) og gym.html sine
+injuryDoneBlocks (P2) er allerede per-skade — speil DE mønstrene. Tospråklig: all
+synlig tekst via t()/data-i18n, nye nøkler i BÅDE no og en. node --check + nøkkel-paritet.
+
+PROBLEM: gym.html har to gjenværende kne-hardkodede deler:
+1. Live-smerte under økten lagres i ett globalt kneePain-objekt (kne-only) + sidebar
+   pain-pills (setSbPhase/selectPain). Man kan ikke velge mellom kne og hamstring.
+2. loadGymHistory() rendrer historikk-skuffen med én hardkodet kne-blokk (knee.* labels),
+   ikke per-skade.
+
+OPPGAVE:
+- Erstatt det enkle kneePain-objektet med per-skade smerte (én oppføring per aktiv
+  alvorlig skade), slik at man kan logge kne OG hamstring live under økten. Oppdater
+  også den aktive-økt-draften (active_session JSON / restoreDraft / saveLog) til å lagre
+  per-skade i stedet for kneePain.
+- Gjør loadGymHistory()-skuffen per-skade: én redigerbar smerteblokk per alvorlig skade,
+  lest/skrevet til injury_pain (samme autoSave-mønster som treningsplan.html bruker).
+- Behold bakoverkompatibilitet: gamle økter som bare har kne-data skal fortsatt vises.
+- onLangChange re-rendrer både live-velger og historikk.
+
+STOPP: kne forsvinner; hamstring kan ikke logges live eller redigeres i historikk; gammel
+historikk brekker; tekst lekker på feil språk; node --check feiler; no/en ulikt antall nøkler.
+```
+
+---
+
 ## PROMPT 3 — Dashboard: statuskort + grafserie per alvorlig skade
 
 ```

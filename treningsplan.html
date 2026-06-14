@@ -617,13 +617,7 @@
         <input class="input-sm" id="actDuration" type="number" min="5" max="600" step="5" placeholder="60" style="width:110px">
       </div>
       <div style="margin-bottom:12px;max-width:260px" id="actRpeHost"></div>
-      <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.knee">Knesmerte</div>
-      <div class="act-pain-row">
-        <div><div class="act-field-label" data-i18n="tp.knee_before">Før</div><input class="input-sm" id="actKneeBefore" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label" data-i18n="tp.knee_during">Under</div><input class="input-sm" id="actKneeDuring" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label" data-i18n="tp.knee_after">Etter</div><input class="input-sm" id="actKneeAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-        <div><div class="act-field-label" data-i18n="tp.knee_dayafter">D. etter</div><input class="input-sm" id="actKneeDayAfter" type="number" min="0" max="10" placeholder="—" style="width:100%;box-sizing:border-box;text-align:center"></div>
-      </div>
+      <div id="actInjuryBlocks"></div>
       <div style="margin-bottom:16px">
         <div class="act-field-label" style="margin-bottom:5px" data-i18n="tp.notes">Notater</div>
         <textarea class="input-sm" id="actNotes" rows="2" placeholder="Kommentarer, inntrykk…" data-i18n-placeholder="tp.act_notes_ph" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
@@ -741,7 +735,15 @@ function localISODate(d) {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const SHORT_DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+// Locale-aware korte dagsnavn, mandag-først (0=Man..6=Søn) — følger 🇳🇴/🇺🇸.
+// 2024-01-01 er en mandag. no-NO gir "man." → vi kapitaliserer og dropper punktum.
+function SHORT_DAYS() {
+  const fmt = new Intl.DateTimeFormat(fmtLocale(), { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, i) => {
+    const s = fmt.format(new Date(2024, 0, 1 + i)).replace('.', '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  });
+}
 // 2024-01-01 is a Monday — use it to derive weekday names in the active locale
 function fullDay(i) {
   return new Date(2024, 0, 1 + i).toLocaleDateString(fmtLocale(), { weekday: 'long' });
@@ -1001,7 +1003,7 @@ function renderDayStrip() {
   const ti = todayIdx();
   const el = document.getElementById('dayStrip');
   const todayIso = localISODate(new Date());
-  el.innerHTML = SHORT_DAYS.map((name, i) => {
+  el.innerHTML = SHORT_DAYS().map((name, i) => {
     const d      = dayDate(i);
     const ds     = localISODate(d);
     const logged = loggedDates.has(ds) && ds <= todayIso;
@@ -1098,7 +1100,7 @@ function renderSidebar() {
   const barEl = document.getElementById('weekBars');
   if (!barEl) return;
   let loadScore = 0, doneCount = 0;
-  barEl.innerHTML = SHORT_DAYS.map((name, i) => {
+  barEl.innerHTML = SHORT_DAYS().map((name, i) => {
     const ds    = localISODate(dayDate(i));
     const done  = loggedDates.has(ds);
     const isT   = weekOffset === 0 && i === ti;
@@ -1852,7 +1854,11 @@ function buildDetailHtml(g, knee) {
         <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
-      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
+          onclick="event.stopPropagation();deleteGymSession('${g.id}')">${t('tp.delete')}</button>
+        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div>
@@ -1909,7 +1915,11 @@ function buildSprintDetailHtml(s, knee) {
         <div class="sess-detail-title">Sprint · ${escHtml(distList)}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
-      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
+          onclick="event.stopPropagation();deleteSprintSession('${s.date}')">${t('tp.delete')}</button>
+        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')">✕</button>
+      </div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('tp.runs', {n: s.runs.length})}</div>
@@ -2216,6 +2226,30 @@ async function savePhysioNote() {
   await loadPhysioNotes();
 }
 
+// Per-skade smerteblokker i aktivitets-modalen (én blokk per alvorlig skade).
+function renderActInjuryBlocks() {
+  const host = document.getElementById('actInjuryBlocks');
+  if (!host) return;
+  if (!_severeInjuries.length) { host.innerHTML = ''; return; }
+  const phases = [
+    { lbl: t('knee.before'),   f: 'before_score' },
+    { lbl: t('knee.during'),   f: 'during_score' },
+    { lbl: t('knee.after'),    f: 'after_score' },
+    { lbl: t('knee.dayafter'), f: 'day_after_score' },
+  ];
+  host.innerHTML = _severeInjuries.map(inj => `
+    <div style="margin-bottom:12px">
+      <div class="act-field-label" style="margin-bottom:6px">${escHtml(bodyPartName(inj))}</div>
+      <div class="act-pain-row">${
+        phases.map(p => `<div>
+          <div class="act-field-label">${p.lbl}</div>
+          <input class="input-sm actpain-input" data-inj="${inj.id}" data-field="${p.f}"
+            type="number" min="0" max="10" placeholder="—"
+            style="width:100%;box-sizing:border-box;text-align:center"></div>`).join('')
+      }</div>
+    </div>`).join('');
+}
+
 function openActModal() {
   document.getElementById('actModal').classList.remove('hidden');
   document.getElementById('actDate').value = today();
@@ -2224,10 +2258,7 @@ function openActModal() {
   const ad = document.getElementById('actDuration');
   if (ad) ad.value = '';
   document.getElementById('actNotes').value = '';
-  document.getElementById('actKneeBefore').value = '';
-  document.getElementById('actKneeDuring').value = '';
-  document.getElementById('actKneeAfter').value = '';
-  document.getElementById('actKneeDayAfter').value = '';
+  renderActInjuryBlocks();
   document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('actCustomWrap').style.display = 'none';
   document.getElementById('actSoccerLevel').style.display = 'none';
@@ -2285,21 +2316,31 @@ async function saveActivity() {
   const durRaw     = document.getElementById('actDuration')?.value;
   const duration   = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
   const rpe        = rpeValue('actRpe');
-  const kneeBefore = document.getElementById('actKneeBefore').value === '' ? null : Number(document.getElementById('actKneeBefore').value);
-  const kneeDuring = document.getElementById('actKneeDuring').value === '' ? null : Number(document.getElementById('actKneeDuring').value);
-  const kneeAfter  = document.getElementById('actKneeAfter').value === '' ? null : Number(document.getElementById('actKneeAfter').value);
-  const kneeDayAfter = document.getElementById('actKneeDayAfter').value === '' ? null : Number(document.getElementById('actKneeDayAfter').value);
   const notes      = document.getElementById('actNotes').value.trim() || null;
 
   const { data, error } = await db.from('activity_log').insert({
     user_id: userId, date, activity_type: _actType, activity_label: actLabel,
     duration_min: duration, rpe,
-    // DEPRECATED (P6): activity_log.knee_* — keep until injury_pain replaces activity modal
-    knee_before: kneeBefore, knee_during: kneeDuring, knee_after: kneeAfter, knee_day_after: kneeDayAfter,
     notes,
   }).select().single();
 
   if (error) { console.error('saveActivity error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
+
+  // Per-skade smerte → injury_pain (én rad per alvorlig skade med minst én score)
+  for (const inj of _severeInjuries) {
+    const scores = { before_score: null, during_score: null, after_score: null, day_after_score: null };
+    let hasAny = false;
+    document.querySelectorAll(`#actInjuryBlocks .actpain-input[data-inj="${inj.id}"]`).forEach(el => {
+      const v = el.value === '' ? null : Number(el.value);
+      scores[el.dataset.field] = v;
+      if (v != null) hasAny = true;
+    });
+    if (!hasAny) continue;
+    const { data: ipRow } = await db.from('injury_pain').insert({
+      injury_id: inj.id, date, session_type: _actType, source: 'activity', ...scores,
+    }).select().single();
+    if (ipRow) { _injuryPainMap[`${inj.id}|${date}`] = ipRow; _injuryPainAll.push(ipRow); }
+  }
 
   _actData.unshift(data);
   closeActModal();
@@ -2318,14 +2359,80 @@ async function autoSaveActField(actId, field, value) {
   }
 }
 
-async function deleteActivity(actId) {
-  if (!confirm(t('confirm.delete_activity'))) return;
-  const { error } = await db.from('activity_log').delete().eq('id', actId);
-  if (error) { toast(t('tp.delete_error'), 'err'); return; }
-  _actData = _actData.filter(a => String(a.id) !== String(actId));
+// Når siste økt på en dato slettes, fjern foreldreløse smerterader så de
+// ikke fortsetter å telle i kne-/hamstringtrend. Beholdes hvis dagen har andre økter.
+async function _cleanupOrphanPain(date) {
+  const stillHas = _sessData.some(g => g.date === date)
+    || _sprintData.some(s => s.date === date)
+    || _actData.some(a => a.date === date);
+  if (stillHas) return;
+  await db.from('injury_pain').delete().eq('date', date);
+  await db.from('knee_pain').delete().eq('date', date); // DEPRECATED (P6): legacy fallback
+  _injuryPainAll = _injuryPainAll.filter(r => r.date !== date);
+  _allKnee       = _allKnee.filter(k => k.date !== date);
+  Object.keys(_injuryPainMap).forEach(k => { if (k.endsWith('|' + date)) delete _injuryPainMap[k]; });
+  Object.keys(_kneeMap).forEach(k => { if (k.startsWith(date + '|')) delete _kneeMap[k]; });
+  delete _kneeSprint[date];
+}
+
+function _afterDelete() {
   _openDetail = null;
   renderSessionGrid();
+  renderTrends();
+  renderInjuryDash();
+  renderWeekLoad();
+}
+
+async function deleteActivity(actId) {
+  if (!confirm(t('confirm.delete_activity'))) return;
+  const a = _actData.find(x => String(x.id) === String(actId));
+  const { error } = await db.from('activity_log').delete().eq('id', actId);
+  if (error) { toast(t('tp.delete_error'), 'err'); return; }
+  _actData = _actData.filter(x => String(x.id) !== String(actId));
+  if (a) await _cleanupOrphanPain(a.date);
+  _afterDelete();
   toast(t('tp.activity_deleted'));
+}
+
+async function deleteGymSession(gymId) {
+  if (!confirm(t('confirm.delete_session'))) return;
+  const g = _sessData.find(s => String(s.id) === String(gymId));
+  const { error } = await db.from('gym_log').delete().eq('id', gymId);
+  if (error) { toast(t('tp.delete_error'), 'err'); return; }
+  _sessData = _sessData.filter(s => String(s.id) !== String(gymId));
+  if (g) await _cleanupOrphanPain(g.date);
+  _afterDelete();
+  toast(t('gym.deleted'));
+}
+
+// Re-beregn sprint-PB fra gjenværende stevne-løp (PB-boardet bor på sprint.html, men
+// deler sprint_records-tabellen). Uten dette ble en feillogget tid hengende som PB.
+// Kun type 'Stevne' teller; 60m_celler beregnes live, 60m_flying er ikke en PB-distanse.
+async function _recomputeSprintPBs(distances) {
+  for (const dist of [...new Set(distances)]) {
+    if (dist === '60m_celler' || dist === '60m_flying') continue;
+    const { data } = await db.from('sprint_log')
+      .select('time_seconds,date,type').eq('distance', dist).not('time_seconds', 'is', null);
+    const stevne = (data || []).filter(r => String(r.type || '').split(':')[0] === 'Stevne');
+    if (stevne.length) {
+      const best = stevne.reduce((a, b) => (b.time_seconds < a.time_seconds ? b : a));
+      await db.from('sprint_records').update({ best_time: best.time_seconds, date: best.date }).eq('distance', dist);
+    } else {
+      await db.from('sprint_records').update({ best_time: null, date: null }).eq('distance', dist);
+    }
+  }
+}
+
+async function deleteSprintSession(date) {
+  if (!confirm(t('confirm.delete_session'))) return;
+  const dists = _sprintData.filter(s => s.date === date).map(s => s.distance);
+  const { error } = await db.from('sprint_log').delete().eq('date', date);
+  if (error) { toast(t('tp.delete_error'), 'err'); return; }
+  _sprintData = _sprintData.filter(s => s.date !== date);
+  await _recomputeSprintPBs(dists);
+  await _cleanupOrphanPain(date);
+  _afterDelete();
+  toast(t('gym.deleted'));
 }
 
 async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
@@ -2389,6 +2496,7 @@ function toggleHistory() {
     renderDetail();
     renderSidebar();
     loadSessionHistory();
+    if (!document.getElementById('actModal').classList.contains('hidden')) renderActInjuryBlocks();
   };
   applyLang();
   renderHero();
