@@ -130,22 +130,52 @@ def fetch_for_date(garmin, save_date):
         result["_hrv_error"] = traceback.format_exc()
 
     # ── Body Battery ─────────────────────────────────────────────────────────
+    # Primært: Garmins daglige sammendrag har ferdige felt (ingen array-parsing).
+    #   bodyBatteryHighestValue   = dagens topp (morgenverdien etter søvn)
+    #   bodyBatteryMostRecentValue = siste avlesning
+    # Vi bruker toppen: konsistent på tvers av backfill-dager og matcher klokka
+    # når du sjekker om morgenen. Fallback til detalj-arrayen hvis sammendraget
+    # mangler feltet (kan skje tidlig på dagen før Garmin har syncet).
     try:
-        bb_list = garmin.get_body_battery(stats_date)
-        if bb_list and isinstance(bb_list, list):
-            # Garmin gir ÉN dict per dag med bodyBatteryValuesArray av
-            # avlesninger: [timestamp_ms, status, nivå, versjon]. "charged" er
-            # totalt OPPLADET den dagen – ikke batterinivå – så vi leser nivåene.
+        bb_val = None
+        try:
+            summary = garmin.get_stats(stats_date)
+            if isinstance(summary, dict):
+                bb_val = (
+                    summary.get("bodyBatteryHighestValue")
+                    or summary.get("bodyBatteryMostRecentValue")
+                    or summary.get("bodyBatteryAtWakeTime")
+                )
+        except Exception:
+            result["_bb_summary_error"] = traceback.format_exc()
+
+        if bb_val is None:
+            # Fallback: les nivå-kolonnen fra detalj-arrayen via descriptor.
             levels = []
-            for entry in bb_list:
-                if not isinstance(entry, dict):
-                    continue
-                for p in entry.get("bodyBatteryValuesArray") or []:
-                    if isinstance(p, list) and len(p) >= 3 and p[2] is not None:
-                        levels.append(p[2])
-            # Daglig topp = morgenverdien etter søvn (konsistent på tvers av
-            # backfill-dager, og matcher klokka når du sjekker om morgenen).
-            if levels: result["body_battery"] = max(levels)
+            bb_list = garmin.get_body_battery(stats_date)
+            if bb_list and isinstance(bb_list, list):
+                for entry in bb_list:
+                    if not isinstance(entry, dict):
+                        continue
+                    lvl_idx = None
+                    for d in entry.get("bodyBatteryValueDescriptorDTOList") or []:
+                        if isinstance(d, dict) and d.get("bodyBatteryValueDescriptorKey") == "bodyBatteryLevel":
+                            lvl_idx = d.get("bodyBatteryValueDescriptorIndex")
+                    for p in entry.get("bodyBatteryValuesArray") or []:
+                        if not isinstance(p, list):
+                            continue
+                        if lvl_idx is not None and len(p) > lvl_idx:
+                            v = p[lvl_idx]
+                        else:
+                            nums = [x for x in p[1:] if isinstance(x, (int, float)) and 0 <= x <= 100]
+                            v = nums[-1] if nums else None
+                        if isinstance(v, (int, float)):
+                            levels.append(v)
+            if levels:
+                bb_val = max(levels)
+
+        if isinstance(bb_val, (int, float)) and bb_val > 0:
+            result["body_battery"] = round(bb_val)
     except Exception:
         result["_bb_error"] = traceback.format_exc()
 
