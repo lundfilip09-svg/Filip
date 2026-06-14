@@ -276,9 +276,6 @@ let _sprintLevel  = 'høy'; // valgt akselerasjonsnivå for belastning (default:
 let runs     = [];   // [{ distance, type, time }]
 let sprintLog = [];
 let _pbData = {};          // distance → { best_time, date }
-let _lastGoalBest = {};    // distance → best_time (for re-render on lang change)
-let _goalBaselines = {};   // distance → baseline_time (override from sprint_records)
-let _goalOverrides = {};   // distance → goal_time (override of GOALS-default from sprint_records)
 
 const DRAFT_KEY = 'sprint_form_draft';
 
@@ -559,41 +556,84 @@ function renderRuns() {
     </div>`).join('');
 }
 
+// ── Distanser (DB-drevet) ───────────────────────────────────────────────────
+// Alle distanser kommer fra sprint_records (utvidet i migrasjon 045 med
+// color/sort_order/show_pb/show_goal/all_runs_count). _distances driver
+// logg-dropdown, PB-board OG mål-seksjonen. Filip kan legge til / slette i UI.
+let _distances = [];
+const DIST_COLORS = ['#5BA4F5','#6BE3A4','#F2C063','#C792EA','#FF8A80','#80DEEA','#FFB74D'];
+
+function distRow(dist) { return _distances.find(d => d.distance === dist); }
+
+async function loadDistances() {
+  const { data } = await db.from('sprint_records').select('*').order('sort_order', { ascending: true });
+  let rows = (data || []).map(r => ({
+    ...r,
+    best_time:     r.best_time     != null ? +r.best_time     : null,
+    baseline_time: r.baseline_time != null ? +r.baseline_time : null,
+    goal_time:     r.goal_time     != null ? +r.goal_time     : null,
+    sort_order:    r.sort_order    != null ? +r.sort_order    : 100,
+  }));
+  // Fallback hvis migrasjon 045 ikke er kjørt ennå (ingen sort_order-kolonne osv.)
+  if (!rows.length || rows.every(r => r.show_pb == null && r.show_goal == null)) {
+    const seed = {
+      '60m':        { show_pb:true,  sort_order:10 },
+      '60m_celler': { show_pb:true,  all_runs_count:true, sort_order:20 },
+      '100m':       { show_pb:true,  show_goal:true, color:'#5BA4F5', baseline_time:11.52, goal_time:11.10, sort_order:50 },
+      '200m':       { show_pb:true,  show_goal:true, color:'#6BE3A4', baseline_time:23.11, goal_time:22.30, sort_order:90 },
+    };
+    rows = rows.map(r => ({ ...r, ...(seed[r.distance] || { sort_order:100 }) }));
+    // legg til seedede distanser som mangler helt
+    Object.keys(seed).forEach(d => { if (!rows.some(r => r.distance === d)) rows.push({ distance:d, ...seed[d] }); });
+    rows.sort((a,b) => (a.sort_order||100) - (b.sort_order||100));
+  }
+  _distances = rows;
+}
+
+function renderDistOptions() {
+  const sel = document.getElementById('logDist');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = _distances.map(d =>
+    `<option value="${escHtml(d.distance)}">${escHtml(distLabel(d.distance))}</option>`).join('');
+  if (_distances.some(d => d.distance === prev)) sel.value = prev;
+  else if (_distances.some(d => d.distance === '100m')) sel.value = '100m';
+}
+
 // ── PB Board ──────────────────────────────────────────────────────────────
 async function loadPBs() {
-  const [{ data: recData }, { data: cellerData }] = await Promise.all([
-    db.from('sprint_records').select('*').order('distance'),
-    db.from('sprint_log')
+  if (!_distances.length) await loadDistances();
+
+  // all_runs_count-distanser (f.eks. 60m_celler): PB = raskeste tid UANSETT type.
+  const liveDists = _distances.filter(d => d.all_runs_count).map(d => d.distance);
+  const live = {};
+  await Promise.all(liveDists.map(async dist => {
+    const { data } = await db.from('sprint_log')
       .select('time_seconds,date')
-      .eq('distance', '60m_celler')
-      .or('type.eq.Trening,type.like.Trening:%')
+      .eq('distance', dist)
       .not('time_seconds', 'is', null)
       .order('time_seconds', { ascending: true })
-      .limit(1),
-  ]);
+      .limit(1);
+    if (data?.length) live[dist] = { best_time: +data[0].time_seconds, date: data[0].date };
+  }));
 
-  const el = document.getElementById('pbGrid');
-  const dOrder = ['60m','60m_celler','100m','200m'];
   const byDist = {};
-  (recData || []).forEach(r => { byDist[r.distance] = r; });
-
-  // 60m_celler PB is computed live from sprint_log, type='Trening' only
-  if (cellerData?.length) {
-    byDist['60m_celler'] = { best_time: cellerData[0].time_seconds, date: cellerData[0].date };
-  } else {
-    delete byDist['60m_celler'];
-  }
-
+  _distances.forEach(d => {
+    byDist[d.distance] = live[d.distance]
+      ? { best_time: live[d.distance].best_time, date: live[d.distance].date }
+      : { best_time: d.best_time, date: d.date };
+  });
   _pbData = byDist;
 
-  el.innerHTML = dOrder.map(d => {
-    const r = byDist[d];
+  const el = document.getElementById('pbGrid');
+  el.innerHTML = _distances.filter(d => d.show_pb).map(d => {
+    const r = byDist[d.distance];
     const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
     const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
-    return `<div class="pb-cell" id="pb-${d}">
-      <div class="pb-dist">${distLabel(d)}</div>
-      <div id="pb-display-${d}">
-        <div class="pb-time">${r?.best_time != null ? (+r.best_time).toFixed(2) : '–'}</div>
+    return `<div class="pb-cell" id="pb-${d.distance}">
+      <div class="pb-dist">${distLabel(d.distance)}</div>
+      <div id="pb-display-${d.distance}">
+        <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
         <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       </div>
       <div class="pb-bar" style="background:${barClr}"></div>
@@ -602,71 +642,71 @@ async function loadPBs() {
 }
 
 // ── Sprint goals ──────────────────────────────────────────────────────────
-const GOALS = [
-  { dist: '100m', goal: 11.10, start: 11.52, color: '#5BA4F5' },
-  { dist: '200m', goal: 22.30, start: 23.11, color: '#6BE3A4' },
-];
-
 async function loadSprintGoals() {
-  const { data } = await db.from('sprint_records')
-    .select('*')
-    .in('distance', ['100m','200m']);
-  const best = {};
-  (data || []).forEach(r => {
-    // Supabase numeric leses som string → tving til tall så .toFixed/matte funker.
-    best[r.distance] = r.best_time != null ? +r.best_time : r.best_time;
-    if (r.baseline_time != null) _goalBaselines[r.distance] = +r.baseline_time;
-    if (r.goal_time     != null) _goalOverrides[r.distance] = +r.goal_time;
-  });
-  _lastGoalBest = best;
-  renderSprintGoals(best);
+  if (!_distances.length) await loadDistances();
+  renderSprintGoals();
 }
 
-function renderSprintGoals(best) {
-  _lastGoalBest = best;
+function renderSprintGoals() {
   const el = document.getElementById('sprintGoals');
-  el.innerHTML = GOALS.map(g => {
-    const goalVal = _goalOverrides[g.dist] ?? g.goal;
-    const pb    = best[g.dist] ?? g.start;
-    const start = _goalBaselines[g.dist] ?? g.start;
+  const goals = _distances.filter(d => d.show_goal && d.goal_time != null);
+  const rowsHtml = goals.map(d => {
+    const goalVal = d.goal_time;
+    const pb      = _pbData[d.distance]?.best_time ?? d.best_time ?? d.baseline_time ?? goalVal;
+    const start   = d.baseline_time ?? pb;
+    const color   = d.color || '#5BA4F5';
     const pct   = Math.min(100, Math.max(0, (start - pb) / (start - goalVal) * 100));
     const delta = pb - goalVal;
-    const deltaStr  = delta <= 0 ? t('sprint.goal_reached') : t('sprint.from_goal', { n: delta.toFixed(2) });
+    const deltaStr   = delta <= 0 ? t('sprint.goal_reached') : t('sprint.from_goal', { n: delta.toFixed(2) });
     const deltaColor = delta <= 0 ? 'var(--success)' : 'var(--text-tertiary)';
     return `<div class="goal-row">
       <div class="goal-header">
-        <span class="goal-name">${g.dist}</span>
+        <span class="goal-name">${escHtml(distLabel(d.distance))}</span>
         <div class="goal-vals">
           PB: <span>${pb.toFixed(2)}s</span>
           &nbsp;·&nbsp; ${t('sprint.goal')}: <span>${goalVal.toFixed(2)}s</span>
           &nbsp;·&nbsp; <span style="color:${deltaColor}">${deltaStr}</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-reset-baseline" onclick="editGoal('${g.dist}')">${t('sprint.edit_goal')}</button>
-          <button class="btn-reset-baseline" onclick="resetBaseline('${g.dist}')">${t('sprint.reset_baseline')}</button>
+          <button class="btn-reset-baseline" onclick="editGoal('${d.distance}')">${t('sprint.edit_goal')}</button>
+          <button class="btn-reset-baseline" onclick="resetBaseline('${d.distance}')">${t('sprint.reset_baseline')}</button>
+          <button class="btn-reset-baseline" onclick="deleteDistance('${d.distance}')" title="${t('sprint.dist_delete')}">✕</button>
         </div>
       </div>
-      <div id="goal-edit-${g.dist}" style="display:none" class="pb-edit-wrap">
-        <input class="pb-edit-inp" id="goal-inp-${g.dist}" type="number" step="0.01" min="0.01" placeholder="sek" data-i18n-placeholder="unit.sec" value="${goalVal.toFixed(2)}">
+      <div id="goal-edit-${d.distance}" style="display:none" class="pb-edit-wrap">
+        <input class="pb-edit-inp" id="goal-inp-${d.distance}" type="number" step="0.01" min="0.01" placeholder="sek" data-i18n-placeholder="unit.sec" value="${goalVal.toFixed(2)}">
         <div class="pb-edit-actions">
-          <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="saveGoal('${g.dist}')">${t('save')}</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cancelGoalEdit('${g.dist}')">${t('cancel')}</button>
+          <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="saveGoal('${d.distance}')">${t('save')}</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cancelGoalEdit('${d.distance}')">${t('cancel')}</button>
         </div>
       </div>
       <div class="goal-bar-bg">
-        <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${g.color}"></div>
+        <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>
       </div>
     </div>`;
   }).join('');
+
+  const addBtn = `<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="toggleAddDistance()" data-i18n="sprint.dist_add">+ Legg til distanse</button>
+    <div id="addDistWrap" style="display:none" class="pb-edit-wrap" data-state="closed">
+      <input class="pb-edit-inp" id="addDistName" type="text" placeholder="${escHtml(t('sprint.dist_name_ph'))}">
+      <input class="pb-edit-inp" id="addDistGoal" type="number" step="0.01" min="0.01" placeholder="${escHtml(t('sprint.dist_goal_ph'))}">
+      <input class="pb-edit-inp" id="addDistStart" type="number" step="0.01" min="0.01" placeholder="${escHtml(t('sprint.dist_start_ph'))}">
+      <div class="pb-edit-actions">
+        <button class="btn btn-primary btn-sm" style="flex:1;font-size:10px" onclick="addDistance()">${t('save')}</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="toggleAddDistance()">${t('cancel')}</button>
+      </div>
+    </div>`;
+
+  el.innerHTML = (rowsHtml || `<div style="font-size:11px;color:var(--text-tertiary);padding:2px 0 8px">${t('sprint.dist_none')}</div>`) + addBtn;
 }
 
 async function resetBaseline(dist) {
-  const pb = _lastGoalBest?.[dist];
+  const pb = _pbData[dist]?.best_time ?? distRow(dist)?.best_time;
   if (pb == null) return;
   const { error } = await db.from('sprint_records').upsert({ distance: dist, baseline_time: pb }, { onConflict: 'distance' });
   if (error) { toast(error.message, 'err'); return; }
-  _goalBaselines[dist] = pb;
-  renderSprintGoals(_lastGoalBest);
+  const row = distRow(dist); if (row) row.baseline_time = pb;
+  renderSprintGoals();
   toast(t('sprint.baseline_reset', { time: pb.toFixed(2) }));
 }
 
@@ -676,14 +716,59 @@ function cancelGoalEdit(dist) { document.getElementById(`goal-edit-${dist}`).sty
 async function saveGoal(dist) {
   const v = parseFloat(document.getElementById(`goal-inp-${dist}`).value);
   if (!v || v <= 0 || isNaN(v)) { toast(t('sprint.goal_invalid'), 'err'); return; }
-  const { error } = await db.from('sprint_records').upsert({ distance: dist, goal_time: v }, { onConflict: 'distance' });
+  const { error } = await db.from('sprint_records').upsert({ distance: dist, goal_time: v, show_goal: true }, { onConflict: 'distance' });
   if (error) {
     toast(/goal_time/.test(error.message) ? t('sprint.goal_col_missing') : error.message, 'err');
     return;
   }
-  _goalOverrides[dist] = v;
-  renderSprintGoals(_lastGoalBest);
+  const row = distRow(dist); if (row) { row.goal_time = v; row.show_goal = true; }
+  renderSprintGoals();
   toast(t('sprint.goal_saved', { time: v.toFixed(2) }));
+}
+
+// ── Legg til / slett distanse ────────────────────────────────────────────────
+function toggleAddDistance() {
+  const w = document.getElementById('addDistWrap');
+  if (w) w.style.display = w.style.display === 'none' ? '' : 'none';
+}
+
+async function addDistance() {
+  const raw = (document.getElementById('addDistName').value || '').trim();
+  if (!raw) { toast(t('sprint.dist_name_req'), 'err'); return; }
+  // normaliser: "300" → "300m", behold koder som 60m_celler
+  const dist = /^\d+$/.test(raw) ? raw + 'm' : raw;
+  if (_distances.some(d => d.distance.toLowerCase() === dist.toLowerCase())) {
+    toast(t('sprint.dist_exists', { d: dist }), 'err'); return;
+  }
+  const goal  = parseFloat(document.getElementById('addDistGoal').value);
+  const start = parseFloat(document.getElementById('addDistStart').value);
+  if (!goal || goal <= 0) { toast(t('sprint.dist_goal_req'), 'err'); return; }
+  const sort  = Math.max(0, ..._distances.map(d => d.sort_order || 0)) + 10;
+  const color = DIST_COLORS[_distances.filter(d => d.show_goal).length % DIST_COLORS.length];
+  const row = {
+    distance: dist, sort_order: sort, show_pb: true, show_goal: true,
+    all_runs_count: false, color,
+    goal_time: goal,
+    baseline_time: (start && start > 0) ? start : goal,
+  };
+  const { error } = await db.from('sprint_records').upsert(row, { onConflict: 'distance' });
+  if (error) { toast(error.message, 'err'); return; }
+  await loadDistances();
+  renderDistOptions();
+  await loadPBs();
+  renderSprintGoals();
+  toast(t('sprint.dist_added', { d: distLabel(dist) }));
+}
+
+async function deleteDistance(dist) {
+  if (!confirm(t('sprint.dist_del_confirm', { d: distLabel(dist) }))) return;
+  const { error } = await db.from('sprint_records').delete().eq('distance', dist);
+  if (error) { toast(error.message, 'err'); return; }
+  await loadDistances();
+  renderDistOptions();
+  await loadPBs();
+  renderSprintGoals();
+  toast(t('sprint.dist_deleted', { d: distLabel(dist) }));
 }
 
 // ── Log session ───────────────────────────────────────────────────────────
@@ -730,14 +815,14 @@ async function logSession() {
       if (ipRes.error) toast(t('pain.save_err', { msg: ipRes.error.message }), 'err');
     }
 
-    // Check / update PB — Stevne only, except 60m_celler counts type 'Trening' only
+    // Check / update PB — kun Stevne teller, UNNTATT distanser med all_runs_count
+    // (f.eks. 60m_celler) der ALT teller (trening + stevne), raskeste vinner.
     const newPBs = [];
     for (const r of runs) {
       if (r.distance === '60m_flying') continue;
       const baseType = r.type.split(':')[0];
-      const countsForPB = r.distance === '60m_celler'
-        ? baseType === 'Trening'
-        : baseType === 'Stevne';
+      const allRuns  = !!distRow(r.distance)?.all_runs_count;
+      const countsForPB = allRuns ? true : baseType === 'Stevne';
       if (!countsForPB) continue;
       const { data: rec } = await db.from('sprint_records')
         .select('best_time').eq('distance', r.distance).maybeSingle();
@@ -765,6 +850,8 @@ async function logSession() {
     });
     renderInjuryPainBlocks('injuryPainBlocks');
 
+    await loadDistances();
+    renderDistOptions();
     await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
   } finally {
     _isSavingLog = false;
@@ -860,7 +947,7 @@ function _buildSessCard(date, runs, isOpen) {
   const detail = isOpen ? `<div class="sess-detail open" id="sess-detail-${date}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div>
-        <div class="sess-detail-title">${runs.length} løp</div>
+        <div class="sess-detail-title">${t('sprint.runs_count', { n: runs.length })}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSprintDetail('${date}')">✕</button>
@@ -1008,10 +1095,32 @@ function refreshHistCard(date) {
   container.innerHTML = _buildSessCard(date, runs, _openDetail === date);
 }
 
+// Re-beregn PB fra gjenværende stevne-løp etter sletting. Uten dette ble en
+// feillogget rask tid hengende som PB selv om løpet ble slettet i øktloggen.
+// Regel (samme som ved logging): kun type 'Stevne' teller. all_runs_count-distanser
+// (f.eks. 60m_celler) beregnes live i loadPBs() (alt teller der), 60m_flying er ikke en PB-distanse.
+async function recomputeSprintPBs(distances) {
+  for (const dist of [...new Set(distances)]) {
+    if (dist === '60m_flying' || distRow(dist)?.all_runs_count) continue;
+    const { data } = await db.from('sprint_log')
+      .select('time_seconds,date,type').eq('distance', dist).not('time_seconds', 'is', null);
+    const stevne = (data || []).filter(r => String(r.type || '').split(':')[0] === 'Stevne');
+    if (stevne.length) {
+      const best = stevne.reduce((a, b) => (b.time_seconds < a.time_seconds ? b : a));
+      await db.from('sprint_records').update({ best_time: best.time_seconds, date: best.date }).eq('distance', dist);
+    } else {
+      await db.from('sprint_records').update({ best_time: null, date: null }).eq('distance', dist);
+    }
+  }
+}
+
 async function deleteSprintDate(date) {
   if (!confirm(t('confirm.delete_runs', { date }))) return;
+  const dists = sprintLog.filter(r => r.date === date).map(r => r.distance);
   await db.from('sprint_log').delete().eq('date', date);
-  await loadHistory();
+  await recomputeSprintPBs(dists);
+  await loadDistances();
+  await Promise.all([loadHistory(), loadPBs(), loadSprintGoals()]);
   toast(t('sprint.deleted'));
 }
 
@@ -1152,13 +1261,15 @@ async function saveKneeInline() {
     renderInjuryPainBlocks('injuryPainBlocks');
     renderManualPainForms();
     renderHistory();
-    renderSprintGoals(_lastGoalBest);
+    renderSprintGoals();
     loadPBs();
     loadKneeTrend();
     renderLogRpe(rpeValue('logRpe'));
   };
   applyLang();
   await loadSevereInjuries();   // _severeInjuries før historikk rendres per-skade
+  await loadDistances();
+  renderDistOptions();
   await Promise.all([loadPBs(), loadSprintGoals(), loadHistory()]);
 })();
 </script>
