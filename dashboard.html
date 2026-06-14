@@ -712,27 +712,44 @@ function renderInjuryCards() {
     return;
   }
 
-  // Siste injury_pain-rad per skade
-  const latestByInj = {};
-  for (const row of injuryPainRows) {
-    if (!latestByInj[row.injury_id] || row.date > latestByInj[row.injury_id].date) {
-      latestByInj[row.injury_id] = row;
-    }
-  }
+  // Fargekode per skade (samme palett som grafen under → kne=rød, hamstring=oransje).
+  const CARD_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
 
-  const parts = injuries.map(inj => {
-    let d = latestByInj[inj.id] || null;
-    if (!d && _isDashKneeInj(inj) && kneeRow) {
-      d = { before_score: kneeRow.before_score, during_score: kneeRow.during_score,
-            after_score: kneeRow.after_score, day_after_score: kneeRow.day_after_score,
-            date: kneeRow.date, session_type: kneeRow.session_type };
+  // Samle alle injury_pain-rader per skade (allerede dato-synkende fra spørringen).
+  const rowsByInj = {};
+  for (const row of injuryPainRows) (rowsByInj[row.injury_id] ||= []).push(row);
+
+  const parts = injuries.map((inj, idx) => {
+    const color = CARD_COLORS[idx % CARD_COLORS.length];
+    const name  = _dashBodyPartName(inj);
+    const rows  = rowsByInj[inj.id] || [];
+
+    // Slå sammen ALLE øktene på siste dato (siste ikke-null per fase) – ellers viste
+    // kortet tilfeldige streker når en dag hadde flere økter (f.eks. Rehab + Turgåing).
+    let d = null;
+    if (rows.length) {
+      const latestDate = rows[0].date;
+      const sameDay = rows.filter(r => r.date === latestDate);
+      const pick = f => { for (const r of sameDay) if (r[f] != null) return r[f]; return null; };
+      d = {
+        date: latestDate,
+        session_type: sameDay.find(r => r.session_type)?.session_type || '',
+        multi: sameDay.length > 1,
+        before_score: pick('before_score'), during_score: pick('during_score'),
+        after_score: pick('after_score'),  day_after_score: pick('day_after_score'),
+      };
+    } else if (_isDashKneeInj(inj) && kneeRow) {
+      d = { date: kneeRow.date, session_type: kneeRow.session_type, multi: false,
+            before_score: kneeRow.before_score, during_score: kneeRow.during_score,
+            after_score: kneeRow.after_score, day_after_score: kneeRow.day_after_score };
     }
-    const name = _dashBodyPartName(inj);
+
+    const head = `<div style="font-size:10px;color:${color};font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:6px">
+      <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${escHtml(name)}</div>`;
+
     if (!d) {
-      return `<div style="margin-bottom:8px">
-        <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px">${escHtml(name)}</div>
-        <div class="empty" style="font-size:11px">${t('dash.no_pain')}</div>
-      </div>`;
+      return `<div style="margin-bottom:14px;padding-left:10px;border-left:3px solid ${color}40">
+        ${head}<div class="empty" style="font-size:11px">${t('dash.no_pain')}</div></div>`;
     }
     const phases = [
       { label: t('knee.before'),   val: d.before_score },
@@ -740,9 +757,10 @@ function renderInjuryCards() {
       { label: t('knee.after'),    val: d.after_score },
       { label: t('knee.dayafter'), val: d.day_after_score },
     ];
-    return `<div style="margin-bottom:12px">
-      <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px">${escHtml(name)}</div>
-      <a href="sprint.html" style="text-decoration:none;color:inherit;display:block">
+    const sub = d.multi ? fmtDate(d.date) : `${escHtml(d.session_type || '')} · ${fmtDate(d.date)}`;
+    return `<div style="margin-bottom:14px;padding-left:10px;border-left:3px solid ${color}">
+      ${head}
+      <a href="treningsplan.html?date=${encodeURIComponent(d.date)}" style="text-decoration:none;color:inherit;display:block">
         <div class="knee-phases">
           ${phases.map(p => `
             <div class="knee-phase">
@@ -750,9 +768,7 @@ function renderInjuryCards() {
               <div class="knee-phase-lbl">${p.label}</div>
             </div>`).join('')}
         </div>
-        <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:6px;letter-spacing:0.03em">
-          ${escHtml(d.session_type || '')} · ${fmtDate(d.date)}
-        </div>
+        <div style="font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:6px;letter-spacing:0.03em">${sub}</div>
       </a>
     </div>`;
   });
