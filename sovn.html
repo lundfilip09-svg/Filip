@@ -244,6 +244,17 @@
     </div>
   </div>
 
+  <!-- Body battery gjennom dagen (valgt dato) -->
+  <div class="chart-card" id="bbCurveCard">
+    <div class="chart-header">
+      <div class="card-lbl" data-i18n="sovn.bb_curve">Body battery gjennom dagen</div>
+      <div id="bbCurveStats" style="display:flex;gap:14px;font-family:var(--font-mono);font-size:10.5px"></div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="bbCurveChart"></canvas>
+    </div>
+  </div>
+
   <!-- Chart -->
   <div class="chart-card">
     <div class="chart-header">
@@ -288,6 +299,7 @@ const VERCEL_DOMAIN = 'https://filip-vita.vercel.app';
 let todayEntry   = null;
 let chartData    = [];
 let chartInstance = null;
+let bbCurveInstance = null;
 let chartMetric  = 'sleep';
 let chartDays    = parseInt(localStorage.getItem('sovn_chart_days') || '7', 10);
 
@@ -684,6 +696,89 @@ function renderReadiness(d) {
     ${!d ? `<div class="empty-state" style="margin-top:8px">${t('sovn.no_today')}</div>` : ''}`;
 }
 
+// ── Render: Body battery-kurve (valgt dato) ─────────────────────────────────
+function renderBbCurve(d) {
+  const card     = document.getElementById('bbCurveCard');
+  const statsEl  = document.getElementById('bbCurveStats');
+  if (bbCurveInstance) { bbCurveInstance.destroy(); bbCurveInstance = null; }
+
+  let curve = d?.body_battery_curve;
+  if (typeof curve === 'string') { try { curve = JSON.parse(curve); } catch { curve = null; } }
+
+  if (!Array.isArray(curve) || curve.length < 2) {
+    statsEl.innerHTML = '';
+    const ctx = document.getElementById('bbCurveChart').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    statsEl.innerHTML = `<span style="color:var(--text-tertiary)">${t('sovn.bb_curve_empty')}</span>`;
+    return;
+  }
+
+  // [epoch_sek_GMT, nivå] → punkt {x: time-på-døgnet (lokal), y: nivå}
+  const pts = curve.map(([sec, lvl]) => {
+    const dt = new Date(sec * 1000);
+    return { x: dt.getHours() + dt.getMinutes() / 60, y: lvl };
+  }).sort((a, b) => a.x - b.x);
+
+  const levels = pts.map(p => p.y);
+  const peak = Math.max(...levels), low = Math.min(...levels);
+  const col = v => v >= 75 ? '#6BE3A4' : v >= 50 ? '#F2C063' : '#FF6B6B';
+  statsEl.innerHTML =
+    `<span style="color:#6BE3A4">${t('sovn.bb_peak')} ${peak}</span>` +
+    `<span style="color:${col(low)}">${t('sovn.bb_low')} ${low}</span>`;
+
+  const ctx = document.getElementById('bbCurveChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 240);
+  grad.addColorStop(0, 'rgba(107,227,164,0.28)');
+  grad.addColorStop(1, 'rgba(107,227,164,0.01)');
+
+  bbCurveInstance = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: [{
+      data: pts, parsing: false,
+      borderColor: '#6BE3A4', borderWidth: 2,
+      backgroundColor: grad, fill: true,
+      tension: 0.35, pointRadius: 0, pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#6BE3A4', pointHoverBorderColor: 'transparent',
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 380 },
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,13,0.97)', titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
+          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: items => {
+              const h = items[0].parsed.x;
+              const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+              return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+            },
+            label: ctx => `Body battery: ${ctx.parsed.y}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'linear', min: 0, max: 24,
+          grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+          ticks: {
+            color: '#6B6964', font: { family: 'ui-monospace', size: 9 },
+            stepSize: 3, callback: v => `${String(v).padStart(2,'0')}:00`,
+          },
+        },
+        y: {
+          min: 0, max: 100,
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: { color: '#6B6964', font: { family: 'ui-monospace', size: 9 }, stepSize: 25 },
+          title: { display: true, text: t('sovn.bb_axis'), color: 'rgba(255,255,255,0.18)', font: { size: 9 } },
+        },
+      },
+    },
+  });
+}
+
 // ── Render: All ────────────────────────────────────────────────────────────
 let _lastStatsEntry = null;
 function renderStats(d) {
@@ -692,6 +787,7 @@ function renderStats(d) {
   renderMetrics(d);
   renderArch(d);
   renderReadiness(d);
+  renderBbCurve(d);
 }
 
 // ── Load for viewed date ───────────────────────────────────────────────────

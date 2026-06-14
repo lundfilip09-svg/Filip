@@ -149,30 +149,42 @@ def fetch_for_date(garmin, save_date):
         except Exception:
             result["_bb_summary_error"] = traceback.format_exc()
 
-        if bb_val is None:
-            # Fallback: les nivå-kolonnen fra detalj-arrayen via descriptor.
-            levels = []
-            bb_list = garmin.get_body_battery(stats_date)
-            if bb_list and isinstance(bb_list, list):
-                for entry in bb_list:
-                    if not isinstance(entry, dict):
+        # Hele dagens kurve fra detalj-arrayen. Hvert punkt lagres som
+        # [epoch_sekunder_GMT, nivå] slik at søvnsiden kan tegne en linje.
+        # Brukes også som fallback for dagsverdien (toppen) om sammendraget
+        # mangler feltet.
+        curve = []
+        bb_list = garmin.get_body_battery(stats_date)
+        if bb_list and isinstance(bb_list, list):
+            for entry in bb_list:
+                if not isinstance(entry, dict):
+                    continue
+                ts_idx, lvl_idx = 0, None
+                for d in entry.get("bodyBatteryValueDescriptorDTOList") or []:
+                    if not isinstance(d, dict):
                         continue
-                    lvl_idx = None
-                    for d in entry.get("bodyBatteryValueDescriptorDTOList") or []:
-                        if isinstance(d, dict) and d.get("bodyBatteryValueDescriptorKey") == "bodyBatteryLevel":
-                            lvl_idx = d.get("bodyBatteryValueDescriptorIndex")
-                    for p in entry.get("bodyBatteryValuesArray") or []:
-                        if not isinstance(p, list):
-                            continue
-                        if lvl_idx is not None and len(p) > lvl_idx:
-                            v = p[lvl_idx]
-                        else:
-                            nums = [x for x in p[1:] if isinstance(x, (int, float)) and 0 <= x <= 100]
-                            v = nums[-1] if nums else None
-                        if isinstance(v, (int, float)):
-                            levels.append(v)
-            if levels:
-                bb_val = max(levels)
+                    key = d.get("bodyBatteryValueDescriptorKey")
+                    idx = d.get("bodyBatteryValueDescriptorIndex")
+                    if key == "bodyBatteryLevel":
+                        lvl_idx = idx
+                    elif key == "timestamp":
+                        ts_idx = idx
+                for p in entry.get("bodyBatteryValuesArray") or []:
+                    if not isinstance(p, list) or len(p) <= ts_idx:
+                        continue
+                    if lvl_idx is not None and len(p) > lvl_idx:
+                        lvl = p[lvl_idx]
+                    else:
+                        nums = [x for x in p[1:] if isinstance(x, (int, float)) and 0 <= x <= 100]
+                        lvl = nums[-1] if nums else None
+                    ts = p[ts_idx]
+                    if isinstance(lvl, (int, float)) and isinstance(ts, (int, float)):
+                        curve.append([int(ts // 1000), int(lvl)])
+        curve.sort(key=lambda x: x[0])
+        if curve:
+            result["body_battery_curve"] = curve
+            if bb_val is None:
+                bb_val = max(lvl for _, lvl in curve)  # dagens topp
 
         if isinstance(bb_val, (int, float)) and bb_val > 0:
             result["body_battery"] = round(bb_val)
