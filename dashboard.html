@@ -872,28 +872,20 @@ function renderLoadPain() {
   const dates  = series.map(p => p.date);
   const labels = dates.map(ds => fmtDate(ds));
 
-  // Horizontal dodge: spread N pain series symmetrically around each day's x-position
-  // so overlapping points (same date, same value) are still visible side by side.
-  // y-values are never modified. Tooltip title uses data-array index → real date label.
-  const N          = (injuryPainSeries || []).length;
-  const DODGE_STEP = N > 1 ? 0.18 : 0;
-
   // Smertegrense: smerte >= denne = «spike» → fremhevet stort punkt m/hvit ring.
   // Default 5 (tendon-rehab «akseptabel smerte»-regel). Endre her ved behov.
   const PAIN_LIMIT = 5;
 
   const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => {
-    const xOff = (idx - (N - 1) / 2) * DODGE_STEP;
     const col  = PAIN_COLORS[idx % PAIN_COLORS.length];
     const hi   = c => (c.raw?.y ?? 0) >= PAIN_LIMIT;   // spike?
     return {
       label: _dashBodyPartName(inj),
-      // {x: dateIndex + offset, y: painValue} — offset is cosmetic only; _date carries real date
-      data: dates.map((ds, di) => {
-        const v = painByDate[ds] ?? null;
-        return v !== null ? { x: di + xOff, y: v, _date: ds } : null;
-      }).filter(Boolean),  // parsing:false tåler ikke null-elementer → krasjer Chart.js
+      // Full-lengde og indeks-justert med ACWR-linja: di === dato-indeks i ALLE
+      // datasett. Da treffer mode:'index'-tooltipet riktig dato hver gang. Dager
+      // uten smerte = y:null (tegnes ikke), men holder indeksene på linje.
+      data: dates.map((ds, di) => ({ x: di, y: painByDate[ds] ?? null, _date: ds })),
       parsing: false,
       yAxisID: 'yP',
       borderColor: col,
@@ -901,11 +893,11 @@ function renderLoadPain() {
       borderWidth: 1.5,
       // Spikes (>= PAIN_LIMIT) stikker ut: stort punkt, full farge, hvit ring.
       // Lave verdier dempes (lite + halv-transparent) så de ikke konkurrerer visuelt.
-      pointRadius:          c => hi(c) ? 7.5 : 2.5,
+      pointRadius:          c => c.raw?.y == null ? 0 : (hi(c) ? 7.5 : 2.5),
+      pointHoverRadius:     c => c.raw?.y == null ? 0 : (hi(c) ? 9 : 4),
       pointBackgroundColor: c => hi(c) ? col : col + '55',
       pointBorderColor:     c => hi(c) ? '#FFFFFF' : 'transparent',
       pointBorderWidth:     c => hi(c) ? 1.5 : 0,
-      hoverRadius: 9,
       tension: 0.2, spanGaps: false, showLine: false,
     };
   });
@@ -942,7 +934,11 @@ function renderLoadPain() {
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: { duration: 380 },
-      interaction: { mode: 'index', intersect: false },
+      // axis:'x' → hover styres KUN av dato-kolonnen (x), ikke hvor nær linja/prikken
+      // musa er vertikalt. Tooltip forsvinner ikke når du beveger deg vekk fra streken,
+      // og hopper ikke mellom linje og prikker — den viser alltid hele datoens kolonne.
+      interaction: { mode: 'index', intersect: false, axis: 'x' },
+      hover: { mode: 'index', intersect: false, axis: 'x' },
       plugins: {
         legend: {
           display: true, position: 'bottom',
