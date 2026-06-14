@@ -487,13 +487,13 @@
             <span class="elapsed-dot"></span>
             <span id="elapsedDisplay">0:00</span>
           </div>
-          <button class="btn btn-ghost btn-sm ws-done" onclick="resetWorkout()">↺ Ny økt</button>
+          <button class="btn btn-ghost btn-sm ws-done" onclick="resetWorkout()">↺ <span data-i18n="gym.new_session">Ny økt</span></button>
         </div>
       </div>
       <div class="wh-title" id="workoutTitle" data-i18n="gym.session">Økt</div>
       <div class="wh-meta">
         <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
-        <div class="wh-meta-item">◈ <span id="whExCount">— øvelser</span></div>
+        <div class="wh-meta-item">◈ <span id="whExCount">— <span data-i18n="gym.exercises_lc">øvelser</span></span></div>
       </div>
     </div>
 
@@ -702,6 +702,10 @@
       <label data-i18n="gym.day_type">Type (valgfritt)</label>
       <select id="ddType"></select>
     </div>
+    <div>
+      <label data-i18n="gym.copy_from">Kopier øvelser fra</label>
+      <select id="ddCopyFrom"></select>
+    </div>
     <div class="day-dialog-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeDayDialog()" data-i18n="cancel">Avbryt</button>
       <button class="btn btn-success btn-sm" onclick="createDay()" data-i18n="gym.create_day">Opprett dag</button>
@@ -892,6 +896,11 @@ function openDayDialog() {
   wdSel.innerHTML = order.map(w => `<option value="${w}">${escHtml(t('wd.' + w))}</option>`).join('');
   tySel.innerHTML = `<option value="">${escHtml(t('gym.day_type_none'))}</option>` +
     DAY_TYPES.map(k => `<option value="${k}">${escHtml(t(k))}</option>`).join('');
+  // Kopier-fra: la brukeren starte en ny dag som en kopi av en eksisterende (f.eks. mandag).
+  const cpSel = document.getElementById('ddCopyFrom');
+  const copyable = gymDays.filter(d => d.day_key !== 'rehab');
+  cpSel.innerHTML = `<option value="">${escHtml(t('gym.copy_empty'))}</option>` +
+    copyable.map(d => `<option value="${escHtml(d.day_key)}">${escHtml(dayLabel(d))}</option>`).join('');
   document.getElementById('dayDialog').classList.add('open');
 }
 function closeDayDialog() { document.getElementById('dayDialog').classList.remove('open'); }
@@ -908,10 +917,30 @@ async function createDay() {
   const { data, error } = await db.from('gym_days').insert(row).select().single();
   if (error) { toast(t('gym.save_error'), 'err'); return; }
   gymDays.push(data || row);
+  const copyFrom = document.getElementById('ddCopyFrom')?.value || '';
   closeDayDialog();
-  allExercises[day_key] = {};   // ny dag starter tom
+  allExercises[day_key] = {};   // ny dag starter tom (fylles under hvis kopiering)
+
+  let copied = false;
+  if (copyFrom && getDay(copyFrom)) {
+    // Kopier alle øvelser (seksjon, navn, sett, reps, rekkefølge) fra valgt dag.
+    const { data: srcRows } = await db.from('workout_program')
+      .select('section,exercise_name,sets,reps,sort_order').eq('day', copyFrom);
+    if (srcRows && srcRows.length) {
+      const newRows = srcRows.map(r => ({
+        day: day_key, section: r.section, exercise_name: r.exercise_name,
+        sets: r.sets, reps: r.reps, sort_order: r.sort_order,
+      }));
+      const { data: inserted, error: copyErr } = await db.from('workout_program').insert(newRows).select();
+      if (copyErr) { toast(t('gym.save_error'), 'err'); }
+      else {
+        (inserted || []).forEach(r => { (allExercises[day_key][r.section] ||= []).push(r); });
+        copied = true;
+      }
+    }
+  }
   setDay(day_key);
-  toast(t('gym.day_created'));
+  toast(copied ? t('gym.day_copied') : t('gym.day_created'));
 }
 
 async function deleteDay(key) {
@@ -1398,7 +1427,7 @@ function renderWarmup() {
       const curName = ex.exercise_name || 'Sykkel';
       const inList = CARDIO_MACHINES.some(([n]) => n === curName);
       const opts = (inList ? CARDIO_MACHINES : [[curName, cardioIcon(curName)], ...CARDIO_MACHINES])
-        .map(([n, e]) => `<option value="${escHtml(n)}"${n === curName ? ' selected' : ''}>${e} ${escHtml(n)}</option>`).join('');
+        .map(([n, e]) => `<option value="${escHtml(n)}"${n === curName ? ' selected' : ''}>${e} ${escHtml(cardioLabel(n))}</option>`).join('');
       zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"
         draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(ex.section || cirKeyFallback)}"
         ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
@@ -1406,7 +1435,7 @@ function renderWarmup() {
           <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
           <div class="circ-icon">${cardioIcon(curName)}</div>
           <div style="flex:1">
-            <div class="circ-name">${escHtml(curName)}</div>
+            <div class="circ-name">${escHtml(cardioLabel(curName))}</div>
             <div class="circ-meta">${escHtml(ex.reps || '8–10 min')}</div>
           </div>
           <button class="edit-knee-btn" style="opacity:0.6" title="${t('gym.cardio_edit')}"
@@ -2055,9 +2084,13 @@ function resetWorkout() {
 }
 
 function updateElapsed() {
-  const s = Math.floor((Date.now() - workoutStart) / 1000);
-  document.getElementById('elapsedDisplay').textContent =
-    `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  const s   = Math.floor((Date.now() - workoutStart) / 1000);
+  const h   = Math.floor(s / 3600);
+  const m   = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  document.getElementById('elapsedDisplay').textContent = h
+    ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+    : `${m}:${String(sec).padStart(2,'0')}`;
 }
 
 function updateRingTimer() {
@@ -2602,13 +2635,22 @@ async function deleteExercise(id) {
 function toggleEditEx(id) { document.getElementById(`edit-form-${id}`)?.classList.toggle('open'); }
 
 // ── Kondisjonsmaskin i oppvarming: redigerbar maskin + tid ──────────────────
+// Kanonisk navn (lagres i DB + brukes til matching/ikon) → vises tospråklig via cardioLabel().
+// Jogging er lagt til som oppvarmingsalternativ.
 const CARDIO_MACHINES = [
-  ['Sykkel', '🚴'], ['Tredemølle', '🏃'], ['Ellipse', '🌀'], ['Romaskin', '🚣'],
+  ['Sykkel', '🚴'], ['Tredemølle', '🏃'], ['Jogging', '🏃'], ['Ellipse', '🌀'], ['Romaskin', '🚣'],
   ['SkiErg', '⛷️'], ['Stairmaster', '🪜'], ['Gange', '🚶'],
 ];
+const _CARDIO_KEYS = {
+  'Sykkel': 'cardio.bike', 'Tredemølle': 'cardio.treadmill', 'Jogging': 'cardio.jogging',
+  'Ellipse': 'cardio.elliptical', 'Romaskin': 'cardio.rower', 'SkiErg': 'cardio.skierg',
+  'Stairmaster': 'cardio.stairmaster', 'Gange': 'cardio.walk',
+};
+// Tospråklig visningsnavn for et kardio-/oppvarmingsnavn. Ukjente navn vises som de er.
+function cardioLabel(name) { return _CARDIO_KEYS[name] ? t(_CARDIO_KEYS[name]) : name; }
 function cardioIcon(name) {
   const n = String(name || '').toLowerCase();
-  if (/tredemølle|treadmill|løp|run/.test(n)) return '🏃';
+  if (/tredemølle|treadmill|løp|run|jogg/.test(n)) return '🏃';
   if (/ellipse|elliptical/.test(n)) return '🌀';
   if (/romaskin|row/.test(n)) return '🚣';
   if (/ski/.test(n)) return '⛷️';
