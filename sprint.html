@@ -207,9 +207,10 @@
     <button id="sprintSaveBtn" class="btn btn-success" onclick="logSession()" data-i18n="sprint.log_btn">Logg økt</button>
   </div>
 
-  <!-- Knee trend -->
+  <!-- Smertetrend per skade -->
   <div class="card">
-    <div class="section-title" data-i18n="sprint.history">Knesmerte — siste 5 økter</div>
+    <div class="section-title" data-i18n="sprint.history">Smerte — siste 5 økter</div>
+    <div id="trendInjPills" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:10px"></div>
     <div id="kneeTrend"><div class="loading" data-i18n="loading">Laster…</div></div>
     <div id="kneeEditPanel" style="display:none;margin-top:12px;padding:12px;
       background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07)">
@@ -1128,27 +1129,63 @@ async function deleteSprintDate(date) {
   toast(t('sprint.deleted'));
 }
 
-// ── Knee trend — DEPRECATED (P6): reads knee_pain; keep until injury_pain trend panel replaces it ──
+// ── Smertetrend per skade — injury_pain primær, knee_pain fallback for kne-skaden ──
 async function loadKneeTrend() {
-  // Order by created_at (newest first), fall back to date if column missing
-  let { data, error } = await db.from('knee_pain')
-    .select('id,date,before_score,during_score,after_score,day_after_score')
-    .ilike('session_type', 'Sprint%')
-    .order('created_at', { ascending: false, nullsLast: true })
-    .order('date',       { ascending: false })
-    .limit(5);
-  if (error) {
-    ({ data } = await db.from('knee_pain')
+  renderTrendInjurySelector();
+  // Standardskade: kne hvis registrert, ellers første alvorlige.
+  if (_severeInjuries.length && (!_trendInjId || !_severeInjuries.some(i => i.id === _trendInjId))) {
+    const knee = _severeInjuries.find(_isKneeInjury);
+    _trendInjId = knee ? knee.id : _severeInjuries[0].id;
+  }
+  const _kneeFallback = async () => {
+    const { data } = await db.from('knee_pain')
       .select('id,date,before_score,during_score,after_score,day_after_score')
       .ilike('session_type', 'Sprint%')
-      .order('date', { ascending: false })
-      .limit(5));
+      .order('date', { ascending: false }).limit(5);
+    return (data || []).map(r => ({ ...r, _src: 'knee_pain' }));
+  };
+
+  let rows = [];
+  if (_trendInjId) {
+    const { data } = await db.from('injury_pain')
+      .select('id,date,before_score,during_score,after_score,day_after_score,session_type')
+      .eq('injury_id', _trendInjId)
+      .ilike('session_type', 'Sprint%')
+      .order('date', { ascending: false }).limit(5);
+    rows = (data || []).map(r => ({ ...r, _src: 'injury_pain' }));
+    if (!rows.length && _isKneeInjury(_severeInjuries.find(i => i.id === _trendInjId))) {
+      rows = await _kneeFallback();   // gammel kne-data uten injury_pain
+    }
+  } else {
+    rows = await _kneeFallback();     // ingen alvorlige skader → legacy
   }
-  renderKneeTrend(data || []);
+  renderKneeTrend(rows);
+}
+
+// Skadevelger over trend-matrisen (kun når det finnes mer enn én alvorlig skade).
+function renderTrendInjurySelector() {
+  const el = document.getElementById('trendInjPills');
+  if (!el) return;
+  if (_severeInjuries.length < 2) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'flex';
+  el.innerHTML = _severeInjuries.map(inj => {
+    const a = inj.id === _trendInjId;
+    return `<button onclick="selectTrendInjury('${inj.id}')" style="padding:4px 11px;border-radius:20px;cursor:pointer;
+      font-size:11px;font-family:var(--font-mono);
+      border:1px solid ${a ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.09)'};
+      background:${a ? 'rgba(255,255,255,0.08)' : 'transparent'};
+      color:${a ? 'var(--text-primary)' : 'var(--text-tertiary)'}">${escHtml(bodyPartName(inj))}</button>`;
+  }).join('');
+}
+function selectTrendInjury(injId) {
+  _trendInjId = injId;
+  closeKneeEdit();
+  loadKneeTrend();
 }
 
 let _kneeTrendData = [];
 let _editingKneeIdx = null;
+let _trendInjId = null;   // valgt skade i smertetrend-panelet
 
 function fmtDateShort(ds) {
   const d = new Date(ds + 'T12:00:00');
@@ -1219,7 +1256,7 @@ function closeKneeEdit() {
   document.getElementById('kneeEditPanel').style.display = 'none';
 }
 
-// DEPRECATED (P6): edits knee_pain rows; keep until trend panel is replaced with injury_pain
+// Redigerer trend-cellen i kildetabellen den kom fra (injury_pain, ellers legacy knee_pain).
 async function saveKneeInline() {
   if (_editingKneeIdx === null) return;
   const d        = _kneeTrendData[_editingKneeIdx];
@@ -1228,7 +1265,8 @@ async function saveKneeInline() {
   const after    = document.getElementById('kneeEditAfter').value;
   const dayafter = document.getElementById('kneeEditDayAfter').value;
 
-  const { error } = await db.from('knee_pain').update({
+  const table = d._src === 'injury_pain' ? 'injury_pain' : 'knee_pain';
+  const { error } = await db.from(table).update({
     before_score:    before   !== '' ? Number(before)   : null,
     during_score:    during   !== '' ? Number(during)   : null,
     after_score:     after    !== '' ? Number(after)    : null,

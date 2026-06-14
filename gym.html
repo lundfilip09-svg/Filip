@@ -738,7 +738,8 @@ let _loggedThisSession = false;  // satt i saveLog — vakter «Ny økt» mot ta
 let _sessionDurationMin = null;  // sRPE: faktisk øktvarighet fra timeren (settes i finishWorkout)
 let _offlineRetryArmed  = false;
 let _dayAfterSession  = null;  // { gymId, kneeId, date, sessionType }
-let _dayAfterScore    = null;
+let _dayAfterScores   = {};    // injId (eller '_legacy') → day-after-score
+let _dayAfterInjuries = [];    // [{ inj, ipRow }] — alvorlige skader som mangler day-after
 let workoutState  = 'idle';
 let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
@@ -1122,6 +1123,7 @@ async function init() {
     renderInjuryDoneBlocks();
     renderGymManualPainForms();
     renderLiveInjurySelector();
+    if (document.getElementById('dayAfterBanner')?.style.display !== 'none') renderDayAfterBanner();
     updateProgress();              // «x / y sett» i aktivt språk
     try { updateNotesCount(); } catch (e) {}
     if (openEx) { activeDrawer = null; openDrawer(openEx); }   // gjenåpne + konverter sett-vekter
@@ -3273,52 +3275,104 @@ async function checkDayAfterRehab() {
   if (!sessions?.length) return;
   const gym = sessions[0];
 
-  const { data: kneeRows } = await db.from('knee_pain')
-    .select('id, day_after_score')
-    .eq('date', yDate)
-    .eq('session_type', gym.session_type || '')
-    .limit(1);
-
-  const knee = kneeRows?.[0];
-  if (knee?.day_after_score !== null && knee?.day_after_score !== undefined) return;
-
-  _dayAfterSession = { gymId: gym.id, kneeId: knee?.id || null, date: yDate, sessionType: gym.session_type };
-  _dayAfterScore = null;
-
-  const banner  = document.getElementById('dayAfterBanner');
-  const subEl   = document.getElementById('dayAfterBannerSub');
-  const btnsEl  = document.getElementById('dayAfterPainBtns');
+  const banner = document.getElementById('dayAfterBanner');
   if (!banner) return;
 
+  _dayAfterSession  = { gymId: gym.id, kneeId: null, date: yDate, sessionType: gym.session_type };
+  _dayAfterScores   = {};
+  _dayAfterInjuries = [];
+
+  if (_severeInjuries.length) {
+    // Per-skade: hvilke alvorlige skader mangler day-after-smerte for gårsdagens økt?
+    const { data: ipRows } = await db.from('injury_pain')
+      .select('id, injury_id, day_after_score, created_at').eq('date', yDate);
+    const latestByInj = {};
+    (ipRows || []).forEach(r => {
+      if (!latestByInj[r.injury_id] || (r.created_at || '') > (latestByInj[r.injury_id].created_at || ''))
+        latestByInj[r.injury_id] = r;
+    });
+    // Legacy knee_pain-fallback for kne-skaden (gammel data uten injury_pain-rad)
+    const kneeInj = _kneeInjury();
+    let kneeLegacyDone = false;
+    if (kneeInj && latestByInj[kneeInj.id]?.day_after_score == null) {
+      const { data: kp } = await db.from('knee_pain')
+        .select('day_after_score').eq('date', yDate).eq('session_type', gym.session_type || '').limit(1);
+      kneeLegacyDone = kp?.[0]?.day_after_score != null;
+    }
+    _dayAfterInjuries = _severeInjuries.filter(inj => {
+      if (latestByInj[inj.id]?.day_after_score != null) return false;
+      if (kneeInj && inj.id === kneeInj.id && kneeLegacyDone) return false;
+      return true;
+    }).map(inj => ({ inj, ipRow: latestByInj[inj.id] || null }));
+    if (!_dayAfterInjuries.length) return;   // alle alvorlige skader har day-after
+  } else {
+    // Bakoverkompat: ingen registrerte skader → legacy knee_pain
+    const { data: kneeRows } = await db.from('knee_pain')
+      .select('id, day_after_score').eq('date', yDate).eq('session_type', gym.session_type || '').limit(1);
+    const knee = kneeRows?.[0];
+    if (knee?.day_after_score != null) return;
+    _dayAfterSession.kneeId = knee?.id || null;
+  }
+
+  const subEl = document.getElementById('dayAfterBannerSub');
   if (subEl) subEl.textContent = `${displaySessionType(gym.session_type)} · ` +
     new Date(yDate + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-  if (btnsEl) btnsEl.innerHTML = [...Array(11)].map((_,i) =>
-    `<button class="mini-pain-btn" data-da-score="${i}" onclick="selectDayAfterPain(${i})">${i}</button>`
-  ).join('');
-
+  renderDayAfterBanner();
   banner.style.display = '';
 }
 
-function selectDayAfterPain(score) {
-  _dayAfterScore = score;
-  document.querySelectorAll('[data-da-score]').forEach(b => {
+// Bygg day-after-knapperadene: én rad per alvorlig skade, ellers én legacy kne-rad.
+function renderDayAfterBanner() {
+  const btnsEl = document.getElementById('dayAfterPainBtns');
+  if (!btnsEl) return;
+  const mkRow = (injId) => [...Array(11)].map((_,i) =>
+    `<button class="mini-pain-btn" data-da-inj="${injId}" data-da-score="${i}"
+       onclick="selectDayAfterPain('${injId}',${i})">${i}</button>`).join('');
+  if (_dayAfterInjuries.length) {
+    btnsEl.innerHTML = _dayAfterInjuries.map(({ inj }) => `
+      <div style="margin-bottom:8px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
+        <div class="mini-pain-row" style="gap:3px">${mkRow(inj.id)}</div>
+      </div>`).join('');
+  } else {
+    btnsEl.innerHTML = `<div class="mini-pain-row" style="gap:3px">${mkRow('_legacy')}</div>`;
+  }
+  // Re-highlight valgte verdier (ved språkbytte-rerender)
+  Object.entries(_dayAfterScores).forEach(([injId, score]) => {
+    if (score == null) return;
+    document.querySelectorAll(`[data-da-inj="${injId}"]`).forEach(b => {
+      b.className = 'mini-pain-btn' + (parseInt(b.dataset.daScore) === score ? ' ' + painClass(score) : '');
+    });
+  });
+}
+
+function selectDayAfterPain(injId, score) {
+  _dayAfterScores[injId] = score;
+  document.querySelectorAll(`[data-da-inj="${injId}"]`).forEach(b => {
     b.className = 'mini-pain-btn' + (parseInt(b.dataset.daScore) === score ? ' ' + painClass(score) : '');
   });
 }
 
-// DEPRECATED (P6): writes day-after score to knee_pain — keep until injury_pain day-after banner
 async function saveDayAfterPain() {
-  if (_dayAfterScore === null || !_dayAfterSession) { toast(t('gym.select_pain_score'), 'err'); return; }
+  const entries = Object.entries(_dayAfterScores).filter(([, v]) => v != null);
+  if (!entries.length || !_dayAfterSession) { toast(t('gym.select_pain_score'), 'err'); return; }
   const { date, sessionType, kneeId } = _dayAfterSession;
-  if (kneeId) {
-    const { error } = await db.from('knee_pain').update({ day_after_score: _dayAfterScore }).eq('id', kneeId);
-    if (error) { toast(t('gym.save_error'), 'err'); return; }
+  if (_dayAfterInjuries.length) {
+    // Per-skade → injury_pain (oppdater eksisterende rad, ellers ny)
+    for (const [injId, score] of entries) {
+      const ipRow = _dayAfterInjuries.find(x => x.inj.id === injId)?.ipRow;
+      const res = ipRow
+        ? await db.from('injury_pain').update({ day_after_score: score }).eq('id', ipRow.id)
+        : await db.from('injury_pain').insert({ injury_id: injId, date, session_type: sessionType, source: 'gym', day_after_score: score });
+      if (res.error) { toast(t('gym.save_error'), 'err'); return; }
+    }
   } else {
-    const { data, error } = await db.from('knee_pain')
-      .insert({ date, session_type: sessionType, day_after_score: _dayAfterScore })
-      .select('id').single();
-    if (error) { toast(t('gym.save_error'), 'err'); return; }
-    if (data?.id) _dayAfterSession.kneeId = String(data.id);
+    // Legacy knee_pain
+    const score = _dayAfterScores['_legacy'];
+    const res = kneeId
+      ? await db.from('knee_pain').update({ day_after_score: score }).eq('id', kneeId)
+      : await db.from('knee_pain').insert({ date, session_type: sessionType, day_after_score: score });
+    if (res.error) { toast(t('gym.save_error'), 'err'); return; }
   }
   toast(t('gym.day_after_saved'));
   dismissDayAfterBanner();
