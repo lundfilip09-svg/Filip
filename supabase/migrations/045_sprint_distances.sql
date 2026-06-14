@@ -34,11 +34,14 @@ VALUES
   ('180m',       NULL,      80,  false, false, false, NULL,  NULL),
   ('200m',       '#6BE3A4', 90,  true,  true,  false, 23.11, 22.30),
   ('220m',       NULL,      100, false, false, false, NULL,  NULL)
+-- Seed-verdiene er autoritative for config-flaggene (EXCLUDED direkte) – ellers
+-- vinner DEFAULT-false-backfillen fra ALTER over en COALESCE og alt blir skjult.
+-- Brukerdata (goal_time/baseline_time) og egne farge-edits bevares med COALESCE.
 ON CONFLICT (distance) DO UPDATE SET
-  color          = COALESCE(sprint_records.color,          EXCLUDED.color),
-  sort_order     = COALESCE(sprint_records.sort_order,     EXCLUDED.sort_order),
-  show_pb        = COALESCE(sprint_records.show_pb,        EXCLUDED.show_pb),
-  show_goal      = COALESCE(sprint_records.show_goal,      EXCLUDED.show_goal),
-  all_runs_count = COALESCE(sprint_records.all_runs_count, EXCLUDED.all_runs_count),
-  baseline_time  = COALESCE(sprint_records.baseline_time,  EXCLUDED.baseline_time),
-  goal_time      = COALESCE(sprint_records.goal_time,      EXCLUDED.goal_time);
+  color          = COALESCE(EXCLUDED.color, sprint_records.color),
+  sort_order     = EXCLUDED.sort_order,
+  show_pb        = EXCLUDED.show_pb,
+  show_goal      = EXCLUDED.show_goal,
+  all_runs_count = EXCLUDED.all_runs_count,
+  baseline_time  = COALESCE(sprint_records.baseline_time, EXCLUDED.baseline_time),
+  goal_time      = COALESCE(sprint_records.goal_time,     EXCLUDED.goal_time);
