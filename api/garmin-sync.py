@@ -133,12 +133,19 @@ def fetch_for_date(garmin, save_date):
     try:
         bb_list = garmin.get_body_battery(stats_date)
         if bb_list and isinstance(bb_list, list):
-            vals = [
-                entry.get("charged") or entry.get("value") or entry.get("bodyBattery")
-                for entry in bb_list if isinstance(entry, dict)
-            ]
-            vals = [v for v in vals if v is not None]
-            if vals: result["body_battery"] = max(vals)
+            # Garmin gir ÉN dict per dag med bodyBatteryValuesArray av
+            # avlesninger: [timestamp_ms, status, nivå, versjon]. "charged" er
+            # totalt OPPLADET den dagen – ikke batterinivå – så vi leser nivåene.
+            levels = []
+            for entry in bb_list:
+                if not isinstance(entry, dict):
+                    continue
+                for p in entry.get("bodyBatteryValuesArray") or []:
+                    if isinstance(p, list) and len(p) >= 3 and p[2] is not None:
+                        levels.append(p[2])
+            # Daglig topp = morgenverdien etter søvn (konsistent på tvers av
+            # backfill-dager, og matcher klokka når du sjekker om morgenen).
+            if levels: result["body_battery"] = max(levels)
     except Exception:
         result["_bb_error"] = traceback.format_exc()
 
