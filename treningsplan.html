@@ -1395,11 +1395,10 @@ async function loadSessionHistory() {
   renderWeekLoad();
 }
 
-// ── Ukeslast (sRPE): Σ varighet × RPE/10 per uke, siste 6 uker ─────────────
-// Manglende varighet → nøkterne defaults (gym 60 / sprint 75 / aktivitet 60 min)
-// slik at gamle rader uten duration_min teller med. Sprint telles per økt
-// (dato), ikke per løp. RPE-skalaen er 1–100 → /10 gir klassisk Foster-sRPE.
-const SRPE_DEF = { gym: 60, sprint: 75, activity: 60 };
+// ── Ukeslast: Σ (RPE/10 × aktivitetsmultiplikator) per uke, siste 6 uker ────
+// SAMME formel som Belastning-trenden (loadMultiplier i utils.js): vektet på
+// aktivitetstype (sprint hardt, gym 1x, gåtur ~0) — IKKE varighet. Sprint
+// telles per økt (dato), ikke per løp. RPE-skala 1–100 → /10.
 async function renderWeekLoad() {
   const el = document.getElementById('weekLoadBody');
   if (!el) return;
@@ -1409,9 +1408,9 @@ async function renderWeekLoad() {
   let gym = [], spr = [], act = [];
   try {
     const [g, s, a] = await Promise.all([
-      db.from('gym_log').select('date,rpe,duration_min').gte('date', fromIso),
-      db.from('sprint_log').select('date,rpe,duration_min').gte('date', fromIso),
-      db.from('activity_log').select('date,rpe,duration_min').gte('date', fromIso),
+      db.from('gym_log').select('date,rpe,session_type').gte('date', fromIso),
+      db.from('sprint_log').select('date,rpe,type').gte('date', fromIso),
+      db.from('activity_log').select('date,rpe,activity_type,activity_label').gte('date', fromIso),
     ]);
     gym = g.data || []; spr = s.data || []; act = a.data || [];
   } catch (e) { el.innerHTML = '<div class="empty" style="font-size:11px">—</div>'; return; }
@@ -1419,18 +1418,17 @@ async function renderWeekLoad() {
   const w0 = mondays[0].getTime();
   const weekIdx = ds => Math.floor((new Date(ds + 'T12:00:00').getTime() - w0) / (7 * 86400000));
   const loads = [0, 0, 0, 0, 0, 0];
-  const add = (ds, min, rpe) => {
+  const add = (ds, rpe, mult) => {
     const i = weekIdx(ds);
-    if (i >= 0 && i < 6) loads[i] += (min || 0) * ((rpe || 0) / 10);
+    if (i >= 0 && i < 6) loads[i] += ((rpe || 0) / 10) * mult;
   };
-  gym.forEach(r => add(r.date, r.duration_min ?? SRPE_DEF.gym, r.rpe));
-  act.forEach(r => add(r.date, r.duration_min ?? SRPE_DEF.activity, r.rpe));
+  gym.forEach(r => add(r.date, r.rpe, loadMultiplier('gym', r.session_type)));
+  act.forEach(r => add(r.date, r.rpe, loadMultiplier('activity', r.activity_type, r.activity_label)));
   const sprSeen = {};
   spr.forEach(r => {
     if (sprSeen[r.date]) return;
     sprSeen[r.date] = 1;
-    const durRow = spr.find(x => x.date === r.date && x.duration_min != null);
-    add(r.date, durRow?.duration_min ?? SRPE_DEF.sprint, r.rpe);
+    add(r.date, r.rpe, loadMultiplier('sprint', r.type));
   });
 
   const max = Math.max(1, ...loads);
@@ -1670,21 +1668,24 @@ function buildPainSummary(knee) {
 // Per-skade smerteoppsummering i sess-card — én linje per alvorlig skade
 function buildPainSummaryForDate(date, legacyKneeRow) {
   if (!_severeInjuries.length) return buildPainSummary(legacyKneeRow);
+  // Fargekode skadenavnet (samme palett som dashboard/graf) så kne vs hamstring er lette å skille.
+  const INJ_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const lines = [];
-  for (const inj of _severeInjuries) {
+  _severeInjuries.forEach((inj, idx) => {
     const row = _getInjuryPain(inj.id, date, _isKneeInj(inj) ? legacyKneeRow : null);
-    if (!row) continue;
+    if (!row) return;
     const phases = [
       { l: t('knee.before_short'),   v: row.before_score },
       { l: t('knee.during_short'),   v: row.during_score },
       { l: t('knee.after_short'),    v: row.after_score },
       { l: t('knee.dayafter_short'), v: row.day_after_score },
     ].filter(p => p.v != null);
-    if (!phases.length) continue;
-    lines.push(`<span class="sess-pain"><span style="font-size:8px;opacity:0.65">${escHtml(bodyPartName(inj))}</span> ${
+    if (!phases.length) return;
+    const col = INJ_COLORS[idx % INJ_COLORS.length];
+    lines.push(`<span class="sess-pain"><span style="font-size:8px;font-weight:600;color:${col}">${escHtml(bodyPartName(inj))}</span> ${
       phases.map(p => `${p.l}:<span class="sess-pain-val ${painColorClass(p.v)}">${p.v}</span>`).join(' ')
     }</span>`);
-  }
+  });
   return lines.join('');
 }
 
@@ -1946,6 +1947,21 @@ function buildSprintDetailHtml(s, knee) {
         onblur="autoSaveSprintField('${s.date}','notes',this.value)">${escHtml(s.notes || '')}</textarea>
     </div>
   </div>`;
+}
+
+// Åpner økta for ?date=<dato> (lenket fra dashboardets skadekort) og scroller dit.
+// Prioritet gym → sprint → activity hvis flere økter på samme dato.
+function openSessionFromUrl() {
+  const date = new URLSearchParams(location.search).get('date');
+  if (!date) return;
+  const g  = _sessData.find(s => s.date === date);
+  const sp = _sprintData.find(s => s.date === date);
+  const a  = _actData.find(x => x.date === date);
+  const id = g ? String(g.id) : sp ? ('sprint-' + sp.date) : a ? ('act-' + a.id) : null;
+  if (!id) return;
+  _openDetail = id;
+  renderSessionGrid();
+  setTimeout(() => document.getElementById('sess-card-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
 }
 
 function toggleSessionDetail(id) {
@@ -2504,7 +2520,8 @@ function toggleHistory() {
   renderDayStrip();
   renderDetail();
   renderSidebar();
-  loadSessionHistory();
+  await loadSessionHistory();
+  openSessionFromUrl();   // dyplenke fra dashboard (?date=) → åpne riktig økt
 })();
 </script>
 </body>
