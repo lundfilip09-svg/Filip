@@ -56,6 +56,22 @@ deg ferdig — trykk 🇺🇸 og let etter norsk tekst som lekker, og motsatt.
 - `login.html` — Supabase e-post/passord
 - DB: Supabase (Postgres). Migrasjoner i `supabase/migrations/`.
 
+## ⚠️ Ukeplan-kilder (ikke gjenbruk `training_plan`)
+To lag, ingen andre:
+- `weekly_plan` (`day`, `session_type`) — den FASTE standarduka. Eneste kilde til
+  fast plan. Redigeres via «Rediger ukeplan»-knappen (`saveWeeklyPlan`).
+- `training_plan_weekly` (`week_monday`, `day_index`, `session_text`, `notes`) —
+  per-dag-OVERSTYRING, dato-forankret på ukens mandag. Gjelder kun den uka og
+  «utløper» når mandagen skifter. Brukes for ALLE uker, inkl. inneværende.
+
+Visning = `weekly_plan` som base, `training_plan_weekly` (ukens mandag) overstyrer.
+`session_text === ''` = dagen eksplisitt tømt (hvile), faller IKKE tilbake til weekly_plan.
+Lest tre steder som MÅ holdes i sync: `treningsplan.html`, `dashboard.html`,
+`api/_lib/context.js`.
+
+`training_plan` (008) er UTFASET — datoløst lag som lekket overstyringer mellom uker
+(fikset i migr. 034). Ikke les/skriv det igjen.
+
 ## Kontekst om Filip (for AI-relatert kode)
 17 år, sprinter (100/200m) + styrke, 70kg/187cm, ~6 økter/uke. Patellar tendinopati
 venstre kne (jan 2026). Driver også fotball/basket i USA. Smerteskala 0–10 i alle logger.

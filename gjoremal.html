@@ -542,6 +542,44 @@
     }
     .todo-item:hover .todo-add-date { opacity: 0.4; }
     .todo-add-date:hover { opacity: 1 !important; color: var(--accent-blue); }
+    .todo-quick {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      opacity: 0;
+      cursor: pointer;
+      transition: opacity 0.12s, background 0.12s, color 0.12s;
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid transparent;
+    }
+    .todo-item:hover .todo-quick { opacity: 0.55; }
+    .todo-quick:hover { opacity: 1 !important; color: var(--accent-blue); background: rgba(91,164,245,0.10); }
+    .todo-quick.on {
+      opacity: 1;
+      color: var(--accent-blue);
+      background: rgba(91,164,245,0.15);
+      border-color: rgba(91,164,245,0.40);
+    }
+    /* Mykere fullføring: ikke brå forsvinning */
+    .todo-item.completing {
+      opacity: 0;
+      transform: translateX(8px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .todo-item.completing .todo-text { text-decoration: line-through; }
+    /* Touch-enheter (iPhone): ingen hover → vis kontroller alltid + ett trykk = handling */
+    @media (hover: none) {
+      .todo-quick:not(.on),
+      .todo-item:hover .todo-quick:not(.on) { opacity: 0.9; }
+      .todo-add-date, .todo-item:hover .todo-add-date,
+      .todo-add-remind, .todo-item:hover .todo-add-remind { opacity: 0.6; }
+      .todo-del, .todo-item:hover .todo-del { opacity: 0.5; }
+      .drag-handle, .todo-item:hover .drag-handle { opacity: 0.4; }
+      /* nøytraliser rad-/tekst-hover så Safari ikke krever to trykk */
+      .todo-item:hover { background: transparent; }
+      .todo-text:not(.done-text):hover { background: transparent; padding: 0; margin: 0; }
+    }
     .todo-remind {
       font-size: 10px;
       font-family: var(--font-mono);
@@ -925,6 +963,10 @@ function renderTodos() {
               ? `<span class="todo-remind" onclick="startEditRemind('${todo.id}')" title="${t('gm.clear_reminder')}">⏰ ${fmtRemind(todo.remind_at)}</span>`
               : (!todo.completed ? `<span class="todo-add-remind" onclick="startEditRemind('${todo.id}')">⏰ ${t('gm.add_reminder')}</span>` : '')
             }
+            ${!todo.completed ? `
+              <span class="todo-quick ${todo.due_date===_dayStr(0)?'on':''}" onclick="quickDue('${todo.id}','today')" title="${t('gm.quick_today_title')}">${t('dash.move_today')}</span>
+              <span class="todo-quick ${todo.due_date===_dayStr(1)?'on':''}" onclick="quickDue('${todo.id}','tomorrow')" title="${t('gm.quick_tomorrow_title')}">${t('dash.move_tomorrow')}</span>
+            ` : ''}
           </div>
         </div>
         <div class="todo-actions">
@@ -1029,6 +1071,16 @@ async function toggleTodo(id, isDone) {
   // Fullført → kanseller påminnelse. Angret → planlegg på nytt hvis fortsatt i fremtiden.
   if (newDone) cancelTodoReminder(id);
   else if (td?.remind_at && new Date(td.remind_at) > new Date()) scheduleTodoReminder(td);
+  // Fullført mens «Aktive»-filteret er på → fade ut i stedet for å forsvinne brått
+  if (newDone && filter === 'active') {
+    const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+    if (item) {
+      item.classList.add('completing');
+      toast(t('gm.completed'), 'ok', { label: t('gm.undo'), fn: () => toggleTodo(id, true) });
+      setTimeout(renderTodos, 300);
+      return;
+    }
+  }
   renderTodos();
 }
 
@@ -1039,6 +1091,24 @@ async function toggleImportant(id, isImportant) {
   const td = allTodos.find(x => x.id === id);
   if (td) td.important = !isImportant;
   renderTodos();
+}
+
+// ── Hurtig sett forfallsdato til i dag / i morgen (toggle av ved nytt klikk) ──
+function _dayStr(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+async function quickDue(id, when) {
+  const td = allTodos.find(x => String(x.id) === String(id));
+  if (!td) return;
+  const target = _dayStr(when === 'tomorrow' ? 1 : 0);
+  const newDue = td.due_date === target ? null : target;   // klikk på aktiv dag → fjern dato
+  const { error } = await db.from('todos').update({ due_date: newDue }).eq('id', id);
+  if (error) { toast(t('dash.move_err'), 'err'); return; }
+  td.due_date = newDue;
+  renderTodos();
+  toast(newDue ? t('dash.moved') : t('gm.date_removed'));
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────

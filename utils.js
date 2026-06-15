@@ -368,6 +368,10 @@ const TRANSLATIONS = {
     'gm.active_count': '{n} aktive', 'gm.overdue_prefix': '⚠ ',
     'gm.add_date': '+ dato', 'gm.click_edit': 'Klikk for å redigere',
     'gm.change_date': 'Endre forfallsdato',
+    'gm.quick_today_title': 'Sett forfall til i dag (klikk igjen for å fjerne)',
+    'gm.quick_tomorrow_title': 'Sett forfall til i morgen (klikk igjen for å fjerne)',
+    'gm.date_removed': 'Dato fjernet',
+    'gm.completed': 'Fullført ✓', 'gm.undo': 'Angre',
     'gm.stats_active': 'Aktive', 'gm.stats_important': 'Viktige',
     'gm.stats_done': 'Fullført i dag', 'gm.stats_overdue': 'Forfalt',
     'gm.sub_tasks': 'Gjøremål for i dag og fremover',
@@ -892,6 +896,10 @@ const TRANSLATIONS = {
     'gm.active_count': '{n} active', 'gm.overdue_prefix': '⚠ ',
     'gm.add_date': '+ date', 'gm.click_edit': 'Click to edit',
     'gm.change_date': 'Change due date',
+    'gm.quick_today_title': 'Set due date to today (click again to clear)',
+    'gm.quick_tomorrow_title': 'Set due date to tomorrow (click again to clear)',
+    'gm.date_removed': 'Date cleared',
+    'gm.completed': 'Completed ✓', 'gm.undo': 'Undo',
     'gm.stats_active': 'Active', 'gm.stats_important': 'Important',
     'gm.stats_done': 'Done today', 'gm.stats_overdue': 'Overdue',
     'gm.sub_tasks': 'Tasks for today and ahead',
@@ -1340,12 +1348,32 @@ function toggleLang() {
 // ── Core utilities ────────────────────────────────────────────────────────────
 let _tt;
 
-function toast(msg, type = 'ok') {
+function toast(msg, type = 'ok', action = null) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast ${type} show`;
   clearTimeout(_tt);
-  _tt = setTimeout(() => el.classList.remove('show'), 3000);
+  el.className = `toast ${type} show`;
+  if (action && action.label && typeof action.fn === 'function') {
+    el.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.onclick = () => {
+      clearTimeout(_tt);
+      el.classList.remove('show');
+      el.style.pointerEvents = '';
+      try { action.fn(); } catch (e) {}
+    };
+    el.appendChild(span);
+    el.appendChild(btn);
+    el.style.pointerEvents = 'auto';
+    _tt = setTimeout(() => { el.classList.remove('show'); el.style.pointerEvents = ''; }, 6000);
+  } else {
+    el.textContent = msg;
+    el.style.pointerEvents = '';
+    _tt = setTimeout(() => el.classList.remove('show'), 3000);
+  }
 }
 
 async function signOut() {

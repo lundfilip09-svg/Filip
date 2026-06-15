@@ -350,6 +350,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast.ok  { border-color: rgba(107,227,164,0.3); color: var(--success); }
 .toast.err { border-color: rgba(255,107,107,0.3); color: var(--danger); }
+.toast-action {
+  margin-left: 12px; background: transparent;
+  border: 1px solid currentColor; border-radius: 6px;
+  color: inherit; font-size: 12px; font-weight: 600;
+  padding: 3px 10px; cursor: pointer; opacity: 0.85;
+}
+.toast-action:hover { opacity: 1; background: rgba(255,255,255,0.08); }
 
 /* ── States ───────────────────────────────────────────────────────────── */
 .loading { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); text-align: center; padding: 24px; }

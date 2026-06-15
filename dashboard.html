@@ -566,9 +566,25 @@ document.querySelector('[data-p="dashboard"]').classList.add('active');
 applyLang();
 
 async function loadWeekPlan() {
-  const { data } = await db.from('training_plan').select('day_index,session_text');
+  // weekly_plan = fast standarduke. training_plan_weekly = per-dag-overstyring for
+  // inneværende uke (dato-forankret), så en endring arver ikke til neste uke.
+  const now  = new Date();
+  const mon  = new Date(now);
+  mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekMonday = mon.getFullYear() + '-' +
+    String(mon.getMonth() + 1).padStart(2, '0') + '-' + String(mon.getDate()).padStart(2, '0');
+
+  const [{ data: base }, { data: override }] = await Promise.all([
+    db.from('weekly_plan').select('day,session_type'),
+    db.from('training_plan_weekly').select('day_index,session_text').eq('week_monday', weekMonday),
+  ]);
   weekPlan = {};
-  (data || []).forEach(r => { if (r.session_text) weekPlan[r.day_index] = r.session_text; });
+  (base || []).forEach(r => { if (r.session_type) weekPlan[r.day] = r.session_type; });
+  (override || []).forEach(r => {
+    // '' = dagen tømt denne uka → vis som hvile (fjern fra plan)
+    if (r.session_text) weekPlan[r.day_index] = r.session_text;
+    else delete weekPlan[r.day_index];
+  });
 }
 
 // Date label

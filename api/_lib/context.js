@@ -67,6 +67,15 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   const sb = (table, params) =>
     sbFetch(supabaseUrl, apikey, token, table, params + (USERLESS.has(table) ? '' : uf));
 
+  // Inneværende ukes mandag (ISO) — overstyringer ligger dato-forankret i
+  // training_plan_weekly, ikke i en datoløs tabell, så de arver ikke til neste uke.
+  const _base = (typeof localDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(localDate))
+    ? new Date(localDate + 'T00:00:00') : new Date();
+  const _mon = new Date(_base);
+  _mon.setDate(_base.getDate() - ((_base.getDay() + 6) % 7));
+  const weekMondayISO = _mon.getFullYear() + '-' +
+    String(_mon.getMonth() + 1).padStart(2, '0') + '-' + String(_mon.getDate()).padStart(2, '0');
+
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
          knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData, programData] = await Promise.all([
@@ -78,7 +87,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('activity_log', 'select=*&order=date.desc&limit=7'),
     sb('sprint_records', 'select=distance,best_time,date&order=distance.asc'),
     sb('weekly_plan', 'select=day,session_type&order=day.asc'),
-    sb('training_plan', 'select=day_index,session_text,notes&order=day_index.asc'),
+    sb('training_plan_weekly', `select=day_index,session_text,notes&week_monday=eq.${weekMondayISO}&order=day_index.asc`),
     // B6: 28-dagers vinduer for forhåndsberegnede nøkkeltall (ACWR, smertefri-dager)
     sb('knee_pain', 'select=date,before_score,during_score,after_score,day_after_score&order=date.desc&limit=60'),
     sb('sprint_log', 'select=date,rpe&order=date.desc&limit=120'),
@@ -213,14 +222,16 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     : `[FYSIO-NOTATER]
 (Ingen notater ført inn ennå — ikke gjett om behandlingsråd; si at du mangler notater.)`;
 
-  // Slå sammen ukeplan: weekly_plan = global standard, training_plan = override per dag.
+  // Slå sammen ukeplan: weekly_plan = global standard, training_plan_weekly =
+  // per-dag-overstyring for inneværende uke (dato-forankret).
   const DAYS_NO = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
   const planByDay = {};
   (Array.isArray(weeklyPlan) ? weeklyPlan : []).forEach(r => {
     if (r.session_type) planByDay[r.day] = r.session_type;
   });
   (Array.isArray(planOverrides) ? planOverrides : []).forEach(r => {
-    if (r.session_text) planByDay[r.day_index] = r.session_text;
+    // En rad = eksplisitt overstyring; '' = dagen tømt denne uka (= hvile).
+    planByDay[r.day_index] = r.session_text;
     if (r.notes) planByDay[`notes_${r.day_index}`] = r.notes;
   });
   const weekPlanReadable = DAYS_NO.map((navn, i) =>

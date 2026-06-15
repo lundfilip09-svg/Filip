@@ -799,13 +799,19 @@ function getISOWeek(d) {
   return 1 + Math.round(((tmp.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
 }
 
+// Inneværende ukes per-dag-overstyringer ligger nå i training_plan_weekly (dato-
+// forankret på ukens mandag), akkurat som andre uker. Da arver ikke en overstyring
+// til neste uke — den utløper når mandagen skifter. weekly_plan = fast standard.
 async function loadPlanFromDb() {
-  const { data } = await db.from('training_plan').select('day_index,session_text,notes');
+  const weekMonday = localISODate(getMondayForOffset(0));
+  const { data } = await db.from('training_plan_weekly')
+    .select('day_index,session_text,notes')
+    .eq('week_monday', weekMonday);
   plan = {};
   (data || []).forEach(r => {
-    // null = "no override, use weekly plan"; '' = explicitly cleared (must take priority)
-    if (r.session_text !== null) plan[r.day_index] = r.session_text;
-    if (r.notes)                 plan[`notes_${r.day_index}`] = r.notes;
+    // En rad = eksplisitt overstyring for denne uka. '' = «tømt» (overstyrer weekly_plan).
+    plan[r.day_index] = r.session_text;
+    if (r.notes)      plan[`notes_${r.day_index}`] = r.notes;
   });
 }
 
@@ -934,12 +940,13 @@ async function saveWeeklyPlan() {
   if (error) { console.error('saveWeeklyPlan error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
   rows.forEach(r => { weeklyPlan[r.day] = r.session_type; });
 
-  // Remove training_plan session_text overrides so the new global plan shows through
-  const { error: e2 } = await db.from('training_plan')
-    .update({ session_text: null })
-    .eq('user_id', userId);
+  // Fjern inneværende ukes overstyringer så den nye faste planen vises. Kun denne
+  // uka (dato-forankret) — framtidige/forrige ukers overstyringer røres ikke.
+  const weekMonday = localISODate(getMondayForOffset(0));
+  const { error: e2 } = await db.from('training_plan_weekly')
+    .delete().eq('user_id', userId).eq('week_monday', weekMonday);
   if (!e2) {
-    [0,1,2,3,4,5,6].forEach(d => { delete plan[d]; });
+    [0,1,2,3,4,5,6].forEach(d => { delete plan[d]; delete plan[`notes_${d}`]; });
   }
 
   closeEditWeeklyPlan();
@@ -1157,22 +1164,18 @@ async function saveDay() {
   const notes = document.getElementById('detailNotes').value.trim();
 
   let error;
+  const weekMonday = localISODate(getMondayForOffset(weekOffset));
   if (weekOffset === 0) {
     plan[selectedIdx]              = txt;    // '' = explicit empty (must not fall back to weeklyPlan)
     plan[`notes_${selectedIdx}`]   = notes;
-    ({ error } = await db.from('training_plan').upsert(
-      { user_id: userId, day_index: selectedIdx, session_text: txt, notes },
-      { onConflict: 'user_id,day_index' }
-    ));
   } else {
-    const weekMonday = localISODate(getMondayForOffset(weekOffset));
     planWeekly[selectedIdx]             = txt;
     planWeekly[`notes_${selectedIdx}`]  = notes;
-    ({ error } = await db.from('training_plan_weekly').upsert(
-      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: txt, notes },
-      { onConflict: 'user_id,week_monday,day_index' }
-    ));
   }
+  ({ error } = await db.from('training_plan_weekly').upsert(
+    { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: txt, notes },
+    { onConflict: 'user_id,week_monday,day_index' }
+  ));
   if (error) { console.error('saveDay error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
 
   renderHero();
@@ -1185,25 +1188,18 @@ async function saveDay() {
 async function clearDay() {
   if (!confirm(t('confirm.clear_day'))) return;
 
-  let clearError;
+  const weekMonday = localISODate(getMondayForOffset(weekOffset));
   if (weekOffset === 0) {
     plan[selectedIdx]             = '';   // explicit empty — don't fall back to weeklyPlan
     plan[`notes_${selectedIdx}`]  = '';
-    const { error } = await db.from('training_plan').upsert(
-      { user_id: userId, day_index: selectedIdx, session_text: '', notes: '' },
-      { onConflict: 'user_id,day_index' }
-    );
-    clearError = error;
   } else {
-    const weekMonday = localISODate(getMondayForOffset(weekOffset));
     planWeekly[selectedIdx]            = '';
     planWeekly[`notes_${selectedIdx}`] = '';
-    const { error } = await db.from('training_plan_weekly').upsert(
-      { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: '', notes: '' },
-      { onConflict: 'user_id,week_monday,day_index' }
-    );
-    clearError = error;
   }
+  const { error: clearError } = await db.from('training_plan_weekly').upsert(
+    { user_id: userId, week_monday: weekMonday, day_index: selectedIdx, session_text: '', notes: '' },
+    { onConflict: 'user_id,week_monday,day_index' }
+  );
   if (clearError) { console.error('clearDay error:', clearError); }
 
   renderHero();
