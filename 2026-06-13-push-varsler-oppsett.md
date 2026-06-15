@@ -26,15 +26,16 @@ QStash leverer varselet på *nøyaktig riktig sekund* selv i bakgrunnen
 Project → Settings → Environment Variables (Production + Preview):
 
 ```
-VAPID_PUBLIC_KEY   = BD3E2iJ4CUGyySX7aWeiHc7aqrP_JW6WV7DgNX3pasKWRIxUpbE8c8Tr0krWIs2fSH99CMkoyxak3StY4GhVLtI
-VAPID_PRIVATE_KEY  = -kbIelvhvTN7I0VHu8EAMR8QZ3CqCTsm8spC5EsmBmM
+VAPID_PUBLIC_KEY   = <din public key>
+VAPID_PRIVATE_KEY  = <din private key — ALDRI commit denne>
 VAPID_SUBJECT      = mailto:filip.lund09@gmail.com
 QSTASH_TOKEN       = <fra steg 2>
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` og `CRON_SECRET` finnes allerede — gjenbrukes.
-(Nøklene over er ferdiggenererte og dine. Vil du lage egne:
-`npx web-push generate-vapid-keys`.)
+Generer VAPID-nøklene med `npx web-push generate-vapid-keys` og lim verdiene
+DIREKTE inn i Vercel Environment Variables — aldri i en fil i repoet.
+(De gamle nøklene som lå her ble lekket til GitHub 15.06.2026 og må ikke brukes.)
 
 ### 4. Deploy + slå på varsler på telefonen
 - Push/deploy.
