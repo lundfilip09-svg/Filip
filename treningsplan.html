@@ -568,6 +568,7 @@
         <button class="physio-trigger" onclick="openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
         <button class="physio-trigger" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
         <button class="physio-trigger" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
+        <button class="physio-trigger" onclick="openOCModal()" data-i18n="tp.overload_config">⚙ Overload-coach</button>
       </div>
 
     </aside>
@@ -713,6 +714,23 @@
           <textarea class="input-sm" id="injNote" rows="3" data-i18n-placeholder="tp.inj_note_ph" placeholder="Hva dreier det seg om?" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
         </div>
         <button class="act-save-btn" onclick="saveInjury()" data-i18n="tp.inj_save">Lagre plage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overload-coach konfig-modal -->
+  <div class="act-modal-overlay hidden" id="ocModal" onclick="if(event.target===this)closeOCModal()">
+    <div class="act-modal" style="max-width:580px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title" data-i18n="tp.oc_title">Overload-konfig</span>
+        <button class="act-modal-close" onclick="closeOCModal()">✕</button>
+      </div>
+      <div id="ocModalBody" style="max-height:60vh;overflow-y:auto">
+        <div class="loading" data-i18n="loading">Laster…</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="act-save-btn" onclick="saveOCConfig()" data-i18n="save" style="flex:1">Lagre</button>
+        <button class="input-sm" onclick="closeOCModal()" data-i18n="cancel" style="cursor:pointer;flex-shrink:0">Avbryt</button>
       </div>
     </div>
   </div>
@@ -2505,6 +2523,103 @@ function toggleHistory() {
   loggedDates = new Set((data || []).map(r => r.date));
   currentWeekLoggedDates = new Set(loggedDates);
 
+  // ── Overload-coach konfig ─────────────────────────────────────────────────
+  let _ocExercises = [];   // {exercise_name, reps, section, day} deduped, non-rehab
+  let _ocConfig    = {};   // exercise_name → overload_config row
+
+  async function openOCModal() {
+    document.getElementById('ocModal').classList.remove('hidden');
+    document.getElementById('ocModalBody').innerHTML = `<div class="loading">${t('loading')}</div>`;
+
+    const [wpRes, cfgRes] = await Promise.all([
+      db.from('workout_program').select('exercise_name,reps,section,day').order('day').order('sort_order'),
+      db.from('overload_config').select('*'),
+    ]);
+
+    const SKIP = /rehab|cardio|varm|warm/i;
+    const seen = new Set();
+    _ocExercises = (wpRes.data || []).filter(e => {
+      if (SKIP.test(e.section || '') || SKIP.test(e.day || '')) return false;
+      if (seen.has(e.exercise_name)) return false;
+      seen.add(e.exercise_name);
+      return true;
+    });
+
+    _ocConfig = {};
+    (cfgRes.data || []).forEach(r => { _ocConfig[r.exercise_name] = r; });
+
+    renderOCModal();
+  }
+
+  function renderOCModal() {
+    const body = document.getElementById('ocModalBody');
+    if (!_ocExercises.length) {
+      body.innerHTML = `<div class="empty">${t('tp.oc_no_ex')}</div>`;
+      return;
+    }
+    body.innerHTML = _ocExercises.map(ex => {
+      const cfg     = _ocConfig[ex.exercise_name] || {};
+      const enabled = cfg.enabled ?? true;
+      const repsMatch = (ex.reps || '').match(/(\d+)\D+(\d+)/);
+      const defMin  = repsMatch ? repsMatch[1] : '—';
+      const defMax  = repsMatch ? repsMatch[2] : '—';
+      return `<div class="oc-ex-row" data-ex="${escHtml(ex.exercise_name)}" style="margin-bottom:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(ex.exercise_name)}</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" class="oc-enabled"${enabled ? ' checked' : ''}>
+            <span data-i18n="tp.oc_enabled">${t('tp.oc_enabled')}</span>
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:2px">
+          <div>
+            <div class="act-field-label" data-i18n="tp.oc_reps_min">${t('tp.oc_reps_min')}</div>
+            <input type="number" class="input-sm oc-rep-min" value="${cfg.rep_min ?? ''}" placeholder="${defMin}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
+          </div>
+          <div>
+            <div class="act-field-label" data-i18n="tp.oc_reps_max">${t('tp.oc_reps_max')}</div>
+            <input type="number" class="input-sm oc-rep-max" value="${cfg.rep_max ?? ''}" placeholder="${defMax}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
+          </div>
+          <div>
+            <div class="act-field-label" data-i18n="tp.oc_step">${t('tp.oc_step')}</div>
+            <input type="number" class="input-sm oc-step" value="${cfg.step_kg ?? ''}" placeholder="2.5" min="0.5" step="0.5" style="width:100%;box-sizing:border-box;text-align:center">
+          </div>
+          <div>
+            <div class="act-field-label" data-i18n="tp.oc_pain">${t('tp.oc_pain')}</div>
+            <input type="number" class="input-sm oc-pain" value="${cfg.pain_limit ?? ''}" placeholder="3" min="0" max="10" style="width:100%;box-sizing:border-box;text-align:center">
+          </div>
+        </div>
+      </div>`;
+    }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0">');
+  }
+
+  function closeOCModal() {
+    document.getElementById('ocModal').classList.add('hidden');
+  }
+
+  async function saveOCConfig() {
+    const rows = [...document.querySelectorAll('.oc-ex-row')].map(row => {
+      const repMin  = row.querySelector('.oc-rep-min').value;
+      const repMax  = row.querySelector('.oc-rep-max').value;
+      const step    = row.querySelector('.oc-step').value;
+      const pain    = row.querySelector('.oc-pain').value;
+      return {
+        exercise_name: row.dataset.ex,
+        enabled:    row.querySelector('.oc-enabled').checked,
+        rep_min:    repMin  !== '' ? parseInt(repMin)    : null,
+        rep_max:    repMax  !== '' ? parseInt(repMax)    : null,
+        step_kg:    step    !== '' ? parseFloat(step)    : null,
+        pain_limit: pain    !== '' ? parseInt(pain)      : null,
+        updated_at: new Date().toISOString(),
+      };
+    });
+    const { error } = await db.from('overload_config').upsert(rows, { onConflict: 'exercise_name' });
+    if (error) { toast(`${t('tp.oc_saved')}: ${error.message}`, 'err'); return; }
+    rows.forEach(r => { _ocConfig[r.exercise_name] = r; });
+    toast(t('tp.oc_saved'));
+    closeOCModal();
+  }
+
   onLangChange = () => {
     renderHero();
     renderWeekNav();
@@ -2513,6 +2628,7 @@ function toggleHistory() {
     renderSidebar();
     loadSessionHistory();
     if (!document.getElementById('actModal').classList.contains('hidden')) renderActInjuryBlocks();
+    if (!document.getElementById('ocModal').classList.contains('hidden')) renderOCModal();
   };
   applyLang();
   renderHero();

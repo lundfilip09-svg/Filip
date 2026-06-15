@@ -1498,6 +1498,18 @@ function togglePoCard() {
   if (lbl) lbl.textContent = collapse ? t('po.expand') : t('po.collapse');
 }
 
+// Tolk workout_program.reps → { cardio } eller { top }.
+//   "10–12"/"10-12" → topp 12 · "10 reps"/"10" → topp 10
+//   inneholder sek/min/m (tid/distanse) → cardio (ingen vektprogresjon)
+function poRepRange(repsStr) {
+  const s = String(repsStr || '').toLowerCase().trim();
+  if (!s) return null;
+  if (/\b(sek|sec|min)\b/.test(s) || /\d\s*m(eter)?\b/.test(s) || /\d\s*s\b/.test(s)) return { cardio: true };
+  const nums = s.match(/\d+/g);
+  if (!nums || !nums.length) return null;
+  return { cardio: false, top: Math.max(...nums.map(Number)) };
+}
+
 async function renderOverloadCoach() {
   const card = document.getElementById('poCard');
   const body = document.getElementById('poBody');
@@ -1508,12 +1520,23 @@ async function renderOverloadCoach() {
   if (!dayExs.length) { card.style.display = 'none'; return; }
 
   const names = [...new Set(dayExs.map(e => e.exercise_name))];
-  const { data, error } = await db.from('set_log')
-    .select('exercise_name,weight_kg,reps,date,set_index,knee_max')
-    .in('exercise_name', names)
-    .order('date', { ascending: false })
-    .limit(400);
+  // Anbefalt rep-intervall per øvelse fra workout_program.reps (ikke loggede reps)
+  const prog = {};
+  dayExs.forEach(e => { if (e.reps != null && prog[e.exercise_name] == null) prog[e.exercise_name] = e.reps; });
+  const [setRes, cfgRes] = await Promise.all([
+    db.from('set_log')
+      .select('exercise_name,weight_kg,reps,date,set_index,knee_max')
+      .in('exercise_name', names)
+      .order('date', { ascending: false })
+      .limit(400),
+    db.from('overload_config').select('*').in('exercise_name', names),
+  ]);
+  const { data, error } = setRes;
   if (error) { card.style.display = 'none'; return; }
+
+  // Per-exercise config overrides (step_kg, pain_limit, enabled, rep overrides)
+  const ocMap = {};
+  (cfgRes.data || []).forEach(r => { ocMap[r.exercise_name] = r; });
 
   // Grupper per øvelse → per dato. ALLE sett den dagen beholdes — progresjon
   // vurderes ut fra hele settbildet, ikke bare det tyngste settet.
@@ -1541,6 +1564,18 @@ async function renderOverloadCoach() {
   };
 
   const htmlRows = names.map(name => {
+    const cfg  = ocMap[name] || {};
+    // enabled=false → coachen hopper over øvelsen
+    if (cfg.enabled === false) return '';
+
+    const stepKg    = cfg.step_kg    ?? 2.5;
+    const painLimit = cfg.pain_limit ?? PO_PAIN_LIMIT;
+
+    // Rep-intervall: config-override > workout_program.reps
+    let progStr = prog[name];
+    if (cfg.rep_min != null && cfg.rep_max != null) progStr = `${cfg.rep_min}–${cfg.rep_max}`;
+    else if (cfg.rep_max != null) progStr = String(cfg.rep_max);
+
     const hist = byEx[name];
     if (!hist) return '';
     const dates = Object.keys(hist).sort().reverse();   // nyeste først
@@ -1560,26 +1595,28 @@ async function renderOverloadCoach() {
       else break;
     }
 
-    // Progresjonslogikk (double progression):
+    // Progresjonslogikk (double progression mot anbefalt rep-topp):
+    //   cardio/tid/distanse    → hopp over (ingen vektprogresjon)
     //   smerte > grense        → hold
-    //   blandet vekt i økta    → ingen økning; jevn ut på snittvekt (bevarer tonnasje)
-    //   jevn vekt, platå ≥ 3   → vurder variasjon
-    //   jevn vekt              → +2.5 kg
+    //   alle arbeidssett ≥ topp → +stepKg
+    //   ellers                 → hold, press mot toppen
+    const range = poRepRange(progStr);
+    if (range && range.cardio) return '';   // sek/min/m → ingen vektprogresjon
     let recCls, recTxt;
-    if (lastPain > PO_PAIN_LIMIT) {
+    if (lastPain > painLimit) {
       recCls = 'hold'; recTxt = t('po.hold_pain', { p: lastPain });
-    } else if (wMax != null && wMax > 0) {
-      if (!uniform) {
-        const avg    = ws.reduce((a, b) => a + b, 0) / ws.length;
-        const target = Math.round(avg / 2.5) * 2.5;   // kanonisk kg-steg
-        recCls = 'hold'; recTxt = t('po.even_out', { n: sets.length, w: poDisplayWeight(target), u: weightUnit() });
-      } else if (plateau >= 3) {
-        recCls = 'hold'; recTxt = t('po.plateau', { n: plateau });
-      } else {
-        recCls = 'up'; recTxt = t('po.try', { w: poDisplayWeight(wMax + 2.5), u: weightUnit() });
-      }
-    } else {
+    } else if (wMax == null || wMax <= 0) {
       recCls = 'flat'; recTxt = t('po.keep');
+    } else {
+      const top      = range ? range.top : null;
+      const repsInts = sets.map(s => parseInt(s.reps, 10)).filter(n => !isNaN(n));
+      const hitTop   = top != null && repsInts.length === sets.length
+                       && repsInts.length > 0 && repsInts.every(n => n >= top);
+      if (hitTop) {
+        recCls = 'up'; recTxt = t('po.try', { w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+      } else {
+        recCls = 'hold'; recTxt = top != null ? t('po.press_top', { r: top }) : t('po.keep');
+      }
     }
 
     // «Sist»-visning: ekte settbilde, ikke bare toppsettet

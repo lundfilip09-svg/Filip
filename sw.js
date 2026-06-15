@@ -14,7 +14,7 @@
 //
 // Bump VERSION ved endringer her — gamle cacher ryddes i activate.
 
-const VERSION = 'dash-v2';
+const VERSION = 'dash-v3';
 const SHELL = [
   '/', '/dashboard.html', '/gym.html', '/sprint.html', '/sovn.html',
   '/gjoremal.html', '/kalender.html', '/treningsplan.html', '/ai.html',
@@ -169,4 +169,36 @@ self.addEventListener('message', e => {
   if (msg.type === 'CANCEL_TIMER') {
     if (_timerId !== null) { clearTimeout(_timerId); _timerId = null; }
   }
+});
+
+// ── Web Push ────────────────────────────────────────────────────────
+// Server (api/push/fire) sender et varsel via VAPID. Dette fyrer ENDA OM
+// PWA-en er lukket eller du er i andre apper — i motsetning til setTimeout
+// over, som iOS dreper i bakgrunnen. Dette er den egentlige fiksen.
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch { data = { title: e.data && e.data.text() }; }
+  const title = data.title || 'Dashboard';
+  e.waitUntil(self.registration.showNotification(title, {
+    body:     data.body || '',
+    icon:     '/icon-192.png',
+    badge:    '/icon-192.png',
+    vibrate:  [200, 100, 200],
+    tag:      data.tag || 'dash-push',
+    renotify: true,
+    data:     { url: data.url || '/' },
+  }));
+});
+
+// Klikk på varsel → fokuser en åpen fane, eller åpne riktig side.
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if ('focus' in c) { try { await c.navigate(url); } catch {} return c.focus(); }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  })());
 });

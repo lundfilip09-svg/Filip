@@ -274,6 +274,7 @@
     .gm-add-bottom {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 10px;
       padding: 10px 18px;
       border-top: 1px solid rgba(255,255,255,0.06);
@@ -285,6 +286,14 @@
       font-size: 12px !important;
       padding: 5px 10px !important;
     }
+    .gm-add-bottom #todoRemind {
+      width: 178px !important;
+      flex: none;
+      font-size: 12px !important;
+      padding: 5px 8px !important;
+      color-scheme: dark;
+    }
+    .todo-edit-date { color-scheme: dark; }
     .gm-add-spacer { flex: 1; }
 
     /* Task list */
@@ -533,6 +542,27 @@
     }
     .todo-item:hover .todo-add-date { opacity: 0.4; }
     .todo-add-date:hover { opacity: 1 !important; color: var(--accent-blue); }
+    .todo-remind {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--accent-blue);
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .todo-remind:hover { background: rgba(255,255,255,0.07); }
+    .todo-add-remind {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      opacity: 0;
+      cursor: pointer;
+      transition: opacity 0.12s;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .todo-item:hover .todo-add-remind { opacity: 0.4; }
+    .todo-add-remind:hover { opacity: 1 !important; color: var(--accent-blue); }
     .todo-edit-input {
       background: rgba(255,255,255,0.06) !important;
       border: 1px solid rgba(91,164,245,0.35) !important;
@@ -642,6 +672,7 @@
       </div>
       <div class="gm-add-bottom">
         <input type="date" id="todoDue" data-i18n-placeholder="gm.date_placeholder_no">
+        <input type="datetime-local" id="todoRemind" data-i18n-title="gm.reminder" title="Påminnelse">
         <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" data-i18n-title="gm.important_btn" title="Viktig">☆</button>
         <div class="gm-add-spacer"></div>
         <button class="btn btn-primary btn-sm" onclick="addTodo()" data-i18n="gm.add_btn">Legg til</button>
@@ -890,6 +921,10 @@ function renderTodos() {
               ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${todo.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(todo.due_date)}</span>`
               : `<span class="todo-add-date" onclick="startEditDue('${todo.id}')">${t('gm.add_date')}</span>`
             }
+            ${todo.remind_at
+              ? `<span class="todo-remind" onclick="startEditRemind('${todo.id}')" title="${t('gm.clear_reminder')}">⏰ ${fmtRemind(todo.remind_at)}</span>`
+              : (!todo.completed ? `<span class="todo-add-remind" onclick="startEditRemind('${todo.id}')">⏰ ${t('gm.add_reminder')}</span>` : '')
+            }
           </div>
         </div>
         <div class="todo-actions">
@@ -927,24 +962,58 @@ function toggleNewImportant() {
 async function addTodo() {
   const title = document.getElementById('todoTitle').value.trim();
   const due   = document.getElementById('todoDue').value || null;
+  const remindRaw = document.getElementById('todoRemind').value || null; // "YYYY-MM-DDTHH:mm" (lokal tid)
   if (!title) return;
 
-  const { data, error } = await db.from('todos').insert({
-    title, list_name: activeList, due_date: due, important: newImportant,
-  }).select().single();
+  let remindIso = null;
+  if (remindRaw) {
+    const d = new Date(remindRaw);
+    if (d <= new Date()) { toast(t('gm.reminder_past'), 'err'); return; }
+    remindIso = d.toISOString();
+    try { ensurePushReady(); } catch (e) {}   // bruker-gest: be om varseltillatelse nå
+  }
+
+  const payload = { title, list_name: activeList, due_date: due, important: newImportant };
+  if (remindIso) payload.remind_at = remindIso;
+  let { data, error } = await db.from('todos').insert(payload).select().single();
+  if (error && remindIso) {                    // remind_at-kolonne mangler (migrasjon 044 ikke kjørt enda)
+    delete payload.remind_at; remindIso = null;
+    ({ data, error } = await db.from('todos').insert(payload).select().single());
+  }
   if (error) { toast(t('gm.save_error'), 'err'); return; }
 
   allTodos.unshift(data);
   const _ord = getOrder(activeList) || [];
   saveOrder(activeList, [String(data.id), ..._ord]);
-  document.getElementById('todoTitle').value = '';
-  document.getElementById('todoDue').value   = '';
+  document.getElementById('todoTitle').value  = '';
+  document.getElementById('todoDue').value     = '';
+  document.getElementById('todoRemind').value  = '';
   localStorage.removeItem('gm_draft_title');
   newImportant = false;
   document.getElementById('newImportant').textContent = '☆';
   document.getElementById('newImportant').style.color = '';
   renderTodos();
-  toast(t('gm.added'));
+  if (remindIso) scheduleTodoReminder(data);
+  toast(remindIso ? t('gm.reminder_set') : t('gm.added'));
+}
+
+// ── Påminnelser (Web Push) ─────────────────────────────────────────────────
+function fmtRemind(iso) {
+  try {
+    return new Date(iso).toLocaleString(fmtLocale(),
+      { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+async function scheduleTodoReminder(todo) {
+  if (!todo?.remind_at) return;
+  await schedulePush({
+    kind: 'todo', todoId: todo.id, fireAt: todo.remind_at,
+    title: todo.title, body: t('gm.reminder_body'),
+    tag: 'todo-' + todo.id, url: '/gjoremal.html',
+  });
+}
+async function cancelTodoReminder(todoId) {
+  if (typeof cancelPush === 'function') { try { await cancelPush({ todoId }); } catch (e) {} }
 }
 
 // ── Toggle complete ───────────────────────────────────────────────────────
@@ -957,6 +1026,9 @@ async function toggleTodo(id, isDone) {
   if (error) { toast(t('gm.update_error'), 'err'); return; }
   const td = allTodos.find(x => x.id === id);
   if (td) { td.completed = newDone; td.completed_at = newDone ? new Date().toISOString() : null; }
+  // Fullført → kanseller påminnelse. Angret → planlegg på nytt hvis fortsatt i fremtiden.
+  if (newDone) cancelTodoReminder(id);
+  else if (td?.remind_at && new Date(td.remind_at) > new Date()) scheduleTodoReminder(td);
   renderTodos();
 }
 
@@ -973,6 +1045,7 @@ async function toggleImportant(id, isImportant) {
 async function deleteTodo(id) {
   const { error } = await db.from('todos').delete().eq('id', id);
   if (error) { toast(t('gm.delete_error'), 'err'); return; }
+  cancelTodoReminder(id);
   allTodos = allTodos.filter(x => x.id !== id);
   renderTodos();
   toast(t('gm.deleted'));
@@ -1050,6 +1123,58 @@ function startEditDue(todoId) {
   input.addEventListener('blur', save);
 
   const target = item.querySelector('.todo-due') || item.querySelector('.todo-add-date');
+  if (target) target.replaceWith(input);
+  input.focus();
+  try { input.showPicker(); } catch(e) {}
+}
+
+// ── Inline edit: påminnelse (Web Push) ─────────────────────────────────────
+function startEditRemind(todoId) {
+  const item = document.querySelector(`.todo-item[data-id="${todoId}"]`);
+  if (!item) return;
+  const todo = allTodos.find(t => String(t.id) === String(todoId));
+  if (!todo) return;
+
+  item.setAttribute('draggable', 'false');
+  const input = document.createElement('input');
+  input.type = 'datetime-local';
+  input.className = 'todo-edit-date';
+  if (todo.remind_at) {
+    const d = new Date(todo.remind_at), p = n => String(n).padStart(2, '0');
+    input.value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const raw = input.value || null;
+    let newIso = null;
+    if (raw) {
+      const d = new Date(raw);
+      if (d <= new Date()) { toast(t('gm.reminder_past'), 'err'); renderTodos(); return; }
+      newIso = d.toISOString();
+      try { ensurePushReady(); } catch (e) {}   // bruker-gest
+    }
+    if (newIso !== (todo.remind_at || null)) {
+      const { error } = await db.from('todos').update({ remind_at: newIso }).eq('id', todoId);
+      if (!error) {
+        todo.remind_at = newIso;
+        if (newIso) { scheduleTodoReminder(todo); toast(t('gm.reminder_set')); }
+        else { cancelTodoReminder(todoId); toast(t('gm.reminder_cleared')); }
+      } else toast(t('gm.save_error'), 'err');
+    }
+    renderTodos();
+  };
+
+  input.addEventListener('change', () => { input.blur(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { saved = true; renderTodos(); }
+  });
+  input.addEventListener('blur', save);
+
+  const target = item.querySelector('.todo-remind') || item.querySelector('.todo-add-remind');
   if (target) target.replaceWith(input);
   input.focus();
   try { input.showPicker(); } catch(e) {}

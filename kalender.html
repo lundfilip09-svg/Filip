@@ -796,7 +796,7 @@ async function loadCustomEvents() {
   const { data, error } = await db.from('calendar_events').select('*');
   if (error) {
     if (error.message && error.message.includes('calendar_events')) {
-      toast('Mangler database-tabell. Kjør supabase/migrations/006_calendar_events.sql i Supabase SQL Editor.', 'err');
+      toast(t('kal.table_missing'), 'err');
     }
     customEvents = []; return;
   }
@@ -1434,8 +1434,8 @@ async function createEvent(data) {
   const { data: rows, error } = await db.from('calendar_events').insert(payload).select();
   if (error) {
     const msg = error.message?.includes('calendar_events')
-      ? 'Tabell mangler — kjør 006_calendar_events.sql i Supabase SQL Editor'
-      : 'Feil: ' + error.message;
+      ? t('kal.table_missing')
+      : t('kal.error_prefix') + error.message;
     toast(msg, 'err'); return;
   }
   const row = rows[0];

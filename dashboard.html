@@ -202,6 +202,9 @@
     .dtt.has-overdue { color: var(--danger); }
     .dtt.has-overdue .dtt-n { opacity: 1; }
     .dash-todo-list { display: flex; flex-direction: column; gap: 2px; min-height: 54px; }
+    .todo-moves { display: inline-flex; gap: 6px; margin-left: auto; }
+    .todo-move { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 2px 7px; cursor: pointer; white-space: nowrap; letter-spacing: 0.02em; transition: color 0.15s, border-color 0.15s; }
+    .todo-move:hover { color: var(--text-primary); border-color: var(--accent-blue); }
     .dash-fallback-hint { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 6px; opacity: 0.7; }
 
     /* ── Next event ── */
@@ -1385,10 +1388,18 @@ function renderDashTodos() {
       html += `<div class="empty">${t('gm.no_todos_empty')}</div>`;
     }
   } else {
+    const moveBtns = (td) => {
+      const b = (when, label) => `<span class="todo-move" onclick="event.stopPropagation(); moveTodo('${td.id}', '${when}', this)">→ ${label}</span>`;
+      if (tab === 'overdue')  return b('today', t('dash.move_today')) + b('tomorrow', t('dash.move_tomorrow'));
+      if (tab === 'today')    return b('tomorrow', t('dash.move_tomorrow'));
+      if (tab === 'tomorrow') return b('today', t('dash.move_today'));
+      return '';
+    };
     html += list.map(td => `<div class="todo-item ${td.important ? 'important' : ''}">
         <div class="todo-cb" onclick="completeTodo('${td.id}', this)"></div>
         <span class="todo-text" style="cursor:pointer" data-list="${escHtml(td.list_name || '')}" onclick="openTaskList(this.dataset.list)">${escHtml(td.title)}</span>
         ${(td.due_date && tab !== 'today') ? `<span class="todo-due ${tab==='overdue'?'overdue':''}">${fmtDate(td.due_date)}</span>` : ''}
+        <span class="todo-moves">${moveBtns(td)}</span>
         ${td.important ? `<span class="star-btn active">★</span>` : ''}
       </div>`).join('');
   }
@@ -1409,6 +1420,19 @@ async function completeTodo(id, cbEl) {
   for (const k of ['today', 'tomorrow', 'overdue'])
     dashTodoData[k] = dashTodoData[k].filter(td => String(td.id) !== String(id));
   setTimeout(renderDashTodos, 350);
+}
+
+// Flytt et gjøremål til i dag / i morgen (oppdaterer due_date). Brukes på forfalte/dagens/morgendagens.
+async function moveTodo(id, when, el) {
+  const item = el && el.closest('.todo-item');
+  const base = new Date();
+  if (when === 'tomorrow') base.setDate(base.getDate() + 1);
+  const due = `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`;
+  if (item) item.classList.add('completing');
+  const { error } = await db.from('todos').update({ due_date: due }).eq('id', id);
+  if (error) { if (item) item.classList.remove('completing'); toast(t('dash.move_err'), 'err'); return; }
+  toast(t('dash.moved'));
+  await loadTodos().catch(() => {});
 }
 
 // Legg til fra forsiden — havner på dagen som matcher aktiv fane (I morgen → i morgen, ellers i dag)

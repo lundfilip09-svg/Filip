@@ -69,7 +69,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
 
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
-         knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData] = await Promise.all([
+         knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData, programData] = await Promise.all([
     sb('health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood,body_battery,stress_avg&order=date.desc&limit=7'),
     sb('sprint_log', 'select=*&order=date.desc&limit=7'),
@@ -90,6 +90,8 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('physio_notes', 'select=date,therapist,note&order=date.desc&limit=10'),
     // Plageliste — aktive/bedring/arkiverte skader, autoritativ status
     sb('injuries', 'select=id,body_part,side,status,severity,start_date,note&order=updated_at.desc&limit=20'),
+    // Gym-program: hvilke øvelser som ligger på hver styrkedag (man/ons/fre) m/ anbefalte sett×reps
+    sb('workout_program', 'select=day,section,exercise_name,sets,reps&order=day.asc,sort_order.asc'),
   ]);
 
   // ── Fase 2: injury_pain per alvorlig aktiv skade (trenger ID-er fra fase 1) ──
@@ -266,6 +268,30 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     painLogBlock  = JSON.stringify(stripMeta(kneePainData));
   }
 
+  // Gym-program per styrkedag — så AI vet hvilke øvelser Filip faktisk har på man/ons/fre
+  // (gym_log viser bare det som er logget; dette er selve planen med anbefalte sett×reps).
+  const PROG_DAY_NO = {
+    monday: 'Mandag', wednesday: 'Onsdag', friday: 'Fredag',
+    monday_warmup: 'Mandag (oppvarming)', wednesday_warmup: 'Onsdag (oppvarming)',
+    friday_warmup: 'Fredag (oppvarming)', warmup: 'Oppvarming', rehab: 'Rehab',
+  };
+  const PROG_ORDER = ['monday', 'monday_warmup', 'wednesday', 'wednesday_warmup', 'friday', 'friday_warmup', 'warmup', 'rehab'];
+  const progRows = Array.isArray(programData) ? programData : [];
+  const progByDay = {};
+  progRows.forEach(r => { (progByDay[r.day] ||= []).push(r); });
+  const progKeys = Object.keys(progByDay).sort(
+    (a, b) => (PROG_ORDER.indexOf(a) + 1 || 99) - (PROG_ORDER.indexOf(b) + 1 || 99)
+  );
+  const progFmt = r => {
+    const sr = [r.sets ? `${r.sets}×` : '', r.reps || ''].join('').trim();
+    return `  - ${r.exercise_name}${sr ? ` (${sr})` : ''}`;
+  };
+  const programBlock = progKeys.length
+    ? `[GYM-PROGRAM PER DAG — øvelsene Filip har planlagt på hver styrkedag, med anbefalte sett×reps. Bruk dette når han spør om en gymdag eller om progresjon/overload.]
+${progKeys.map(k => `${PROG_DAY_NO[k] || k}:\n${progByDay[k].map(progFmt).join('\n')}`).join('\n\n')}`
+    : `[GYM-PROGRAM PER DAG]
+(Ingen øvelser lagt inn i programmet ennå.)`;
+
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
@@ -279,6 +305,8 @@ ${notesBlock}
 
 [UKEPLAN — hva som er planlagt per ukedag]
 ${weekPlanReadable}
+
+${programBlock}
 
 [PERSONLIGE REKORDER (PB) — sprint]
 ${JSON.stringify(stripMeta(sprintRecords))}

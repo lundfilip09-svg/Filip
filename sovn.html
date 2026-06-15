@@ -807,6 +807,31 @@ async function loadToday() {
   await loadViewDate();
 }
 
+// ── Oppdater dagens body battery-kurve gjennom dagen ────────────────────────
+// Den daglige synken kjører bare om morgenen, så kurven fryser utover dagen.
+// Denne re-synker DAGEN I DAG når kurven er foreldet (>30 min siden siste
+// punkt), throttlet til maks hvert 15. min så Garmin ikke spammes (én
+// innlogging per kall). Krever at klokka faktisk har synket til Garmin-skyen.
+async function refreshTodayBb() {
+  if (!isViewingToday()) return;
+  const THROTTLE = 15 * 60 * 1000;
+  if (Date.now() - (+(localStorage.getItem('bb_today_refresh_at') || 0)) < THROTTLE) return;
+
+  let curve = todayEntry?.body_battery_curve;
+  if (typeof curve === 'string') { try { curve = JSON.parse(curve); } catch { curve = null; } }
+  const lastSec = Array.isArray(curve) && curve.length ? curve[curve.length - 1][0] : 0;
+  const ageMin = (Date.now() / 1000 - lastSec) / 60;
+  if (ageMin < 30) return; // allerede fersk nok
+
+  localStorage.setItem('bb_today_refresh_at', String(Date.now()));
+  try {
+    const today = new Date().toLocaleDateString('sv');
+    const r = await fetch(`/api/garmin-sync?date=${today}&force=1`);
+    const j = await r.json();
+    if (j?.ok && isViewingToday()) await loadViewDate();
+  } catch { /* nettverk/timeout – prøver igjen ved neste intervall */ }
+}
+
 // ── Chart ──────────────────────────────────────────────────────────────────
 function updateChartLegend(metric) {
   const el = document.getElementById('chartLegend');
@@ -997,6 +1022,9 @@ function setChartPeriod(days) {
   autoSyncSleep().then(got => {
     if (got) { toast(t('sovn.fetched')); loadToday(); loadChartData(); }
   });
+  // Oppdater dagens body battery-kurve gjennom dagen (ved last + hvert 20. min)
+  refreshTodayBb();
+  setInterval(refreshTodayBb, 20 * 60 * 1000);
 })();
 </script>
 </body>

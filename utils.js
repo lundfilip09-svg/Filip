@@ -57,6 +57,8 @@ const TRANSLATIONS = {
     'dash.load_pain_empty': 'For lite data til ACWR ennå',
     'dash.no_imp_todos': 'Ingen viktige gjøremål',
     'dash.todo_err': 'Kunne ikke fullføre gjøremål',
+    'dash.move_today': 'I dag', 'dash.move_tomorrow': 'I morgen',
+    'dash.moved': 'Flyttet', 'dash.move_err': 'Kunne ikke flytte gjøremål',
     'dash.untitled': '(uten tittel)', 'dash.allday': 'Heldags',
     'dash.open_sprint': 'Åpne Sprint', 'dash.open_gym': 'Åpne Gym',
     'dash.badge_styrke': 'Styrke', 'dash.badge_kondisjon': 'Kondisjon',
@@ -155,6 +157,7 @@ const TRANSLATIONS = {
     'po.hold_pain': 'Hold vekt — du logget smerte ({p}) sist',
     'po.plateau': 'Platå i {n} økter — vurder variasjon',
     'po.progress': '↑ klar for mer', 'po.keep': 'Behold',
+    'po.press_top': 'Hold — press mot toppen ({r})',
     'po.last': 'Sist: {w} {u} × {r}',
     'po.collapse': 'Skjul', 'po.expand': 'Vis coach',
     'po.even_out': 'Jevn ut: {n} × {w} {u}',
@@ -189,6 +192,8 @@ const TRANSLATIONS = {
     'notif.unsupported': 'Varsler støttes ikke her',
     'notif.ios_install': 'Legg appen til på Hjem-skjermen først (Del → Legg til på Hjem-skjerm)',
     'notif.no_vapid': 'Serveren mangler VAPID-nøkler', 'notif.error': 'Kunne ikke slå på varsler',
+    'notif.title': 'Varsler', 'notif.overdue': 'Forfalte', 'notif.reminders': 'Påminnelser',
+    'notif.rest_timers': 'Hviletimere', 'notif.today': 'I dag', 'notif.empty': 'Ingen aktive varsler',
     'gm.reminder': 'Påminnelse', 'gm.add_reminder': 'Påminnelse', 'gm.reminder_set': 'Påminnelse satt',
     'gm.reminder_cleared': 'Påminnelse fjernet', 'gm.reminder_at': 'Påminnelse {time}',
     'gm.reminder_past': 'Velg et tidspunkt frem i tid', 'gm.clear_reminder': 'Fjern påminnelse',
@@ -448,6 +453,10 @@ const TRANSLATIONS = {
     'tp.physio_need_note': 'Skriv et notat først',
     'tp.physio_updated': 'Fysio-notat oppdatert', 'tp.physio_deleted': 'Fysio-notat slettet',
     'tp.physio_del_confirm': 'Slette dette notatet?',
+    'tp.overload_config': '⚙ Overload-coach', 'tp.oc_title': 'Overload-coach-konfig',
+    'tp.oc_enabled': 'Aktiv', 'tp.oc_reps_min': 'Rep-min', 'tp.oc_reps_max': 'Rep-max',
+    'tp.oc_step': 'Vektsteg (kg)', 'tp.oc_pain': 'Smertegrense',
+    'tp.oc_no_ex': 'Ingen øvelser funnet', 'tp.oc_saved': 'Overload-konfig lagret',
     'tp.trends': 'Trender', 'tp.tr_knee': 'Knesmerte', 'tp.tr_sleep': 'Søvn',
     'tp.tr_load': 'Belastning', 'tp.tr_2w': 'Siste 2 uker',
     'tp.tr_up': 'opp', 'tp.tr_down': 'ned', 'tp.tr_flat': 'stabil', 'tp.tr_nodata': 'mangler data',
@@ -572,6 +581,8 @@ const TRANSLATIONS = {
     'dash.load_pain_empty': 'Not enough data for ACWR yet',
     'dash.no_imp_todos': 'No important tasks',
     'dash.todo_err': 'Could not complete task',
+    'dash.move_today': 'Today', 'dash.move_tomorrow': 'Tomorrow',
+    'dash.moved': 'Moved', 'dash.move_err': 'Could not move task',
     'dash.untitled': '(untitled)', 'dash.allday': 'All day',
     'dash.open_sprint': 'Open Sprint', 'dash.open_gym': 'Open Gym',
     'dash.badge_styrke': 'Strength', 'dash.badge_kondisjon': 'Conditioning',
@@ -670,6 +681,7 @@ const TRANSLATIONS = {
     'po.hold_pain': 'Hold weight — you logged pain ({p}) last time',
     'po.plateau': 'Plateau for {n} sessions — consider variation',
     'po.progress': '↑ ready for more', 'po.keep': 'Keep',
+    'po.press_top': 'Hold — push toward the top ({r})',
     'po.last': 'Last: {w} {u} × {r}',
     'po.collapse': 'Hide', 'po.expand': 'Show coach',
     'po.even_out': 'Even out: {n} × {w} {u}',
@@ -704,6 +716,8 @@ const TRANSLATIONS = {
     'notif.unsupported': 'Notifications not supported here',
     'notif.ios_install': 'Add the app to your Home Screen first (Share → Add to Home Screen)',
     'notif.no_vapid': 'Server is missing VAPID keys', 'notif.error': 'Could not enable notifications',
+    'notif.title': 'Notifications', 'notif.overdue': 'Overdue', 'notif.reminders': 'Reminders',
+    'notif.rest_timers': 'Rest timers', 'notif.today': 'Today', 'notif.empty': 'No active notifications',
     'gm.reminder': 'Reminder', 'gm.add_reminder': 'Reminder', 'gm.reminder_set': 'Reminder set',
     'gm.reminder_cleared': 'Reminder cleared', 'gm.reminder_at': 'Reminder {time}',
     'gm.reminder_past': 'Pick a time in the future', 'gm.clear_reminder': 'Clear reminder',
@@ -963,6 +977,10 @@ const TRANSLATIONS = {
     'tp.physio_need_note': 'Write a note first',
     'tp.physio_updated': 'Physio note updated', 'tp.physio_deleted': 'Physio note deleted',
     'tp.physio_del_confirm': 'Delete this note?',
+    'tp.overload_config': '⚙ Overload coach', 'tp.oc_title': 'Overload coach config',
+    'tp.oc_enabled': 'Enabled', 'tp.oc_reps_min': 'Rep min', 'tp.oc_reps_max': 'Rep max',
+    'tp.oc_step': 'Step (kg)', 'tp.oc_pain': 'Pain limit',
+    'tp.oc_no_ex': 'No exercises found', 'tp.oc_saved': 'Overload config saved',
     'tp.trends': 'Trends', 'tp.tr_knee': 'Knee pain', 'tp.tr_sleep': 'Sleep',
     'tp.tr_load': 'Load', 'tp.tr_2w': 'Last 2 weeks',
     'tp.tr_up': 'up', 'tp.tr_down': 'down', 'tp.tr_flat': 'stable', 'tp.tr_nodata': 'no data',
@@ -1113,6 +1131,10 @@ function injectNav() {
     </div>
     <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
     ${withUnit ? '<button id="unitBtn" onclick="toggleUnit()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;font-family:var(--font-mono);padding:4px 8px" title="kg ↔ lbs">kg</button>' : ''}
+    <div id="notifWrap" style="position:relative;flex-shrink:0">
+      <button id="notifBtn" onclick="toggleNotifPanel(event)" class="btn btn-ghost btn-sm" style="font-size:15px;padding:4px 8px;position:relative" data-i18n-title="notif.title" title="Varsler">🔔<span id="notifBadge" class="notif-badge" style="display:none">0</span></button>
+      <div id="notifPanel" class="notif-panel" style="display:none"></div>
+    </div>
     <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
     <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>`;
@@ -1126,6 +1148,148 @@ function injectNav() {
   }
 }
 injectNav();
+
+// ── Varselsenter (delt på alle sider) ──────────────────────────────────────
+// Én kilde for aktive varsler: forfalte + dagens gjøremål, todo-påminnelser
+// (todos.remind_at = intensjonen min, uavhengig av om push-raden ble laget),
+// og aktive hviletimere (scheduled_notifications kind='rest'). Badge teller
+// KUN tidssensitive ting (forfalt + påminnelse + hviletimer) — dagens vanlige
+// gjøremål vises i panelet, men telles ikke (drukner ellers timeren).
+let _notifItems = [];
+let _notifOpen  = false;
+
+// Kontekstuell fjerning: hvilken side "eier" hver varseltype (siden der du
+// faktisk handler på det). Er du PÅ eiersiden, fjernes varselet fra senteret.
+const NOTIF_OWNER = {
+  overdue:  'gjoremal.html',
+  reminder: 'gjoremal.html',
+  today:    'gjoremal.html',
+  rest:     'gym.html',
+};
+function _notifCurrentPage() {
+  return (location.pathname.split('/').pop() || '').toLowerCase() || 'index.html';
+}
+function _notifTodayStr() { return new Date().toLocaleDateString('sv'); } // YYYY-MM-DD lokal
+
+async function loadNotifications() {
+  if (typeof db === 'undefined' || !db) return null;   // db ikke klar enda
+  const nowIso   = new Date().toISOString();
+  const todayStr = _notifTodayStr();
+  const items = [];
+  try {
+    const { data: todos } = await db.from('todos')
+      .select('id,title,due_date,remind_at,completed')
+      .eq('completed', false);
+    // Ett item per todo (dedupliser): forfalt > påminnelse > i dag. En forfalt
+    // todo med fremtidig remind_at vises kun under Forfalte, med ⏰ inline.
+    for (const td of todos || []) {
+      const overdue = td.due_date && td.due_date < todayStr;
+      const isToday = td.due_date === todayStr;
+      const remind  = td.remind_at && td.remind_at > nowIso;
+      let section = null;
+      if (overdue)      section = 'overdue';
+      else if (remind)  section = 'reminder';
+      else if (isToday) section = 'today';
+      if (!section) continue;
+      items.push({
+        section, title: td.title,
+        when:     section === 'reminder' ? td.remind_at : td.due_date,
+        remindAt: (section === 'overdue' && remind) ? td.remind_at : null,
+        count:    section === 'overdue' || section === 'reminder',
+        url: 'gjoremal.html',
+      });
+    }
+    const { data: rests } = await db.from('scheduled_notifications')
+      .select('id,title,fire_at,url')
+      .eq('kind', 'rest').eq('sent', false).eq('cancelled', false)
+      .gt('fire_at', nowIso);
+    for (const r of rests || [])
+      items.push({ section: 'rest', title: r.title, when: r.fire_at, count: true, url: r.url || 'gym.html' });
+  } catch (e) { return null; }
+  const here = _notifCurrentPage();
+  _notifItems = items.filter(i => NOTIF_OWNER[i.section] !== here);
+  _renderNotifBadge();
+  if (_notifOpen) _renderNotifPanel();
+  return items;
+}
+
+function _renderNotifBadge() {
+  const b = document.getElementById('notifBadge');
+  if (!b) return;
+  const n = _notifItems.filter(i => i.count).length;
+  b.textContent = n > 9 ? '9+' : String(n);
+  b.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function _notifClock(iso) {
+  return new Date(iso).toLocaleTimeString(fmtLocale(), { hour: '2-digit', minute: '2-digit' });
+}
+function _notifWhen(item) {
+  if (item.section === 'overdue' || item.section === 'today') {
+    const base = fmtDate(item.when);
+    return item.remindAt ? `${base} · ⏰ ${_notifClock(item.remindAt)}` : base;
+  }
+  return _notifClock(item.when);
+}
+
+function _renderNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const groups = [
+    ['overdue',  t('notif.overdue')],
+    ['reminder', t('notif.reminders')],
+    ['rest',     t('notif.rest_timers')],
+    ['today',    t('notif.today')],
+  ];
+  let html = `<div class="notif-head">${t('notif.title')}</div>`;
+  let any = false;
+  for (const [section, label] of groups) {
+    const list = _notifItems.filter(i => i.section === section);
+    if (!list.length) continue;
+    any = true;
+    html += `<div class="notif-group-label">${label}</div>`;
+    html += list.map(i => `<a class="notif-item notif-${section}" href="${i.url}">
+        <span class="notif-dot"></span>
+        <span class="notif-text">${escHtml(i.title)}</span>
+        <span class="notif-when">${escHtml(_notifWhen(i))}</span>
+      </a>`).join('');
+  }
+  if (!any) html += `<div class="notif-empty">${t('notif.empty')}</div>`;
+  panel.innerHTML = html;
+}
+
+function toggleNotifPanel(ev) {
+  if (ev) ev.stopPropagation();
+  _notifOpen = !_notifOpen;
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  if (_notifOpen) {
+    panel.style.display = 'block';
+    _renderNotifPanel();                  // vis det vi har umiddelbart
+    loadNotifications().catch(() => {});  // og hent ferskt (db garantert klar her)
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!_notifOpen) return;
+  const wrap = document.getElementById('notifWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    _notifOpen = false;
+    const p = document.getElementById('notifPanel');
+    if (p) p.style.display = 'none';
+  }
+});
+
+// Førstegangshenting: poll til global `db` finnes (maks ~5 s @ 150 ms).
+(function _notifBoot() {
+  let tries = 0;
+  const iv = setInterval(() => {
+    if (typeof db !== 'undefined' && db) { clearInterval(iv); loadNotifications().catch(() => {}); }
+    else if (++tries > 33) clearInterval(iv);
+  }, 150);
+})();
 
 function applyLang() {
   document.documentElement.lang = _lang === 'en' ? 'en' : 'no';
@@ -1167,6 +1331,8 @@ function toggleLang() {
   _lang = _lang === 'no' ? 'en' : 'no';
   localStorage.setItem('lang', _lang);
   applyLang();
+  // Varselsenter eies av utils.js — re-render uavhengig av side
+  if (_notifOpen) _renderNotifPanel();
   // Re-render dynamic content if a page-level function exists
   if (typeof onLangChange === 'function') onLangChange();
 }
