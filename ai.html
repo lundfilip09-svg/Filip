@@ -300,6 +300,7 @@
     <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
       <button class="btn btn-ghost btn-sm" id="copyReportBtn" onclick="copyHealthReport()" style="font-size:11px" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
       <button class="btn btn-ghost btn-sm" id="copyDiagBtn" onclick="copyInjuryStatus()" style="font-size:11px" data-i18n="ai.copy_diag">Kopier diagnose</button>
+      <button class="btn btn-ghost btn-sm" id="copySleepBtn" onclick="copySleepAnalysis()" style="font-size:11px" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
       <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="font-size:11px;opacity:0.6" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" data-i18n="ai.clear">Tøm samtale</button>
     </div>
   </div>
@@ -1046,6 +1047,109 @@ ${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? 
     const ok = await writeClip(msg);
     toast(ok ? t('ai.diag_copied') : t('ai.report_copy_fail'));
   } catch (e) {
+    toast(t('ai.report_copy_fail'));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Kopier søvnanalyse: siste 14 netter med søvntid, legging, HRV, RHR, score ─
+async function copySleepAnalysis() {
+  const btn = document.getElementById('copySleepBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 13);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const { data } = await db.from('health_data')
+      .select('date,sleep_hours,sleep_start,sleep_end,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,awake_minutes,hrv,rhr,sleep_score')
+      .gte('date', cutoffStr).order('date');
+    const rows = (data || []).filter(r => r.sleep_hours || r.sleep_score || r.hrv);
+    if (!rows.length) { toast(t('ai.report_copy_fail')); return; }
+
+    const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
+    const fmtDM = ds => new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' });
+    const avg = arr => { const v = arr.filter(x => x != null); return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; };
+    const pct = (min, total) => total > 0 ? Math.round(min / total * 100) : null;
+
+    const avgHours  = avg(rows.map(r => r.sleep_hours));
+    const avgScore  = avg(rows.map(r => r.sleep_score));
+    const avgHrv    = avg(rows.map(r => r.hrv));
+    const avgRhr    = avg(rows.map(r => r.rhr));
+
+    // Snitt søvnlegging og oppvåkning (fra sleep_start/sleep_end som "HH:MM")
+    const toMins = t => { if (!t) return null; const [h,m] = t.split(':').map(Number); return (h < 12 ? h + 24 : h) * 60 + m; };
+    const toTime = m => { const hh = Math.round(m) % (24*60); return `${String(Math.floor(hh/60)%24).padStart(2,'0')}:${String(hh%60).padStart(2,'0')}`; };
+    const bedtimeMins  = rows.map(r => toMins(r.sleep_start)).filter(x => x != null);
+    const wakeTimeMins = rows.map(r => r.sleep_end ? (parseInt(r.sleep_end)*60 + parseInt(r.sleep_end.split(':')[1])) : null).filter(x => x != null);
+    const avgBedtime = bedtimeMins.length ? toTime(avg(bedtimeMins)) : null;
+    const avgWake    = wakeTimeMins.length ? toTime(avg(wakeTimeMins)) : null;
+
+    // Spredning i søvnlegging (max - min) som mål på uregelmessig døgnrytme
+    const bedSpread = bedtimeMins.length > 1 ? Math.round(Math.max(...bedtimeMins) - Math.min(...bedtimeMins)) : null;
+    const spreadNote = bedSpread != null
+      ? (_lang === 'en'
+          ? (bedSpread > 90 ? `Bedtime varies up to ${Math.round(bedSpread/60*10)/10}h — irregular circadian rhythm.`
+            : bedSpread > 45 ? `Bedtime varies ~${Math.round(bedSpread/60*10)/10}h — mild irregularity.`
+            : 'Bedtime is consistent — good circadian regularity.')
+          : (bedSpread > 90 ? `Søvnlegging varierer opptil ${Math.round(bedSpread/60*10)/10}t — uregelmessig døgnrytme.`
+            : bedSpread > 45 ? `Søvnlegging varierer ~${Math.round(bedSpread/60*10)/10}t — mild uregelmessighet.`
+            : 'Jevn søvnlegging — god døgnrytme.'))
+      : '';
+
+    // Arkitektur-snitt
+    const deepAvgPct = avg(rows.map(r => {
+      const tot = (r.deep_sleep_minutes||0)+(r.rem_sleep_minutes||0)+(r.light_sleep_minutes||0);
+      return tot > 0 ? pct(r.deep_sleep_minutes||0, tot) : null;
+    }));
+    const remAvgPct = avg(rows.map(r => {
+      const tot = (r.deep_sleep_minutes||0)+(r.rem_sleep_minutes||0)+(r.light_sleep_minutes||0);
+      return tot > 0 ? pct(r.rem_sleep_minutes||0, tot) : null;
+    }));
+
+    // Per-natt-tabell: siste 14 netter
+    const hLabel  = _lang === 'en' ? 'h' : 't';
+    const nightLines = rows.map(r => {
+      const hoursStr = r.sleep_hours ? `${Math.floor(r.sleep_hours)}${hLabel}${String(Math.round((r.sleep_hours%1)*60)).padStart(2,'0')}` : '–';
+      const bedStr   = r.sleep_start ? r.sleep_start.slice(0,5) : '–';
+      const wakeStr  = r.sleep_end   ? r.sleep_end.slice(0,5)   : '–';
+      const scoreStr = r.sleep_score != null ? `score ${r.sleep_score}` : '';
+      const hrvStr   = r.hrv  != null ? `HRV ${r.hrv}` : '';
+      const rhrStr   = r.rhr  != null ? `RHR ${r.rhr}` : '';
+      const parts    = [hoursStr, bedStr !== '–' ? `🛌${bedStr}` : '', wakeStr !== '–' ? `⏰${wakeStr}` : '', scoreStr, hrvStr, rhrStr].filter(Boolean);
+      return `  ${fmtDM(r.date)}: ${parts.join(' · ')}`;
+    }).join('\n');
+
+    const en = _lang === 'en';
+    const header = en
+      ? `Sleep Analysis — Filip Lund, ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})}`
+      : `Søvnanalyse — Filip Lund, ${new Date().toLocaleDateString('nb-NO', {day:'2-digit',month:'short',year:'numeric'})}`;
+
+    const summaryLabel = en ? `Last ${rows.length} nights (${fmtDM(rows[0].date)} – ${fmtDM(rows[rows.length-1].date)}):` : `Siste ${rows.length} netter (${fmtDM(rows[0].date)} – ${fmtDM(rows[rows.length-1].date)}):`;
+    const avgLine = [
+      avgHours != null ? (en ? `Avg sleep: ${Math.floor(avgHours)}h${String(Math.round((avgHours%1)*60)).padStart(2,'0')}` : `Snitt søvntid: ${Math.floor(avgHours)}t${String(Math.round((avgHours%1)*60)).padStart(2,'0')}`) : null,
+      avgScore != null ? (en ? `Avg score: ${avgScore}/100` : `Snitt score: ${avgScore}/100`) : null,
+      avgHrv   != null ? `HRV ${avgHrv} ms` : null,
+      avgRhr   != null ? (en ? `RHR ${avgRhr} bpm` : `Hvilepuls ${avgRhr}`) : null,
+    ].filter(Boolean).join(' · ');
+
+    const timingLine = [
+      avgBedtime ? (en ? `Avg bedtime: ${avgBedtime}` : `Snitt legging: ${avgBedtime}`) : null,
+      avgWake    ? (en ? `Avg wake: ${avgWake}`    : `Snitt oppvåkning: ${avgWake}`) : null,
+    ].filter(Boolean).join(' · ');
+
+    const archLine = (deepAvgPct != null || remAvgPct != null)
+      ? (en ? `Architecture: deep ${deepAvgPct ?? '–'}% · REM ${remAvgPct ?? '–'}%`
+            : `Arkitektur: dyp ${deepAvgPct ?? '–'}% · REM ${remAvgPct ?? '–'}%`)
+      : '';
+
+    const nightsLabel = en ? 'Nightly breakdown:' : 'Natt for natt:';
+    const msg = [header, '', summaryLabel, avgLine, timingLine, archLine, spreadNote, '', nightsLabel, nightLines]
+      .filter(l => l !== null && l !== undefined).join('\n');
+
+    const ok = await writeClip(msg);
+    toast(ok ? t('ai.sleep_copied') : t('ai.report_copy_fail'));
+  } catch (e) {
+    console.error(e);
     toast(t('ai.report_copy_fail'));
   } finally {
     if (btn) btn.disabled = false;

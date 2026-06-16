@@ -488,6 +488,7 @@ const TRANSLATIONS = {
     'ai.report_copied': 'AI-helserapport kopiert til utklippstavlen', 'ai.report_copy_fail': 'Kunne ikke kopiere — prøv igjen',
     // Diagnose-melding (kort skadestatus til trener/fysio, deterministisk)
     'ai.copy_diag': 'Kopier diagnose', 'ai.diag_copied': 'Diagnose kopiert til utklippstavlen',
+    'ai.copy_sleep': 'Kopier søvnanalyse', 'ai.sleep_copied': 'Søvnanalyse kopiert til utklippstavlen',
     'diag.header': 'Skadestatus', 'diag.none': 'Ingen aktive plager.',
     'diag.last7': 'Siste 7 dager: {n} økter, snitt RPE {rpe}/100, maks knesmerte {pain}/10.',
     'inj.since': 'siden',
@@ -1016,6 +1017,7 @@ const TRANSLATIONS = {
     'ai.report_copied': 'AI health report copied to clipboard', 'ai.report_copy_fail': 'Could not copy — try again',
     // Diagnosis message (short injury status for coach/physio, deterministic)
     'ai.copy_diag': 'Copy diagnosis', 'ai.diag_copied': 'Diagnosis copied to clipboard',
+    'ai.copy_sleep': 'Copy sleep analysis', 'ai.sleep_copied': 'Sleep analysis copied to clipboard',
     'diag.header': 'Injury status', 'diag.none': 'No active issues.',
     'diag.last7': 'Last 7 days: {n} sessions, avg RPE {rpe}/100, max knee pain {pain}/10.',
     'inj.since': 'since',
