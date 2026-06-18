@@ -71,18 +71,18 @@ body::after {
 /* ── Navigation ───────────────────────────────────────────────────────── */
 .main-nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(5,5,6,0.88);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(7,7,9,0.82);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 .nav-inner {
-  max-width: 1100px; margin: 0 auto; padding: 0 16px;
-  display: flex; align-items: center;
-  min-width: 0;
+  max-width: 1100px; margin: 0 auto; padding: 0 14px;
+  display: flex; align-items: stretch; gap: 8px;
+  min-height: 54px; min-width: 0;
 }
 .nav-tabs {
-  display: flex;
+  display: flex; align-items: stretch;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -92,16 +92,61 @@ body::after {
 }
 .nav-tabs::-webkit-scrollbar { display: none; }
 .nav-tab {
-  display: block; padding: 14px 16px;
-  font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 54px; padding: 0 14px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em;
   color: var(--text-tertiary); text-decoration: none;
-  border-bottom: 2px solid transparent; transition: all 0.15s;
-  white-space: nowrap;
+  white-space: nowrap; transition: color 0.15s;
 }
 .nav-tab:hover  { color: var(--text-secondary); }
-.nav-tab.active { color: var(--text-primary); border-bottom-color: var(--accent-blue); }
+.nav-tab.active { color: var(--text-primary); }
+/* Myk active-state: svak blå bakgrunns-pille + tynn glødende underline ───── */
+.nav-tab.active::before {
+  content: ''; position: absolute; inset: 9px 5px;
+  background: rgba(91,164,245,0.10); border-radius: 9px; z-index: -1;
+}
+.nav-tab.active::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px;
+  background: var(--accent-blue); border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 10px 0 rgba(91,164,245,0.6);
+}
+/* Per-side ulest-prikk på fanen (primær-signalet for varsler) */
+.nav-tab-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--danger); flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(7,7,9,0.9), 0 0 7px 0 rgba(255,107,107,0.7);
+  animation: navDotPulse 2.2s ease-out infinite;
+}
+@keyframes navDotPulse {
+  0%   { box-shadow: 0 0 0 2px rgba(7,7,9,0.9), 0 0 0 0 rgba(255,107,107,0.55); }
+  70%  { box-shadow: 0 0 0 2px rgba(7,7,9,0.9), 0 0 0 5px rgba(255,107,107,0); }
+  100% { box-shadow: 0 0 0 2px rgba(7,7,9,0.9), 0 0 0 0 rgba(255,107,107,0); }
+}
+@media (prefers-reduced-motion: reduce) { .nav-tab-dot { animation: none; } }
 
-/* ── Varselsenter ─────────────────────────────────────────────────────── */
+/* ── Handlinger til høyre i nav (PDF/enhet/varsler/språk/logg ut) ──────── */
+.nav-actions {
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0; padding-left: 10px; margin-left: 4px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.nav-notif-wrap { position: relative; flex-shrink: 0; display: flex; }
+.nav-act {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  height: 34px; min-width: 34px; padding: 0 10px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-tertiary); text-decoration: none;
+  font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  border-radius: 9px; white-space: nowrap;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.nav-act:hover  { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+.nav-act:active { transform: scale(0.96); }
+.nav-act.nav-icon { font-size: 15px; padding: 0 8px; }
+.nav-act-mono { font-family: var(--font-mono); }
+
+/* ── Varselsenter (bjelle — sekundært, desktop) ───────────────────────── */
 .notif-badge {
   position: absolute; top: -3px; right: -3px;
   min-width: 16px; height: 16px; padding: 0 4px;
@@ -109,6 +154,17 @@ body::after {
   background: var(--danger); color: #050506;
   font-size: 10px; font-weight: 700; line-height: 1;
   border-radius: 8px; font-family: var(--font-mono);
+}
+/* Aktive varsler: bjellen blir rød og badgen pulser så det fanges i øyekroken */
+.nav-act.has-notif { color: var(--danger); }
+.nav-act.has-notif .notif-badge { animation: notifPulse 2.2s ease-out infinite; }
+@keyframes notifPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,107,107,0.55); }
+  70%  { box-shadow: 0 0 0 5px rgba(255,107,107,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-act.has-notif .notif-badge { animation: none; }
 }
 .notif-panel {
   position: absolute; top: calc(100% + 6px); right: 0;
@@ -133,7 +189,47 @@ body::after {
 .notif-overdue  .notif-dot { background: var(--danger); }
 .notif-reminder .notif-dot { background: var(--warning); }
 .notif-rest     .notif-dot { background: var(--accent-blue); }
+.notif-calendar .notif-dot { background: var(--accent-blue); }
+.notif-sleep    .notif-dot { background: #7C6FD4; }
 .notif-empty { font-size: 12px; color: var(--text-tertiary); padding: 14px 8px; text-align: center; }
+
+/* ── Per-side varsel-banner (primær varsling ved sidebesøk) ───────────── */
+.page-banner-wrap {
+  max-width: 1100px; margin: 12px auto 0; padding: 0 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.page-banner {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid var(--accent-blue);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+  animation: bannerIn 0.28s cubic-bezier(0.2,0.7,0.2,1) both;
+}
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.page-banner.closing { animation: bannerOut 0.2s ease-in both; }
+@keyframes bannerOut { to { opacity: 0; transform: translateY(-6px); } }
+.page-banner-icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
+.page-banner-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
+.page-banner-title { font-size: 13.5px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-banner-sub { font-size: 11.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.page-banner-close {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+.page-banner-close:hover { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+.page-banner-overdue  { border-left-color: var(--danger); }
+.page-banner-reminder { border-left-color: var(--warning); }
+.page-banner-rest     { border-left-color: var(--accent-blue); }
+.page-banner-calendar { border-left-color: var(--accent-blue); }
+.page-banner-sleep    { border-left-color: #7C6FD4; }
+.page-banner-today    { border-left-color: var(--text-tertiary); }
+@media (prefers-reduced-motion: reduce) {
+  .page-banner, .page-banner.closing { animation: none; }
+}
 
 /* ── Page container ───────────────────────────────────────────────────── */
 .page {
@@ -381,7 +477,16 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 @media (max-width: 768px) {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-4 { grid-template-columns: repeat(2,1fr); }
-  .nav-tab { padding: 12px 10px; font-size: 11px; }
+  /* Mobil-first nav: tettere faner, bjella skjules (prikker + banner er
+     primær-signalet), PDF nedprioriteres for å gi plass til tommel-handlinger */
+  .nav-inner { min-height: 50px; gap: 4px; padding: 0 8px; }
+  .nav-tab { height: 50px; padding: 0 11px; font-size: 11.5px; }
+  .nav-tab.active::before { inset: 8px 3px; }
+  .nav-actions { gap: 2px; padding-left: 6px; margin-left: 2px; }
+  .nav-act { height: 32px; min-width: 32px; padding: 0 8px; }
+  .nav-notif-wrap { display: none; }           /* bjelle skjult på mobil */
+  #diaryLink { display: none; }                /* PDF tilgjengelig på desktop */
+  .page-banner-wrap { padding: 0 10px; margin-top: 10px; }
 }
 @media (max-width: 480px) {
   .grid-2 { grid-template-columns: 1fr; }
@@ -390,7 +495,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 /* ── Nav-tab feedback (sideovergang håndteres av View Transitions øverst) ── */
-.nav-tab { transition: opacity 0.1s; }
+.nav-tab { transition: color 0.15s, opacity 0.1s; }
 .nav-tab:active { opacity: 0.6; }
 
 /* ── RPE-slider (delt komponent: sprint, gym, aktivitet) ──────────────── */

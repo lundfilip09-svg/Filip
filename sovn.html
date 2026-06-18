@@ -329,8 +329,7 @@ function minToHM(min, lang = null) {
 }
 function minToH(min) { return min ? +(min / 60).toFixed(2) : null; }
 function sleepHoursStr(h) {
-  if (!h) return '–';
-  return `${Math.floor(h)}t${Math.round((h % 1) * 60) > 0 ? ' ' + Math.round((h % 1) * 60) + 'm' : ''}`;
+  return fmtHM(h);   // tospråklig (utils.js): 6.77 → "6t 46m" / "6h 46m"
 }
 
 // ── Smart insights ─────────────────────────────────────────────────────────

@@ -71,9 +71,9 @@ const TRANSLATIONS = {
     'dash.focus_no_push': 'Ikke push gjennom smerte i dag',
     'dash.focus_pain_after': 'Smerte etter siste økt: {n}/10',
     'dash.focus_reduced_load': 'Vurder redusert belastning i dag',
-    'dash.focus_sleep_sub': '{h}t søvn sist natt',
+    'dash.focus_sleep_sub': '{h} søvn sist natt',
     'dash.focus_under8': 'Du sov under 8 timer i natt',
-    'dash.focus_under8_sub': '{h}t registrert',
+    'dash.focus_under8_sub': '{h} registrert',
     'dash.focus_restitusjon': 'Prioriter restitusjon — stevne i morgen',
     'dash.focus_sleep_early': 'Sov tidlig i kveld',
     'dash.focus_heavy_tmrw': 'Tung økt i morgen — prioriter søvn',
@@ -120,6 +120,7 @@ const TRANSLATIONS = {
     'daytype.mobility': 'Sirkulasjon & Mobilitet', 'daytype.conditioning': 'Kondisjon',
     'daytype.rest': 'Hvile', 'daytype.rehab': 'Rehab',
     'daytype.soccer': 'Fotball', 'daytype.basketball': 'Basketball', 'daytype.track': 'Friidrett',
+    'daytype.sprint': 'Sprint',
     // A6 — dag-redigering UI
     'gym.add_day': '+ Dag', 'gym.new_day': 'Ny dag', 'gym.day_weekday': 'Ukedag',
     'gym.day_type': 'Type (valgfritt)', 'gym.day_type_none': 'Ingen',
@@ -194,6 +195,8 @@ const TRANSLATIONS = {
     'notif.no_vapid': 'Serveren mangler VAPID-nøkler', 'notif.error': 'Kunne ikke slå på varsler',
     'notif.title': 'Varsler', 'notif.overdue': 'Forfalte', 'notif.reminders': 'Påminnelser',
     'notif.rest_timers': 'Hviletimere', 'notif.today': 'I dag', 'notif.empty': 'Ingen aktive varsler',
+    'notif.calendar': 'Kalender', 'notif.sleep': 'Søvn', 'notif.dismiss': 'Lukk',
+    'notif.sleep_low_title': 'Lav søvnscore i natt', 'notif.sleep_low_sub': 'Score {score} — prioriter restitusjon i dag',
     'gm.reminder': 'Påminnelse', 'gm.add_reminder': 'Påminnelse', 'gm.reminder_set': 'Påminnelse satt',
     'gm.reminder_cleared': 'Påminnelse fjernet', 'gm.reminder_at': 'Påminnelse {time}',
     'gm.reminder_past': 'Velg et tidspunkt frem i tid', 'gm.clear_reminder': 'Fjern påminnelse',
@@ -477,7 +480,7 @@ const TRANSLATIONS = {
     'tp.act_soccer': 'Fotball', 'tp.act_swim': 'Svømming', 'tp.act_cycle': 'Sykling',
     'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Amerikansk fotball',
     'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
-    'tp.rest_rehab': 'Hvile & rehab', 'tp.delete': 'Slett',
+    'tp.rest_rehab': 'Hvile & rehab', 'tp.rest': 'Hvile', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
     // AI
     'ai.title': 'AI Overseer',
@@ -600,9 +603,9 @@ const TRANSLATIONS = {
     'dash.focus_no_push': 'Do not push through pain today',
     'dash.focus_pain_after': 'Pain after last session: {n}/10',
     'dash.focus_reduced_load': 'Consider reduced load today',
-    'dash.focus_sleep_sub': '{h}h sleep last night',
+    'dash.focus_sleep_sub': '{h} sleep last night',
     'dash.focus_under8': 'You slept under 8 hours last night',
-    'dash.focus_under8_sub': '{h}h recorded',
+    'dash.focus_under8_sub': '{h} recorded',
     'dash.focus_restitusjon': 'Prioritize recovery — competition tomorrow',
     'dash.focus_sleep_early': 'Sleep early tonight',
     'dash.focus_heavy_tmrw': 'Heavy session tomorrow — prioritize sleep',
@@ -649,6 +652,7 @@ const TRANSLATIONS = {
     'daytype.mobility': 'Mobility & Conditioning', 'daytype.conditioning': 'Conditioning',
     'daytype.rest': 'Rest', 'daytype.rehab': 'Rehab',
     'daytype.soccer': 'Soccer', 'daytype.basketball': 'Basketball', 'daytype.track': 'Track',
+    'daytype.sprint': 'Sprint',
     // A6 — day editing UI
     'gym.add_day': '+ Day', 'gym.new_day': 'New day', 'gym.day_weekday': 'Weekday',
     'gym.day_type': 'Type (optional)', 'gym.day_type_none': 'None',
@@ -723,6 +727,8 @@ const TRANSLATIONS = {
     'notif.no_vapid': 'Server is missing VAPID keys', 'notif.error': 'Could not enable notifications',
     'notif.title': 'Notifications', 'notif.overdue': 'Overdue', 'notif.reminders': 'Reminders',
     'notif.rest_timers': 'Rest timers', 'notif.today': 'Today', 'notif.empty': 'No active notifications',
+    'notif.calendar': 'Calendar', 'notif.sleep': 'Sleep', 'notif.dismiss': 'Dismiss',
+    'notif.sleep_low_title': 'Low sleep score last night', 'notif.sleep_low_sub': 'Score {score} — prioritize recovery today',
     'gm.reminder': 'Reminder', 'gm.add_reminder': 'Reminder', 'gm.reminder_set': 'Reminder set',
     'gm.reminder_cleared': 'Reminder cleared', 'gm.reminder_at': 'Reminder {time}',
     'gm.reminder_past': 'Pick a time in the future', 'gm.clear_reminder': 'Clear reminder',
@@ -1006,7 +1012,7 @@ const TRANSLATIONS = {
     'tp.act_soccer': 'Soccer', 'tp.act_swim': 'Swimming', 'tp.act_cycle': 'Cycling',
     'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Football',
     'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
-    'tp.rest_rehab': 'Rest & rehab', 'tp.delete': 'Delete',
+    'tp.rest_rehab': 'Rest & rehab', 'tp.rest': 'Rest', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
     // AI
     'ai.title': 'AI Overseer',
@@ -1137,16 +1143,18 @@ function injectNav() {
   <div class="nav-inner">
     <div class="nav-tabs">
       ${NAV_TABS.map(([href, p, key, txt]) =>
-        `<a href="${href}" class="nav-tab" data-p="${p}" data-i18n="${key}">${txt}</a>`).join('\n      ')}
+        `<a href="${href}" class="nav-tab" data-p="${p}"><span class="nav-tab-label" data-i18n="${key}">${txt}</span><span class="nav-tab-dot" data-dot="${p}" style="display:none"></span></a>`).join('\n      ')}
     </div>
-    <a href="treningsdagbok.html" id="diaryLink" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;text-decoration:none;display:flex;align-items:center">📄 PDF</a>
-    ${withUnit ? '<button id="unitBtn" onclick="toggleUnit()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;font-family:var(--font-mono);padding:4px 8px" title="kg ↔ lbs">kg</button>' : ''}
-    <div id="notifWrap" style="position:relative;flex-shrink:0">
-      <button id="notifBtn" onclick="toggleNotifPanel(event)" class="btn btn-ghost btn-sm" style="font-size:15px;padding:4px 8px;position:relative" data-i18n-title="notif.title" title="Varsler">🔔<span id="notifBadge" class="notif-badge" style="display:none">0</span></button>
-      <div id="notifPanel" class="notif-panel" style="display:none"></div>
+    <div class="nav-actions">
+      <a href="treningsdagbok.html" id="diaryLink" class="nav-act">📄 PDF</a>
+      ${withUnit ? '<button id="unitBtn" onclick="toggleUnit()" class="nav-act nav-act-mono" title="kg ↔ lbs">kg</button>' : ''}
+      <div id="notifWrap" class="nav-notif-wrap">
+        <button id="notifBtn" onclick="toggleNotifPanel(event)" class="nav-act nav-icon" data-i18n-title="notif.title" title="Varsler">🔔<span id="notifBadge" class="notif-badge" style="display:none">0</span></button>
+        <div id="notifPanel" class="notif-panel" style="display:none"></div>
+      </div>
+      <button id="langBtn" onclick="toggleLang()" class="nav-act nav-icon">🇺🇸</button>
+      <button onclick="signOut()" class="nav-act" data-i18n="nav.logout">Logg ut</button>
     </div>
-    <button id="langBtn" onclick="toggleLang()" class="btn btn-ghost btn-sm" style="font-size:14px;flex-shrink:0;padding:4px 8px">🇺🇸</button>
-    <button onclick="signOut()" class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;margin-left:4px" data-i18n="nav.logout">Logg ut</button>
   </div>`;
   // Bevar horisontal scroll-posisjon i nav-stripa på tvers av sidebytter
   const navTabs = nav.querySelector('.nav-tabs');
@@ -1159,27 +1167,64 @@ function injectNav() {
 }
 injectNav();
 
-// ── Varselsenter (delt på alle sider) ──────────────────────────────────────
-// Én kilde for aktive varsler: forfalte + dagens gjøremål, todo-påminnelser
-// (todos.remind_at = intensjonen min, uavhengig av om push-raden ble laget),
-// og aktive hviletimere (scheduled_notifications kind='rest'). Badge teller
-// KUN tidssensitive ting (forfalt + påminnelse + hviletimer) — dagens vanlige
-// gjøremål vises i panelet, men telles ikke (drukner ellers timeren).
-let _notifItems = [];
-let _notifOpen  = false;
+// ── Varselsenter: per-side varsler med lest-status ──────────────────────────
+// Hvert varsel hører til ÉN side (item.page = nav data-p). Uleste varsler gir:
+//   • en rød prikk på riktig fane i toppnav (_renderNavBadges)
+//   • et banner-kort øverst når du åpner den siden (_maybeShowPageBanners),
+//     som samtidig markerer dem lest (localStorage 'notifRead').
+// Bjella er nå et SEKUNDÆRT senter (skjult på mobil via CSS) — primær-signalet
+// er prikkene på fanene + banneret. Rødt = ulest varsel, ikke "forfall".
+let _notifItems   = [];
+let _notifOpen    = false;
+let _bannerItems  = [];
+let _bannersShown = false;
 
-// Kontekstuell fjerning: hvilken side "eier" hver varseltype (siden der du
-// faktisk handler på det). Er du PÅ eiersiden, fjernes varselet fra senteret.
-const NOTIF_OWNER = {
-  overdue:  'gjoremal.html',
-  reminder: 'gjoremal.html',
-  today:    'gjoremal.html',
-  rest:     'gym.html',
+// section → side (matcher nav data-p). Bestemmer hvilken fane som lyser.
+const NOTIF_PAGE = {
+  overdue: 'gjoremal', reminder: 'gjoremal', today: 'gjoremal',
+  rest: 'gym', calendar: 'kalender', sleep: 'sovn',
 };
+const NOTIF_ICON = {
+  overdue: '⚠️', reminder: '⏰', today: '📋',
+  rest: '⏱️', calendar: '📅', sleep: '😴',
+};
+
 function _notifCurrentPage() {
-  return (location.pathname.split('/').pop() || '').toLowerCase() || 'index.html';
+  return (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace(/\.html$/, '') || 'index';
 }
 function _notifTodayStr() { return new Date().toLocaleDateString('sv'); } // YYYY-MM-DD lokal
+
+// ── Lest-status (localStorage; enkel og offline-trygg, synker ikke på tvers
+//    av enheter — bevisst valg for en personlig app) ──────────────────────────
+function _notifReadMap() { try { return JSON.parse(localStorage.getItem('notifRead') || '{}'); } catch { return {}; } }
+function _notifIsRead(key) { return !!_notifReadMap()[key]; }
+function _notifMarkRead(keys) {
+  const m = _notifReadMap(); let changed = false;
+  for (const k of keys) if (!m[k]) { m[k] = Date.now(); changed = true; }
+  if (!changed) return;
+  const cut = Date.now() - 30 * 864e5;            // rydd nøkler eldre enn 30 dager
+  for (const k in m) if (m[k] < cut) delete m[k];
+  localStorage.setItem('notifRead', JSON.stringify(m));
+}
+
+// Kalenderhendelser i dag (gjenbruker dashboardets sessionStorage-cache).
+async function _notifCalendarToday() {
+  try {
+    const CK = `cal_cache_${today()}`;
+    const cached = sessionStorage.getItem(CK);
+    if (cached) {
+      const { ts, data } = JSON.parse(cached);
+      if (Date.now() - ts < 30 * 60 * 1000 && data) return data.today || [];
+    }
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return [];
+    const res = await fetch('/api/google-calendar', { headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    sessionStorage.setItem(CK, JSON.stringify({ ts: Date.now(), data }));
+    return data.today || [];
+  } catch { return []; }
+}
 
 async function loadNotifications() {
   if (typeof db === 'undefined' || !db) return null;   // db ikke klar enda
@@ -1187,11 +1232,10 @@ async function loadNotifications() {
   const todayStr = _notifTodayStr();
   const items = [];
   try {
+    // 1) Gjøremål → Gjøremål. Ett item per todo: forfalt > påminnelse > i dag.
     const { data: todos } = await db.from('todos')
       .select('id,title,due_date,remind_at,completed')
       .eq('completed', false);
-    // Ett item per todo (dedupliser): forfalt > påminnelse > i dag. En forfalt
-    // todo med fremtidig remind_at vises kun under Forfalte, med ⏰ inline.
     for (const td of todos || []) {
       const overdue = td.due_date && td.due_date < todayStr;
       const isToday = td.due_date === todayStr;
@@ -1202,44 +1246,78 @@ async function loadNotifications() {
       else if (isToday) section = 'today';
       if (!section) continue;
       items.push({
-        section, title: td.title,
-        when:     section === 'reminder' ? td.remind_at : td.due_date,
+        key: `todo:${td.id}:${section}`, section, page: 'gjoremal',
+        title: td.title,
+        when: section === 'reminder' ? td.remind_at : td.due_date,
         remindAt: (section === 'overdue' && remind) ? td.remind_at : null,
-        count:    section === 'overdue' || section === 'reminder',
         url: 'gjoremal.html',
       });
     }
+    // 2) Hviletimere → Gym.
     const { data: rests } = await db.from('scheduled_notifications')
       .select('id,title,fire_at,url')
       .eq('kind', 'rest').eq('sent', false).eq('cancelled', false)
       .gt('fire_at', nowIso);
     for (const r of rests || [])
-      items.push({ section: 'rest', title: r.title, when: r.fire_at, count: true, url: r.url || 'gym.html' });
+      items.push({ key: `rest:${r.id}`, section: 'rest', page: 'gym', title: r.title, when: r.fire_at, url: r.url || 'gym.html' });
+    // 3) Søvn → Søvn: lav score i natt.
+    try {
+      const { data: sleep } = await db.from('health_data')
+        .select('date,sleep_score').eq('date', todayStr).maybeSingle();
+      if (sleep && sleep.sleep_score != null && sleep.sleep_score < 70) {
+        items.push({ key: `sleep:${todayStr}`, section: 'sleep', page: 'sovn',
+          i18nTitle: 'notif.sleep_low_title', score: sleep.sleep_score,
+          when: todayStr + 'T08:00:00', url: 'sovn.html' });
+      }
+    } catch (e) {}
+    // 4) Kalender → Kalender: hendelser i dag som ikke er passert.
+    for (const ev of await _notifCalendarToday()) {
+      items.push({ key: `cal:${ev.id}`, section: 'calendar', page: 'kalender',
+        title: ev.summary || t('dash.untitled'),
+        when: ev.start?.dateTime || (ev.start?.date ? ev.start.date + 'T00:00:00' : nowIso),
+        allDay: !ev.start?.dateTime, url: 'kalender.html' });
+    }
   } catch (e) { return null; }
-  const here = _notifCurrentPage();
-  _notifItems = items.filter(i => NOTIF_OWNER[i.section] !== here);
+
+  _notifItems = items;
   _renderNotifBadge();
+  _renderNavBadges();
   if (_notifOpen) _renderNotifPanel();
+  _maybeShowPageBanners();
   return items;
 }
 
-function _renderNotifBadge() {
-  const b = document.getElementById('notifBadge');
-  if (!b) return;
-  const n = _notifItems.filter(i => i.count).length;
-  b.textContent = n > 9 ? '9+' : String(n);
-  b.style.display = n > 0 ? 'flex' : 'none';
-}
+function _unreadItems() { return _notifItems.filter(i => !_notifIsRead(i.key)); }
 
+// ── Tekst-hjelpere (tospråklig) ─────────────────────────────────────────────
 function _notifClock(iso) {
   return new Date(iso).toLocaleTimeString(fmtLocale(), { hour: '2-digit', minute: '2-digit' });
 }
-function _notifWhen(item) {
-  if (item.section === 'overdue' || item.section === 'today') {
-    const base = fmtDate(item.when);
-    return item.remindAt ? `${base} · ⏰ ${_notifClock(item.remindAt)}` : base;
+function _notifTitle(i) { return i.i18nTitle ? t(i.i18nTitle) : (i.title || ''); }
+function _notifSub(i) {
+  switch (i.section) {
+    case 'sleep':    return t('notif.sleep_low_sub', { score: i.score });
+    case 'calendar': return i.allDay ? t('kal.whole_day') : _notifClock(i.when);
+    case 'rest':
+    case 'reminder': return _notifClock(i.when);
+    case 'overdue':
+    case 'today': {
+      const base = fmtDate(i.when);
+      return i.remindAt ? `${base} · ⏰ ${_notifClock(i.remindAt)}` : base;
+    }
+    default: return '';
   }
-  return _notifClock(item.when);
+}
+
+// ── Bjelle-senter (sekundært; desktop) ──────────────────────────────────────
+function _renderNotifBadge() {
+  const b = document.getElementById('notifBadge');
+  if (!b) return;
+  const n = _unreadItems().length;
+  b.textContent = n > 9 ? '9+' : String(n);
+  b.style.display = n > 0 ? 'flex' : 'none';
+  const btn = document.getElementById('notifBtn');
+  if (btn) btn.classList.toggle('has-notif', n > 0);
 }
 
 function _renderNotifPanel() {
@@ -1248,20 +1326,23 @@ function _renderNotifPanel() {
   const groups = [
     ['overdue',  t('notif.overdue')],
     ['reminder', t('notif.reminders')],
+    ['calendar', t('notif.calendar')],
     ['rest',     t('notif.rest_timers')],
+    ['sleep',    t('notif.sleep')],
     ['today',    t('notif.today')],
   ];
+  const unread = _unreadItems();
   let html = `<div class="notif-head">${t('notif.title')}</div>`;
   let any = false;
   for (const [section, label] of groups) {
-    const list = _notifItems.filter(i => i.section === section);
+    const list = unread.filter(i => i.section === section);
     if (!list.length) continue;
     any = true;
     html += `<div class="notif-group-label">${label}</div>`;
     html += list.map(i => `<a class="notif-item notif-${section}" href="${i.url}">
         <span class="notif-dot"></span>
-        <span class="notif-text">${escHtml(i.title)}</span>
-        <span class="notif-when">${escHtml(_notifWhen(i))}</span>
+        <span class="notif-text">${escHtml(_notifTitle(i))}</span>
+        <span class="notif-when">${escHtml(_notifSub(i))}</span>
       </a>`).join('');
   }
   if (!any) html += `<div class="notif-empty">${t('notif.empty')}</div>`;
@@ -1291,6 +1372,68 @@ document.addEventListener('click', (e) => {
     if (p) p.style.display = 'none';
   }
 });
+
+// ── Per-side prikker i toppnav ──────────────────────────────────────────────
+function _renderNavBadges() {
+  const unreadPages = new Set(_unreadItems().map(i => i.page));
+  document.querySelectorAll('.nav-tab-dot[data-dot]').forEach(d => {
+    d.style.display = unreadPages.has(d.dataset.dot) ? 'block' : 'none';
+  });
+}
+
+// ── Banner-kort øverst på siden ─────────────────────────────────────────────
+function _ensureBannerWrap() {
+  let w = document.getElementById('pageBannerWrap');
+  if (w) return w;
+  w = document.createElement('div');
+  w.id = 'pageBannerWrap';
+  w.className = 'page-banner-wrap';
+  const nav = document.querySelector('nav.main-nav');
+  if (nav && nav.parentNode) nav.parentNode.insertBefore(w, nav.nextSibling);
+  else document.body.insertBefore(w, document.body.firstChild);
+  return w;
+}
+
+function _renderPageBanners(items) {
+  _bannerItems = items;
+  const w = _ensureBannerWrap();
+  if (!items.length) { w.innerHTML = ''; return; }
+  w.innerHTML = items.map((i, idx) => `
+    <div class="page-banner page-banner-${i.section}" data-banner="${idx}">
+      <span class="page-banner-icon">${NOTIF_ICON[i.section] || '🔔'}</span>
+      <a class="page-banner-body" href="${i.url}">
+        <span class="page-banner-title">${escHtml(_notifTitle(i))}</span>
+        <span class="page-banner-sub">${escHtml(_notifSub(i))}</span>
+      </a>
+      <button class="page-banner-close" aria-label="${t('notif.dismiss')}" onclick="_dismissBanner(${idx})">✕</button>
+    </div>`).join('');
+}
+function _dismissBanner(idx) {
+  const el = document.querySelector(`[data-banner="${idx}"]`);
+  if (!el) return;
+  el.classList.add('closing');
+  setTimeout(() => el.remove(), 200);
+}
+
+// Vises én gang per sidelast: uleste varsler for DENNE siden → banner + lest.
+function _maybeShowPageBanners() {
+  if (_bannersShown) return;
+  const page = _notifCurrentPage();
+  const mine = _unreadItems().filter(i => i.page === page);
+  if (!mine.length) return;
+  _bannersShown = true;
+  _renderPageBanners(mine);
+  _notifMarkRead(mine.map(i => i.key));   // å åpne siden = varselet er sett
+  _renderNotifBadge();
+  _renderNavBadges();
+}
+
+// Re-render dynamisk varsel-tekst ved språkbytte (kalles fra toggleLang).
+function _relangNotifs() {
+  _renderNotifPanel();
+  _renderNavBadges();
+  if (_bannerItems.length) _renderPageBanners(_bannerItems);
+}
 
 // Førstegangshenting: poll til global `db` finnes (maks ~5 s @ 150 ms).
 (function _notifBoot() {
@@ -1342,7 +1485,7 @@ function toggleLang() {
   localStorage.setItem('lang', _lang);
   applyLang();
   // Varselsenter eies av utils.js — re-render uavhengig av side
-  if (_notifOpen) _renderNotifPanel();
+  _relangNotifs();
   // Re-render dynamic content if a page-level function exists
   if (typeof onLangChange === 'function') onLangChange();
 }
@@ -1408,6 +1551,17 @@ function fmtDate(ds) {
     // Norwegian: dd.mm.yyyy
     return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getFullYear())}`;
   }
+}
+
+// Tospråklig time-/minutt-format fra desimaltimer: 6.77 → "6t 46m" / "6h 46m".
+// Bruk overalt der søvn/varighet i timer vises — aldri rå desimal + "t".
+function fmtHM(h) {
+  if (h == null || isNaN(h) || h <= 0) return '–';
+  const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
+  const mins = Math.round(h * 60);
+  const hh = Math.floor(mins / 60), mm = mins % 60;
+  if (hh <= 0) return `${mm}${mu}`;
+  return mm > 0 ? `${hh}${hu} ${mm}${mu}` : `${hh}${hu}`;
 }
 
 function painColor(s) {

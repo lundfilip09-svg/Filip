@@ -561,7 +561,26 @@
 <script src="utils.js"></script>
 <script>
 let db;
-let weekPlan = {}; // { day_index: session_text } loaded from Supabase
+let weekPlan = {}; // { day_index: lesbar økt-label } resolvet fra session_templates
+let sessionTemplates = [];
+let _wpBase = [], _wpOverride = [];   // rå rader for re-resolve ved språkbytte
+
+async function loadSessionTemplates() {
+  const { data } = await db.from('session_templates').select('id,name,i18n_key');
+  sessionTemplates = data || [];
+}
+function tplById(id)   { return id == null ? null : (sessionTemplates.find(x => String(x.id) === String(id)) || null); }
+function tplLabel(tpl) { return tpl ? (tpl.i18n_key ? t(tpl.i18n_key) : tpl.name) : ''; }
+// template_id = sannhetskilde; fall tilbake til lagret tekst-snapshot. Tom = hvile.
+function _wpLabel(tid, txt) { const tpl = tplById(tid); return tpl ? tplLabel(tpl) : (txt || '').trim(); }
+function rebuildWeekPlanLabels() {
+  weekPlan = {};
+  _wpBase.forEach(r => { const v = _wpLabel(r.template_id, r.session_type); if (v) weekPlan[r.day] = v; });
+  _wpOverride.forEach(r => {
+    const v = _wpLabel(r.template_id, r.session_text);   // rad finnes = overstyring; tom = eksplisitt hvile
+    if (v) weekPlan[r.day_index] = v; else delete weekPlan[r.day_index];
+  });
+}
 document.querySelector('[data-p="dashboard"]').classList.add('active');
 applyLang();
 
@@ -575,16 +594,11 @@ async function loadWeekPlan() {
     String(mon.getMonth() + 1).padStart(2, '0') + '-' + String(mon.getDate()).padStart(2, '0');
 
   const [{ data: base }, { data: override }] = await Promise.all([
-    db.from('weekly_plan').select('day,session_type'),
-    db.from('training_plan_weekly').select('day_index,session_text').eq('week_monday', weekMonday),
+    db.from('weekly_plan').select('day,session_type,template_id'),
+    db.from('training_plan_weekly').select('day_index,session_text,template_id').eq('week_monday', weekMonday),
   ]);
-  weekPlan = {};
-  (base || []).forEach(r => { if (r.session_type) weekPlan[r.day] = r.session_type; });
-  (override || []).forEach(r => {
-    // '' = dagen tømt denne uka → vis som hvile (fjern fra plan)
-    if (r.session_text) weekPlan[r.day_index] = r.session_text;
-    else delete weekPlan[r.day_index];
-  });
+  _wpBase = base || []; _wpOverride = override || [];
+  rebuildWeekPlanLabels();
 }
 
 // Date label
@@ -1221,11 +1235,11 @@ function _buildFokusList({ sleepData, kneeData, sessionData, rehabData }) {
   if (sleepHours > 0 && sleepHours < 7) {
     items.push({ id: 'sleep-critical', priority: 2, cat: 'sovn', type: 'info',
       text: t('dash.focus_reduced_load'),
-      subtext: t('dash.focus_sleep_sub', {h: sleepHours}) });
+      subtext: t('dash.focus_sleep_sub', {h: fmtHM(sleepHours)}) });
   } else if (sleepHours > 0 && sleepHours < 8) {
     items.push({ id: 'sleep-under8', priority: 4, cat: 'sovn', type: 'info',
       text: t('dash.focus_under8'),
-      subtext: t('dash.focus_under8_sub', {h: sleepHours}) });
+      subtext: t('dash.focus_under8_sub', {h: fmtHM(sleepHours)}) });
   }
 
   // ── Priority 2-3: Calendar ────────────────────────────────────────────
@@ -1591,6 +1605,7 @@ async function loadCalendar() {
   }
 
   applyLang();
+  await loadSessionTemplates().catch(() => {});
   await loadWeekPlan().catch(() => {});
   const sessionData = loadSession();
 
@@ -1621,6 +1636,7 @@ async function loadCalendar() {
 // Re-render dynamic content when language toggles (utils.js calls this from toggleLang)
 onLangChange = () => {
   applyLang();
+  rebuildWeekPlanLabels();           // re-resolve økt-labels til nytt språk
   loadSession();                     // synkron — bygger badge/CTA med t()
   loadSleep().catch(() => {});        // re-render søvnkort (Dyp-label, timer, dataalder)
   renderInjuryCards();               // re-render skadekort (fasenavn, kroppsdelsnavn)
