@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Søvn', 'nav.gjoremal': 'Gjøremål',
     'nav.kalender': 'Kalender', 'nav.treningsplan': 'Treningsoversikt',
-    'nav.logout': 'Logg ut',
+    'nav.logout': 'Logg ut', 'nav.pdf': 'Eksporter PDF',
     // Common
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
     'cancel': 'Avbryt', 'delete': 'Slett', 'close': 'Lukk', 'add': 'Legg til',
@@ -493,7 +493,9 @@ const TRANSLATIONS = {
     'ai.copy_diag': 'Kopier diagnose', 'ai.diag_copied': 'Diagnose kopiert til utklippstavlen',
     'ai.copy_sleep': 'Kopier søvnanalyse', 'ai.sleep_copied': 'Søvnanalyse kopiert til utklippstavlen',
     'diag.header': 'Skadestatus', 'diag.none': 'Ingen aktive plager.',
-    'diag.last7': 'Siste 7 dager: {n} økter, snitt RPE {rpe}/100, maks knesmerte {pain}/10.',
+    'diag.last7': 'Siste 7 dager: {n} økter, snitt RPE {rpe}/100.',
+    'diag.pain_line': 'Smerte 7d (maks før/under/etter/d.etter): {b}/{d}/{a}/{da} av 10.',
+    'diag.pain_none': 'Ingen smertelogg siste 7 dager.',
     'inj.since': 'siden',
     'inj.side_left': 'venstre', 'inj.side_right': 'høyre', 'inj.side_both': 'begge',
     'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderat', 'inj.sev_severe': 'alvorlig',
@@ -541,7 +543,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Sleep', 'nav.gjoremal': 'Tasks',
     'nav.kalender': 'Calendar', 'nav.treningsplan': 'Training Overview',
-    'nav.logout': 'Log out',
+    'nav.logout': 'Log out', 'nav.pdf': 'Export PDF',
     // Common
     'loading': 'Loading…', 'no_data': 'No data', 'save': 'Save',
     'cancel': 'Cancel', 'delete': 'Delete', 'close': 'Close', 'add': 'Add',
@@ -1025,7 +1027,9 @@ const TRANSLATIONS = {
     'ai.copy_diag': 'Copy diagnosis', 'ai.diag_copied': 'Diagnosis copied to clipboard',
     'ai.copy_sleep': 'Copy sleep analysis', 'ai.sleep_copied': 'Sleep analysis copied to clipboard',
     'diag.header': 'Injury status', 'diag.none': 'No active issues.',
-    'diag.last7': 'Last 7 days: {n} sessions, avg RPE {rpe}/100, max knee pain {pain}/10.',
+    'diag.last7': 'Last 7 days: {n} sessions, avg RPE {rpe}/100.',
+    'diag.pain_line': 'Pain 7d (max pre/during/post/next-day): {b}/{d}/{a}/{da} of 10.',
+    'diag.pain_none': 'No pain logged in the last 7 days.',
     'inj.since': 'since',
     'inj.side_left': 'left', 'inj.side_right': 'right', 'inj.side_both': 'both',
     'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderate', 'inj.sev_severe': 'severe',
@@ -1146,10 +1150,10 @@ function injectNav() {
         `<a href="${href}" class="nav-tab" data-p="${p}"><span class="nav-tab-label" data-i18n="${key}">${txt}</span><span class="nav-tab-dot" data-dot="${p}" style="display:none"></span></a>`).join('\n      ')}
     </div>
     <div class="nav-actions">
-      <a href="treningsdagbok.html" id="diaryLink" class="nav-act">📄 PDF</a>
+      <a href="treningsdagbok.html" id="diaryLink" class="nav-act" data-i18n-title="nav.pdf" title="Eksporter PDF"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</a>
       ${withUnit ? '<button id="unitBtn" onclick="toggleUnit()" class="nav-act nav-act-mono" title="kg ↔ lbs">kg</button>' : ''}
       <div id="notifWrap" class="nav-notif-wrap">
-        <button id="notifBtn" onclick="toggleNotifPanel(event)" class="nav-act nav-icon" data-i18n-title="notif.title" title="Varsler">🔔<span id="notifBadge" class="notif-badge" style="display:none">0</span></button>
+        <button id="notifBtn" onclick="toggleNotifPanel(event)" class="nav-act nav-icon" data-i18n-title="notif.title" title="Varsler"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notifBadge" class="notif-badge" style="display:none">0</span></button>
         <div id="notifPanel" class="notif-panel" style="display:none"></div>
       </div>
       <button id="langBtn" onclick="toggleLang()" class="nav-act nav-icon">🇺🇸</button>
@@ -1188,6 +1192,9 @@ const NOTIF_ICON = {
   overdue: '⚠️', reminder: '⏰', today: '📋',
   rest: '⏱️', calendar: '📅', sleep: '😴',
 };
+// "Stille" seksjoner: vises i bjelle-panelet, men gir IKKE rødt badge,
+// fane-prikk eller banner. Kalender er ren info — ikke noe å handle på.
+const NOTIF_SILENT = new Set(['calendar']);
 
 function _notifCurrentPage() {
   return (location.pathname.split('/').pop() || 'index.html').toLowerCase().replace(/\.html$/, '') || 'index';
@@ -1287,7 +1294,10 @@ async function loadNotifications() {
   return items;
 }
 
-function _unreadItems() { return _notifItems.filter(i => !_notifIsRead(i.key)); }
+// Driver badge + fane-prikker + bannere — stille seksjoner holdes utenfor.
+function _unreadItems() { return _notifItems.filter(i => !NOTIF_SILENT.has(i.section) && !_notifIsRead(i.key)); }
+// Driver bjelle-panelet — stille seksjoner vises alltid; resten kun når ulest.
+function _panelItems() { return _notifItems.filter(i => NOTIF_SILENT.has(i.section) || !_notifIsRead(i.key)); }
 
 // ── Tekst-hjelpere (tospråklig) ─────────────────────────────────────────────
 function _notifClock(iso) {
@@ -1331,11 +1341,11 @@ function _renderNotifPanel() {
     ['sleep',    t('notif.sleep')],
     ['today',    t('notif.today')],
   ];
-  const unread = _unreadItems();
+  const shown = _panelItems();
   let html = `<div class="notif-head">${t('notif.title')}</div>`;
   let any = false;
   for (const [section, label] of groups) {
-    const list = unread.filter(i => i.section === section);
+    const list = shown.filter(i => i.section === section);
     if (!list.length) continue;
     any = true;
     html += `<div class="notif-group-label">${label}</div>`;
@@ -1786,7 +1796,31 @@ function loadMultiplier(source, typeText, labelText) {
 // så navigasjonen treffer cache. fetch() går gjennom SW-en (SWR) og funker
 // derfor i både Safari og Chrome (<link rel=prefetch> gjør ikke det i Safari).
 // Selve sideovergangen håndteres av View Transitions i styles.css — ingen JS.
+// ── Offline-banner (vedvarende, alle sider) ────────────────────────────────
+// Toast (over) er flyktig; banneret blir stående så man ser det også når en
+// side åpnes mens man ALLEREDE er offline (vanlig på reise/ustabilt nett).
+// Dashboard har sin egen banner i HTML — der hopper vi over.
+function _initOfflineBanner() {
+  let b = document.getElementById('offlineBanner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'offlineBanner';
+    b.setAttribute('data-i18n', 'dash.offline'); // applyLang() oppdaterer ved språkbytte
+    b.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:200;' +
+      'background:rgba(255,107,107,0.12);border-bottom:1px solid rgba(255,107,107,0.3);' +
+      'padding:8px 16px;text-align:center;font-size:11px;font-family:var(--font-mono);' +
+      'color:var(--danger);letter-spacing:0.04em';
+    b.textContent = t('dash.offline');
+    document.body.appendChild(b);
+  }
+  const update = () => { b.style.display = navigator.onLine ? 'none' : ''; };
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  update();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  _initOfflineBanner();
   const warmed = new Set();
   const warm = href => {
     if (!href || href.startsWith('#') || href.startsWith('javascript') || warmed.has(href)) return;

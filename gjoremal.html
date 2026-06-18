@@ -960,7 +960,7 @@ function renderTodos() {
               : `<span class="todo-add-date" onclick="startEditDue('${todo.id}')">${t('gm.add_date')}</span>`
             }
             ${todo.remind_at
-              ? `<span class="todo-remind" onclick="startEditRemind('${todo.id}')" title="${t('gm.clear_reminder')}">⏰ ${fmtRemind(todo.remind_at)}</span>`
+              ? `<span class="todo-remind" onclick="startEditRemind('${todo.id}')" title="${t('gm.reminder')}">⏰ ${fmtRemind(todo.remind_at)}<button class="todo-remind-x" onclick="event.stopPropagation();clearRemind('${todo.id}')" title="${t('gm.clear_reminder')}" aria-label="${t('gm.clear_reminder')}">✕</button></span>`
               : (!todo.completed ? `<span class="todo-add-remind" onclick="startEditRemind('${todo.id}')">⏰ ${t('gm.add_reminder')}</span>` : '')
             }
             ${!todo.completed ? `
@@ -1056,6 +1056,17 @@ async function scheduleTodoReminder(todo) {
 }
 async function cancelTodoReminder(todoId) {
   if (typeof cancelPush === 'function') { try { await cancelPush({ todoId }); } catch (e) {} }
+}
+// Fjern påminnelse direkte fra ⏰-brikka (uten å åpne datovelgeren).
+async function clearRemind(todoId) {
+  const todo = allTodos.find(x => String(x.id) === String(todoId));
+  if (!todo || !todo.remind_at) return;
+  const { error } = await db.from('todos').update({ remind_at: null }).eq('id', todoId);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.remind_at = null;
+  cancelTodoReminder(todoId);
+  toast(t('gm.reminder_cleared'));
+  renderTodos();
 }
 
 // ── Toggle complete ───────────────────────────────────────────────────────
