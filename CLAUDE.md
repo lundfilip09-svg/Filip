@@ -3,6 +3,39 @@
 Personlig helse-/treningsdashboard. Vanilla HTML/CSS/JS, Vercel + Supabase.
 Filip pusher/committer selv. Svar kort og token-effektivt.
 
+## ⚠️ KRITISK: RLS på ALLE tabeller
+
+Anon-nøkkelen ligger i klienten (offentlig). Supabase eksponerer auto-REST for
+hver tabell i `public` — **uten RLS er tabellen lese-/skriv-/slettbar for hvem
+som helst på internett.** Derfor:
+
+**Hver gang du lager en ny tabell (`CREATE TABLE`) MÅ samme migrasjon inneholde:**
+
+```sql
+ALTER TABLE public.<tabell> ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.<tabell> FORCE  ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "authenticated_full_access" ON public.<tabell>;
+CREATE POLICY "authenticated_full_access" ON public.<tabell>
+  FOR ALL USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+REVOKE ALL ON public.<tabell> FROM anon;
+```
+
+Enbruker-app → `auth.role() = 'authenticated'` holder (ingen `user_id` nødvendig).
+RLS uten policy = default-deny → klienten får tomt. Policy uten `ENABLE RLS` =
+inert (gjør ingenting). Begge MÅ være med. Server-kode i `api/` bruker
+service_role som bypasser RLS — uberørt.
+
+**Mønster + full bakgrunn:** `supabase/migrations/052_enable_rls_all_tables.sql`.
+
+**Sjekk før du sier deg ferdig — alle tabeller skal ha `rls_på = true`:**
+```sql
+select relname, relrowsecurity as rls_på,
+ (select count(*) from pg_policies p where p.tablename=c.relname) as policies
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+where n.nspname='public' and c.relkind='r' order by rls_på, relname;
+```
+
 ## ⚠️ KRITISK: Tospråklig (norsk + engelsk)
 
 Dashboardet har en språkbryter (🇳🇴/🇺🇸, `langBtn` → `toggleLang()`). Filip

@@ -168,11 +168,54 @@
     .trend-bad     { background: rgba(255,107,107,0.12); color: #FF6B6B; border: 1px solid rgba(255,107,107,0.2); }
     .trend-neutral { background: rgba(255,255,255,0.05); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
 
-    .sess-grid {
+    .sess-grid { display: block; }
+
+    /* ── Sess filter bar ──────────────────────────────────────── */
+    .sess-filter-bar {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .sess-filter-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px; padding: 3px 11px;
+      cursor: pointer; color: var(--text-secondary);
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .sess-filter-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+    .sess-filter-btn.active {
+      background: rgba(107,227,164,0.12);
+      border-color: rgba(107,227,164,0.3);
+      color: #6BE3A4;
+    }
+
+    /* ── Week group (collapsible) ─────────────────────────────── */
+    .week-group { margin-bottom: 14px; }
+    .week-group-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; cursor: pointer; user-select: none;
+      margin-bottom: 8px;
+      transition: background 0.15s;
+    }
+    .week-group-hd:hover { background: rgba(255,255,255,0.06); }
+    .week-group-title {
+      font-size: 10px; font-family: var(--font-mono);
+      color: var(--text-secondary); letter-spacing: 0.06em;
+    }
+    .week-group-chevron {
+      font-size: 10px; color: var(--text-tertiary);
+      transition: transform 0.2s; display: inline-block;
+    }
+    .week-group-hd.open .week-group-chevron { transform: rotate(180deg); }
+    .week-group-cards {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 10px;
     }
+    .week-group-cards.collapsed { display: none; }
 
     
     .sess-date {
@@ -481,7 +524,6 @@
         <div class="tp-history-hd">
           <span class="tp-history-title" data-i18n="tp.history">Øktlogg</span>
           <div style="display:flex;align-items:center;gap:8px">
-            <span id="painTrendBadge" class="trend-badge trend-neutral" style="display:none"></span>
             <button onclick="openActModal()"
               style="display:flex;align-items:center;gap:5px;background:rgba(107,227,164,0.08);
                      border:1px solid rgba(107,227,164,0.2);border-radius:7px;padding:4px 10px;
@@ -492,9 +534,10 @@
               <span style="font-size:14px;line-height:1">+</span>
               <span data-i18n="tp.add_activity">Aktivitet</span>
             </button>
-            <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()">∧</button>
+            <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()">∨</button>
           </div>
         </div>
+        <div id="sessFilterBar"></div>
         <div id="sessionGrid" class="sess-grid">
           <div class="loading" data-i18n="tp.loading_log">Laster øktlogg…</div>
         </div>
@@ -1281,7 +1324,9 @@ let _sessData   = [];
 let _sprintData = [];
 let _kneeMap    = {};
 let _kneeSprint = {}; // date → knee_pain for sprint sessions
-let _openDetail = null;
+let _openDetail      = null;
+let _sessFilter      = 'all';   // 'all' | 'gym' | 'sprint' | 'activity'
+let _weekGroupState  = {};      // weekKey (monday ISO) → true=open / false=collapsed
 let _actData    = [];   // activity_log rows
 let _healthData = [];   // health_data rows (sleep_score) for trend-oversikten
 let _actType      = null; // valgt type i modal
@@ -1425,13 +1470,7 @@ async function loadSessionHistory() {
   } else {
     trendSessions = _sessData.map(g => _kneeMap[g.date + '|' + (g.session_type || '')]).filter(Boolean);
   }
-  const trend = calcPainTrend(trendSessions);
-  if (trend) {
-    const badge = document.getElementById('painTrendBadge');
-    badge.textContent   = trend.text;
-    badge.className     = `trend-badge trend-${trend.type}`;
-    badge.style.display = '';
-  }
+  // pain trend badge removed
 
   renderSessionGrid();
   renderInjuryDash();
@@ -1748,119 +1787,168 @@ function displaySessionType(raw) {
   return key ? t(key) : raw;
 }
 
+function _sessCardHtml(entry) {
+  if (entry.type === 'gym') {
+    const g = entry.item;
+    const knee   = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
+    const isOpen = _openDetail === String(g.id);
+    const notesPreview = (g.session_notes || '').trim();
+    return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
+        style="border-top-color:rgba(107,227,164,0.3)"
+        onclick="toggleSessionDetail('${g.id}')">
+        <div class="sess-name">${escHtml(displaySessionType(g.session_type))}</div>
+        <div class="sess-meta">${buildPainSummaryForDate(g.date, knee)}<span class="sess-tag">${t('tp.gym_badge')}</span>
+          <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+            <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+              value="${g.duration_min ?? ''}" placeholder="—"
+              onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+            <span>min</span>
+          </span>
+        </div>
+        ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
+      </div>
+      ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
+  } else if (entry.type === 'sprint') {
+    const s   = entry.item;
+    const sid = 'sprint-' + s.date;
+    const knee   = _kneeSprint[s.date] || null;
+    const isOpen = _openDetail === sid;
+    const distSummary = [...new Set(s.runs.map(r => distLabel(r.distance)))].join(' / ');
+    return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${sid}"
+        style="border-top-color:rgba(91,164,245,0.3)"
+        onclick="toggleSessionDetail('${sid}')">
+        <div class="sess-name">Sprint · ${escHtml(distSummary)}</div>
+        <div class="sess-meta">${buildPainSummaryForDate(s.date, knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span>
+          <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+            <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+              value="${s.duration_min ?? ''}" placeholder="—"
+              onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+            <span>min</span>
+          </span>
+        </div>
+        ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
+      </div>
+      ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
+  } else {
+    // activity_log
+    const a   = entry.item;
+    const aid = 'act-' + a.id;
+    const isOpen = _openDetail === aid;
+    const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
+    const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
+    const rpeExtra = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
+    return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
+        style="border-top-color:rgba(242,192,99,0.3)"
+        onclick="toggleSessionDetail('${aid}')">
+        <div class="sess-name">${escHtml(label)}</div>
+        <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${rpeExtra}
+          <span class="sess-dur-wrap" onclick="event.stopPropagation()">
+            <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+              value="${a.duration_min ?? ''}" placeholder="—"
+              onblur="autoSaveActField('${a.id}','duration_min',this.value)">
+            <span>min</span>
+          </span>
+        </div>
+        ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
+      </div>
+      ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
+  }
+}
+
 function renderSessionGrid() {
   const el = document.getElementById('sessionGrid');
-  if (!_sessData.length && !_sprintData.length) {
-    el.innerHTML = `<div class="empty">${t('tp.no_sessions')}</div>`; return;
+
+  // ── Filter bar ────────────────────────────────────────────────
+  const filterBar = document.getElementById('sessFilterBar');
+  if (filterBar) {
+    const filters = [
+      { key: 'all',      label: t('tp.filter_all')    },
+      { key: 'gym',      label: t('tp.filter_gym')    },
+      { key: 'sprint',   label: t('tp.filter_sprint') },
+      { key: 'activity', label: t('tp.filter_act')    },
+    ];
+    filterBar.innerHTML = `<div class="sess-filter-bar">` +
+      filters.map(f => `<button class="sess-filter-btn${_sessFilter === f.key ? ' active' : ''}"
+        onclick="setHistFilter('${f.key}')">${f.label}</button>`).join('') +
+      `</div>`;
   }
 
-  // Build sprint sessions grouped by date
+  // ── Build filtered combined list ──────────────────────────────
   const sprintByDate = _sprintData.reduce((acc, r) => {
     if (!acc[r.date]) acc[r.date] = { date: r.date, runs: [], rpe: r.rpe, notes: r.notes };
     acc[r.date].runs.push(r);
     return acc;
   }, {});
 
-  // Combined list, sorted newest first
   const combined = [
-    ..._sessData.map(g => ({ type: 'gym', date: g.date, item: g })),
-    ...Object.values(sprintByDate).map(s => ({ type: 'sprint', date: s.date, item: s })),
-    ..._actData.map(a => ({ type: 'activity', date: a.date, item: a })),
+    ...(_sessFilter === 'all' || _sessFilter === 'gym'      ? _sessData.map(g => ({ type: 'gym',      date: g.date, item: g })) : []),
+    ...(_sessFilter === 'all' || _sessFilter === 'sprint'   ? Object.values(sprintByDate).map(s => ({ type: 'sprint',   date: s.date, item: s })) : []),
+    ...(_sessFilter === 'all' || _sessFilter === 'activity' ? _actData.map(a => ({ type: 'activity', date: a.date, item: a })) : []),
   ].sort((a, b) => b.date.localeCompare(a.date));
-
-  // Group by date
-  const groups = [];
-  let lastDate = null;
-  for (const entry of combined) {
-    if (entry.date !== lastDate) { groups.push({ date: entry.date, sessions: [] }); lastDate = entry.date; }
-    groups[groups.length - 1].sessions.push(entry);
-  }
 
   // fjern gammelt add-card så det ikke dobles
   const oldCard = document.getElementById('addActCard');
   if (oldCard) oldCard.remove();
 
-  el.innerHTML = groups.map(grp => {
-    const d       = new Date(grp.date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
+  if (!combined.length) {
+    el.innerHTML = `<div class="empty" style="padding:20px 0">${t('tp.no_sessions')}</div>`;
+    return;
+  }
 
-    const sessHtml = grp.sessions.map(entry => {
-      if (entry.type === 'gym') {
-        const g = entry.item;
-        const knee   = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
-        const isOpen = _openDetail === String(g.id);
-        const notesPreview = (g.session_notes || '').trim();
-        return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
-            style="border-top-color:rgba(107,227,164,0.3)"
-            onclick="toggleSessionDetail('${g.id}')">
-            <div class="sess-name">${escHtml(displaySessionType(g.session_type))}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(g.date, knee)}<span class="sess-tag">${t('tp.gym_badge')}</span>
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${g.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
-                <span>min</span>
-              </span>
-            </div>
-            ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
-          </div>
-          ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
-      } else if (entry.type === 'sprint') {
-        const s   = entry.item;
-        const sid = 'sprint-' + s.date;
-        const knee   = _kneeSprint[s.date] || null;
-        const isOpen = _openDetail === sid;
-        const distSummary = [...new Set(s.runs.map(r => distLabel(r.distance)))].join(' / ');
-        return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${sid}"
-            style="border-top-color:rgba(91,164,245,0.3)"
-            onclick="toggleSessionDetail('${sid}')">
-            <div class="sess-name">Sprint · ${escHtml(distSummary)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(s.date, knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span>
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${s.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
-                <span>min</span>
-              </span>
-            </div>
-            ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
-          </div>
-          ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
-      } else {
-        // activity_log
-        const a   = entry.item;
-        const aid = 'act-' + a.id;
-        const isOpen = _openDetail === aid;
-        const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
-        const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
-        const hasPain = [a.knee_before, a.knee_during, a.knee_after, a.knee_day_after].some(v => v != null);
-        const actEmoji = '';
-        const metaExtra = '';
-        const rpeExtra  = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
-        return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
-            style="border-top-color:rgba(242,192,99,0.3)"
-            onclick="toggleSessionDetail('${aid}')">
-            <div class="sess-name">${escHtml(label)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${a.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveActField('${a.id}','duration_min',this.value)">
-                <span>min</span>
-              </span>
-            </div>
-            ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
-          </div>
-          ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
-      }
-    }).join('');
+  // ── Group by ISO week (monday as key) ─────────────────────────
+  const nowMon = localISODate(getMondayForOffset(0));
+  const weekMap = new Map(); // weekKey → { monday:Date, sessions:[] }
+  for (const entry of combined) {
+    const d = new Date(entry.date + 'T12:00:00');
+    const diff = (d.getDay() + 6) % 7;
+    const mon = new Date(d); mon.setDate(d.getDate() - diff); mon.setHours(0,0,0,0);
+    const weekKey = mon.toISOString().slice(0, 10);
+    if (!weekMap.has(weekKey)) weekMap.set(weekKey, { monday: mon, sessions: [] });
+    weekMap.get(weekKey).sessions.push(entry);
+  }
 
-    return `<div class="hist-date-group">
-      <div class="hist-date-label">${dateStr}</div>
-      <div class="hist-sessions">${sessHtml}</div>
+  // Sort weeks newest first
+  const weeks = [...weekMap.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  const locale = fmtLocale();
+
+  el.innerHTML = weeks.map(([weekKey, { monday, sessions }]) => {
+    const isCurrentWeek = weekKey === nowMon;
+    const isOpen = Object.prototype.hasOwnProperty.call(_weekGroupState, weekKey)
+      ? _weekGroupState[weekKey] : isCurrentWeek;
+
+    const weekNum = getISOWeek(monday);
+    const sunday  = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    const fromStr = monday.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    const toStr   = sunday.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    const n = sessions.length;
+    const sessLabel = n === 1 ? t('tp.sess_one') : t('tp.sess_many');
+    const title = `${t('tp.week')} ${weekNum} · ${fromStr} – ${toStr} · ${n} ${sessLabel}`;
+
+    const cardsHtml = sessions.map(_sessCardHtml).join('');
+
+    return `<div class="week-group">
+      <div class="week-group-hd${isOpen ? ' open' : ''}" onclick="toggleWeekGroup('${weekKey}')">
+        <span class="week-group-title">${title}</span>
+        <span class="week-group-chevron">∨</span>
+      </div>
+      <div class="week-group-cards${isOpen ? '' : ' collapsed'}">${cardsHtml}</div>
     </div>`;
   }).join('');
+}
 
+function toggleWeekGroup(weekKey) {
+  const nowMon = localISODate(getMondayForOffset(0));
+  const def = weekKey === nowMon; // default open for current week
+  const cur = Object.prototype.hasOwnProperty.call(_weekGroupState, weekKey)
+    ? _weekGroupState[weekKey] : def;
+  _weekGroupState[weekKey] = !cur;
+  renderSessionGrid();
+}
+
+function setHistFilter(type) {
+  _sessFilter = type;
+  _weekGroupState = {};
+  renderSessionGrid();
 }
 
 // Separat funksjon for å vise + kortet (kalles fra HTML)
@@ -2511,14 +2599,47 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
 }
 
 
-// ── History toggle ─────────────────────────────────────────────────────────
+// ── History toggle: collapse all older weeks, keep most-recent open ────────
 let _historyCollapsed = false;
+function _mostRecentWeekKey() {
+  const allDates = [
+    ..._sessData.map(g => g.date),
+    ..._sprintData.map(s => s.date),
+    ..._actData.map(a => a.date),
+  ].sort((a, b) => b.localeCompare(a));
+  if (!allDates.length) return null;
+  const d = new Date(allDates[0] + 'T12:00:00');
+  const diff = (d.getDay() + 6) % 7;
+  const mon = new Date(d); mon.setDate(d.getDate() - diff); mon.setHours(0,0,0,0);
+  return mon.toISOString().slice(0, 10);
+}
 function toggleHistory() {
   _historyCollapsed = !_historyCollapsed;
-  const body = document.getElementById('sessionGrid');
-  const btn  = document.getElementById('histToggleBtn');
-  if (body) body.classList.toggle('tp-hist-collapsed', _historyCollapsed);
-  if (btn)  btn.textContent = _historyCollapsed ? '∨' : '∧';
+  const btn = document.getElementById('histToggleBtn');
+  if (_historyCollapsed) {
+    // Collapse all week groups except the one with the most recent session
+    const keep = _mostRecentWeekKey();
+    const allDates = [
+      ..._sessData.map(g => g.date),
+      ..._sprintData.map(s => s.date),
+      ..._actData.map(a => a.date),
+    ];
+    const weekKeys = new Set();
+    for (const date of allDates) {
+      const dd = new Date(date + 'T12:00:00');
+      const df = (dd.getDay() + 6) % 7;
+      const m = new Date(dd); m.setDate(dd.getDate() - df); m.setHours(0,0,0,0);
+      weekKeys.add(m.toISOString().slice(0, 10));
+    }
+    _weekGroupState = {};
+    for (const wk of weekKeys) _weekGroupState[wk] = wk === keep;
+    if (btn) btn.textContent = '∧';
+  } else {
+    // Expand all — reset to defaults (current week open, others collapsed)
+    _weekGroupState = {};
+    if (btn) btn.textContent = '∨';
+  }
+  renderSessionGrid();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

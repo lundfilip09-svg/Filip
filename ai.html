@@ -988,12 +988,12 @@ async function copyInjuryStatus() {
   try {
     const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
     const [inj, knee, gym, sprint, act, injPain] = await Promise.all([
-      db.from('injuries').select('body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
+      db.from('injuries').select('id,body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
       db.from('knee_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
       db.from('gym_log').select('date,rpe').gte('date', cutoff),
       db.from('sprint_log').select('date,rpe').gte('date', cutoff),
       db.from('activity_log').select('date,rpe').gte('date', cutoff),
-      db.from('injury_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
+      db.from('injury_pain').select('injury_id,date,before_score,during_score,after_score,day_after_score').gte('date', cutoff),
     ]);
     const I = inj.data || [], K = knee.data || [], G = gym.data || [],
           S = sprint.data || [], A = act.data || [], IP = injPain.data || [];
@@ -1015,34 +1015,51 @@ async function copyInjuryStatus() {
       return res.length > 400 ? res.slice(0, 397) + '…' : res;
     };
 
+    // Smerte siste 7 dager gruppert per skade (injury_id).
+    const painByInj = {};
+    IP.forEach(r => { (painByInj[r.injury_id] || (painByInj[r.injury_id] = [])).push(r); });
+    // Maks per fase (før/under/etter/d.etter) over et sett rader.
+    const phaseMax = rows => {
+      const m = [null, null, null, null];
+      rows.forEach(r => [r.before_score, r.during_score, r.after_score, r.day_after_score]
+        .forEach((v, idx) => { if (v != null && (m[idx] == null || v > m[idx])) m[idx] = v; }));
+      return m;
+    };
+    const fp = v => v == null ? '–' : v;
+
     const lines = I.map(i => {
       const part = t(i.body_part); // 'body.knee' → «Kne» / «Knee»
       const side = i.side ? ` (${t('inj.side_' + i.side)})` : '';
       const sev  = i.severity ? t('inj.sev_' + i.severity) + ', ' : '';
       const st   = t('inj.st_' + i.status);
       const head = `• ${part}${side} — ${sev}${st} ${t('inj.since')} ${fmtDM(i.start_date)}`;
+      // Per-skade smerte. Legacy knee_pain KUN som fallback for kne hvis injury_pain mangler.
+      let rows = painByInj[i.id] || [];
+      if (!rows.length && /kne|knee/i.test(i.body_part)) rows = K;
+      let painLine;
+      if (rows.length) {
+        const [b, d, a, da] = phaseMax(rows);
+        painLine = t('diag.pain_line', { b: fp(b), d: fp(d), a: fp(a), da: fp(da) });
+      } else {
+        painLine = t('diag.pain_none');
+      }
       const note = noteSummary(i.note);
-      return note ? `${head}\n${note}` : head;
+      return [head, painLine, note].filter(Boolean).join('\n');
     });
 
-    // Siste 7 dager: økter (sprint telles per dato), snitt-RPE, maks knesmerte
+    // Siste 7 dager: økter (sprint telles per dato), snitt-RPE
     const sprintDates = [...new Set(S.map(s => s.date))];
     const rpeByDate = {};
     S.forEach(s => { if (rpeByDate[s.date] == null && s.rpe != null) rpeByDate[s.date] = s.rpe; });
     const allRpe = [...G.map(g => g.rpe), ...sprintDates.map(d => rpeByDate[d]), ...A.map(a => a.rpe)].filter(v => v != null);
     const avgRpe = allRpe.length ? Math.round(allRpe.reduce((a, b) => a + b, 0) / allRpe.length) : null;
-    // Maks smerte siste 7 dager på tvers av ALLE skader: injury_pain + knee_pain-fallback.
-    let maxPain = null;
-    const _bumpMax = arr => arr.forEach(v => { if (v != null && (maxPain == null || v > maxPain)) maxPain = v; });
-    IP.forEach(r => _bumpMax([r.before_score, r.during_score, r.after_score, r.day_after_score]));
-    K.forEach(k => _bumpMax([k.before_score, k.during_score, k.after_score, k.day_after_score]));
 
     const today = new Date().toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
     const msg = `${t('diag.header')} — Filip Lund, ${today}
 
 ${lines.length ? lines.join('\n\n') : t('diag.none')}
 
-${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? '–', pain: maxPain ?? '–' })}`;
+${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? '–' })}`;
 
     const ok = await writeClip(msg);
     toast(ok ? t('ai.diag_copied') : t('ai.report_copy_fail'));
@@ -1058,7 +1075,8 @@ async function copySleepAnalysis() {
   const btn = document.getElementById('copySleepBtn');
   if (btn) btn.disabled = true;
   try {
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 13);
+    // middags-anker (lokal) så slice(0,10) gir riktig kalenderdag uansett tidssone (USA)
+    const cutoff = new Date(); cutoff.setHours(12, 0, 0, 0); cutoff.setDate(cutoff.getDate() - 13);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     const { data } = await db.from('health_data')
       .select('date,sleep_hours,sleep_start,sleep_end,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,awake_minutes,hrv,rhr,sleep_score')

@@ -155,8 +155,8 @@ self.addEventListener('message', e => {
     if (ms < 1000) return;
     _timerId = setTimeout(() => {
       _timerId = null;
-      self.registration.showNotification(msg.title || 'Hviletimer ferdig', {
-        body:    msg.body  || 'Tid for neste sett!',
+      self.registration.showNotification(msg.title || 'Dashboard', {
+        body:    msg.body  || '',
         icon:    '/icon-192.png',
         badge:   '/icon-192.png',
         vibrate: [200, 100, 200],
