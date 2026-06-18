@@ -953,6 +953,15 @@ async function deleteList(name) {
   await db.from('todos').delete().eq('list_name', name);
   db.from('todo_lists').delete().eq('name', name).catch(() => {});
   localStorage.removeItem('gm_order_' + name);
+  // If it's a hardcoded default, mark it hidden so loadLists() doesn't re-add it
+  const defaults = ['Generelt', 'Trening', 'Skole'];
+  if (defaults.includes(name)) {
+    const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
+    if (!hidden.includes(name)) {
+      hidden.push(name);
+      localStorage.setItem('gm_hidden_defaults', JSON.stringify(hidden));
+    }
+  }
   lists = lists.filter(l => l !== name);
   if (activeList === name) activeList = lists[0] || 'Generelt';
   renderListsBar();
