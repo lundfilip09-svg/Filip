@@ -59,22 +59,26 @@ export default async function handler(req, res) {
     headers: {
       'x-api-key': ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'extended-cache-ttl-2025-04-11',   // 1-times-cache
       'content-type': 'application/json',
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 700,
-      // System-prompten er statisk → cache den. Cache-treff koster 0.1x input,
-      // så de ~1000 tokenene gjenbrukes nesten gratis i hver melding (5 min TTL).
+      // CACHING (1-times-TTL): både system-prompten OG treningsdata-konteksten
+      // legges i det cachede prefikset. Cache-treff koster 0.1x input, så i en
+      // samtale (oppfølgingsspørsmål innen 1 time) gjenbrukes ~4500 tokens nesten
+      // gratis i stedet for å sendes i full pris hver melding.
+      // - Breakpoint 1 (system): statisk → treffer cache på tvers av ALLE samtaler/dager.
+      // - Breakpoint 2 (kontekst): dagens data → stabil innen timen, friskes opp neste dag.
+      // Konteksten ER nå en del av system-prefikset, så brukermeldingen er bare spørsmålet.
       system: [
-        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral', ttl: '1h' } },
+        { type: 'text', text: context,       cache_control: { type: 'ephemeral', ttl: '1h' } },
       ],
       messages: [
         ...safeHistory,
-        {
-          role: 'user',
-          content: `${context}\n\n---\n\n${message}`,
-        },
+        { role: 'user', content: message },
       ],
     }),
   });

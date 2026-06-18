@@ -508,6 +508,17 @@ function historyForApi() {
   return msgs;
 }
 
+// Mykt dagstak: vennlig påminnelse om API-budsjettet hvis du sender uvanlig mange
+// meldinger på én dag. Blokkerer IKKE — med 1-times-cache er hver melding ~1 øre.
+const DAILY_SOFT_CAP = 25;
+function bumpDailyCount() {
+  const key = 'ai_msg_count_' + today();
+  let n = 0;
+  try { n = (parseInt(localStorage.getItem(key) || '0', 10) || 0) + 1; localStorage.setItem(key, String(n)); } catch {}
+  try { Object.keys(localStorage).filter(k => k.startsWith('ai_msg_count_') && k !== key).forEach(k => localStorage.removeItem(k)); } catch {}
+  if (n === DAILY_SOFT_CAP) toast(t('ai.daily_soft_cap', { n: DAILY_SOFT_CAP }));
+}
+
 // ── Send message ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (isSending) return;
@@ -560,6 +571,7 @@ async function sendMessage() {
     } else {
       const { reply } = await res.json();
       appendMessage('ai', reply);
+      bumpDailyCount();   // mykt dagstak (kun en vennlig påminnelse)
       chatHistory.push({ role: 'user', content: msg });
       chatHistory.push({ role: 'assistant', content: reply });
       if (chatHistory.length > 10) {
