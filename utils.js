@@ -484,8 +484,6 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
     'tp.rest_rehab': 'Hvile & rehab', 'tp.rest': 'Hvile', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
-    'tp.filter_all': 'Alle', 'tp.filter_gym': 'Styrke', 'tp.filter_sprint': 'Sprint', 'tp.filter_act': 'Aktivitet',
-    'tp.sess_one': 'økt', 'tp.sess_many': 'økter',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
@@ -1022,8 +1020,6 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
     'tp.rest_rehab': 'Rest & rehab', 'tp.rest': 'Rest', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
-    'tp.filter_all': 'All', 'tp.filter_gym': 'Strength', 'tp.filter_sprint': 'Sprint', 'tp.filter_act': 'Activity',
-    'tp.sess_one': 'session', 'tp.sess_many': 'sessions',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
