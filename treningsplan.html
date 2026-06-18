@@ -772,6 +772,8 @@ let userId               = null;
 let plan                 = {};   // training_plan overrides { 0: 'Sprint', notes_0: '...', ... }
 let weeklyPlan           = {};   // weekly_plan global defaults { 0: 'Sprint', ... }
 let planWeekly           = {};   // training_plan_weekly for displayed week (when weekOffset !== 0)
+let weeklyPlanTpl        = {};   // day -> template_id (parallelt med weeklyPlan-tekst)
+let sessionTemplates     = [];   // session_templates-biblioteket (051)
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
 let selectedIdx          = todayIdx();
@@ -815,10 +817,36 @@ async function loadPlanFromDb() {
   });
 }
 
+// ── session_templates (051) ────────────────────────────────────────────────
+async function loadSessionTemplates() {
+  const { data } = await db.from('session_templates').select('*').order('sort_order').order('name');
+  sessionTemplates = data || [];
+}
+// Innebygde maler vises via i18n_key; egendefinerte via name som-er.
+function tplLabel(tpl) { return tpl ? (tpl.i18n_key ? t(tpl.i18n_key) : tpl.name) : ''; }
+function tplById(id)   { return id == null ? null : (sessionTemplates.find(x => String(x.id) === String(id)) || null); }
+// Resolver lagret fritekst/snapshot -> mal (for preselect + presets). Speiler
+// _SESSION_TYPE_KEYS, og matcher på navn ELLER label på begge språk. 'hvile'/'rest' = ingen mal.
+function resolveTpl(text) {
+  const raw = (text || '').trim(); if (!raw) return null;
+  const lc = raw.toLowerCase(); if (lc === 'hvile' || lc === 'rest') return null;
+  let m = sessionTemplates.find(x => x.name.toLowerCase() === lc); if (m) return m;
+  m = sessionTemplates.find(x => tplLabel(x).toLowerCase() === lc); if (m) return m;
+  const key = _SESSION_TYPE_KEYS[lc];
+  if (key) { m = sessionTemplates.find(x => x.i18n_key === key); if (m) return m; }
+  return null;
+}
+function tplOptions(selId) {
+  return [`<option value="">${escHtml(t('daytype.rest'))}</option>`]
+    .concat(sessionTemplates.map(tpl =>
+      `<option value="${escHtml(String(tpl.id))}"${String(tpl.id) === String(selId) ? ' selected' : ''}>${escHtml(tplLabel(tpl))}</option>`))
+    .join('');
+}
+
 async function loadWeeklyPlan() {
-  const { data } = await db.from('weekly_plan').select('day,session_type');
-  weeklyPlan = {};
-  (data || []).forEach(r => { weeklyPlan[r.day] = r.session_type; });
+  const { data } = await db.from('weekly_plan').select('day,session_type,template_id');
+  weeklyPlan = {}; weeklyPlanTpl = {};
+  (data || []).forEach(r => { weeklyPlan[r.day] = r.session_type; weeklyPlanTpl[r.day] = r.template_id; });
 
   // Auto-seed from training_plan on first use
   if (!Object.keys(weeklyPlan).length) {
@@ -851,13 +879,14 @@ async function loadPlanForWeek() {
 function openEditWeeklyPlan() {
   const el = document.getElementById('weeklyPlanRows');
   if (!el) return;
-  el.innerHTML = [0,1,2,3,4,5,6].map(d => `
+  el.innerHTML = [0,1,2,3,4,5,6].map(d => {
+    const selId = (weeklyPlanTpl[d] != null) ? weeklyPlanTpl[d] : (resolveTpl(weeklyPlan[d])?.id || '');
+    return `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${t('wd.'+((d+1)%7))}</div>
-      <input class="input-sm" id="wp-day-${d}" type="text" placeholder="${t('tp.wp_placeholder')}"
-        value="${escHtml(weeklyPlan[d] || '')}"
-        style="flex:1" onkeydown="if(event.key==='Enter')saveWeeklyPlan()">
-    </div>`).join('');
+      <select class="input-sm" id="wp-day-${d}" style="flex:1">${tplOptions(selId)}</select>
+    </div>`;
+  }).join('');
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
   document.getElementById('wp-day-0')?.focus();
   loadWeekPresets();   // async, fyller dropdown
@@ -895,7 +924,7 @@ function applyWeekPreset() {
   if (!p) { toast(t('tp.preset_pick'), 'err'); return; }
   [0, 1, 2, 3, 4, 5, 6].forEach(d => {
     const inp = document.getElementById(`wp-day-${d}`);
-    if (inp) inp.value = p.plan?.[d] ?? '';
+    if (inp) inp.value = resolveTpl(p.plan?.[d])?.id || '';   // preset lagrer tekst -> resolve til mal
   });
   toast(t('tp.preset_applied_hint'));
 }
@@ -905,7 +934,8 @@ async function saveWeekPreset() {
   if (!name) return;
   const plan = {};
   [0, 1, 2, 3, 4, 5, 6].forEach(d => {
-    plan[d] = document.getElementById(`wp-day-${d}`)?.value.trim() || '';
+    // select gir nå template_id; lagre malens stabile name som tekst-snapshot i preset.
+    plan[d] = tplById(document.getElementById(`wp-day-${d}`)?.value)?.name || '';
   });
   const existing = _wpPresets.find(p => p.name.toLowerCase() === name.toLowerCase());
   let error;
@@ -931,14 +961,14 @@ async function deleteWeekPreset() {
 }
 
 async function saveWeeklyPlan() {
-  const rows = [0,1,2,3,4,5,6].map(d => ({
-    user_id: userId,
-    day: d,
-    session_type: document.getElementById(`wp-day-${d}`)?.value.trim() || '',
-  }));
+  const rows = [0,1,2,3,4,5,6].map(d => {
+    const tpl = tplById(document.getElementById(`wp-day-${d}`)?.value);
+    // template_id = sannhetskilde; session_type = lesbar snapshot (fallback til 052).
+    return { user_id: userId, day: d, template_id: tpl ? tpl.id : null, session_type: tplLabel(tpl) };
+  });
   const { error } = await db.from('weekly_plan').upsert(rows, { onConflict: 'user_id,day' });
   if (error) { console.error('saveWeeklyPlan error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
-  rows.forEach(r => { weeklyPlan[r.day] = r.session_type; });
+  rows.forEach(r => { weeklyPlan[r.day] = r.session_type; weeklyPlanTpl[r.day] = r.template_id; });
 
   // Fjern inneværende ukes overstyringer så den nye faste planen vises. Kun denne
   // uka (dato-forankret) — framtidige/forrige ukers overstyringer røres ikke.
@@ -995,7 +1025,7 @@ function renderHero() {
     sessionEl.textContent = txt;
     sessionEl.className   = 'hero-session';
   } else {
-    sessionEl.textContent = t('tp.rest_rehab');
+    sessionEl.textContent = t('tp.rest');
     sessionEl.className   = 'hero-session is-rest';
   }
 
@@ -1052,7 +1082,7 @@ function renderDayStrip() {
       </div>
       ${txt
         ? `<div class="day-card-plan">${escHtml(txt)}</div>`
-        : `<div class="day-card-rest">${t('tp.rest_rehab')}</div>`
+        : `<div class="day-card-rest">${t('tp.rest')}</div>`
       }
     </div>`;
   }).join('');
@@ -1076,7 +1106,7 @@ function renderDetail() {
     titleEl.textContent = txt;
     titleEl.className   = 'detail-day-title';
   } else {
-    titleEl.textContent = t('tp.rest_rehab');
+    titleEl.textContent = t('tp.rest');
     titleEl.className   = 'detail-day-title is-empty';
   }
 
@@ -2507,6 +2537,7 @@ function toggleHistory() {
     return;
   }
 
+  await loadSessionTemplates();
   await loadPlanFromDb();
   await loadWeeklyPlan();
 
@@ -2625,6 +2656,7 @@ function toggleHistory() {
     loadSessionHistory();
     if (!document.getElementById('actModal').classList.contains('hidden')) renderActInjuryBlocks();
     if (!document.getElementById('ocModal').classList.contains('hidden')) renderOCModal();
+    if (!document.getElementById('weeklyPlanModal').classList.contains('hidden')) openEditWeeklyPlan();
   };
   applyLang();
   renderHero();

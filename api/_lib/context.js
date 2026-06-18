@@ -78,7 +78,8 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
 
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
-         knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData, programData] = await Promise.all([
+         knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData, programData,
+         templatesData] = await Promise.all([
     sb('health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood,body_battery,stress_avg&order=date.desc&limit=7'),
     sb('sprint_log', 'select=*&order=date.desc&limit=7'),
@@ -86,8 +87,8 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('knee_pain', 'select=*&order=date.desc&limit=7'),
     sb('activity_log', 'select=*&order=date.desc&limit=7'),
     sb('sprint_records', 'select=distance,best_time,date&order=distance.asc'),
-    sb('weekly_plan', 'select=day,session_type&order=day.asc'),
-    sb('training_plan_weekly', `select=day_index,session_text,notes&week_monday=eq.${weekMondayISO}&order=day_index.asc`),
+    sb('weekly_plan', 'select=day,session_type,template_id&order=day.asc'),
+    sb('training_plan_weekly', `select=day_index,session_text,notes,template_id&week_monday=eq.${weekMondayISO}&order=day_index.asc`),
     // B6: 28-dagers vinduer for forhåndsberegnede nøkkeltall (ACWR, smertefri-dager)
     sb('knee_pain', 'select=date,before_score,during_score,after_score,day_after_score&order=date.desc&limit=60'),
     sb('sprint_log', 'select=date,rpe&order=date.desc&limit=120'),
@@ -101,6 +102,8 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('injuries', 'select=id,body_part,side,status,severity,start_date,note&order=updated_at.desc&limit=20'),
     // Gym-program: hvilke øvelser som ligger på hver styrkedag (man/ons/fre) m/ anbefalte sett×reps
     sb('workout_program', 'select=day,section,exercise_name,sets,reps&order=day.asc,sort_order.asc'),
+    // 051: økt-mal-bibliotek — for å resolve template_id -> lesbart navn i ukeplanen
+    sb('session_templates', 'select=id,name,i18n_key'),
   ]);
 
   // ── Fase 2: injury_pain per alvorlig aktiv skade (trenger ID-er fra fase 1) ──
@@ -225,13 +228,28 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
   // Slå sammen ukeplan: weekly_plan = global standard, training_plan_weekly =
   // per-dag-overstyring for inneværende uke (dato-forankret).
   const DAYS_NO = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+  // 051: resolve template_id -> norsk navn (innebygde maler via i18n_key), ellers
+  // tekst-snapshot. Tom = hvile. NB: AI-øvelser kobles ikke på her ennå (egen oppgave).
+  const DAYTYPE_NO = {
+    'daytype.strength':'Styrke','daytype.strength_capacity':'Styrke Kapasitet',
+    'daytype.strength_power':'Styrke Power','daytype.power':'Power',
+    'daytype.mobility':'Sirkulasjon & Mobilitet','daytype.conditioning':'Kondisjon',
+    'daytype.rest':'Hvile','daytype.rehab':'Rehab','daytype.soccer':'Fotball',
+    'daytype.basketball':'Basketball','daytype.track':'Friidrett','daytype.sprint':'Sprint',
+  };
+  const _tplMap = {};
+  (Array.isArray(templatesData) ? templatesData : []).forEach(tpl => {
+    _tplMap[tpl.id] = tpl.i18n_key ? (DAYTYPE_NO[tpl.i18n_key] || tpl.name) : tpl.name;
+  });
+  const _tplName = (tid, txt) => (tid && _tplMap[tid]) ? _tplMap[tid] : (txt || '').trim();
   const planByDay = {};
   (Array.isArray(weeklyPlan) ? weeklyPlan : []).forEach(r => {
-    if (r.session_type) planByDay[r.day] = r.session_type;
+    const v = _tplName(r.template_id, r.session_type);
+    if (v) planByDay[r.day] = v;
   });
   (Array.isArray(planOverrides) ? planOverrides : []).forEach(r => {
     // En rad = eksplisitt overstyring; '' = dagen tømt denne uka (= hvile).
-    planByDay[r.day_index] = r.session_text;
+    planByDay[r.day_index] = _tplName(r.template_id, r.session_text);
     if (r.notes) planByDay[`notes_${r.day_index}`] = r.notes;
   });
   const weekPlanReadable = DAYS_NO.map((navn, i) =>
