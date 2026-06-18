@@ -871,7 +871,7 @@ async function loadLists() {
     .select('name').order('position', { ascending: true });
 
   if (!listErr && listRows && listRows.length > 0) {
-    lists = listRows.map(r => r.name);
+    lists = listRows.map(r => r.name).filter(n => !hidden.includes(n));
     // Ensure un-hidden defaults appear even if not yet in todo_lists
     for (const d of defaultLists) {
       if (!lists.includes(d)) lists.unshift(d);
@@ -879,7 +879,7 @@ async function loadLists() {
   } else {
     // Pre-migration fallback: derive from todos
     const { data } = await db.from('todos').select('list_name');
-    const fromDb = [...new Set((data || []).map(t => t.list_name))];
+    const fromDb = [...new Set((data || []).map(t => t.list_name))].filter(n => !hidden.includes(n));
     lists = [...new Set([...defaultLists, ...fromDb])];
   }
 
