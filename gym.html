@@ -726,6 +726,10 @@ applyLang();
 let activeDay    = 'monday';   // settes ordentlig i bootstrap etter at gymDays er lastet
 let allExercises = {};
 let gymDays      = [];          // A6: [{ id, day_key, weekday, type_label, is_protected, sort_order }]
+// 051/F2-bolk1: økt-mal-laget. Additivt — motoren nøkler fortsatt på day_key.
+let sessionTemplates = [];      // session_templates-biblioteket (051)
+let _tplIdByDayKey   = {};      // bro: gym_days.day_key -> session_templates.id (via i18n_key=type_label)
+let _planTplByDay    = {};      // weekly_plan: day(0=man..6=søn) -> template_id (for «i dag»-oppslag)
 let weights      = {};
 const kneePain   = { before: null, during: null, after: null, 'day-after': null };
 let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
@@ -829,7 +833,17 @@ function restoreDraft() {
 }
 
 function detectDay() {
-  // A6: finn en eksisterende dag som matcher dagens ukedag, ellers første dag.
+  // 051/F2-bolk1: la UKEPLANEN bestemme dagens økt først (ukedags-agnostiske maler).
+  // weekly_plan.day: 0=man..6=søn. JS getDay(): 0=søn..6=lør ⇒ planDay=(js+6)%7.
+  const planDay = (new Date().getDay() + 6) % 7;
+  const todayTpl = _planTplByDay[planDay];
+  if (todayTpl) {
+    // Finn en gym-dag hvis mal matcher ukeplanens mal for i dag (hopp over rehab).
+    const bridged = gymDays.find(d => d.day_key !== 'rehab' && _tplIdByDayKey[d.day_key] === todayTpl);
+    if (bridged) return bridged.day_key;
+    // Ukeplanen peker på en ikke-gym-mal (f.eks. Sprint) → ingen gym-økt i dag; fall gjennom.
+  }
+  // A6-fallback: finn en eksisterende dag som matcher dagens ukedag, ellers første dag.
   const wd = new Date().getDay();
   const match = gymDays.find(d => d.weekday === wd && d.day_key !== 'rehab');
   if (match) return match.day_key;
@@ -849,6 +863,56 @@ function dayLabel(d) {
 }
 
 function getDay(key) { return gymDays.find(d => d.day_key === key); }
+
+// ── 051/F2-bolk1: mal-hjelpere (speiler treningsplan.html) ──────────────────
+function tplById(id) {
+  return id == null ? null : (sessionTemplates.find(x => String(x.id) === String(id)) || null);
+}
+// Tospråklig visningsnavn for en mal: innebygde via i18n_key, ellers fritekst-navn.
+function tplLabel(tpl) {
+  if (!tpl) return '';
+  return tpl.i18n_key ? t(tpl.i18n_key) : tpl.name;
+}
+// Bro: bygg day_key -> template_id ved å matche gym_days.type_label mot mal.i18n_key.
+function _buildTplBridge() {
+  _tplIdByDayKey = {};
+  gymDays.forEach(gd => {
+    const tpl = gd.type_label
+      ? sessionTemplates.find(x => x.i18n_key === gd.type_label)
+      : null;
+    if (tpl) _tplIdByDayKey[gd.day_key] = tpl.id;
+  });
+}
+// Malen som ligger bak en day-pill (eller null for warmup/ubrodde dager).
+function tplForDayKey(key) { return tplById(_tplIdByDayKey[key]); }
+
+// Utled mal-kind fra en daytype.*-i18n-nøkkel (speiler seedingen i 051).
+function _kindFromTypeLabel(typeLabel) {
+  const s = String(typeLabel || '');
+  if (/strength|power/.test(s)) return 'strength';
+  if (/mobility|conditioning/.test(s)) return 'mobility';
+  if (/rehab/.test(s)) return 'rehab';
+  if (/sprint/.test(s)) return 'sprint';
+  return 'other';
+}
+// Sørg for at en mal finnes for en dagtype (gjenbruk hvis i18n_key alt finnes).
+// Unikt-navn-vakt (krav #2): avbryt og varsle hvis navnet er tatt av en ANNEN mal.
+// Returnerer true ved suksess/gjenbruk, false ved navnekonflikt.
+async function _ensureTemplateFor(typeLabel) {
+  if (!typeLabel) return true;
+  if (sessionTemplates.some(x => x.i18n_key === typeLabel)) return true;   // gjenbruk
+  const name = typeLabel.replace('daytype.', '');
+  if (sessionTemplates.some(x => x.name.toLowerCase() === name.toLowerCase())) {
+    toast(t('gym.day_exists'), 'err'); return false;                       // navn tatt → krav #2
+  }
+  const sort_order = Math.max(50, ...sessionTemplates.map(x => x.sort_order ?? 0)) + 1;
+  const { data, error } = await db.from('session_templates')
+    .insert({ name, kind: _kindFromTypeLabel(typeLabel), i18n_key: typeLabel, sort_order })
+    .select().single();
+  if (error) { toast(t('gym.save_error'), 'err'); return false; }
+  if (data) sessionTemplates.push(data);
+  return true;
+}
 
 // Oversett lagrede session_type-verdier (norske/engelske) til aktivt språk,
 // slik at gammel økthistorikk ("Strength Capacity", "Rehab") vises riktig.
@@ -915,9 +979,19 @@ async function createDay() {
   if (gymDays.some(d => d.day_key === day_key)) { toast(t('gym.day_exists'), 'err'); closeDayDialog(); return; }
   const sort_order = Math.max(0, ...gymDays.filter(d => !d.is_protected).map(d => d.sort_order ?? 0)) + 1;
   const row = { day_key, weekday, type_label, is_protected: false, sort_order };
+  // 051/F2-bolk1: unikt-navn-vakt (krav #2) FØR vi oppretter dagen — avbryt ved konflikt.
+  if (type_label && !sessionTemplates.some(x => x.i18n_key === type_label)) {
+    const candidate = type_label.replace('daytype.', '');
+    if (sessionTemplates.some(x => x.name.toLowerCase() === candidate.toLowerCase())) {
+      toast(t('gym.day_exists'), 'err'); return;
+    }
+  }
   const { data, error } = await db.from('gym_days').insert(row).select().single();
   if (error) { toast(t('gym.save_error'), 'err'); return; }
   gymDays.push(data || row);
+  // 051/F2-bolk1: sørg for at en mal finnes for dagtypen (gjenbruk/opprett) + bygg bro.
+  await _ensureTemplateFor(type_label);
+  _buildTplBridge();
   const copyFrom = document.getElementById('ddCopyFrom')?.value || '';
   closeDayDialog();
   allExercises[day_key] = {};   // ny dag starter tom (fylles under hvis kopiering)
@@ -928,8 +1002,9 @@ async function createDay() {
     const { data: srcRows } = await db.from('workout_program')
       .select('section,exercise_name,sets,reps,sort_order').eq('day', copyFrom);
     if (srcRows && srcRows.length) {
+      const _tplId = _tplIdByDayKey[day_key] || null;   // dual-write mal-kobling
       const newRows = srcRows.map(r => ({
-        day: day_key, section: r.section, exercise_name: r.exercise_name,
+        day: day_key, template_id: _tplId, section: r.section, exercise_name: r.exercise_name,
         sets: r.sets, reps: r.reps, sort_order: r.sort_order,
       }));
       const { data: inserted, error: copyErr } = await db.from('workout_program').insert(newRows).select();
@@ -1135,11 +1210,17 @@ async function init() {
 }
 
 async function loadData() {
-  const [prog, wts, days] = await Promise.all([
+  const [prog, wts, days, tpls, wplan] = await Promise.all([
     db.from('workout_program').select('*').order('sort_order'),
     db.from('exercise_weights').select('*'),
     db.from('gym_days').select('*').order('sort_order'),
+    // 051/F2-bolk1: mal-bibliotek + ukeplanens dag→mal-kobling (for «i dag»)
+    db.from('session_templates').select('*').order('sort_order').order('name'),
+    db.from('weekly_plan').select('day,template_id'),
   ]);
+  sessionTemplates = tpls.data || [];
+  _planTplByDay = {};
+  (wplan.data || []).forEach(r => { if (r.template_id) _planTplByDay[r.day] = r.template_id; });
   // A6: dag-registeret. Fallback til de gamle hardkodede dagene hvis tabellen
   // ikke finnes ennå (migrasjon 016 ikke kjørt).
   gymDays = (days.data && days.data.length) ? days.data : [
@@ -1148,6 +1229,7 @@ async function loadData() {
     { day_key: 'friday',    weekday: 5, type_label: 'daytype.strength_power',     is_protected: false, sort_order: 2 },
     { day_key: 'rehab',     weekday: null, type_label: 'daytype.rehab',          is_protected: true,  sort_order: 99 },
   ];
+  _buildTplBridge();   // 051/F2-bolk1: day_key -> template_id
   allExercises = {};
   (prog.data || []).forEach(ex => {
     if (!allExercises[ex.day]) allExercises[ex.day] = {};
@@ -1268,7 +1350,7 @@ async function seedRehabIfEmpty() {
   for (const d of defaults) {
     if (existingNames.has(d.name.toLowerCase())) continue;
     const { data, error } = await db.from('workout_program').insert({
-      day: 'rehab', section: 'Rehab', exercise_name: d.name,
+      day: 'rehab', template_id: _tplIdByDayKey['rehab'] || null, section: 'Rehab', exercise_name: d.name,
       sets: d.sets, reps: d.reps, sort_order: d.sort_order,
     }).select().single();
     if (data && !error) allExercises['rehab']['Rehab'].push(data);
@@ -2645,8 +2727,10 @@ async function addExercise(day, section, formId) {
   const reps = document.getElementById(`${formId}-reps`).value.trim() || '8–10';
   if (!name) return;
   const maxSort = Math.max(0, ...((allExercises[day]?.[section] || []).map(e => e.sort_order)));
+  // 051/F2-bolk1: dual-write template_id (warmup/friday_warmup har ingen mal → null).
+  const _tplId = _tplIdByDayKey[day] || null;
   const { data, error } = await db.from('workout_program').insert(
-    { day, section, exercise_name: name, sets, reps, sort_order: maxSort + 1 }
+    { day, template_id: _tplId, section, exercise_name: name, sets, reps, sort_order: maxSort + 1 }
   ).select().single();
   if (error) { toast(t('gym.save_error'), 'err'); return; }
   if (!allExercises[day]) allExercises[day] = {};
