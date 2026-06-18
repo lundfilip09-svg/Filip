@@ -931,7 +931,7 @@ async function renameList(oldName) {
   lists = lists.map(l => l === oldName ? newName : l);
   allTodos.forEach(td => { if (td.list_name === oldName) td.list_name = newName; });
   if (activeList === oldName) { activeList = newName; try { localStorage.setItem('gjoremal_active_tab', newName); } catch {} }
-  db.from('todo_lists').update({ name: newName }).eq('name', oldName).catch(() => {});
+  db.from('todo_lists').update({ name: newName }).eq('name', oldName);
   renderListsBar();
   const h = document.getElementById('listHeading'); if (h) h.textContent = activeList;
   renderTodos();
@@ -944,14 +944,14 @@ async function addList() {
   const position = lists.length;
   lists.push(name);
   document.getElementById('newListName').value = '';
-  db.from('todo_lists').insert({ name, position }).catch(() => {});
+  db.from('todo_lists').insert({ name, position });
   selectList(name);
 }
 
 async function deleteList(name) {
   if (!confirm(t('gm.delete_list', {n: name}))) return;
   await db.from('todos').delete().eq('list_name', name);
-  db.from('todo_lists').delete().eq('name', name).catch(() => {});
+  await db.from('todo_lists').delete().eq('name', name);
   localStorage.removeItem('gm_order_' + name);
   // If it's a hardcoded default, mark it hidden so loadLists() doesn't re-add it
   const defaults = ['Generelt', 'Trening', 'Skole'];
