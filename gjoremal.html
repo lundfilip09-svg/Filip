@@ -446,6 +446,19 @@
       margin-bottom: -1px;
     }
 
+    /* ── List-sidebar drag (reuses same classes) ── */
+    .gm-li:hover .drag-handle { opacity: 1; }
+    .gm-li.dragging { opacity: 0.3; }
+    .gm-li.drag-before {
+      border-top: 2px solid rgba(91,164,245,0.65);
+      margin-top: -1px;
+    }
+    .gm-li.drag-after {
+      border-bottom: 2px solid rgba(91,164,245,0.65);
+      margin-bottom: -1px;
+    }
+    @media (max-width: 720px) { .gm-li .drag-handle { display: none; } }
+
     /* ── Responsive ── */
     @media (max-width: 960px) {
       .gm-shell { grid-template-columns: 196px 1fr; }
@@ -759,6 +772,28 @@ let newImportant = false;
 let _dragId = null;
 let _dragEl = null;
 
+// ── List-sidebar drag state ────────────────────────────────────────────────
+let _listDragEl = null;
+
+function onListDragStart(e) {
+  _listDragEl = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'list');
+  setTimeout(() => _listDragEl && _listDragEl.classList.add('dragging'), 0);
+}
+function onListDragEnd() {
+  if (_listDragEl) _listDragEl.classList.remove('dragging');
+  clearDragClasses();
+  _listDragEl = null;
+}
+async function saveListOrder() {
+  try {
+    await Promise.all(lists.map((name, position) =>
+      db.from('todo_lists').upsert({ name, position }, { onConflict: 'name' })
+    ));
+  } catch(e) {}
+}
+
 function getOrder(ln) {
   try { return JSON.parse(localStorage.getItem('gm_order_' + ln) || 'null') || null; } catch(e) { return null; }
 }
@@ -828,11 +863,26 @@ function onLangChange() {
 
 // ── Lists ─────────────────────────────────────────────────────────────────
 async function loadLists() {
-  const { data } = await db.from('todos').select('list_name');
-  const fromDb = [...new Set((data || []).map(t => t.list_name))];
   const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
   const defaultLists = ['Generelt', 'Trening', 'Skole'].filter(d => !hidden.includes(d));
-  lists = [...new Set([...defaultLists, ...fromDb])];
+
+  // Load from todo_lists (persisted order). Fall back to deriving from todos if table missing.
+  const { data: listRows, error: listErr } = await db.from('todo_lists')
+    .select('name').order('position', { ascending: true });
+
+  if (!listErr && listRows && listRows.length > 0) {
+    lists = listRows.map(r => r.name);
+    // Ensure un-hidden defaults appear even if not yet in todo_lists
+    for (const d of defaultLists) {
+      if (!lists.includes(d)) lists.unshift(d);
+    }
+  } else {
+    // Pre-migration fallback: derive from todos
+    const { data } = await db.from('todos').select('list_name');
+    const fromDb = [...new Set((data || []).map(t => t.list_name))];
+    lists = [...new Set([...defaultLists, ...fromDb])];
+  }
+
   const savedTab = localStorage.getItem('gjoremal_active_tab');
   if (savedTab && lists.includes(savedTab)) {
     activeList = savedTab;
@@ -846,7 +896,11 @@ function renderListsBar() {
   const bar = document.getElementById('listsBar');
   bar.innerHTML = lists.map(l => {
     const cnt = allTodos.filter(t => t.list_name === l && !t.completed).length;
-    return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}" onclick="selectList(this.dataset.list)">
+    return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}"
+               draggable="true"
+               ondragstart="onListDragStart(event)" ondragend="onListDragEnd(event)"
+               onclick="selectList(this.dataset.list)">
+      <span class="drag-handle" aria-label="${t('gm.drag_list')}">⠿</span>
       <span class="gm-li-name">${escHtml(l)}</span>
       ${cnt > 0 ? `<span class="gm-li-count">${cnt}</span>` : ''}
       <button class="gm-li-edit" data-list="${escHtml(l)}" onclick="event.stopPropagation();renameList(this.dataset.list)" title="${t('gm.rename')}">✎</button>
@@ -877,6 +931,7 @@ async function renameList(oldName) {
   lists = lists.map(l => l === oldName ? newName : l);
   allTodos.forEach(td => { if (td.list_name === oldName) td.list_name = newName; });
   if (activeList === oldName) { activeList = newName; try { localStorage.setItem('gjoremal_active_tab', newName); } catch {} }
+  db.from('todo_lists').update({ name: newName }).eq('name', oldName).catch(() => {});
   renderListsBar();
   const h = document.getElementById('listHeading'); if (h) h.textContent = activeList;
   renderTodos();
@@ -886,14 +941,17 @@ async function renameList(oldName) {
 async function addList() {
   const name = document.getElementById('newListName').value.trim();
   if (!name || lists.includes(name)) return;
+  const position = lists.length;
   lists.push(name);
   document.getElementById('newListName').value = '';
+  db.from('todo_lists').insert({ name, position }).catch(() => {});
   selectList(name);
 }
 
 async function deleteList(name) {
   if (!confirm(t('gm.delete_list', {n: name}))) return;
   await db.from('todos').delete().eq('list_name', name);
+  db.from('todo_lists').delete().eq('name', name).catch(() => {});
   localStorage.removeItem('gm_order_' + name);
   lists = lists.filter(l => l !== name);
   if (activeList === name) activeList = lists[0] || 'Generelt';
@@ -956,7 +1014,7 @@ function renderTodos() {
           <div class="todo-text ${todo.completed?'done-text':''}"${!todo.completed?` onclick="startEditTitle('${todo.id}')" title="${t('gm.click_edit')}"`:''}>${escHtml(todo.title)}</div>
           <div class="todo-meta">
             ${todo.due_date
-              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${todo.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(todo.due_date)}</span>`
+              ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${todo.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(todo.due_date)}${!todo.completed?`<button class="todo-remind-x" onclick="event.stopPropagation();clearDue('${todo.id}')" title="${t('gm.clear_date')}" aria-label="${t('gm.clear_date')}">✕</button>`:''}</span>`
               : `<span class="todo-add-date" onclick="startEditDue('${todo.id}')">${t('gm.add_date')}</span>`
             }
             ${todo.remind_at
@@ -1066,6 +1124,17 @@ async function clearRemind(todoId) {
   todo.remind_at = null;
   cancelTodoReminder(todoId);
   toast(t('gm.reminder_cleared'));
+  renderTodos();
+}
+// Fjern forfallsdato direkte fra dato-brikka (uten å åpne datovelgeren).
+async function clearDue(todoId) {
+  const todo = allTodos.find(x => String(x.id) === String(todoId));
+  if (!todo || !todo.due_date) return;
+  const { error } = await db.from('todos').update({ due_date: null }).eq('id', todoId);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.due_date = null;
+  toast(t('gm.date_removed'));
+  updateStats();
   renderTodos();
 }
 
@@ -1289,6 +1358,36 @@ function startEditRemind(todoId) {
   });
 })();
 
+
+// ── #listsBar drag container listeners ───────────────────────────────────
+(function() {
+  const bar = document.getElementById('listsBar');
+  bar.addEventListener('dragover', e => {
+    if (!_listDragEl) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('.gm-li');
+    clearDragClasses();
+    if (!target || target === _listDragEl) return;
+    const r = target.getBoundingClientRect();
+    target.classList.add(e.clientY < r.top + r.height / 2 ? 'drag-before' : 'drag-after');
+  });
+  bar.addEventListener('dragleave', e => {
+    if (!bar.contains(e.relatedTarget)) clearDragClasses();
+  });
+  bar.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.gm-li');
+    clearDragClasses();
+    if (!target || !_listDragEl || target === _listDragEl) return;
+    const r = target.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) bar.insertBefore(_listDragEl, target);
+    else bar.insertBefore(_listDragEl, target.nextSibling);
+    // Sync lists array from DOM order, then persist
+    lists = [...bar.querySelectorAll('.gm-li[data-list]')].map(el => el.dataset.list);
+    saveListOrder();
+  });
+})();
 
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {

@@ -200,6 +200,7 @@ const TRANSLATIONS = {
     'gm.reminder': 'Påminnelse', 'gm.add_reminder': 'Påminnelse', 'gm.reminder_set': 'Påminnelse satt',
     'gm.reminder_cleared': 'Påminnelse fjernet', 'gm.reminder_at': 'Påminnelse {time}',
     'gm.reminder_past': 'Velg et tidspunkt frem i tid', 'gm.clear_reminder': 'Fjern påminnelse',
+    'gm.clear_date': 'Fjern forfallsdato',
     'gm.reminder_body': 'Påminnelse',
     'gym.sets_progress': '{done} / {total} sett',
     'gym.ring_done': 'ferdig',
@@ -380,6 +381,7 @@ const TRANSLATIONS = {
     'gm.sub_tasks': 'Gjøremål for i dag og fremover',
     'gm.update_error': 'Kunne ikke oppdatere', 'gm.delete_error': 'Kunne ikke slette',
     'gm.rename': 'Gi nytt navn', 'gm.rename_prompt': 'Nytt navn på listen:', 'gm.list_exists': 'Listen finnes allerede', 'gm.list_renamed': 'Liste omdøpt',
+    'gm.drag_list': 'Dra for å sortere',
     'gm.date_placeholder_no': 'dd.mm.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Kalender', 'kal.today': 'I dag', 'kal.new_event': 'Ny hendelse', 'kal.add_event': 'Hendelse',
@@ -482,6 +484,8 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
     'tp.rest_rehab': 'Hvile & rehab', 'tp.rest': 'Hvile', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
+    'tp.filter_all': 'Alle', 'tp.filter_gym': 'Styrke', 'tp.filter_sprint': 'Sprint', 'tp.filter_act': 'Aktivitet',
+    'tp.sess_one': 'økt', 'tp.sess_many': 'økter',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
@@ -734,6 +738,7 @@ const TRANSLATIONS = {
     'gm.reminder': 'Reminder', 'gm.add_reminder': 'Reminder', 'gm.reminder_set': 'Reminder set',
     'gm.reminder_cleared': 'Reminder cleared', 'gm.reminder_at': 'Reminder {time}',
     'gm.reminder_past': 'Pick a time in the future', 'gm.clear_reminder': 'Clear reminder',
+    'gm.clear_date': 'Clear due date',
     'gm.reminder_body': 'Reminder',
     'gym.sets_progress': '{done} / {total} sets',
     'gym.ring_done': 'done',
@@ -914,6 +919,7 @@ const TRANSLATIONS = {
     'gm.sub_tasks': 'Tasks for today and ahead',
     'gm.update_error': 'Could not update', 'gm.delete_error': 'Could not delete',
     'gm.rename': 'Rename', 'gm.rename_prompt': 'New list name:', 'gm.list_exists': 'List already exists', 'gm.list_renamed': 'List renamed',
+    'gm.drag_list': 'Drag to reorder',
     'gm.date_placeholder_no': 'mm.dd.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Calendar', 'kal.today': 'Today', 'kal.new_event': 'New event', 'kal.add_event': 'Event',
@@ -1016,6 +1022,8 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
     'tp.rest_rehab': 'Rest & rehab', 'tp.rest': 'Rest', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
+    'tp.filter_all': 'All', 'tp.filter_gym': 'Strength', 'tp.filter_sprint': 'Sprint', 'tp.filter_act': 'Activity',
+    'tp.sess_one': 'session', 'tp.sess_many': 'sessions',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
