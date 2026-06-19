@@ -153,6 +153,12 @@
     .physio-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 9px 11px; }
     .physio-item-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 3px; }
     .physio-item-note { font-size: 12px; color: var(--text-secondary); line-height: 1.45; white-space: pre-wrap; }
+    .physio-item-note.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .note-toggle { background: none; border: none; padding: 0; margin-top: 4px; cursor: pointer; font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue); }
+    .copy-all-btn, .copy-one-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-family: var(--font-mono); }
+    .copy-all-btn { font-size: 11px; padding: 3px 9px; }
+    .copy-one-btn { font-size: 10px; padding: 2px 6px; }
+    .copy-all-btn:hover, .copy-one-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
 
     /* ── Session history ────────────────────────────────────── */
     /* legacy hist-section kept for compatibility */
@@ -680,7 +686,10 @@
         <button class="act-save-btn" id="physioSaveBtn" onclick="savePhysioNote()" data-i18n="tp.physio_save" style="flex:1">Lagre notat</button>
         <button class="input-sm" id="physioCancelBtn" onclick="cancelPhysioEdit()" data-i18n="cancel" style="display:none;cursor:pointer">Avbryt</button>
       </div>
-      <div class="act-field-label" style="margin:16px 0 6px" data-i18n="tp.physio_recent">Siste notater</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px">
+        <span class="act-field-label" data-i18n="tp.physio_recent">Siste notater</span>
+        <button id="physioCopyAll" class="copy-all-btn" onclick="copyAllPhysio()" data-i18n="tp.copy_all">Kopier alle</button>
+      </div>
       <div id="physioList" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
     </div>
   </div>
@@ -691,6 +700,9 @@
       <div class="act-modal-hd">
         <span class="act-modal-title" data-i18n="tp.inj_title">Plager & skader</span>
         <button class="act-modal-close" onclick="closeInjuryModal()">✕</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+        <button id="injCopyAll" class="copy-all-btn" onclick="copyAllInjuries()" data-i18n="tp.copy_all">Kopier alle</button>
       </div>
       <div id="injuryList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
       <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
@@ -2156,25 +2168,57 @@ function _resetInjuryForm() {
 async function loadInjuries() {
   const el = document.getElementById('injuryList');
   const { data } = await db.from('injuries').select('*').order('updated_at', { ascending: false }).limit(30);
+  document.getElementById('injCopyAll').style.display = (data && data.length) ? '' : 'none';
   if (!data || !data.length) { el.innerHTML = `<div class="empty" style="font-size:11px;padding:4px">${t('tp.inj_empty')}</div>`; return; }
+  _injuryData = data;
   const sevColor = { mild:'#6BE3A4', moderate:'var(--warning)', severe:'#FF6B6B' };
   const statColor = { active:'#FF6B6B', improving:'var(--warning)', archived:'var(--text-tertiary)' };
   el.innerHTML = data.map(i => {
     const part = t(i.body_part);
     const side = i.side ? ' ' + t('side.' + i.side).toLowerCase() : '';
+    const long = (i.note || '').length > 160;
     return `<div class="physio-item" style="display:flex;align-items:flex-start;gap:8px">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600;color:var(--text-secondary)">${escHtml(part)}${escHtml(side)}
           <span style="font-size:9px;font-family:var(--font-mono);color:${statColor[i.status]||'var(--text-tertiary)'}"> · ${t('status.'+i.status)}</span>
           <span style="font-size:9px;font-family:var(--font-mono);color:${sevColor[i.severity]||'var(--text-tertiary)'}"> · ${t('sev.'+i.severity)}</span>
         </div>
-        ${i.note ? `<div class="physio-item-note" style="font-size:11px;margin-top:2px">${escHtml(i.note)}</div>` : ''}
+        ${i.note ? `<div class="physio-item-note${long ? ' clamp' : ''}" style="font-size:11px;margin-top:2px">${escHtml(i.note)}</div>
+        ${long ? `<button class="note-toggle" onclick="toggleNote(this)">${t('tp.show_more')}</button>` : ''}` : ''}
         <div class="physio-item-meta">${i.start_date ? t('tp.inj_start')+': '+fmtDate(i.start_date) : ''}</div>
       </div>
-      <button class="edit-knee-btn" style="flex-shrink:0" onclick='editInjury(${JSON.stringify(JSON.stringify(i))})'>✎</button>
-      <button class="gym-del-btn" style="flex-shrink:0" onclick="deleteInjury('${i.id}')">✕</button>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
+        <button class="copy-one-btn" onclick="copyInjury('${i.id}')">${t('tp.copy_one')}</button>
+        <div style="display:flex;gap:4px">
+          <button class="edit-knee-btn" onclick='editInjury(${JSON.stringify(JSON.stringify(i))})'>✎</button>
+          <button class="gym-del-btn" onclick="deleteInjury('${i.id}')">✕</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+let _injuryData = [];
+
+function _injuryText(i) {
+  const part = t(i.body_part);
+  const side = i.side ? ' ' + t('side.' + i.side).toLowerCase() : '';
+  const head = `${part}${side} · ${t('status.'+i.status)} · ${t('sev.'+i.severity)}`;
+  const start = i.start_date ? `\n${t('tp.inj_start')}: ${fmtDate(i.start_date)}` : '';
+  return `${head}${i.note ? '\n' + i.note : ''}${start}`;
+}
+
+async function copyInjury(id) {
+  const i = _injuryData.find(x => String(x.id) === String(id));
+  if (!i) return;
+  const ok = await _clip(_injuryText(i));
+  toast(ok ? t('tp.copied') : t('tp.copy_fail'), ok ? 'ok' : 'err');
+}
+
+async function copyAllInjuries() {
+  if (!_injuryData.length) return;
+  const txt = _injuryData.map(_injuryText).join('\n\n────────\n\n');
+  toast(await _clip(txt) ? t('tp.copied') : t('tp.copy_fail'));
 }
 
 function editInjury(jsonStr) {
@@ -2236,20 +2280,64 @@ async function loadPhysioNotes() {
   const el = document.getElementById('physioList');
   const { data } = await db.from('physio_notes')
     .select('*').order('date', { ascending: false }).limit(10);
+  document.getElementById('physioCopyAll').style.display = (data && data.length) ? '' : 'none';
   if (!data || !data.length) {
     el.innerHTML = `<div class="empty" style="font-size:11px;padding:4px">${t('tp.physio_empty')}</div>`;
     return;
   }
-  el.innerHTML = data.map(p => `<div class="physio-item">
+  _physioData = data;
+  el.innerHTML = data.map(p => {
+    const long = (p.note || '').length > 160;
+    return `<div class="physio-item">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div class="physio-item-meta">${fmtDate(p.date)}${p.therapist ? ' · ' + escHtml(p.therapist) : ''}</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
+      <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+        <button class="copy-one-btn" onclick="copyPhysioNote('${p.id}')">${t('tp.copy_one')}</button>
         <button onclick="editPhysioNote('${p.id}')" title="${t('edit')}" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px">✏️</button>
         <button onclick="deletePhysioNote('${p.id}')" title="${t('delete')}" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px">🗑️</button>
       </div>
     </div>
-    <div class="physio-item-note">${escHtml(p.note)}</div>
-  </div>`).join('');
+    <div class="physio-item-note${long ? ' clamp' : ''}">${escHtml(p.note)}</div>
+    ${long ? `<button class="note-toggle" onclick="toggleNote(this)">${t('tp.show_more')}</button>` : ''}
+  </div>`;
+  }).join('');
+}
+
+let _physioData = [];
+
+function toggleNote(btn) {
+  const note = btn.previousElementSibling;
+  const clamped = note.classList.toggle('clamp');
+  btn.textContent = clamped ? t('tp.show_more') : t('tp.show_less');
+}
+
+async function _clip(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (_) { return false; }
+  }
+}
+
+function _physioText(p) {
+  return `${fmtDate(p.date)}${p.therapist ? ' · ' + p.therapist : ''}\n${p.note}`;
+}
+
+async function copyPhysioNote(id) {
+  const p = _physioData.find(x => String(x.id) === String(id));
+  if (!p) return;
+  const ok = await _clip(_physioText(p));
+  toast(ok ? t('tp.copied') : t('tp.copy_fail'), ok ? 'ok' : 'err');
+}
+
+async function copyAllPhysio() {
+  if (!_physioData.length) return;
+  const txt = _physioData.map(_physioText).join('\n\n────────\n\n');
+  toast(await _clip(txt) ? t('tp.copied') : t('tp.copy_fail'));
 }
 
 async function editPhysioNote(id) {
