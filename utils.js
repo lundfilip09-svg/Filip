@@ -144,6 +144,8 @@ const TRANSLATIONS = {
     'gjoremal.add_ph': 'Legg til gjøremål…',
     'sprint.notes_ph': 'Løpsforhold, teknikk, annet…',
     'rpe.hint': 'Dra: 1 = veldig lett · 100 = maks',
+    'rir.label': 'RIR (reps i reserve)',
+    'rir.hint': '0 = failure · 3 = målet ditt · 5 = veldig lett',
     'gym.sets_done': '{done} av {total} sett fullført',
     'gym.select_day': 'Velg dag', 'gym.exercises': 'Øvelser',
     'gym.pick_and_start': 'Velg dag og trykk start når du er klar.',
@@ -687,6 +689,8 @@ const TRANSLATIONS = {
     'gjoremal.add_ph': 'Add task…',
     'sprint.notes_ph': 'Conditions, technique, other…',
     'rpe.hint': 'Drag: 1 = very easy · 100 = max',
+    'rir.label': 'RIR (reps in reserve)',
+    'rir.hint': '0 = failure · 3 = your target · 5 = very easy',
     'gym.sets_done': '{done} of {total} sets completed',
     'gym.select_day': 'Select day', 'gym.exercises': 'Exercises',
     'gym.pick_and_start': 'Pick a day and press start when ready.',
@@ -1630,6 +1634,35 @@ function rpeValue(id) {
   if (!el || el.dataset.touched !== '1') return null;
   const n = parseInt(el.value, 10);
   return isNaN(n) ? null : n;
+}
+
+// ── RIR-slider (gym) ────────────────────────────────────────────────────────
+// Filip tenker i RIR (reps i reserve) på styrke, ikke RPE. Slideren VISER RIR 0–5,
+// men vi LAGRER fortsatt RPE (0–100) i gym_log.rpe slik at belastning/ACWR/AI er
+// uendret. Mapping: RPE = 100 − RIR×10  (RIR 0→100, 3→70, 5→50).
+// `rpe`-arg = lagret RPE (for redigering av eksisterende økt) eller null = ny økt.
+function rirSliderHTML(id, rpe = null) {
+  const rir = (rpe == null || rpe === '') ? '' : Math.max(0, Math.min(5, Math.round((100 - rpe) / 10 * 2) / 2));
+  const shown = rir === '' ? '–' : rir;
+  const cls = rir === '' ? 'rpe-slider-val empty' : 'rpe-slider-val';
+  return `<div class="rpe-slider-wrap">
+    <div class="rpe-slider-top">
+      <span>${t('rir.label')}</span>
+      <span class="${cls}" id="${id}-val">${shown}</span>
+    </div>
+    <input type="range" min="0" max="5" step="0.5" value="${rir === '' ? 3 : rir}" id="${id}"
+      class="rpe-slider" data-touched="${rir === '' ? '0' : '1'}"
+      oninput="rpeSliderInput('${id}')">
+    <div class="rpe-slider-hint">${t('rir.hint')}</div>
+  </div>`;
+}
+// Leser RIR-slideren → lagret RPE (0–100), eller null hvis aldri rørt.
+function rirValue(id) {
+  const el = document.getElementById(id);
+  if (!el || el.dataset.touched !== '1') return null;
+  const rir = parseFloat(el.value);
+  if (isNaN(rir)) return null;
+  return Math.max(0, Math.min(100, 100 - rir * 10));
 }
 
 async function getConfig() {

@@ -1192,7 +1192,7 @@ async function init() {
     const wt = document.getElementById('workoutTitle');
     if (wt && d) wt.textContent = dayLabel(d);
     renderAll();                   // re-rendrer vektinput i gjeldende enhet
-    renderGymRpe(rpeValue('gymRpe'));
+    renderGymRpe(rirValue('gymRpe'));
     applyLang();
     renderInjuryBeforeBlocks();
     renderInjuryDoneBlocks();
@@ -1589,7 +1589,8 @@ function poRepRange(repsStr) {
   if (/\b(sek|sec|min)\b/.test(s) || /\d\s*m(eter)?\b/.test(s) || /\d\s*s\b/.test(s)) return { cardio: true };
   const nums = s.match(/\d+/g);
   if (!nums || !nums.length) return null;
-  return { cardio: false, top: Math.max(...nums.map(Number)) };
+  const arr = nums.map(Number);
+  return { cardio: false, top: Math.max(...arr), lo: Math.min(...arr) };
 }
 
 async function renderOverloadCoach() {
@@ -1684,20 +1685,30 @@ async function renderOverloadCoach() {
     //   ellers                 → hold, press mot toppen
     const range = poRepRange(progStr);
     if (range && range.cardio) return '';   // sek/min/m → ingen vektprogresjon
+    const top = range ? range.top : null;
+    const lo  = range ? range.lo  : null;
+    // Foreskrivende coach (3 RIR autoregulert): si EKSAKT rep-mål.
+    //   smerte > grense            → hold
+    //   alle sett ≥ rep-topp (3 RIR) → klar, øk vekt
+    //   platå ≥3 økter u/ progresjon → deload
+    //   ellers                     → sikt rep-intervall @ 3 RIR
     let recCls, recTxt;
     if (lastPain > painLimit) {
       recCls = 'hold'; recTxt = t('po.hold_pain', { p: lastPain });
     } else if (wMax == null || wMax <= 0) {
-      recCls = 'flat'; recTxt = t('po.keep');
+      recCls = 'flat'; recTxt = lo != null ? t('po.aim', { lo, hi: top }) : t('po.keep');
     } else {
-      const top      = range ? range.top : null;
       const repsInts = sets.map(s => parseInt(s.reps, 10)).filter(n => !isNaN(n));
       const hitTop   = top != null && repsInts.length === sets.length
                        && repsInts.length > 0 && repsInts.every(n => n >= top);
       if (hitTop) {
-        recCls = 'up'; recTxt = t('po.try', { w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+        recCls = 'up'; recTxt = t('po.level_up', { hi: top, w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+      } else if (plateau >= 3 && top != null) {
+        recCls = 'hold'; recTxt = t('po.plateau', { n: plateau });
+      } else if (lo != null) {
+        recCls = 'hold'; recTxt = t('po.aim', { lo, hi: top });
       } else {
-        recCls = 'hold'; recTxt = top != null ? t('po.press_top', { r: top }) : t('po.keep');
+        recCls = 'hold'; recTxt = t('po.keep');
       }
     }
 
@@ -2836,10 +2847,10 @@ async function autoSaveExField(id, field, value) {
   }
 }
 
-// RPE-slider for gym-økta
+// RIR-slider for gym-økta (viser RIR, lagrer RPE — se rirSliderHTML i utils.js)
 function renderGymRpe(value = null) {
   const host = document.getElementById('gymRpeHost');
-  if (host) host.innerHTML = rpeSliderHTML('gymRpe', value);
+  if (host) host.innerHTML = rirSliderHTML('gymRpe', value);
 }
 
 // ── Log ────────────────────────────────────────────────────────────
@@ -2854,7 +2865,7 @@ async function saveLog() {
     // A6: bruk det auto-oversatte dagnavnet som session_type (også for egendefinerte dager)
     const _d = getDay(activeDay);
     const sessionType = _d ? dayLabel(_d) : activeDay;
-    const gymRpe = rpeValue('gymRpe');
+    const gymRpe = rirValue('gymRpe');   // RIR-slider → lagret RPE (0–100)
     const gRes = await db.from('gym_log').insert({
       date, session_type: sessionType, session_notes: notes, rpe: gymRpe,
       duration_min: _sessionDurationMin,                       // sRPE (migrasjon 026)
@@ -3098,7 +3109,7 @@ async function loadGymHistory() {
       const byName = {};
       sRows.forEach(r => { (byName[r.exercise_name] ||= []).push(r); });
       const summary = t('gym.hist_sets', { ex: Object.keys(byName).length, sets: sRows.length })
-        + (g.rpe != null ? ` · RPE ${g.rpe}` : '');
+        + (g.rpe != null ? ` · ${Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2))} RIR` : '');
       const detail = Object.entries(byName).map(([n, rows]) => {
         rows.sort((a, b) => (a.set_index ?? 0) - (b.set_index ?? 0));
         const ws      = rows.map(r => r.weight_kg);
