@@ -94,6 +94,13 @@
     .po-rec.hold { background: rgba(242,130,60,0.12); color: #F2823C; border: 1px solid rgba(242,130,60,0.25); }
     .po-rec.flat { background: rgba(255,255,255,0.05); color: var(--text-tertiary); }
     .po-empty { font-size: 11px; color: var(--text-tertiary); padding: 4px 0; }
+    /* RIR-velger (innsats) i set-drawer */
+    .rir-pick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 2px 2px; }
+    .rir-pick-lbl { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
+    .rir-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.10);
+      background: transparent; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all 0.12s; }
+    .rir-btn:hover { color: var(--text-secondary); border-color: rgba(255,255,255,0.18); }
+    .rir-btn.sel { background: rgba(91,164,245,0.16); color: #5BA4F5; border-color: rgba(91,164,245,0.4); font-weight: 700; }
     .day-pill {
       padding: 4px 12px;
       border-radius: 20px;
@@ -409,21 +416,21 @@
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
 
     /* History */
-    .gym-history-item { position: relative; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px 10px 14px; margin-bottom: 7px; overflow: hidden; transition: border-color 0.15s, background 0.15s; }
+    .gym-history-item { position: relative; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 9px; padding: 8px 11px 8px 13px; margin-bottom: 6px; overflow: hidden; transition: border-color 0.15s, background 0.15s; }
     .gym-history-item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--cat, var(--text-tertiary)); opacity: 0.7; }
     .gym-history-item:hover { border-color: rgba(255,255,255,0.13); background: rgba(255,255,255,0.04); }
     .hist-row { display: flex; align-items: flex-start; gap: 7px; font-family: var(--font-mono); }
-    .hist-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .hist-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
     .hist-t { font-size: 12px; font-weight: 650; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hist-d { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
-    .pinj { margin-bottom: 6px; }
+    .pinj { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
     .pinj:last-child { margin-bottom: 0; }
-    .pinj-name { display: block; font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 4px; }
-    .pstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-    .pcell { display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(255,255,255,0.035); border-radius: 6px; padding: 5px 2px 4px; }
-    .pcell-l { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
-    .pcell-v { font-size: 14px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
-    .hist-sets-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 3px 8px; }
+    .pinj-name { flex-shrink: 0; width: 58px; font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); line-height: 1.1; }
+    .pstrip { display: flex; gap: 3px; flex-wrap: wrap; }
+    .pcell { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.035); border-radius: 4px; padding: 2px 6px; }
+    .pcell-l { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); }
+    .pcell-v { font-size: 11px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+    .hist-sets-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 3px 8px; }
     .hist-sets-toggle:hover { color: var(--text-secondary); background: rgba(255,255,255,0.07); }
     .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 2px; font-size: 9px; font-family: var(--font-mono); border-top: 1px solid rgba(255,255,255,0.04); }
     .hist-ex-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -758,6 +765,7 @@ let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
 let completedSets = {};     // exId -> Set of done set indices
 let setData       = {};     // exId -> [{ done, weight, reps, notes }]
+let exRir         = {};     // exId -> logget innsats (RIR 0–5) for øvelsen denne økta
 let activeDrawer  = null;
 let activeExId    = null;
 let restTimerInt        = null;
@@ -814,6 +822,7 @@ function saveDraft() {
       sessionNotes: document.getElementById('sessionNotes')?.value  || '',
       sidebarNotes: document.getElementById('sidebarNotes')?.value  || '',
       setData,
+      exRir: { ...exRir },
       kneePain: { ...kneePain },
       injuryScores: _injuryScores,
     }));
@@ -830,6 +839,7 @@ function restoreDraft() {
     // Only restore set data if the draft is from today — avoids yesterday's
     // user-added sets bleeding into a new session
     if (d.setData && d.logDate === today()) setData = d.setData;
+    if (d.exRir && d.logDate === today()) exRir = d.exRir;
     if (d.kneePain)     Object.assign(kneePain, d.kneePain);
     if (d.injuryScores) Object.assign(_injuryScores, d.injuryScores);
     if (d.logDate)      document.getElementById('logDate').value = d.logDate;
@@ -1053,6 +1063,7 @@ function saveSession() {
       Object.entries(completedSets).map(([k, v]) => [k, [...v]])
     ),
     setData,
+    exRir: { ...exRir },
     kneePain: { ...kneePain },
     injuryScores: _injuryScores,
     restStartedAt,
@@ -1101,6 +1112,7 @@ function tryRestoreSession(data) {
     completedSets = {};
     Object.entries(data.completedSets || {}).forEach(([k, v]) => { completedSets[k] = new Set(v); });
     setData = data.setData || {};
+    exRir = data.exRir || {};
     Object.assign(kneePain, data.kneePain || {});
     Object.assign(_injuryScores, data.injuryScores || {});
     if (data.restStartedAt && data.restDuration) {
@@ -1617,7 +1629,7 @@ async function renderOverloadCoach() {
   dayExs.forEach(e => { if (e.reps != null && prog[e.exercise_name] == null) prog[e.exercise_name] = e.reps; });
   const [setRes, cfgRes] = await Promise.all([
     db.from('set_log')
-      .select('exercise_name,weight_kg,reps,date,set_index,knee_max')
+      .select('exercise_name,weight_kg,reps,date,set_index,knee_max,rir')
       .in('exercise_name', names)
       .order('date', { ascending: false })
       .limit(400),
@@ -1696,26 +1708,61 @@ async function renderOverloadCoach() {
     if (range && range.cardio) return '';   // sek/min/m → ingen vektprogresjon
     const top = range ? range.top : null;
     const lo  = range ? range.lo  : null;
-    // Foreskrivende coach (3 RIR autoregulert): si EKSAKT rep-mål.
-    //   smerte > grense            → hold
-    //   alle sett ≥ rep-topp (3 RIR) → klar, øk vekt
-    //   platå ≥3 økter u/ progresjon → deload
-    //   ellers                     → sikt rep-intervall @ 3 RIR
+
+    // RIR (innsats) for nyeste økt: denormalisert per øvelse på set_log → alle
+    // settrader like. Median av ikke-null verdier (robust v/ blanding). null = ulogget.
+    const rirVals  = sets.map(s => s.rir).filter(v => v != null && !isNaN(parseFloat(v)))
+                         .map(parseFloat).sort((a, b) => a - b);
+    const loggedRir = rirVals.length ? rirVals[Math.floor(rirVals.length / 2)] : null;
+    const rirFmt    = loggedRir == null ? null : Math.round(loggedRir * 2) / 2;
+    const T    = cfg.target_rir ?? 3;                  // mål-RIR per øvelse
+    const LOW  = loggedRir != null && loggedRir <= T - 1.5;  // for tungt / grindet
+    const HIGH = loggedRir != null && loggedRir >= T + 1;    // for lett
+    // MID = på mål (verken LOW eller HIGH)
+
+    const repsInts = sets.map(s => parseInt(s.reps, 10)).filter(n => !isNaN(n));
+    const hitTop   = top != null && repsInts.length === sets.length
+                     && repsInts.length > 0 && repsInts.every(n => n >= top);
+
+    // RIR-aware double progression. Smerte > alt; RIR varierer anbefalingen
+    // begge veier (bremser grinding, akselererer for-lette økter).
     let recCls, recTxt;
     if (lastPain > painLimit) {
       recCls = 'hold'; recTxt = t('po.hold_pain', { p: lastPain });
     } else if (wMax == null || wMax <= 0) {
-      recCls = 'flat'; recTxt = lo != null ? t('po.aim', { lo, hi: top }) : t('po.keep');
-    } else {
-      const repsInts = sets.map(s => parseInt(s.reps, 10)).filter(n => !isNaN(n));
-      const hitTop   = top != null && repsInts.length === sets.length
-                       && repsInts.length > 0 && repsInts.every(n => n >= top);
+      recCls = 'flat'; recTxt = lo != null ? t('po.aim', { lo, hi: top, rir: T }) : t('po.keep');
+    } else if (loggedRir == null) {
+      // Ingen RIR logget → ren rep-logikk (gammel oppførsel, bakoverkompatibelt).
       if (hitTop) {
-        recCls = 'up'; recTxt = t('po.level_up', { hi: top, w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+        recCls = 'up'; recTxt = t('po.level_up', { hi: top, rir: T, w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
       } else if (plateau >= 3 && top != null) {
         recCls = 'hold'; recTxt = t('po.plateau', { n: plateau });
       } else if (lo != null) {
-        recCls = 'hold'; recTxt = t('po.aim', { lo, hi: top });
+        recCls = 'hold'; recTxt = t('po.aim', { lo, hi: top, rir: T });
+      } else {
+        recCls = 'hold'; recTxt = t('po.keep');
+      }
+    } else if (hitTop) {
+      // Traff rep-toppen — RIR avgjør om det var fortjent.
+      if (LOW) {                          // grindet det fram → ikke øk, bygg margin
+        recCls = 'hold'; recTxt = t('po.hold_grind', { hi: top, rir: rirFmt });
+      } else if (HIGH) {                  // smashet lett → øk vekt
+        recCls = 'up'; recTxt = t('po.up_easy', { hi: top, rir: rirFmt, w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+      } else {                           // på mål → den ekte fortjente progresjonen
+        recCls = 'up'; recTxt = t('po.level_up', { hi: top, rir: rirFmt, w: poDisplayWeight(wMax + stepKg), u: weightUnit() });
+      }
+    } else {
+      // Under rep-toppen.
+      if (plateau >= 3 && top != null && HIGH) {        // "platå" men lett → sandbagger
+        recCls = 'flat'; recTxt = t('po.plateau_easy', { n: plateau, rir: rirFmt });
+      } else if (plateau >= 3 && top != null) {         // ekte platå (mål/tungt) → deload
+        recCls = 'hold'; recTxt = t('po.plateau', { n: plateau });
+      } else if (HIGH) {                                // for lett → press reps mot toppen
+        recCls = 'flat'; recTxt = t('po.too_light', { hi: top, rir: rirFmt });
+      } else if (LOW) {                                 // for tungt for rep-målet → hold
+        recCls = 'hold'; recTxt = t('po.too_heavy', { rir: rirFmt });
+      } else if (lo != null) {                          // på mål → sikt intervallet
+        recCls = 'hold'; recTxt = t('po.aim', { lo, hi: top, rir: rirFmt });
       } else {
         recCls = 'hold'; recTxt = t('po.keep');
       }
@@ -2001,6 +2048,10 @@ function renderDrawer(exId) {
         ${data.map((s, i) => drawerRow(exId, i, s)).join('')}
       </tbody>
     </table>
+    <div class="rir-pick" id="rir-pick-${exId}">
+      <span class="rir-pick-lbl">${t('gym.rir_effort')}</span>
+      ${[0,1,2,3,4,5].map(v => `<button class="rir-btn${exRir[exId] === v ? ' sel' : ''}" onclick="setExRir('${exId}',${v})">${v}</button>`).join('')}
+    </div>
     <div class="drawer-actions">
       <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ ${t('gym.col_sets')}</button>
       <span class="drawer-spacer"></span>
@@ -2023,6 +2074,16 @@ function drawerRow(exId, i, s) {
       onchange="setData['${exId}'][${i}].notes=this.value;saveDraft()" placeholder="—"></td>
     <td><button class="set-remove" onclick="removeSet('${exId}',${i})" title="${t('gym.remove_set')}">−</button></td>
   </tr>`;
+}
+
+// RIR-velger per øvelse (innsats). Klikk samme verdi igjen = nullstill.
+function setExRir(exId, v) {
+  exRir[exId] = (exRir[exId] === v) ? null : v;
+  document.querySelectorAll(`#rir-pick-${exId} .rir-btn`).forEach((b, idx) => {
+    b.classList.toggle('sel', exRir[exId] === idx);
+  });
+  saveDraft();
+  saveSession();
 }
 
 function toggleSetDone(exId, setIdx) {
@@ -2217,7 +2278,7 @@ function resetWorkout() {
       !confirm(t('gym.reset_unsaved_confirm'))) return;
   clearInterval(elapsedTimer);
   stopRest();
-  workoutStart = null; completedSets = {}; setData = {}; activeDrawer = null; activeExId = null;
+  workoutStart = null; completedSets = {}; setData = {}; exRir = {}; activeDrawer = null; activeExId = null;
   document.getElementById('elapsedDisplay').textContent = '0:00';
   clearSession();
   setWS('idle');
@@ -2928,6 +2989,7 @@ async function saveLog() {
           date, day_key: activeDay, exercise_name: ex.exercise_name,
           weight_kg: (w == null || isNaN(w)) ? null : w,
           reps: String(s.reps ?? ex.reps ?? ''), set_index: i, knee_max: kneeMax,
+          rir: exRir[exId] ?? null,   // innsats per øvelse → RIR-aware coach
         });
       });
     }

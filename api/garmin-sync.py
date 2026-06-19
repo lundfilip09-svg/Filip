@@ -304,8 +304,15 @@ class handler(BaseHTTPRequestHandler):
             dates = [(t0 - datetime.timedelta(days=i)).isoformat() for i in range(7)]
 
         # Hopp over datoer som allerede har søvndata (med mindre ?force=1).
-        # Da slipper vi å logge inn i Garmin når alt allerede ligger inne.
-        to_fetch = [d for d in dates if force or not already_has_sleep(d)]
+        # UNNTAK: i dag + i går hentes ALLTID. Body battery-kurve og skritt
+        # akkumulerer gjennom hele døgnet, så de er ufullstendige til dagen er
+        # over. I går er ferdig først ved denne morgenkjøringen → da får vi full
+        # 24t-kurve og endelig skrittsum. Eldre dager hoppes over når søvn finnes
+        # (sparer unødig Garmin-login).
+        t0          = datetime.date.today()
+        always      = {t0.isoformat(), (t0 - datetime.timedelta(days=1)).isoformat()}
+        to_fetch    = [d for d in dates
+                       if force or d in always or not already_has_sleep(d)]
 
         if not to_fetch:
             body = json.dumps({"ok": True, "skipped": "already_have_sleep", "dates": dates}, indent=2)
@@ -327,9 +334,12 @@ class handler(BaseHTTPRequestHandler):
                 for k, v in row.items():
                     if k.startswith("_"):
                         warnings[f"{d}{k}"] = v
-                # Ikke overskriv eksisterende data med ufullstendig henting:
-                # krev minst sleep_hours ELLER sleep_score for å lagre.
-                if public.get("sleep_hours") or public.get("sleep_score"):
+                # Lagre når vi har MENINGSFULL data. Søvn er ikke lenger et krav:
+                # body battery-kurve og skritt skal med selv på netter uten klokke.
+                # Upserten merger kun feltene som faktisk finnes i payloaden, så en
+                # delvis henting nuller aldri ut eksisterende kolonner.
+                if (public.get("sleep_hours") or public.get("sleep_score")
+                        or public.get("body_battery_curve") or public.get("steps")):
                     save_to_supabase(row)
                     saved.append(public)
                 else:

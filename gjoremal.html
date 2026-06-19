@@ -373,6 +373,10 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     .todo-text.done-text {
       text-decoration: line-through;
@@ -529,12 +533,14 @@
     }
 
     /* ── Inline editing ── */
-    .todo-text:not(.done-text) { cursor: text; }
-    .todo-text:not(.done-text):hover {
-      background: rgba(255,255,255,0.05);
-      border-radius: 4px;
-      padding: 1px 5px;
-      margin: -1px -5px;
+    .todo-text:not(.done-text) { cursor: pointer; }
+    @media (hover: hover) {
+      .todo-text:not(.done-text):hover {
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+        padding: 1px 5px;
+        margin: -1px -5px;
+      }
     }
     .todo-due { cursor: pointer; }
     .todo-due:hover {
