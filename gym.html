@@ -875,10 +875,11 @@ function detectDay() {
 function dayLabel(d) {
   if (!d) return '';
   if (d.day_key === 'rehab') return t('daytype.rehab');
-  const wdName   = (d.weekday != null) ? t('wd.' + d.weekday) : '';
   const typeName = d.type_label ? t(d.type_label) : '';
-  if (wdName && typeName) return `${wdName} · ${typeName}`;
-  return wdName || typeName || d.day_key;
+  const wdName   = (d.weekday != null) ? t('wd.' + d.weekday) : '';
+  // Ukedag-prefiks droppes på pillene (treningsoversikt har egne MAN/TIR-kort).
+  // Vis typen; fall tilbake til ukedag bare hvis dagen mangler type.
+  return typeName || wdName || d.day_key;
 }
 
 function getDay(key) { return gymDays.find(d => d.day_key === key); }
@@ -904,6 +905,31 @@ function _buildTplBridge() {
 }
 // Malen som ligger bak en day-pill (eller null for warmup/ubrodde dager).
 function tplForDayKey(key) { return tplById(_tplIdByDayKey[key]); }
+
+// Inneværende ukes mandag (ISO, lokal). 0=man..6=søn-konvensjon.
+function _curWeekMondayISO() {
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7;              // 0=man
+  const mon = new Date(now); mon.setDate(now.getDate() - dow);
+  return `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-${String(mon.getDate()).padStart(2,'0')}`;
+}
+
+// Speil en gym-dag inn i den FASTE ukeplanen (weekly_plan). gym_days.weekday
+// bruker JS-konvensjon (0=søn), weekly_plan.day bruker 0=man ⇒ planDay=(weekday+6)%7.
+// Rydder også inneværende ukes per-dag-overstyring for den dagen, så den faste
+// planen vises med en gang. Andre dager/uker røres ikke. Rehab (uten ukedag) hoppes over.
+async function syncDayToPlan(gymDay, { empty = false } = {}) {
+  if (!gymDay || gymDay.weekday == null || !_uid || !db) return;
+  const planDay = (gymDay.weekday + 6) % 7;
+  const tpl = empty ? null : tplForDayKey(gymDay.day_key);
+  const { error } = await db.from('weekly_plan').upsert(
+    { user_id: _uid, day: planDay, template_id: tpl ? tpl.id : null, session_type: tpl ? tplLabel(tpl) : '' },
+    { onConflict: 'user_id,day' }
+  );
+  if (error) { console.error('syncDayToPlan weekly_plan:', error); return; }
+  await db.from('training_plan_weekly')
+    .delete().eq('user_id', _uid).eq('week_monday', _curWeekMondayISO()).eq('day_index', planDay);
+}
 
 // Utled mal-kind fra en daytype.*-i18n-nøkkel (speiler seedingen i 051).
 function _kindFromTypeLabel(typeLabel) {
@@ -1011,6 +1037,7 @@ async function createDay() {
   // 051/F2-bolk1: sørg for at en mal finnes for dagtypen (gjenbruk/opprett) + bygg bro.
   await _ensureTemplateFor(type_label);
   _buildTplBridge();
+  await syncDayToPlan(data || row);   // speil ny gym-dag inn i fast ukeplan
   const copyFrom = document.getElementById('ddCopyFrom')?.value || '';
   closeDayDialog();
   allExercises[day_key] = {};   // ny dag starter tom (fylles under hvis kopiering)
@@ -1046,6 +1073,11 @@ async function deleteDay(key) {
   await db.from('gym_days').delete().eq('day_key', key);
   gymDays = gymDays.filter(x => x.day_key !== key);
   delete allExercises[key];
+  _buildTplBridge();
+  // Tøm den faste plan-dagen (hvile) hvis ingen annen gym-dag dekker samme ukedag.
+  if (d.weekday != null && !gymDays.some(x => x.weekday === d.weekday && x.day_key !== 'rehab')) {
+    await syncDayToPlan(d, { empty: true });
+  }
   if (activeDay === key) activeDay = detectDay();
   renderDayPills();
   setDay(activeDay);

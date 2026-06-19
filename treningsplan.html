@@ -561,7 +561,9 @@
           <div class="detail-2col">
             <div class="detail-field">
               <div class="detail-field-label" data-i18n="tp.session_activity">Økt / Aktivitet</div>
-              <input class="input-sm detail-input" id="detailPlan" type="text"
+              <select class="input-sm detail-input" id="detailPlanSel" onchange="onDetailPlanSelChange()"></select>
+              <input class="input-sm detail-input" id="detailPlanCustom" type="text"
+                style="display:none;margin-top:6px"
                 placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder"
                 onkeydown="if(event.key==='Enter')saveDay()">
             </div>
@@ -576,6 +578,14 @@
           <div class="detail-actions">
             <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
             <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleDetailMulti()" data-i18n="tp.multi_days_btn">Bruk på flere dager…</button>
+          </div>
+
+          <!-- Multi-velg: legg valgt økt på flere dager denne uka -->
+          <div class="detail-multi" id="detailMulti" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07)">
+            <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.multi_assign">Sett samme økt på flere dager</div>
+            <div id="detailMultiDays" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+            <button class="btn btn-success btn-sm" onclick="applyDayToMulti()" data-i18n="tp.apply">Bruk</button>
           </div>
         </div>
       </div>
@@ -743,6 +753,7 @@
         <button class="btn btn-ghost btn-sm" onclick="saveWeekPreset()" data-i18n="tp.preset_save">Lagre som…</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteWeekPreset()" data-i18n="tp.preset_delete">Slett</button>
       </div>
+      <div id="wpMultiAssign" style="margin-bottom:12px"></div>
       <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       <button class="act-save-btn" onclick="saveWeeklyPlan()" data-i18n="tp.save_plan">Lagre plan</button>
     </div>
@@ -995,9 +1006,32 @@ function openEditWeeklyPlan() {
       <select class="input-sm" id="wp-day-${d}" style="flex:1">${tplOptions(selId)}</select>
     </div>`;
   }).join('');
+  // Multi-velg: sett samme økt på flere dager på én gang.
+  const ma = document.getElementById('wpMultiAssign');
+  if (ma) {
+    ma.innerHTML = `
+      <div class="act-field-label" style="margin-bottom:6px">${escHtml(t('tp.multi_assign'))}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select class="input-sm" id="wpMultiSel" style="flex:1">${tplOptions('')}</select>
+        <button class="btn btn-ghost btn-sm" onclick="wpApplyMulti()" data-i18n="tp.apply">${escHtml(t('tp.apply'))}</button>
+      </div>
+      <div id="wpMultiDays" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px">
+        ${[0,1,2,3,4,5,6].map(d => `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary)"><input type="checkbox" value="${d}"> ${escHtml(t('wd.'+((d+1)%7)))}</label>`).join('')}
+      </div>`;
+  }
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
   document.getElementById('wp-day-0')?.focus();
   loadWeekPresets();   // async, fyller dropdown
+}
+
+// Multi-velg i «Rediger ukeplan»: setter valgt økt på alle avhukede dager.
+// Endrer bare nedtrekkene — «Lagre plan» committer som vanlig.
+function wpApplyMulti() {
+  const v = document.getElementById('wpMultiSel')?.value ?? '';
+  const days = [...document.querySelectorAll('#wpMultiDays input:checked')].map(c => +c.value);
+  if (!days.length) { toast(t('tp.pick_days'), 'err'); return; }
+  days.forEach(d => { const s = document.getElementById('wp-day-'+d); if (s) s.value = v; });
+  document.querySelectorAll('#wpMultiDays input:checked').forEach(c => { c.checked = false; });
 }
 
 function closeEditWeeklyPlan() {
@@ -1130,7 +1164,7 @@ function renderHero() {
   const txt = todayPlanText(ti);
   const sessionEl = document.getElementById('heroSession');
   if (txt && !isRest(ti)) {
-    sessionEl.textContent = txt;
+    sessionEl.textContent = displaySessionType(txt);
     sessionEl.className   = 'hero-session';
   } else {
     sessionEl.textContent = t('tp.rest');
@@ -1140,7 +1174,7 @@ function renderHero() {
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
     const ni = (ti + d) % 7;
-    if (!isRest(ni)) { nextStr = `${t('tp.next')}: ${fullDay(ni)} — ${todayPlanText(ni)}`; break; }
+    if (!isRest(ni)) { nextStr = `${t('tp.next')}: ${fullDay(ni)} — ${displaySessionType(todayPlanText(ni))}`; break; }
   }
   document.getElementById('heroNext').textContent = nextStr;
 
@@ -1189,7 +1223,7 @@ function renderDayStrip() {
         ${logged ? '<div class="day-logged-dot"></div>' : ''}
       </div>
       ${txt
-        ? `<div class="day-card-plan">${escHtml(txt)}</div>`
+        ? `<div class="day-card-plan">${escHtml(displaySessionType(txt))}</div>`
         : `<div class="day-card-rest">${t('tp.rest')}</div>`
       }
     </div>`;
@@ -1211,7 +1245,7 @@ function renderDetail() {
 
   const titleEl = document.getElementById('detailTitle');
   if (txt && !isRest(i)) {
-    titleEl.textContent = txt;
+    titleEl.textContent = displaySessionType(txt);
     titleEl.className   = 'detail-day-title';
   } else {
     titleEl.textContent = t('tp.rest');
@@ -1221,8 +1255,50 @@ function renderDetail() {
   document.getElementById('detailLoggedBadge').innerHTML =
     logged ? `<span class="detail-logged-badge">${t('tp.completed')}</span>` : '';
 
-  document.getElementById('detailPlan').value  = txt;
+  _setDetailPlanField(txt);
   document.getElementById('detailNotes').value = notesText(i);
+}
+
+// ── Per-uke øktvelger (select fra eksisterende maler + Hvile + Egendefinert) ──
+function _detailPlanOptions(selId, custom) {
+  return tplOptions(selId) +
+    `<option value="__custom__"${custom ? ' selected' : ''}>${escHtml(t('tp.custom'))}</option>`;
+}
+// Sett velgeren ut fra lagret session_text: '' / hvile = Hvile, kjent mal = mal,
+// ellers = Egendefinert (vis fritekst).
+function _setDetailPlanField(txt) {
+  const sel  = document.getElementById('detailPlanSel');
+  const cust = document.getElementById('detailPlanCustom');
+  if (!sel || !cust) return;
+  const lc  = (txt || '').toLowerCase();
+  const tpl = resolveTpl(txt);
+  if (!txt || lc === 'hvile' || lc === 'rest') {
+    sel.innerHTML = _detailPlanOptions('', false); sel.value = '';
+    cust.style.display = 'none'; cust.value = '';
+  } else if (tpl) {
+    sel.innerHTML = _detailPlanOptions(String(tpl.id), false); sel.value = String(tpl.id);
+    cust.style.display = 'none'; cust.value = '';
+  } else {
+    sel.innerHTML = _detailPlanOptions('', true); sel.value = '__custom__';
+    cust.style.display = ''; cust.value = txt;
+  }
+}
+function onDetailPlanSelChange() {
+  const sel  = document.getElementById('detailPlanSel');
+  const cust = document.getElementById('detailPlanCustom');
+  const custom = sel.value === '__custom__';
+  cust.style.display = custom ? '' : 'none';
+  if (custom) cust.focus();
+}
+// Avledet session_text fra velgeren: mal-navn, '' for Hvile, eller fritekst.
+function _detailPlanValue() {
+  const sel  = document.getElementById('detailPlanSel');
+  const cust = document.getElementById('detailPlanCustom');
+  if (!sel) return '';
+  if (sel.value === '__custom__') return (cust?.value || '').trim();
+  if (sel.value === '') return '';
+  const tpl = tplById(sel.value);
+  return tpl ? tplLabel(tpl) : '';
 }
 
 function selectDay(i) {
@@ -1298,7 +1374,7 @@ function renderSidebar() {
 
 // ── Save / clear ───────────────────────────────────────────────────────────
 async function saveDay() {
-  const txt   = document.getElementById('detailPlan').value.trim();
+  const txt   = _detailPlanValue();
   const notes = document.getElementById('detailNotes').value.trim();
 
   let error;
@@ -1345,6 +1421,37 @@ async function clearDay() {
   renderDetail();
   renderSidebar();
   toast(t('tp.day_cleared'));
+}
+
+// ── Per-uke multi-velg: legg valgt økt på flere dager (den viste uka) ─────────
+function toggleDetailMulti() {
+  const box = document.getElementById('detailMulti');
+  if (!box) return;
+  const show = box.style.display === 'none';
+  box.style.display = show ? '' : 'none';
+  if (!show) return;
+  const host = document.getElementById('detailMultiDays');
+  host.innerHTML = [0,1,2,3,4,5,6].map(d =>
+    `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary)">
+       <input type="checkbox" value="${d}"${d === selectedIdx ? ' checked' : ''}> ${escHtml(t('wd.'+((d+1)%7)))}</label>`).join('');
+}
+
+async function applyDayToMulti() {
+  const txt  = _detailPlanValue();
+  const days = [...document.querySelectorAll('#detailMultiDays input:checked')].map(c => +c.value);
+  if (!days.length) { toast(t('tp.pick_days'), 'err'); return; }
+  const weekMonday = localISODate(getMondayForOffset(weekOffset));
+  const rows = days.map(d => ({
+    user_id: userId, week_monday: weekMonday, day_index: d, session_text: txt,
+    notes: (weekOffset === 0 ? (plan[`notes_${d}`] || '') : (planWeekly[`notes_${d}`] || '')),
+  }));
+  const { error } = await db.from('training_plan_weekly')
+    .upsert(rows, { onConflict: 'user_id,week_monday,day_index' });
+  if (error) { console.error('applyDayToMulti error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
+  days.forEach(d => { if (weekOffset === 0) plan[d] = txt; else planWeekly[d] = txt; });
+  document.getElementById('detailMulti').style.display = 'none';
+  renderHero(); renderDayStrip(); renderDetail(); renderSidebar();
+  toast(t('tp.saved'));
 }
 
 // ── Week navigation ────────────────────────────────────────────────────────
