@@ -43,6 +43,10 @@
     .hero-next {
       font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
     }
+    .tp-hero-week {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+      background: rgba(255,255,255,0.025); border-radius: 8px; padding: 6px 10px;
+    }
     .tp-hero-kpis { display: flex; gap: 8px; flex-shrink: 0; }
     .tp-kpi {
       text-align: center; background: rgba(255,255,255,0.025);
@@ -435,6 +439,13 @@
             <div class="hero-session" id="heroSession">—</div>
             <div class="hero-next" id="heroNext"></div>
           </div>
+          <div class="tp-hero-week" id="heroWeekNav">
+            <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
+              style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.prev_week">← Forrige</button>
+            <span id="weekNavLabel">Uke —</span>
+            <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
+              style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.next_week">Neste →</button>
+          </div>
           <div class="tp-hero-kpis">
             <div class="tp-kpi">
               <div class="tp-kpi-val" id="kpiDone">—</div>
@@ -509,17 +520,6 @@
 
     <!-- ASIDE (høyre 28%) ───────────────────────────────────────── -->
     <aside class="tp-aside">
-
-      <!-- Uke-navigasjon -->
-      <div class="card" style="padding:0">
-        <div class="tp-week-nav-row">
-          <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
-            style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.prev_week">← Forrige</button>
-          <span id="weekNavLabel">Uke —</span>
-          <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
-            style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.next_week">Neste →</button>
-        </div>
-      </div>
 
       <!-- Ukestatistikk -->
       <div class="card" style="padding:14px">
