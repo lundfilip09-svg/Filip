@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="manifest" href="/manifest.json">
@@ -639,6 +639,90 @@
       outline: none !important;
       box-shadow: 0 0 0 2px rgba(91,164,245,0.08) !important;
     }
+
+    /* ── Detalj-modal ── */
+    .dt-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; backdrop-filter: blur(4px); padding: 16px;
+    }
+    .dt-overlay.hidden { display: none; }
+    .dt-modal {
+      background: #0e0e10; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 22px 24px 24px; width: 100%; max-width: 460px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      max-height: 88vh; overflow-y: auto;
+    }
+    .dt-hd {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+    }
+    .dt-hd-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .dt-eyebrow {
+      font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--text-tertiary);
+    }
+    .dt-close {
+      background: none; border: none; color: var(--text-tertiary);
+      font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1; flex-shrink: 0;
+    }
+    .dt-close:hover { color: var(--text-primary); }
+    .dt-cb {
+      width: 24px; height: 24px; border-radius: 7px;
+      border: 1.5px solid rgba(255,255,255,0.22); flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .dt-cb:hover { border-color: rgba(255,255,255,0.45); }
+    .dt-cb.checked { background: var(--success); border-color: var(--success); }
+    .dt-cb.checked::after { content: '✓'; font-size: 13px; color: #050506; font-weight: 700; }
+    .dt-title {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; color: var(--text-primary);
+      font-size: 16px; font-weight: 600; font-family: inherit; line-height: 1.35;
+      padding: 12px 14px; outline: none; resize: vertical; min-height: 52px;
+      transition: border-color 0.15s, box-shadow 0.15s; margin-bottom: 18px;
+    }
+    .dt-title.done { text-decoration: line-through; color: var(--text-tertiary); }
+    .dt-title:focus {
+      border-color: rgba(91,164,245,0.4); box-shadow: 0 0 0 3px rgba(91,164,245,0.08);
+    }
+    .dt-field { margin-bottom: 14px; }
+    .dt-field-lbl {
+      font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 6px; display: block;
+    }
+    .dt-field input[type="date"], .dt-field input[type="datetime-local"] {
+      width: 100%; box-sizing: border-box; color-scheme: dark;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px; color: var(--text-primary); font-size: 13px;
+      font-family: var(--font-mono); padding: 9px 12px; outline: none;
+    }
+    .dt-field input:focus { border-color: rgba(91,164,245,0.4); }
+    .dt-field-clear {
+      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
+      font-size: 10px; font-family: var(--font-mono); margin-left: 8px; padding: 2px 6px;
+    }
+    .dt-field-clear:hover { color: var(--danger); }
+    .dt-row { display: flex; gap: 10px; }
+    .dt-row .dt-field { flex: 1; }
+    .dt-toggle-imp {
+      display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 11px 14px; cursor: pointer; color: var(--text-secondary);
+      font-size: 13px; font-weight: 500; transition: all 0.12s; margin-bottom: 18px;
+    }
+    .dt-toggle-imp:hover { background: rgba(255,255,255,0.06); }
+    .dt-toggle-imp.on {
+      border-color: rgba(242,192,99,0.4); background: rgba(242,192,99,0.08); color: var(--warning);
+    }
+    .dt-toggle-imp .dt-star { font-size: 17px; line-height: 1; }
+    .dt-footer { display: flex; align-items: center; gap: 10px; }
+    .dt-footer .dt-spacer { flex: 1; }
+    .dt-del {
+      background: none; border: 1px solid rgba(255,255,255,0.1); color: var(--text-tertiary);
+      border-radius: 9px; padding: 9px 14px; cursor: pointer; font-size: 12px; transition: all 0.12s;
+    }
+    .dt-del:hover { color: var(--danger); border-color: rgba(229,115,115,0.4); }
   </style>
 </head>
 <body>
@@ -745,6 +829,11 @@
     </div>
 
   </main>
+</div>
+
+<!-- ══ Detalj-modal ══════════════════════════════════════════ -->
+<div class="dt-overlay hidden" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="dt-modal" id="detailBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1020,7 +1109,7 @@ function renderTodos() {
         <span class="drag-handle">⠿</span>
         <div class="todo-cb ${todo.completed?'checked':''}" onclick="toggleTodo('${todo.id}',${todo.completed})"></div>
         <div class="todo-body">
-          <div class="todo-text ${todo.completed?'done-text':''}"${!todo.completed?` onclick="startEditTitle('${todo.id}')" title="${t('gm.click_edit')}"`:''}>${escHtml(todo.title)}</div>
+          <div class="todo-text ${todo.completed?'done-text':''}" onclick="openDetail('${todo.id}')" title="${t('gm.detail')}">${escHtml(todo.title)}</div>
           <div class="todo-meta">
             ${todo.due_date
               ? `<span class="todo-due ${isOverdue?'overdue':''}" onclick="startEditDue('${todo.id}')" title="${t('gm.change_date')}">${isOverdue?t('gm.overdue_prefix'):''}${fmtDate(todo.due_date)}${!todo.completed?`<button class="todo-remind-x" onclick="event.stopPropagation();clearDue('${todo.id}')" title="${t('gm.clear_date')}" aria-label="${t('gm.clear_date')}">✕</button>`:''}</span>`
@@ -1337,6 +1426,143 @@ function startEditRemind(todoId) {
   if (target) target.replaceWith(input);
   input.focus();
   try { input.showPicker(); } catch(e) {}
+}
+
+// ── Detalj-modal ──────────────────────────────────────────────────────────
+let _detailId = null;
+
+function _toLocalDT(iso) {
+  const d = new Date(iso), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function openDetail(id) {
+  _detailId = String(id);
+  renderDetail();
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeDetail() {
+  _detailId = null;
+  document.getElementById('detailModal').classList.add('hidden');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('detailModal').classList.contains('hidden')) closeDetail();
+});
+
+function renderDetail() {
+  const todo = allTodos.find(t => String(t.id) === _detailId);
+  if (!todo) { closeDetail(); return; }
+  const body = document.getElementById('detailBody');
+  body.innerHTML = `
+    <div class="dt-hd">
+      <div class="dt-hd-left">
+        <div class="dt-cb ${todo.completed?'checked':''}" onclick="dtToggleDone()"></div>
+        <span class="dt-eyebrow">${escHtml(todo.list_name)} · ${t('gm.detail')}</span>
+      </div>
+      <button class="dt-close" onclick="closeDetail()" aria-label="${t('close')}">✕</button>
+    </div>
+
+    <textarea class="dt-title ${todo.completed?'done':''}" id="dtTitle" rows="2"
+      onchange="dtSaveTitle(this.value)">${escHtml(todo.title)}</textarea>
+
+    <div class="dt-row">
+      <div class="dt-field">
+        <label class="dt-field-lbl">${t('gm.detail_due_label')}${todo.due_date?`<button class="dt-field-clear" onclick="dtClearDue()">${t('delete')}</button>`:''}</label>
+        <input type="date" value="${todo.due_date||''}" onchange="dtSaveDue(this.value)">
+      </div>
+    </div>
+
+    <div class="dt-field">
+      <label class="dt-field-lbl">⏰ ${t('gm.detail_remind_label')}${todo.remind_at?`<button class="dt-field-clear" onclick="dtClearRemind()">${t('delete')}</button>`:''}</label>
+      <input type="datetime-local" value="${todo.remind_at?_toLocalDT(todo.remind_at):''}" onchange="dtSaveRemind(this.value)">
+    </div>
+
+    <div class="dt-toggle-imp ${todo.important?'on':''}" onclick="dtToggleImportant()">
+      <span class="dt-star">${todo.important?'★':'☆'}</span>
+      <span>${todo.important?t('gm.detail_important_on'):t('gm.detail_important_off')}</span>
+    </div>
+
+    <div class="dt-footer">
+      <button class="btn btn-primary btn-sm" onclick="dtToggleDone()">${todo.completed?t('gm.mark_active'):t('gm.mark_done')}</button>
+      <div class="dt-spacer"></div>
+      <button class="dt-del" onclick="dtDelete()">${t('delete')}</button>
+    </div>`;
+}
+
+async function dtSaveTitle(value) {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  const v = value.trim();
+  if (!v || v === todo.title) return;
+  const { error } = await db.from('todos').update({ title: v }).eq('id', todo.id);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.title = v; renderTodos(); toast(t('gm.saved'));
+}
+async function dtSaveDue(value) {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  const v = value || null;
+  if (v === (todo.due_date || null)) return;
+  const { error } = await db.from('todos').update({ due_date: v }).eq('id', todo.id);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.due_date = v; renderTodos(); renderDetail(); toast(t('gm.saved'));
+}
+async function dtClearDue() {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo || !todo.due_date) return;
+  const { error } = await db.from('todos').update({ due_date: null }).eq('id', todo.id);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.due_date = null; renderTodos(); renderDetail(); toast(t('gm.date_removed'));
+}
+async function dtSaveRemind(value) {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  let newIso = null;
+  if (value) {
+    const d = new Date(value);
+    if (d <= new Date()) { toast(t('gm.reminder_past'), 'err'); renderDetail(); return; }
+    newIso = d.toISOString();
+    try { ensurePushReady(); } catch (e) {}
+  }
+  if (newIso === (todo.remind_at || null)) return;
+  const { error } = await db.from('todos').update({ remind_at: newIso }).eq('id', todo.id);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.remind_at = newIso;
+  if (newIso) { scheduleTodoReminder(todo); toast(t('gm.reminder_set')); }
+  else { cancelTodoReminder(todo.id); toast(t('gm.reminder_cleared')); }
+  renderTodos(); renderDetail();
+}
+async function dtClearRemind() {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo || !todo.remind_at) return;
+  const { error } = await db.from('todos').update({ remind_at: null }).eq('id', todo.id);
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
+  todo.remind_at = null; cancelTodoReminder(todo.id);
+  renderTodos(); renderDetail(); toast(t('gm.reminder_cleared'));
+}
+async function dtToggleImportant() {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  const { error } = await db.from('todos').update({ important: !todo.important }).eq('id', todo.id);
+  if (error) { toast(t('gm.update_error'), 'err'); return; }
+  todo.important = !todo.important; renderTodos(); renderDetail();
+}
+async function dtToggleDone() {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  const newDone = !todo.completed;
+  const { error } = await db.from('todos').update({
+    completed: newDone, completed_at: newDone ? new Date().toISOString() : null,
+  }).eq('id', todo.id);
+  if (error) { toast(t('gm.update_error'), 'err'); return; }
+  todo.completed = newDone;
+  todo.completed_at = newDone ? new Date().toISOString() : null;
+  if (newDone) cancelTodoReminder(todo.id);
+  else if (todo.remind_at && new Date(todo.remind_at) > new Date()) scheduleTodoReminder(todo);
+  renderTodos();
+  if (newDone) { toast(t('gm.completed')); closeDetail(); }
+  else renderDetail();
+}
+async function dtDelete() {
+  const todo = allTodos.find(t => String(t.id) === _detailId); if (!todo) return;
+  const { error } = await db.from('todos').delete().eq('id', todo.id);
+  if (error) { toast(t('gm.delete_error'), 'err'); return; }
+  cancelTodoReminder(todo.id);
+  allTodos = allTodos.filter(x => x.id !== todo.id);
+  renderTodos(); closeDetail(); toast(t('gm.deleted'));
 }
 
 // ── Container drag listeners ──────────────────────────────────────────────

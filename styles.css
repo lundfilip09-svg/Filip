@@ -34,7 +34,10 @@ body {
   font-family: var(--font-sans);
   min-height: 100vh;
   overflow-x: clip; /* hindrer horisontal swipe/blank plass; 'clip' bevarer sticky nav (i motsetning til 'hidden') */
+  touch-action: pan-x pan-y; /* slår av dobbeltrykk-/knip-zoom på hele appen */
 }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* iOS Safari zoomer inn på fokus av input/textarea/select med font-size < 16px */
 @media (max-width: 768px) {

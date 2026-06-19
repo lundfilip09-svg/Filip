@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="manifest" href="/manifest.json">
@@ -141,9 +141,33 @@
     }
     @media (max-width: 640px) {
       .tp-aside { grid-template-columns: 1fr; }
+
+      /* Hero stables vertikalt — slutt på horisontal overflow */
+      .tp-hero-row {
+        flex-direction: column; align-items: stretch;
+        gap: 12px; padding: 14px;
+      }
+      .hero-session { font-size: 20px; }
+      .tp-hero-week {
+        order: 3; width: 100%; box-sizing: border-box;
+        justify-content: space-between; padding: 7px 10px;
+      }
+      .tp-hero-week #weekNavLabel { flex: 1; text-align: center; }
+      .tp-hero-week .btn { flex-shrink: 0; }
+      .tp-hero-kpis { order: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .tp-kpi { min-width: 0; padding: 9px 10px; }
+
+      /* Ukestrip: 7 dager fyller skjermen uten å flyte over */
       .day-strip { grid-template-columns: repeat(7,1fr); gap: 4px; padding: 8px; }
-      .day-card { min-height: 80px; padding: 8px 6px; }
+      .day-card { min-height: 78px; padding: 8px 4px; gap: 3px; }
+      .day-card-date { font-size: 17px; }
+      .day-card-name { font-size: 7px; letter-spacing: 0.05em; }
+      .day-card-plan { font-size: 8.5px; line-height: 1.25; }
+      .day-card-rest { font-size: 7px; }
+
+      .tp-detail-wrap { padding: 0 12px 14px; }
       .detail-2col { grid-template-columns: 1fr; }
+      .sess-grid { grid-template-columns: 1fr; }
     }
 
     /* ── Physio / rehab ─────────────────────────────────────── */

@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="manifest" href="/manifest.json">
@@ -409,18 +409,26 @@
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
 
     /* History */
-    .hist-sets-toggle { cursor: pointer; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 3px; }
+    .gym-history-item { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; transition: border-color 0.15s; }
+    .gym-history-item:hover { border-color: rgba(255,255,255,0.11); }
+    .hist-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+    .hist-d { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+    .hist-t { font-size: 11px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-pain { line-height: 1.5; }
+    .pinj { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
+    .pinj-name { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); min-width: 64px; }
+    .pchips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+    .pchip { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.04); border-radius: 4px; padding: 1px 5px; font-size: 9px; font-family: var(--font-mono); }
+    .pchip-l { color: var(--text-tertiary); }
+    .pchip-v { font-weight: 600; }
+    .hist-sets-toggle { cursor: pointer; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 5px; }
     .hist-sets-toggle:hover { color: var(--text-secondary); }
     .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 9px; font-family: var(--font-mono); }
     .hist-ex-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .hist-ex-vol { color: var(--text-tertiary); flex-shrink: 0; }
-    .hist-row { display: flex; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; font-family: var(--font-mono); }
-    .hist-row:last-child { border-bottom: none; }
-    .hist-date { color: var(--text-tertiary); width: 58px; flex-shrink: 0; font-size: 10px; }
-    .hist-type { color: var(--text-secondary); flex: 1; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hist-knee { color: var(--text-tertiary); font-size: 9px; flex-shrink: 0; }
+    .hist-row { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; font-family: var(--font-mono); }
     .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
-    .hist-row:hover .edit-knee-btn { opacity: 1; }
+    .gym-history-item:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
     .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
     .gym-history-item:hover .gym-del-btn { opacity: 1; }
@@ -1032,7 +1040,7 @@ async function deleteDay(key) {
   setDay(activeDay);
   toast(t('gym.day_deleted'));
 }
-function setWS(s) { workoutState = s; document.body.dataset.ws = s; }
+function setWS(s) { workoutState = s; document.body.dataset.ws = s; try { renderGymManualPainForms(); } catch(e) {} }
 
 // ── Session persistence ────────────────────────────────────────────
 function saveSession() {
@@ -2635,6 +2643,9 @@ function renderGymManualPainForms() {
   const sec   = document.getElementById('gymManualPainSec');
   const forms = document.getElementById('gymManualPainForms');
   if (!sec || !forms) return;
+  // Skjul tilbakedatert manuell registrering når en økt er i gang —
+  // da logges smerte gjennom selve økta, ikke manuelt.
+  if (workoutState === 'active') { sec.style.display = 'none'; return; }
   if (!_severeInjuries.length) { sec.style.display = 'none'; return; }
   sec.style.display = '';
   const phases = [
@@ -3032,22 +3043,23 @@ async function loadGymHistory() {
     if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
   }
   // Smerteverdier for én rad (injury_pain → ev. knee_pain-fallback for kne).
-  function _painLine(row) {
-    return [
+  // Kompakte fargekodede chips: enkeltbokstav (fra t(), så tospråklig) + full label i tooltip.
+  function _painChips(row) {
+    return `<div class="pchips">` + [
       { l:t('knee.before'),   v: row?.before_score },
       { l:t('knee.during'),   v: row?.during_score },
       { l:t('knee.after'),    v: row?.after_score },
       { l:t('knee.dayafter'), v: row?.day_after_score },
-    ].map(p => `${p.l}: <span style="color:${painClrH(p.v)};font-weight:600">${p.v ?? '—'}</span>`).join(' · ');
+    ].map(p => `<span class="pchip" title="${escHtml(p.l)}"><span class="pchip-l">${escHtml(p.l.charAt(0).toUpperCase())}</span><span class="pchip-v" style="color:${painClrH(p.v)}">${p.v ?? '—'}</span></span>`).join('') + `</div>`;
   }
   function _histRow(inj, g, knee) {
     return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
   }
   // Oppsummeringslinje(r) under hver økt — per-skade hvis skader finnes, ellers legacy kne.
   function painSummaryHtml(g, knee) {
-    if (!_severeInjuries.length) return _painLine(knee);
+    if (!_severeInjuries.length) return _painChips(knee);
     return _severeInjuries.map(inj =>
-      `<div style="margin-bottom:1px"><span style="color:var(--text-secondary)">${escHtml(bodyPartName(inj))}</span> — ${_painLine(_histRow(inj, g, knee))}</div>`
+      `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_painChips(_histRow(inj, g, knee))}</div>`
     ).join('');
   }
   // Redigerbar smerteblokk per økt — per-skade (injury_pain) eller legacy kne (knee_pain).
@@ -3129,11 +3141,13 @@ async function loadGymHistory() {
     }
 
     return `<div id="hist-wrap-${g.id}" class="gym-history-item">
-      <div class="hist-row" style="align-items:flex-start;padding:8px 0">
+      <div class="hist-row">
         <div style="flex:1;min-width:0">
-          <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:2px">${fmtSessDate(g.date)}</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(displaySessionType(g.session_type))}</div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);line-height:1.6">${painStr}</div>
+          <div class="hist-head">
+            <span class="hist-d">${fmtSessDate(g.date)}</span>
+            <span class="hist-t">${escHtml(displaySessionType(g.session_type))}</span>
+          </div>
+          <div class="hist-pain">${painStr}</div>
           ${setsHtml}
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
