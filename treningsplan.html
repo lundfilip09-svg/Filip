@@ -617,6 +617,16 @@
         <input class="input-sm" id="actDuration" type="number" min="5" max="600" step="5" placeholder="60" style="width:110px">
       </div>
       <div style="margin-bottom:12px;max-width:260px" id="actRpeHost"></div>
+      <div style="margin-bottom:12px">
+        <div class="act-field-label" data-i18n="tp.load_mult">Belastningsvekt (multiplikator)</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="actLoadMult" type="range" min="0" max="4" step="0.25"
+            style="flex:1;accent-color:var(--accent-blue)"
+            oninput="document.getElementById('actLoadMultVal').textContent=parseFloat(this.value).toFixed(2)">
+          <span id="actLoadMultVal" style="font-family:var(--font-mono);font-size:13px;min-width:32px;color:var(--text-primary)">1.50</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;font-family:var(--font-mono)" data-i18n="tp.load_mult_hint">Forhåndsutfylt med type-standard. Juster om intensiteten avviker.</div>
+      </div>
       <div id="actInjuryBlocks"></div>
       <div style="margin-bottom:16px">
         <div class="act-field-label" style="margin-bottom:5px" data-i18n="tp.notes">Notater</div>
@@ -1447,7 +1457,7 @@ async function renderWeekLoad() {
     const [g, s, a] = await Promise.all([
       db.from('gym_log').select('date,rpe,session_type').gte('date', fromIso),
       db.from('sprint_log').select('date,rpe,type').gte('date', fromIso),
-      db.from('activity_log').select('date,rpe,activity_type,activity_label').gte('date', fromIso),
+      db.from('activity_log').select('date,rpe,activity_type,activity_label,load_multiplier').gte('date', fromIso),
     ]);
     gym = g.data || []; spr = s.data || []; act = a.data || [];
   } catch (e) { el.innerHTML = '<div class="empty" style="font-size:11px">—</div>'; return; }
@@ -1460,7 +1470,7 @@ async function renderWeekLoad() {
     if (i >= 0 && i < 6) loads[i] += ((rpe || 0) / 10) * mult;
   };
   gym.forEach(r => add(r.date, r.rpe, loadMultiplier('gym', r.session_type)));
-  act.forEach(r => add(r.date, r.rpe, loadMultiplier('activity', r.activity_type, r.activity_label)));
+  act.forEach(r => add(r.date, r.rpe, r.load_multiplier ?? loadMultiplier('activity', r.activity_type, r.activity_label)));
   const sprSeen = {};
   spr.forEach(r => {
     if (sprSeen[r.date]) return;
@@ -1543,7 +1553,7 @@ function renderTrends() {
   const loadByDate = {};
   const addLoad = (date, rpe, mult) => { loadByDate[date] = (loadByDate[date] || 0) + ((rpe || 0) / 10) * mult; };
   _sessData.forEach(g => addLoad(g.date, g.rpe, loadMultiplier('gym', g.session_type)));
-  _actData.forEach(a => addLoad(a.date, a.rpe, loadMultiplier('activity', a.activity_type, a.activity_label)));
+  _actData.forEach(a => addLoad(a.date, a.rpe, a.load_multiplier ?? loadMultiplier('activity', a.activity_type, a.activity_label)));
   // sprint_log er per løp → tell hver økt (dato) én gang
   const _sprintSeen = {};
   _sprintData.forEach(s => { if (!_sprintSeen[s.date]) { _sprintSeen[s.date] = 1; addLoad(s.date, s.rpe, loadMultiplier('sprint', s.type)); } });
@@ -1773,7 +1783,7 @@ function renderSessionGrid() {
   const oldCard = document.getElementById('addActCard');
   if (oldCard) oldCard.remove();
 
-  el.innerHTML = groups.map(grp => {
+  const _grpHtmls = groups.map(grp => {
     const d       = new Date(grp.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
 
@@ -1852,7 +1862,17 @@ function renderSessionGrid() {
       <div class="hist-date-label">${dateStr}</div>
       <div class="hist-sessions">${sessHtml}</div>
     </div>`;
-  }).join('');
+  });
+
+  // Most recent day always visible; older days collapsible
+  const _olderHtml = _grpHtmls.length > 1
+    ? `<div id="histOlderSessions" style="${_historyCollapsed ? 'display:none' : ''}">${_grpHtmls.slice(1).join('')}</div>`
+    : '';
+  el.innerHTML = (_grpHtmls[0] || '') + _olderHtml;
+
+  // Hide toggle arrow if there's nothing older
+  const _histBtn = document.getElementById('histToggleBtn');
+  if (_histBtn) _histBtn.style.display = _grpHtmls.length > 1 ? '' : 'none';
 
 }
 
@@ -2317,6 +2337,7 @@ function openActModal() {
   document.getElementById('actSoccerLevel').style.display = 'none';
   const rw = document.getElementById('actReplacedWrap');
   if (rw) { rw.style.display = 'none'; document.getElementById('actReplacedLabel').value = ''; }
+  _setMultSlider(1.5);
   // reset soccer level to høy (safe default for old-data parity)
   _soccerLevel = 'høy';
   document.querySelectorAll('#actSoccerLevel .act-lvl-btn').forEach(b => {
@@ -2333,6 +2354,15 @@ function selectSoccerLevel(btn) {
   document.querySelectorAll('#actSoccerLevel .act-lvl-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   _soccerLevel = btn.dataset.level;
+  _setMultSlider(loadMultiplier('activity', _actType, _soccerLevel));
+}
+
+function _setMultSlider(val) {
+  const sl = document.getElementById('actLoadMult');
+  const lbl = document.getElementById('actLoadMultVal');
+  if (!sl || !lbl) return;
+  sl.value = val;
+  lbl.textContent = parseFloat(val).toFixed(2);
 }
 
 function selectActType(btn) {
@@ -2341,6 +2371,7 @@ function selectActType(btn) {
   _actType = btn.dataset.type;
   document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
   document.getElementById('actSoccerLevel').style.display = (_actType === 'Fotball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
+  _setMultSlider(loadMultiplier('activity', _actType, _soccerLevel));
 
   // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
   const replacedWrap = document.getElementById('actReplacedWrap');
@@ -2370,11 +2401,13 @@ async function saveActivity() {
   const duration   = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
   const rpe        = rpeValue('actRpe');
   const notes      = document.getElementById('actNotes').value.trim() || null;
+  const multRaw    = document.getElementById('actLoadMult')?.value;
+  const loadMult   = multRaw != null ? parseFloat(multRaw) : loadMultiplier('activity', _actType, actLabel);
 
   const { data, error } = await db.from('activity_log').insert({
     user_id: userId, date, activity_type: _actType, activity_label: actLabel,
     duration_min: duration, rpe,
-    notes,
+    notes, load_multiplier: loadMult,
   }).select().single();
 
   if (error) { console.error('saveActivity error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
@@ -2508,10 +2541,107 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
 let _historyCollapsed = true;
 function toggleHistory() {
   _historyCollapsed = !_historyCollapsed;
-  const body = document.getElementById('sessionGrid');
-  const btn  = document.getElementById('histToggleBtn');
-  if (body) body.classList.toggle('tp-hist-collapsed', _historyCollapsed);
-  if (btn)  btn.textContent = _historyCollapsed ? '∨' : '∧';
+  const older = document.getElementById('histOlderSessions');
+  const btn   = document.getElementById('histToggleBtn');
+  if (older) older.style.display = _historyCollapsed ? 'none' : '';
+  if (btn)   btn.textContent = _historyCollapsed ? '∨' : '∧';
+}
+
+// ── Overload-coach konfig (global — kallast frå onclick-attributtar) ────────
+let _ocExercises = [];
+let _ocConfig    = {};
+
+async function openOCModal() {
+  document.getElementById('ocModal').classList.remove('hidden');
+  document.getElementById('ocModalBody').innerHTML = `<div class="loading">${t('loading')}</div>`;
+
+  const [wpRes, cfgRes] = await Promise.all([
+    db.from('workout_program').select('exercise_name,reps,section,day').order('day').order('sort_order'),
+    db.from('overload_config').select('*'),
+  ]);
+
+  const SKIP = /rehab|cardio|varm|warm/i;
+  const seen = new Set();
+  _ocExercises = (wpRes.data || []).filter(e => {
+    if (SKIP.test(e.section || '') || SKIP.test(e.day || '')) return false;
+    if (seen.has(e.exercise_name)) return false;
+    seen.add(e.exercise_name);
+    return true;
+  });
+
+  _ocConfig = {};
+  (cfgRes.data || []).forEach(r => { _ocConfig[r.exercise_name] = r; });
+
+  renderOCModal();
+}
+
+function renderOCModal() {
+  const body = document.getElementById('ocModalBody');
+  if (!_ocExercises.length) {
+    body.innerHTML = `<div class="empty">${t('tp.oc_no_ex')}</div>`;
+    return;
+  }
+  body.innerHTML = _ocExercises.map(ex => {
+    const cfg      = _ocConfig[ex.exercise_name] || {};
+    const enabled  = cfg.enabled ?? true;
+    const repsMatch = (ex.reps || '').match(/(\d+)\D+(\d+)/);
+    const defMin   = repsMatch ? repsMatch[1] : '—';
+    const defMax   = repsMatch ? repsMatch[2] : '—';
+    return `<div class="oc-ex-row" data-ex="${escHtml(ex.exercise_name)}" style="margin-bottom:2px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(ex.exercise_name)}</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);cursor:pointer">
+          <input type="checkbox" class="oc-enabled"${enabled ? ' checked' : ''}>
+          <span data-i18n="tp.oc_enabled">${t('tp.oc_enabled')}</span>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:2px">
+        <div>
+          <div class="act-field-label" data-i18n="tp.oc_reps_min">${t('tp.oc_reps_min')}</div>
+          <input type="number" class="input-sm oc-rep-min" value="${cfg.rep_min ?? ''}" placeholder="${defMin}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
+        </div>
+        <div>
+          <div class="act-field-label" data-i18n="tp.oc_reps_max">${t('tp.oc_reps_max')}</div>
+          <input type="number" class="input-sm oc-rep-max" value="${cfg.rep_max ?? ''}" placeholder="${defMax}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
+        </div>
+        <div>
+          <div class="act-field-label" data-i18n="tp.oc_step">${t('tp.oc_step')}</div>
+          <input type="number" class="input-sm oc-step" value="${cfg.step_kg ?? ''}" placeholder="2.5" min="0.5" step="0.5" style="width:100%;box-sizing:border-box;text-align:center">
+        </div>
+        <div>
+          <div class="act-field-label" data-i18n="tp.oc_pain">${t('tp.oc_pain')}</div>
+          <input type="number" class="input-sm oc-pain" value="${cfg.pain_limit ?? ''}" placeholder="3" min="0" max="10" style="width:100%;box-sizing:border-box;text-align:center">
+        </div>
+      </div>
+    </div>`;
+  }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0">');
+}
+
+function closeOCModal() {
+  document.getElementById('ocModal').classList.add('hidden');
+}
+
+async function saveOCConfig() {
+  const rows = [...document.querySelectorAll('.oc-ex-row')].map(row => {
+    const repMin = row.querySelector('.oc-rep-min').value;
+    const repMax = row.querySelector('.oc-rep-max').value;
+    const step   = row.querySelector('.oc-step').value;
+    const pain   = row.querySelector('.oc-pain').value;
+    return {
+      exercise_name: row.dataset.ex,
+      enabled:    row.querySelector('.oc-enabled').checked,
+      rep_min:    repMin !== '' ? parseInt(repMin)   : null,
+      rep_max:    repMax !== '' ? parseInt(repMax)   : null,
+      step_kg:    step   !== '' ? parseFloat(step)   : null,
+      pain_limit: pain   !== '' ? parseInt(pain)     : null,
+      updated_at: new Date().toISOString(),
+    };
+  });
+  const { error } = await db.from('overload_config').upsert(rows, { onConflict: 'exercise_name' });
+  if (error) { toast(`${t('tp.oc_saved')}: ${error.message}`, 'err'); return; }
+  rows.forEach(r => { _ocConfig[r.exercise_name] = r; });
+  toast(t('tp.oc_saved'));
+  closeOCModal();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -2543,102 +2673,6 @@ function toggleHistory() {
   loggedDates = new Set((data || []).map(r => r.date));
   currentWeekLoggedDates = new Set(loggedDates);
 
-  // ── Overload-coach konfig ─────────────────────────────────────────────────
-  let _ocExercises = [];   // {exercise_name, reps, section, day} deduped, non-rehab
-  let _ocConfig    = {};   // exercise_name → overload_config row
-
-  async function openOCModal() {
-    document.getElementById('ocModal').classList.remove('hidden');
-    document.getElementById('ocModalBody').innerHTML = `<div class="loading">${t('loading')}</div>`;
-
-    const [wpRes, cfgRes] = await Promise.all([
-      db.from('workout_program').select('exercise_name,reps,section,day').order('day').order('sort_order'),
-      db.from('overload_config').select('*'),
-    ]);
-
-    const SKIP = /rehab|cardio|varm|warm/i;
-    const seen = new Set();
-    _ocExercises = (wpRes.data || []).filter(e => {
-      if (SKIP.test(e.section || '') || SKIP.test(e.day || '')) return false;
-      if (seen.has(e.exercise_name)) return false;
-      seen.add(e.exercise_name);
-      return true;
-    });
-
-    _ocConfig = {};
-    (cfgRes.data || []).forEach(r => { _ocConfig[r.exercise_name] = r; });
-
-    renderOCModal();
-  }
-
-  function renderOCModal() {
-    const body = document.getElementById('ocModalBody');
-    if (!_ocExercises.length) {
-      body.innerHTML = `<div class="empty">${t('tp.oc_no_ex')}</div>`;
-      return;
-    }
-    body.innerHTML = _ocExercises.map(ex => {
-      const cfg     = _ocConfig[ex.exercise_name] || {};
-      const enabled = cfg.enabled ?? true;
-      const repsMatch = (ex.reps || '').match(/(\d+)\D+(\d+)/);
-      const defMin  = repsMatch ? repsMatch[1] : '—';
-      const defMax  = repsMatch ? repsMatch[2] : '—';
-      return `<div class="oc-ex-row" data-ex="${escHtml(ex.exercise_name)}" style="margin-bottom:2px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <span style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(ex.exercise_name)}</span>
-          <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);cursor:pointer">
-            <input type="checkbox" class="oc-enabled"${enabled ? ' checked' : ''}>
-            <span data-i18n="tp.oc_enabled">${t('tp.oc_enabled')}</span>
-          </label>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:2px">
-          <div>
-            <div class="act-field-label" data-i18n="tp.oc_reps_min">${t('tp.oc_reps_min')}</div>
-            <input type="number" class="input-sm oc-rep-min" value="${cfg.rep_min ?? ''}" placeholder="${defMin}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
-          </div>
-          <div>
-            <div class="act-field-label" data-i18n="tp.oc_reps_max">${t('tp.oc_reps_max')}</div>
-            <input type="number" class="input-sm oc-rep-max" value="${cfg.rep_max ?? ''}" placeholder="${defMax}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
-          </div>
-          <div>
-            <div class="act-field-label" data-i18n="tp.oc_step">${t('tp.oc_step')}</div>
-            <input type="number" class="input-sm oc-step" value="${cfg.step_kg ?? ''}" placeholder="2.5" min="0.5" step="0.5" style="width:100%;box-sizing:border-box;text-align:center">
-          </div>
-          <div>
-            <div class="act-field-label" data-i18n="tp.oc_pain">${t('tp.oc_pain')}</div>
-            <input type="number" class="input-sm oc-pain" value="${cfg.pain_limit ?? ''}" placeholder="3" min="0" max="10" style="width:100%;box-sizing:border-box;text-align:center">
-          </div>
-        </div>
-      </div>`;
-    }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0">');
-  }
-
-  function closeOCModal() {
-    document.getElementById('ocModal').classList.add('hidden');
-  }
-
-  async function saveOCConfig() {
-    const rows = [...document.querySelectorAll('.oc-ex-row')].map(row => {
-      const repMin  = row.querySelector('.oc-rep-min').value;
-      const repMax  = row.querySelector('.oc-rep-max').value;
-      const step    = row.querySelector('.oc-step').value;
-      const pain    = row.querySelector('.oc-pain').value;
-      return {
-        exercise_name: row.dataset.ex,
-        enabled:    row.querySelector('.oc-enabled').checked,
-        rep_min:    repMin  !== '' ? parseInt(repMin)    : null,
-        rep_max:    repMax  !== '' ? parseInt(repMax)    : null,
-        step_kg:    step    !== '' ? parseFloat(step)    : null,
-        pain_limit: pain    !== '' ? parseInt(pain)      : null,
-        updated_at: new Date().toISOString(),
-      };
-    });
-    const { error } = await db.from('overload_config').upsert(rows, { onConflict: 'exercise_name' });
-    if (error) { toast(`${t('tp.oc_saved')}: ${error.message}`, 'err'); return; }
-    rows.forEach(r => { _ocConfig[r.exercise_name] = r; });
-    toast(t('tp.oc_saved'));
-    closeOCModal();
-  }
 
   onLangChange = () => {
     renderHero();
@@ -2658,9 +2692,6 @@ function toggleHistory() {
   renderDetail();
   renderSidebar();
   await loadSessionHistory();
-  // Apply default-collapsed state to history grid
-  const _sgEl = document.getElementById('sessionGrid');
-  if (_sgEl && _historyCollapsed) _sgEl.classList.add('tp-hist-collapsed');
   openSessionFromUrl();   // dyplenke fra dashboard (?date=) → åpne riktig økt
 })();
 </script>
