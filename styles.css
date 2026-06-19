@@ -74,6 +74,7 @@ body::after {
 /* ── Navigation ───────────────────────────────────────────────────────── */
 .main-nav {
   position: sticky; top: 0; z-index: 100;
+  padding-top: env(safe-area-inset-top); /* skyver nav forbi statuslinje/notch når viewport-fit=cover */
   background: rgba(7,7,9,0.82);
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);

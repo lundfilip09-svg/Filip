@@ -409,28 +409,29 @@
     .knee-phase-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 5px; }
 
     /* History */
-    .gym-history-item { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; transition: border-color 0.15s; }
-    .gym-history-item:hover { border-color: rgba(255,255,255,0.11); }
-    .hist-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+    .gym-history-item { position: relative; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px 10px 14px; margin-bottom: 7px; overflow: hidden; transition: border-color 0.15s, background 0.15s; }
+    .gym-history-item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--cat, var(--text-tertiary)); opacity: 0.7; }
+    .gym-history-item:hover { border-color: rgba(255,255,255,0.13); background: rgba(255,255,255,0.04); }
+    .hist-row { display: flex; align-items: flex-start; gap: 7px; font-family: var(--font-mono); }
+    .hist-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .hist-t { font-size: 12px; font-weight: 650; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hist-d { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
-    .hist-t { font-size: 11px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hist-pain { line-height: 1.5; }
-    .pinj { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
-    .pinj-name { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); min-width: 64px; }
-    .pchips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-    .pchip { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.04); border-radius: 4px; padding: 1px 5px; font-size: 9px; font-family: var(--font-mono); }
-    .pchip-l { color: var(--text-tertiary); }
-    .pchip-v { font-weight: 600; }
-    .hist-sets-toggle { cursor: pointer; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 5px; }
-    .hist-sets-toggle:hover { color: var(--text-secondary); }
-    .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 9px; font-family: var(--font-mono); }
+    .pinj { margin-bottom: 6px; }
+    .pinj:last-child { margin-bottom: 0; }
+    .pinj-name { display: block; font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 4px; }
+    .pstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .pcell { display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(255,255,255,0.035); border-radius: 6px; padding: 5px 2px 4px; }
+    .pcell-l { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+    .pcell-v { font-size: 14px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+    .hist-sets-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 3px 8px; }
+    .hist-sets-toggle:hover { color: var(--text-secondary); background: rgba(255,255,255,0.07); }
+    .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 2px; font-size: 9px; font-family: var(--font-mono); border-top: 1px solid rgba(255,255,255,0.04); }
     .hist-ex-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .hist-ex-vol { color: var(--text-tertiary); flex-shrink: 0; }
-    .hist-row { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; font-family: var(--font-mono); }
-    .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+    .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0.45; transition: opacity 0.15s, color 0.15s; }
     .gym-history-item:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
-    .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
+    .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0.45; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
     .gym-history-item:hover .gym-del-btn { opacity: 1; }
     .gym-del-btn:hover { color: var(--danger); }
     .knee-edit-panel { display: none; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; }
@@ -3042,24 +3043,32 @@ async function loadGymHistory() {
     if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
     if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
   }
-  // Smerteverdier for én rad (injury_pain → ev. knee_pain-fallback for kne).
-  // Kompakte fargekodede chips: enkeltbokstav (fra t(), så tospråklig) + full label i tooltip.
-  function _painChips(row) {
-    return `<div class="pchips">` + [
+  // Kategorifarge (venstre aksent-stripe) ut fra økt-type.
+  function sessCatColor(raw) {
+    const k = _SESSION_TYPE_KEYS[(raw || '').trim().toLowerCase()];
+    if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
+    if (k === 'session.mobility') return 'var(--success)';
+    if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
+    return 'var(--text-tertiary)';
+  }
+  // Smerteverdier for én rad (injury_pain → ev. knee_pain-fallback for kne) som
+  // 4 fargekodede celler. Label = forkortet t()-verdi (tospråklig), full i tooltip.
+  function _painStrip(row) {
+    return `<div class="pstrip">` + [
       { l:t('knee.before'),   v: row?.before_score },
       { l:t('knee.during'),   v: row?.during_score },
       { l:t('knee.after'),    v: row?.after_score },
       { l:t('knee.dayafter'), v: row?.day_after_score },
-    ].map(p => `<span class="pchip" title="${escHtml(p.l)}"><span class="pchip-l">${escHtml(p.l.charAt(0).toUpperCase())}</span><span class="pchip-v" style="color:${painClrH(p.v)}">${p.v ?? '—'}</span></span>`).join('') + `</div>`;
+    ].map(p => `<div class="pcell" title="${escHtml(p.l)}"><span class="pcell-l">${escHtml(p.l.slice(0,3).toUpperCase())}</span><span class="pcell-v" style="color:${painClrH(p.v)}">${p.v ?? '—'}</span></div>`).join('') + `</div>`;
   }
   function _histRow(inj, g, knee) {
     return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
   }
   // Oppsummeringslinje(r) under hver økt — per-skade hvis skader finnes, ellers legacy kne.
   function painSummaryHtml(g, knee) {
-    if (!_severeInjuries.length) return _painChips(knee);
+    if (!_severeInjuries.length) return `<div class="pinj">${_painStrip(knee)}</div>`;
     return _severeInjuries.map(inj =>
-      `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_painChips(_histRow(inj, g, knee))}</div>`
+      `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_painStrip(_histRow(inj, g, knee))}</div>`
     ).join('');
   }
   // Redigerbar smerteblokk per økt — per-skade (injury_pain) eller legacy kne (knee_pain).
@@ -3140,14 +3149,14 @@ async function loadGymHistory() {
         <div id="hist-sets-${g.id}" style="display:none;padding:3px 0 1px">${detail}</div>`;
     }
 
-    return `<div id="hist-wrap-${g.id}" class="gym-history-item">
+    return `<div id="hist-wrap-${g.id}" class="gym-history-item" style="--cat:${sessCatColor(g.session_type)}">
       <div class="hist-row">
         <div style="flex:1;min-width:0">
           <div class="hist-head">
-            <span class="hist-d">${fmtSessDate(g.date)}</span>
             <span class="hist-t">${escHtml(displaySessionType(g.session_type))}</span>
+            <span class="hist-d">${fmtSessDate(g.date)}</span>
           </div>
-          <div class="hist-pain">${painStr}</div>
+          ${painStr}
           ${setsHtml}
         </div>
         <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
