@@ -774,6 +774,7 @@ let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
 let _injuryScores   = {};   // {injuryId: {before, during, after, dayafter}}
 let _gymManualScores = {};  // {injuryId: {before, during, after, dayafter}}
 let _histInjuryPain  = {};  // `${injuryId}|${date}` → injury_pain-rad (for historikk-skuffen)
+let _lastSaved       = null; // { date, sessionType } — satt av saveLog(), for auto-persist smerte etter lagring
 let _heOrig          = {};  // gymId → [set_log.id] lastet ved skuff-åpning (for sett-diff)
 let _heDayKey        = {};  // gymId → day_key fra lastede sett (for nye sett-inserts)
 
@@ -1438,14 +1439,19 @@ function renderAll() {
 
 function oppdaterTidsestimat() {
   if (activeDay === 'rehab') {
-    document.getElementById('whDuration').textContent = '~15 min';
+    const rehabExs   = Object.values(allExercises['rehab'] || {}).flat();
+    const totalSets  = rehabExs.reduce((a, e) => a + (e.sets || 1), 0);
+    const raw        = totalSets * 1.5;  // ~1.5 min per set (isometrics + hvile)
+    const rounded    = Math.max(5, Math.round(raw / 5) * 5);
+    document.getElementById('whDuration').textContent = `~${rounded} min`;
     return;
   }
-  const wmDay   = allExercises[activeDay + '_warmup'] || {};
-  const prepExs = Object.values(wmDay).flat();
-  const mainExs = getSortedMainExercises();
-  const raw     = 15 + prepExs.length * 2 + mainExs.length * 4;
-  const rounded = Math.round(raw / 5) * 5;
+  const wmDay        = allExercises[activeDay + '_warmup'] || {};
+  const prepExs      = Object.values(wmDay).flat();
+  const mainExs      = getSortedMainExercises();
+  const totalMainSets = mainExs.reduce((a, e) => a + (e.sets || 1), 0);
+  const raw          = 10 + prepExs.length * 2 + totalMainSets * 3;
+  const rounded      = Math.round(raw / 5) * 5;
   document.getElementById('whDuration').textContent = `~${rounded} min`;
 }
 
@@ -2754,6 +2760,42 @@ function selectGymInjuryPain(injId, phase, score) {
     });
   }
   saveDraft();
+  // Hvis økten allerede er lagret, persist pain direkte til injury_pain
+  if (_lastSaved) _persistInjuryPain(injId);
+}
+
+let _persistPainTimer = null;
+function _persistInjuryPain(injId) {
+  clearTimeout(_persistPainTimer);
+  _persistPainTimer = setTimeout(() => _doPersistInjuryPain(injId), 700);
+}
+async function _doPersistInjuryPain(injId) {
+  if (!_lastSaved) return;
+  const inj = _severeInjuries.find(i => i.id === injId);
+  if (!inj) return;
+  const s  = _injuryScores[injId] || {};
+  const ki = _kneeInjury();
+  const isKnee = ki && ki.id === injId;
+  const before_score    = isKnee ? (kneePain.before          ?? s.before)   : (s.before   ?? null);
+  const during_score    = isKnee ? (kneePain.during          ?? s.during)   : (s.during   ?? null);
+  const after_score     = isKnee ? (kneePain.after           ?? s.after)    : (s.after    ?? null);
+  const day_after_score = isKnee ? (kneePain['day-after']    ?? s.dayafter) : (s.dayafter ?? null);
+  const existing = _histInjuryPain[`${injId}|${_lastSaved.date}`];
+  let err;
+  if (existing) {
+    ({ error: err } = await db.from('injury_pain')
+      .update({ before_score, during_score, after_score, day_after_score })
+      .eq('id', existing.id));
+  } else {
+    const payload = { injury_id: injId, date: _lastSaved.date,
+      session_type: _lastSaved.sessionType, source: 'gym',
+      before_score, during_score, after_score, day_after_score };
+    const { data, error } = await db.from('injury_pain').insert(payload).select().single();
+    err = error;
+    if (data) _histInjuryPain[`${injId}|${_lastSaved.date}`] = data;
+  }
+  if (err) { toast(t('pain.save_err', { msg: err.message }), 'err'); return; }
+  await loadGymHistory();
 }
 
 async function loadSevereInjuries() {
@@ -3016,6 +3058,8 @@ async function saveLog() {
       else toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err');
       return;
     }
+    // Merk lagret økt — pain registrert etter dette auto-persisteres
+    _lastSaved = { date, sessionType };
     // Skriv injury_pain for alle alvorlige skader
     const injRows = _severeInjuries
       .map(inj => {
@@ -3306,16 +3350,10 @@ async function loadGymHistory() {
         </div>
       </div>
       <div class="hist-actions">
-        <button class="hist-act-btn" onclick="toggleSetsEdit('${g.id}')">${t('gym.edit_sets')}</button>
-        <button class="hist-act-btn" onclick="toggleKneeEdit('${g.id}')">${t('gym.edit_pain')}</button>
+        <button class="hist-act-btn" onclick="toggleKneeEdit('${g.id}')">${t('gym.edit_session')}</button>
         <button class="hist-act-btn hist-act-del" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
       </div>
       ${painEditHtml(g, knee, kneeId)}
-      <div class="knee-edit-panel" id="sets-edit-${g.id}">
-        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:8px">${t('gym.edit_sets')}</div>
-        ${editSetsHtml}
-        <div><button class="btn btn-ghost btn-sm" onclick="toggleSetsEdit('${g.id}')">${t('close')}</button></div>
-      </div>
     </div>`;
   }).join('') +
   `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
