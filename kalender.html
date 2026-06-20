@@ -659,8 +659,10 @@ let gcalEvents     = [];
 let customEvents   = [];
 let activeEventId  = null;
 let gcalScope      = 'this';   // 'this' = kun denne forekomsten, 'series' = hele gjentakende serien
-let viewMode       = 'agenda';
+let viewMode       = localStorage.getItem('kal_view') || 'agenda';
 let _qaDest        = 'gcal';   // 'gcal' | 'local'
+let _gcalRangeStart = '';
+let _gcalRangeEnd   = '';
 
 // ── Auth helper ────────────────────────────────────────────────────────────
 async function authHeaders() {
@@ -797,9 +799,12 @@ function parseQuickAdd(text) {
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
-async function loadGCalRange() {
-  const start = toLocalStr(addDays(weekStart, -7));
-  const end   = toLocalStr(addDays(weekStart, 35));
+async function loadGCalRange(anchorDate) {
+  const anchor = anchorDate || new Date();
+  const start  = toLocalStr(new Date(anchor.getFullYear(), anchor.getMonth() - 4, 1));
+  const end    = toLocalStr(new Date(anchor.getFullYear(), anchor.getMonth() + 8, 0));
+  _gcalRangeStart = start;
+  _gcalRangeEnd   = end;
   try {
     const hdrs = await authHeaders();
     const r = await fetch(`/api/kalender?start=${start}&end=${end}`, { headers: hdrs });
@@ -816,6 +821,12 @@ async function loadGCalRange() {
       recurringEventId: e.recurringEventId || null,
     }));
   } catch { gcalEvents = []; }
+}
+
+async function ensureGCalRange(dateStr) {
+  if (dateStr >= _gcalRangeStart && dateStr <= _gcalRangeEnd) return false;
+  await loadGCalRange(new Date(dateStr + 'T12:00:00'));
+  return true;
 }
 
 async function loadCustomEvents() {
@@ -1539,13 +1550,15 @@ async function qaSubmit() {
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
-function shiftWeek(dir) {
+async function shiftWeek(dir) {
   if (viewMode === 'month') {
     miniMonth.month += dir;
     if (miniMonth.month < 0)  { miniMonth.month = 11; miniMonth.year--; }
     if (miniMonth.month > 11) { miniMonth.month = 0;  miniMonth.year++; }
-    renderMonthView();
-    renderMiniMonth();
+    const checkDate = `${miniMonth.year}-${pad(miniMonth.month+1)}-15`;
+    const reloaded  = await ensureGCalRange(checkDate);
+    if (!reloaded) { renderMonthView(); renderMiniMonth(); }
+    else { renderAll(); }
     return;
   }
   weekStart = addDays(weekStart, dir * 7);
@@ -1555,9 +1568,14 @@ function shiftWeek(dir) {
   if (selStr < ws || selStr > we) {
     selectedDate = new Date(weekStart); selectedDate.setHours(12,0,0,0);
   }
-  renderWeekStrip();
-  renderDayView(toLocalStr(selectedDate));
-  renderMiniMonth();
+  const reloaded = await ensureGCalRange(ws);
+  if (!reloaded) {
+    renderWeekStrip();
+    renderDayView(toLocalStr(selectedDate));
+    renderMiniMonth();
+  } else {
+    renderAll();
+  }
 }
 
 function goToday() {
@@ -1567,16 +1585,20 @@ function goToday() {
   renderAll();
 }
 
-function shiftMiniMonth(dir) {
+async function shiftMiniMonth(dir) {
   miniMonth.month += dir;
   if (miniMonth.month < 0)  { miniMonth.month = 11; miniMonth.year--; }
   if (miniMonth.month > 11) { miniMonth.month = 0;  miniMonth.year++; }
-  renderMiniMonth();
+  const checkDate = `${miniMonth.year}-${pad(miniMonth.month+1)}-15`;
+  const reloaded  = await ensureGCalRange(checkDate);
+  if (!reloaded) renderMiniMonth();
+  else renderAll();
 }
 
 // ── View toggle ────────────────────────────────────────────────────────────
 function setView(mode) {
   viewMode = mode;
+  localStorage.setItem('kal_view', mode);
   document.getElementById('vtAgenda').classList.toggle('active', mode === 'agenda');
   document.getElementById('vtTimeline').classList.toggle('active', mode === 'timeline');
   document.getElementById('vtMonth').classList.toggle('active', mode === 'month');

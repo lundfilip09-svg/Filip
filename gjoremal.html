@@ -764,11 +764,26 @@
       font-family: var(--font-mono); padding: 9px 12px; outline: none;
     }
     .dt-field input:focus { border-color: rgba(91,164,245,0.4); }
+    .dt-field-hd {
+      display: flex; align-items: center; margin-bottom: 6px;
+    }
+    .dt-field-hd .dt-field-lbl { margin-bottom: 0; flex: 1; }
     .dt-field-clear {
       background: none; border: none; color: var(--text-tertiary); cursor: pointer;
-      font-size: 10px; font-family: var(--font-mono); margin-left: 8px; padding: 2px 6px;
+      font-size: 10px; font-family: var(--font-mono); margin-left: 8px; padding: 4px 8px;
+      border-radius: 6px; transition: color 0.12s, background 0.12s; flex-shrink: 0;
     }
     .dt-field-clear:hover { color: var(--danger); }
+    @media (max-width: 720px) {
+      .dt-field-clear {
+        display: block; width: 100%; box-sizing: border-box;
+        margin: 8px 0 0; padding: 11px 16px;
+        font-size: 13px; text-align: center;
+        border: 1px solid rgba(229,115,115,0.35);
+        color: var(--danger); background: rgba(229,115,115,0.08);
+        border-radius: 9px;
+      }
+    }
     .dt-row { display: flex; gap: 10px; }
     .dt-row .dt-field { flex: 1; }
     .dt-toggle-imp {
@@ -1623,13 +1638,19 @@ function renderDetail() {
 
     <div class="dt-row">
       <div class="dt-field">
-        <label class="dt-field-lbl">${t('gm.detail_due_label')}${todo.due_date?`<button class="dt-field-clear" onclick="dtClearDue()">${t('delete')}</button>`:''}</label>
+        <div class="dt-field-hd">
+          <label class="dt-field-lbl">${t('gm.detail_due_label')}</label>
+          ${todo.due_date ? `<button class="dt-field-clear" onclick="dtClearDue()">${t('delete')}</button>` : ''}
+        </div>
         <input type="date" value="${todo.due_date||''}" onchange="dtSaveDue(this.value)">
       </div>
     </div>
 
     <div class="dt-field">
-      <label class="dt-field-lbl">⏰ ${t('gm.detail_remind_label')}${todo.remind_at?`<button class="dt-field-clear" onclick="dtClearRemind()">${t('delete')}</button>`:''}</label>
+      <div class="dt-field-hd">
+        <label class="dt-field-lbl">⏰ ${t('gm.detail_remind_label')}</label>
+        ${todo.remind_at ? `<button class="dt-field-clear" onclick="dtClearRemind()">${t('delete')}</button>` : ''}
+      </div>
       <input type="datetime-local" value="${todo.remind_at?_toLocalDT(todo.remind_at):''}" onchange="dtSaveRemind(this.value)">
     </div>
 
