@@ -1362,7 +1362,7 @@ async function scheduleTodoReminder(todo) {
   if (!todo?.remind_at) return;
   await schedulePush({
     kind: 'todo', todoId: todo.id, fireAt: todo.remind_at,
-    title: todo.title, body: t('gm.reminder_body'),
+    title: '⏰ ' + t('gm.reminder_body'), body: todo.title,
     tag: 'todo-' + todo.id, url: '/gjoremal.html',
   });
 }
