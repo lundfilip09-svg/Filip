@@ -396,8 +396,9 @@ const TRANSLATIONS = {
     'gm.stats_done': 'Fullført i dag', 'gm.stats_overdue': 'Forfalt',
     'gm.sub_tasks': 'Gjøremål for i dag og fremover',
     'gm.update_error': 'Kunne ikke oppdatere', 'gm.delete_error': 'Kunne ikke slette',
-    'gm.rename': 'Gi nytt navn', 'gm.rename_prompt': 'Nytt navn på listen:', 'gm.list_exists': 'Listen finnes allerede', 'gm.list_renamed': 'Liste omdøpt',
+    'gm.rename': 'Gi nytt navn', 'gm.rename_prompt': 'Nytt navn på listen:', 'gm.new_list_prompt': 'Navn på ny liste:', 'gm.list_exists': 'Listen finnes allerede', 'gm.list_renamed': 'Liste omdøpt',
     'gm.drag_list': 'Dra for å sortere',
+    'gm.edit_done': 'Ferdig', 'gm.edit_lists_hint': 'Dra for å sortere · ✎ navn · ✕ slett',
     'gm.date_placeholder_no': 'dd.mm.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Kalender', 'kal.today': 'I dag', 'kal.new_event': 'Ny hendelse', 'kal.add_event': 'Hendelse',
@@ -951,8 +952,9 @@ const TRANSLATIONS = {
     'gm.stats_done': 'Done today', 'gm.stats_overdue': 'Overdue',
     'gm.sub_tasks': 'Tasks for today and ahead',
     'gm.update_error': 'Could not update', 'gm.delete_error': 'Could not delete',
-    'gm.rename': 'Rename', 'gm.rename_prompt': 'New list name:', 'gm.list_exists': 'List already exists', 'gm.list_renamed': 'List renamed',
+    'gm.rename': 'Rename', 'gm.rename_prompt': 'New list name:', 'gm.new_list_prompt': 'Name of new list:', 'gm.list_exists': 'List already exists', 'gm.list_renamed': 'List renamed',
     'gm.drag_list': 'Drag to reorder',
+    'gm.edit_done': 'Done', 'gm.edit_lists_hint': 'Drag to reorder · ✎ rename · ✕ delete',
     'gm.date_placeholder_no': 'mm.dd.yyyy', 'gm.date_placeholder_en': 'mm.dd.yyyy',
     // Kalender
     'kal.title': 'Calendar', 'kal.today': 'Today', 'kal.new_event': 'New event', 'kal.add_event': 'Event',

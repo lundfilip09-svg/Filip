@@ -120,6 +120,23 @@
     }
     .gm-li:hover  { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
     .gm-li.active { background: rgba(91,164,245,0.1);   color: var(--text-primary); }
+    /* "+" ny liste-fane — vises kun på mobil (desktop bruker input i sidebar) */
+    .gm-li-add {
+      display: none;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      padding: 0;
+      border: 1px dashed rgba(91,164,245,0.4);
+      border-radius: 8px;
+      background: rgba(91,164,245,0.08);
+      color: #5BA4F5;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .gm-li-add:active { background: rgba(91,164,245,0.18); }
     .gm-li-name { flex: 1; }
     .gm-li-count {
       font-size: 10px;
@@ -463,6 +480,57 @@
     }
     @media (max-width: 720px) { .gm-li .drag-handle { display: none; } }
 
+    /* ── Mobil: rediger-modus for lister (long-press) ── */
+    .gm-li { -webkit-touch-callout: none; }
+    .gm-list-edit-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px 0;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+    .gm-list-edit-bar .gm-le-hint { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gm-le-done {
+      flex-shrink: 0;
+      border: 1px solid rgba(91,164,245,0.4);
+      background: rgba(91,164,245,0.12);
+      color: #5BA4F5;
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .gm-list-nav.editing { animation: gmEditPulse 1.6s ease-in-out infinite; }
+    @keyframes gmEditPulse { 0%,100%{opacity:1} 50%{opacity:0.82} }
+    .gm-list-nav.editing .gm-li {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(91,164,245,0.25);
+    }
+    .gm-list-nav.editing .gm-li.active { border-color: rgba(91,164,245,0.5); }
+    /* Vis slett/endre-knapper i rediger-modus (overstyrer mobil-skjuling) */
+    .gm-list-nav.editing .gm-li-del,
+    .gm-list-nav.editing .gm-li-edit {
+      display: inline-flex !important;
+      align-items: center;
+      opacity: 0.95;
+      font-size: 12px;
+      padding: 3px 5px;
+    }
+    .gm-list-nav.editing .gm-li.dragging { opacity: 0.45; transform: scale(0.96); }
+    /* Horisontale innsettings-indikatorer (chip-rad ligger vannrett på mobil) */
+    .gm-list-nav.editing .gm-li.drag-before {
+      border-top: none; margin-top: 0;
+      border-left: 2px solid rgba(91,164,245,0.8); margin-left: -1px;
+    }
+    .gm-list-nav.editing .gm-li.drag-after {
+      border-bottom: none; margin-bottom: 0;
+      border-right: 2px solid rgba(91,164,245,0.8); margin-right: -1px;
+    }
+    body.gm-editing-lists .gm-list-edit-bar { display: flex; }
+
     /* ── Responsive ── */
     @media (max-width: 960px) {
       .gm-shell { grid-template-columns: 196px 1fr; }
@@ -492,38 +560,12 @@
       }
       .gm-li { white-space: nowrap; flex-shrink: 0; padding: 6px 12px; }
       .gm-li-del, .gm-li-edit { display: none !important; }
-      .gm-new-list-wrap { border-top: none; padding: 0 12px 10px; margin-top: 0; }
+      .gm-li-add { display: inline-flex; }
+      .gm-new-list-wrap { display: none; }
       .gm-main  { padding: 20px 16px 60px; }
       .gm-page-title { font-size: 22px; }
       .gm-stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .gm-add-bottom { flex-wrap: wrap; }
-    }
-    @media (max-width: 640px) {
-      /* Pin "Ny liste" as a dim footer bar — out of the way, below all content */
-      .gm-new-list-wrap {
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        padding: 8px 16px 14px;
-        background: rgba(8, 8, 10, 0.96);
-        border-top: 1px solid rgba(255,255,255,0.07);
-        border-radius: 0;
-        margin-top: 0;
-        z-index: 100;
-        opacity: 0.5;
-        transition: opacity 0.2s;
-      }
-      .gm-new-list-wrap:hover,
-      .gm-new-list-wrap:focus-within { opacity: 1; }
-      .gm-new-list-wrap input {
-        font-size: 11px !important;
-        padding: 4px 8px !important;
-      }
-      .gm-new-list-wrap .btn {
-        font-size: 11px !important;
-        padding: 4px 10px !important;
-      }
-      /* Prevent todo list content hiding behind fixed bar */
-      .gm-main { padding-bottom: 80px; }
     }
     @media (max-width: 480px) {
       .gm-stat-row { grid-template-columns: repeat(2, 1fr); }
@@ -757,6 +799,10 @@
     </div>
 
     <div class="gm-sb-section" data-i18n="gm.lists">Lister</div>
+    <div class="gm-list-edit-bar" id="listEditBar">
+      <span class="gm-le-hint" data-i18n="gm.edit_lists_hint">Dra for å sortere · ✎ navn · ✕ slett</span>
+      <button class="gm-le-done" onclick="exitListEdit()" data-i18n="gm.edit_done">Ferdig</button>
+    </div>
     <div class="gm-list-nav" id="listsBar">
       <div class="loading" data-i18n="loading">Laster…</div>
     </div>
@@ -869,6 +915,22 @@ let _dragEl = null;
 
 // ── List-sidebar drag state ────────────────────────────────────────────────
 let _listDragEl = null;
+
+// ── Mobil rediger-modus (long-press på liste) ──────────────────────────────
+let listEditMode = false;
+function enterListEdit() {
+  if (listEditMode) return;
+  listEditMode = true;
+  document.body.classList.add('gm-editing-lists');
+  try { navigator.vibrate && navigator.vibrate(12); } catch(e) {}
+  renderListsBar();
+}
+function exitListEdit() {
+  if (!listEditMode) return;
+  listEditMode = false;
+  document.body.classList.remove('gm-editing-lists');
+  renderListsBar();
+}
 
 function onListDragStart(e) {
   _listDragEl = e.currentTarget;
@@ -989,6 +1051,7 @@ async function loadLists() {
 
 function renderListsBar() {
   const bar = document.getElementById('listsBar');
+  bar.classList.toggle('editing', listEditMode);
   bar.innerHTML = lists.map(l => {
     const cnt = allTodos.filter(t => t.list_name === l && !t.completed).length;
     return `<div class="gm-li ${l===activeList?'active':''}" data-list="${escHtml(l)}"
@@ -1001,10 +1064,12 @@ function renderListsBar() {
       <button class="gm-li-edit" data-list="${escHtml(l)}" onclick="event.stopPropagation();renameList(this.dataset.list)" title="${t('gm.rename')}">✎</button>
       <button class="gm-li-del" data-list="${escHtml(l)}" onclick="event.stopPropagation();deleteList(this.dataset.list)" title="${t('delete')}" style="${l==='Generelt'?'visibility:hidden;pointer-events:none':''}">✕</button>
     </div>`;
-  }).join('');
+  }).join('')
+    + `<button class="gm-li-add" onclick="addListPrompt()" title="${t('gm.new_list')}" aria-label="${t('gm.new_list')}">+</button>`;
 }
 
 function selectList(name) {
+  if (listEditMode) return;   // i rediger-modus: tap bytter ikke liste
   activeList = name;
   try { localStorage.setItem('gjoremal_active_tab', name); } catch {}
   renderListsBar();
@@ -1033,14 +1098,21 @@ async function renameList(oldName) {
   toast(t('gm.list_renamed'));
 }
 
-async function addList() {
-  const name = document.getElementById('newListName').value.trim();
-  if (!name || lists.includes(name)) return;
+async function addList(explicitName) {
+  const inp = document.getElementById('newListName');
+  const name = (explicitName != null ? explicitName : inp.value).trim();
+  if (!name) return;
+  if (lists.includes(name)) { toast(t('gm.list_exists'), 'err'); return; }
   const position = lists.length;
   lists.push(name);
-  document.getElementById('newListName').value = '';
+  if (inp) inp.value = '';
   db.from('todo_lists').insert({ name, position });
   selectList(name);
+}
+
+function addListPrompt() {
+  const name = (prompt(t('gm.new_list_prompt')) || '').trim();
+  if (name) addList(name);
 }
 
 async function deleteList(name) {
@@ -1650,6 +1722,72 @@ async function dtDelete() {
     lists = [...bar.querySelectorAll('.gm-li[data-list]')].map(el => el.dataset.list);
     saveListOrder();
   });
+})();
+
+// ── #listsBar touch: long-press → rediger-modus + touch-drag reorder (mobil) ──
+(function() {
+  const bar = document.getElementById('listsBar');
+  let cand = null, timer = null, sx = 0, sy = 0, dragging = false;
+
+  bar.addEventListener('touchstart', e => {
+    // ignorer trykk direkte på slett/endre-knappene
+    if (e.target.closest('.gm-li-del, .gm-li-edit')) return;
+    const li = e.target.closest('.gm-li[data-list]');
+    if (!li) return;
+    const name = li.dataset.list;
+    cand = li; dragging = false;
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    if (!listEditMode) {
+      timer = setTimeout(() => {
+        timer = null;
+        enterListEdit();   // re-renderer baren → finn ny node for samme liste
+        cand = [...bar.querySelectorAll('.gm-li[data-list]')].find(el => el.dataset.list === name) || null;
+      }, 450);
+    }
+  }, { passive: true });
+
+  bar.addEventListener('touchmove', e => {
+    if (!cand) return;
+    const t = e.touches[0];
+    const dist = Math.abs(t.clientX - sx) + Math.abs(t.clientY - sy);
+    if (!listEditMode) {
+      if (dist > 10 && timer) { clearTimeout(timer); timer = null; cand = null; } // scroll → avbryt hold
+      return;
+    }
+    if (!dragging) {
+      if (dist < 8) return;
+      dragging = true;
+      cand.classList.add('dragging');
+    }
+    e.preventDefault();   // stopp scroll mens vi drar
+    const pt = document.elementFromPoint(t.clientX, t.clientY);
+    const overLi = pt ? pt.closest('.gm-li[data-list]') : null;
+    clearDragClasses();
+    if (overLi && overLi !== cand) {
+      const r = overLi.getBoundingClientRect();
+      bar.insertBefore(cand, t.clientX < r.left + r.width / 2 ? overLi : overLi.nextSibling);
+    }
+  }, { passive: false });
+
+  function end() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (dragging && cand) {
+      cand.classList.remove('dragging');
+      clearDragClasses();
+      lists = [...bar.querySelectorAll('.gm-li[data-list]')].map(el => el.dataset.list);
+      saveListOrder();
+    }
+    cand = null; dragging = false;
+  }
+  bar.addEventListener('touchend', end);
+  bar.addEventListener('touchcancel', end);
+
+  // Trykk utenfor liste-baren avslutter rediger-modus
+  document.addEventListener('touchstart', e => {
+    if (!listEditMode) return;
+    if (e.target.closest('#listsBar') || e.target.closest('#listEditBar')) return;
+    exitListEdit();
+  }, { passive: true });
 })();
 
 // ── Init ──────────────────────────────────────────────────────────────────
