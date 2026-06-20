@@ -39,10 +39,13 @@
     .vt-btn {
       padding: 4px 11px; border-radius: 6px; border: none; background: none;
       font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--text-tertiary); cursor: pointer;
-      transition: all 0.14s;
+      text-transform: uppercase; color: rgba(255,255,255,0.38); cursor: pointer;
+      transition: all 0.14s; font-weight: 500;
     }
-    .vt-btn.active { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    .vt-btn.active {
+      background: rgba(255,255,255,0.13); color: var(--text-primary); font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
     .vt-btn:hover:not(.active) { color: var(--text-secondary); }
 
     .kal-nav { display: flex; align-items: center; gap: 5px; }
@@ -70,10 +73,10 @@
     .week-strip { display: flex; gap: 4px; min-width: 480px; }
 
     .week-day {
-      flex: 1; padding: 8px 9px 7px; border-radius: 9px;
+      flex: 1; padding: 6px 8px; border-radius: 8px;
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
       cursor: pointer; transition: all 0.14s; position: relative;
-      display: flex; flex-direction: column; gap: 3px; overflow: hidden; min-width: 0;
+      display: flex; flex-direction: column; gap: 2px; overflow: hidden; min-width: 0;
     }
     .week-day:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
     .week-day.today { border-color: rgba(91,164,245,0.22); }
@@ -84,30 +87,30 @@
     .week-day.selected { background: rgba(255,255,255,0.065); border-color: rgba(255,255,255,0.18); }
     .week-day.selected.today { background: rgba(91,164,245,0.08); border-color: rgba(91,164,245,0.32); }
 
-    .wd-top { display: flex; align-items: baseline; gap: 4px; }
+    .wd-top { display: flex; align-items: baseline; gap: 5px; }
     .wd-name {
       font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-tertiary); line-height: 1;
+      text-transform: uppercase; color: rgba(255,255,255,0.32); line-height: 1;
     }
     .week-day.today .wd-name, .week-day.selected .wd-name { color: rgba(91,164,245,0.75); }
     .wd-num {
-      font-size: 15px; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text-tertiary); line-height: 1;
+      font-size: 16px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-secondary); line-height: 1; letter-spacing: -0.01em;
     }
-    .week-day.today .wd-num { color: var(--text-secondary); }
+    .week-day.today .wd-num { color: var(--text-primary); }
     .week-day.selected .wd-num { color: var(--text-primary); }
     .wd-ev {
       display: flex; align-items: center; gap: 4px;
-      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+      font-size: 8.5px; font-family: var(--font-mono); color: rgba(255,255,255,0.3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1;
     }
     .wd-ev-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .wd-dots { display: flex; gap: 3px; margin-top: 1px; }
+    .wd-dots { display: flex; gap: 3px; margin-top: 0; }
     .wd-dot { width: 4px; height: 4px; border-radius: 50%; }
 
     /* ── Body layout ── */
     .kal-body { display: flex; gap: 12px; align-items: flex-start; }
-    .kal-left { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .kal-left { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
     .kal-right {
       width: 268px; flex-shrink: 0; display: flex; flex-direction: column;
       gap: 8px; position: sticky; top: 64px;
@@ -137,9 +140,16 @@
 
     /* ── Agenda View ── */
     .agenda-empty {
-      padding: 28px 16px; text-align: center;
-      font-size: 11px; font-family: var(--font-mono);
-      color: rgba(255,255,255,0.15); line-height: 1.9;
+      padding: 40px 24px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .ae-title {
+      font-size: 13px; font-weight: 600; color: var(--text-secondary);
+      letter-spacing: -0.01em;
+    }
+    .ae-sub {
+      font-size: 10.5px; font-family: var(--font-mono); color: rgba(255,255,255,0.28);
+      letter-spacing: 0.02em; line-height: 1.5;
     }
     .ag-allday-strip {
       padding: 7px 16px 8px; border-bottom: 1px solid rgba(255,255,255,0.045);
@@ -267,14 +277,14 @@
     }
     .qa-send:hover { background: rgba(91,164,245,0.3); }
     .qa-preview {
-      margin-top: 6px; padding: 6px 10px; border-radius: 7px;
+      margin-top: 8px; padding: 6px 10px; border-radius: 7px;
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
       font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
       display: none; gap: 5px; align-items: center;
     }
     .qa-preview.show { display: flex; }
     .qa-preview-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .qa-dest { display: flex; gap: 4px; margin-top: 5px; }
+    .qa-dest { display: flex; gap: 6px; margin-top: 8px; }
     .qa-dest-btn { flex: 1; padding: 4px 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; cursor: pointer; font-size: 10px; font-family: var(--font-mono); color: var(--text-secondary); transition: background 0.12s, border-color 0.12s; }
     .qa-dest-btn:hover { background: rgba(255,255,255,0.08); }
     .qa-dest-btn.selected { background: rgba(91,164,245,0.12); border-color: rgba(91,164,245,0.4); color: #5BA4F5; }
@@ -348,10 +358,15 @@
     }
 
     /* Next event */
-    .next-ev-row { display: flex; align-items: center; gap: 9px; }
-    .next-ev-bar { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 32px; }
-    .next-ev-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-    .next-ev-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+    .next-ev-row { display: flex; align-items: center; gap: 12px; }
+    .next-ev-bar { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 40px; }
+    .next-ev-title { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.2; }
+    .next-ev-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 4px; letter-spacing: 0.02em; }
+    #nextEventCard {
+      padding: 16px; background: rgba(255,255,255,0.032);
+      border-color: rgba(255,255,255,0.08);
+    }
+    #nextEventCard .rp-label { margin-bottom: 12px; }
 
     /* Mini month */
     .mm-header {
@@ -359,7 +374,7 @@
     }
     .mm-title {
       font-size: 10px; font-family: var(--font-mono); font-weight: 700;
-      color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em;
     }
     .mm-nav-btn {
       width: 22px; height: 22px; border-radius: 5px;
@@ -378,12 +393,12 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       position: relative; transition: background 0.12s;
     }
-    .mm-cell:hover { background: rgba(255,255,255,0.07); }
-    .mm-cell.other-month { opacity: 0.2; cursor: default; }
+    .mm-cell:hover { background: rgba(255,255,255,0.05); }
+    .mm-cell.other-month { opacity: 0.15; cursor: default; }
     .mm-cell.today { background: rgba(91,164,245,0.1); }
     .mm-cell.selected { background: rgba(255,255,255,0.09); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); }
     .mm-cell.selected.today { background: rgba(91,164,245,0.15); box-shadow: inset 0 0 0 1px rgba(91,164,245,0.32); }
-    .mm-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .mm-num { font-size: 10px; font-family: var(--font-mono); color: rgba(255,255,255,0.4); }
     .mm-cell.today .mm-num { color: #5BA4F5; font-weight: 700; }
     .mm-cell.selected .mm-num { color: var(--text-primary); }
     .mm-evdot { width: 3px; height: 3px; border-radius: 50%; position: absolute; bottom: 2px; }
@@ -391,25 +406,25 @@
     /* ── Upcoming ── */
     .upcoming-card {
       background: rgba(255,255,255,0.022); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 13px; padding: 13px 15px;
+      border-radius: 13px; padding: 16px;
     }
-    .upcoming-day-group { margin-bottom: 12px; }
+    .upcoming-day-group { margin-bottom: 16px; }
     .upcoming-day-group:last-child { margin-bottom: 0; }
     .upcoming-day-label {
       font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text-tertiary);
-      padding-bottom: 5px; margin-bottom: 3px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-transform: uppercase; color: var(--text-secondary);
+      padding-bottom: 6px; margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
       display: flex; align-items: center; justify-content: space-between;
     }
     .upcoming-event {
       display: flex; align-items: center; gap: 8px;
-      padding: 5px 6px; border-radius: 6px; margin: 0 -6px;
+      padding: 6px; border-radius: 6px; margin: 0 -6px;
       cursor: pointer; transition: background 0.12s;
     }
-    .upcoming-event:hover { background: rgba(255,255,255,0.04); }
+    .upcoming-event:hover { background: rgba(255,255,255,0.045); }
     .up-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .up-title { font-size: 12px; color: var(--text-secondary); flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .up-title { font-size: 12.5px; color: var(--text-primary); flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .up-time { font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0; }
     .up-badge {
       font-size: 7.5px; font-family: var(--font-mono); letter-spacing: 0.07em;
@@ -529,7 +544,7 @@
       </div>
 
       <div class="upcoming-card">
-        <div class="section-title" style="margin-bottom:9px;font-size:11px" data-i18n="dash.upcoming">Kommende</div>
+        <div class="section-title" style="margin-bottom:12px;font-size:11px;color:var(--text-secondary)" data-i18n="dash.upcoming">Kommende</div>
         <div id="upcomingList"></div>
       </div>
 
