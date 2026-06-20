@@ -277,6 +277,20 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     ? rows.map(r => { const { user_id, id, created_at, ...rest } = r; return rest; })
     : rows;
 
+  // Søvnvarighet: gi AI ferdig "Xt Ym"-streng (matcher fmtHM i utils.js), ikke desimaltimer.
+  // 10.7 → "10t 42m". Uten dette leser modellen rå sleep_hours og skriver "10,7t".
+  const fmtHM = (h) => {
+    if (h == null || isNaN(h) || h <= 0) return null;
+    const mins = Math.round(h * 60), hh = Math.floor(mins / 60), mm = mins % 60;
+    if (hh <= 0) return `${mm}m`;
+    return mm > 0 ? `${hh}t ${mm}m` : `${hh}t`;
+  };
+  const fmtSleep = (rows) => Array.isArray(rows)
+    ? rows.map(r => r.sleep_hours != null
+        ? { ...r, sleep_varighet: fmtHM(r.sleep_hours), sleep_hours: undefined }
+        : r)
+    : rows;
+
   // Per-skade smerte-logg: injury_pain primær, knee_pain fallback for kne-skaden
   let painLogHeader, painLogBlock;
   if (_severeInj.length) {
@@ -340,8 +354,8 @@ ${programBlock}
 [PERSONLIGE REKORDER (PB) — sprint]
 ${JSON.stringify(stripMeta(sprintRecords))}
 
-[SØVN + HRV + PULS — SISTE 7 DAGER]
-${JSON.stringify(stripMeta(healthData))}
+[SØVN + HRV + PULS — SISTE 7 DAGER] (sleep_varighet er allerede formatert, f.eks. "10t 42m" — bruk den direkte, ikke regn om)
+${JSON.stringify(stripMeta(fmtSleep(healthData)))}
 
 [SPRINT-LOGGER — SISTE 7]
 ${JSON.stringify(stripMeta(sprintData))}

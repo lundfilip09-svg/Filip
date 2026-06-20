@@ -918,7 +918,7 @@ async function copyHealthReport() {
       const wd = new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
       const parts = [];
       const h = hM[ds];
-      parts.push(`Sleep score: ${h && h.sleep_score != null ? h.sleep_score : '–'}${h && h.sleep_hours != null ? ' (' + Number(h.sleep_hours).toFixed(1) + 'h)' : ''}`);
+      parts.push(`Sleep score: ${h && h.sleep_score != null ? h.sleep_score : '–'}${h && h.sleep_hours != null ? ' (' + fmtHM(h.sleep_hours) + ')' : ''}`);
       if (h && (h.hrv != null || h.rhr != null)) parts.push(`HRV ${h.hrv ?? '–'} / RHR ${h.rhr ?? '–'}`);
       if (h) { const _st = (h.deep_sleep_minutes||0)+(h.rem_sleep_minutes||0)+(h.light_sleep_minutes||0); if (_st > 10) parts.push(`Sleep stages: Deep ${Math.round((h.deep_sleep_minutes||0)/_st*100)}% / REM ${Math.round((h.rem_sleep_minutes||0)/_st*100)}%`); }
       const k = kM[ds];
