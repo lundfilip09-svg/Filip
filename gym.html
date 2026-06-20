@@ -988,6 +988,8 @@ function renderDayPills() {
     return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
       onclick="setDay('${escHtml(d.day_key)}')"
       ondblclick="event.stopPropagation();renameDay('${escHtml(d.day_key)}')"
+      ontouchstart="pillLongPressStart(event,'${escHtml(d.day_key)}')"
+      ontouchend="pillLongPressCancel()" ontouchmove="pillLongPressCancel()"
       title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}${del}</button>`;
   }).join('') +
     `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">${t('gym.add_day')}</button>`;
@@ -1069,6 +1071,15 @@ async function createDay() {
   setDay(day_key);
   toast(copied ? t('gym.day_copied') : t('gym.day_created'));
 }
+
+let _pillLongPressTimer = null;
+function pillLongPressStart(e, key) {
+  _pillLongPressTimer = setTimeout(() => {
+    e.preventDefault();
+    renameDay(key);
+  }, 500);
+}
+function pillLongPressCancel() { clearTimeout(_pillLongPressTimer); }
 
 async function renameDay(key) {
   const d = getDay(key);
