@@ -121,7 +121,7 @@ const TRANSLATIONS = {
     'daytype.mobility': 'Sirkulasjon & Mobilitet', 'daytype.conditioning': 'Kondisjon',
     'daytype.rest': 'Hvile', 'daytype.rehab': 'Rehab',
     'daytype.soccer': 'Fotball', 'daytype.basketball': 'Basketball', 'daytype.track': 'Friidrett',
-    'daytype.sprint': 'Sprint',
+    'daytype.sprint': 'Sprint', 'daytype.meet': 'Stevne',
     // A6 — dag-redigering UI
     'gym.add_day': '+ Dag', 'gym.new_day': 'Ny dag', 'gym.day_weekday': 'Ukedag',
     'gym.day_type': 'Type (valgfritt)', 'gym.day_type_none': 'Ingen',
@@ -680,7 +680,7 @@ const TRANSLATIONS = {
     'daytype.mobility': 'Mobility & Conditioning', 'daytype.conditioning': 'Conditioning',
     'daytype.rest': 'Rest', 'daytype.rehab': 'Rehab',
     'daytype.soccer': 'Soccer', 'daytype.basketball': 'Basketball', 'daytype.track': 'Track',
-    'daytype.sprint': 'Sprint',
+    'daytype.sprint': 'Sprint', 'daytype.meet': 'Competition',
     // A6 — day editing UI
     'gym.add_day': '+ Day', 'gym.new_day': 'New day', 'gym.day_weekday': 'Weekday',
     'gym.day_type': 'Type (optional)', 'gym.day_type_none': 'None',
