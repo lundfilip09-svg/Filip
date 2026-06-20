@@ -1371,13 +1371,14 @@ function toggleDetailDrop() {
   const menu = document.getElementById('detailPlanDropMenu');
   const btn  = document.getElementById('detailPlanDropBtn');
   if (!menu || !btn) return;
+  // Portal to body — backdrop-filter on .card makes position:fixed relative to card, not viewport
+  if (menu.parentElement !== document.body) document.body.appendChild(menu);
   const isOpen = !menu.classList.contains('hidden');
   if (isOpen) {
     menu.classList.add('hidden');
     btn.classList.remove('open');
   } else {
     _buildDetailDrop();
-    // Position fixed menu under button
     const r = btn.getBoundingClientRect();
     menu.style.top   = (r.bottom + 5) + 'px';
     menu.style.left  = r.left + 'px';
