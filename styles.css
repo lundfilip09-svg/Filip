@@ -540,14 +540,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   font-size: 13px; color: var(--text-secondary); flex: 0 0 auto;
   min-width: 78px;
 }
-.pain-meter-segs { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.pain-meter-segs { display: flex; gap: 5px; flex: 1 1 auto; min-width: 0; }
 .pain-seg {
   flex: 1 1 0; min-width: 0; aspect-ratio: 1 / 1; max-width: 30px;
-  padding: 0; border: 1px solid var(--border); border-radius: 5px;
-  background: transparent; cursor: pointer;
+  padding: 0; border: 1px solid rgba(255,255,255,0.16); border-radius: 4px;
+  background: rgba(255,255,255,0.04); cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
 }
-.pain-seg:hover { border-color: var(--text-tertiary); }
+.pain-seg:hover { border-color: rgba(255,255,255,0.4); }
 .pain-seg.fill { /* bakgrunn/kant settes inline via painColor(v) */ }
 .pain-meter-num {
   font-family: var(--font-mono); font-weight: 700; font-size: 18px;
