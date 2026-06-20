@@ -441,8 +441,8 @@
     .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0.45; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
     .gym-history-item:hover .gym-del-btn { opacity: 1; }
     .gym-del-btn:hover { color: var(--danger); }
-    .hist-actions { display: flex; gap: 5px; padding-top: 6px; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.05); }
-    .hist-act-btn { background: none; border: 1px solid rgba(255,255,255,0.09); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 10px; font-family: var(--font-mono); padding: 4px 9px; transition: border-color 0.15s, color 0.15s, background 0.15s; white-space: nowrap; min-height: 28px; }
+    .hist-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 6px; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .hist-act-btn { background: none; border: 1px solid rgba(255,255,255,0.09); border-radius: 5px; color: var(--text-secondary); cursor: pointer; font-size: 10px; font-family: var(--font-mono); padding: 4px 7px; transition: border-color 0.15s, color 0.15s, background 0.15s; white-space: nowrap; min-height: 28px; }
     .hist-act-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); color: var(--text-primary); }
     .hist-act-del { margin-left: auto; color: var(--danger); border-color: rgba(255,80,80,0.22); }
     .hist-act-del:hover { background: rgba(255,80,80,0.08); border-color: rgba(255,80,80,0.45); color: var(--danger); }
@@ -3306,9 +3306,9 @@ async function loadGymHistory() {
         </div>
       </div>
       <div class="hist-actions">
-        <button class="hist-act-btn" onclick="toggleSetsEdit('${g.id}')">✎ ${t('gym.edit_sets')}</button>
-        <button class="hist-act-btn" onclick="toggleKneeEdit('${g.id}')">🩹 ${t('gym.edit_pain')}</button>
-        <button class="hist-act-btn hist-act-del" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')">✕ ${t('delete')}</button>
+        <button class="hist-act-btn" onclick="toggleSetsEdit('${g.id}')">${t('gym.edit_sets')}</button>
+        <button class="hist-act-btn" onclick="toggleKneeEdit('${g.id}')">${t('gym.edit_pain')}</button>
+        <button class="hist-act-btn hist-act-del" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
       </div>
       ${painEditHtml(g, knee, kneeId)}
       <div class="knee-edit-panel" id="sets-edit-${g.id}">
