@@ -22,13 +22,13 @@ export default async function handler(req, res) {
     const row = Array.isArray(claimed) ? claimed[0] : claimed;
     if (!row) return res.status(200).json({ ok: true, skipped: true }); // alt sendt/kansellert
 
-    await sendToAll({
+    const result = await sendToAll({
       title: row.title,
       body:  row.body || '',
       tag:   row.tag || `sched-${row.id}`,
       url:   row.url || '/',
     });
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, ...result });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

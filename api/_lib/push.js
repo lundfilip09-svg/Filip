@@ -48,23 +48,28 @@ function ensureVapid() {
 export async function sendToAll(payload) {
   ensureVapid();
   const subs = await sb('push_subscriptions?select=*');
-  if (!Array.isArray(subs) || !subs.length) return { sent: 0 };
+  if (!Array.isArray(subs) || !subs.length) return { sent: 0, results: [] };
   const json = JSON.stringify(payload);
-  let sent = 0;
-  await Promise.all(subs.map(async (s) => {
+  const results = await Promise.all(subs.map(async (s) => {
+    const ep = (s.endpoint || '').replace(/^https:\/\//, '').slice(0, 38);
     try {
-      await webpush.sendNotification(
-        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        json,
-      );
-      sent++;
+      // Hard timeout så ett dødt endepunkt (f.eks. gammel FCM) ikke henger alt
+      const res = await Promise.race([
+        webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, json),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+      ]);
+      return { ep, status: res.statusCode };
     } catch (err) {
       if (err.statusCode === 404 || err.statusCode === 410) {
         await sb(`push_subscriptions?id=eq.${s.id}`, { method: 'DELETE' }).catch(() => {});
+        return { ep, status: err.statusCode, removed: true };
       }
+      return { ep, status: err.statusCode || 0, error: String(err.body || err.message || '').slice(0, 160) };
     }
   }));
-  return { sent };
+  const sent = results.filter(r => r.status >= 200 && r.status < 300).length;
+  return { sent, results };
 }
 
 // ── Bruker-token-validering (klient-vendte endepunkter) ─────────────────────
