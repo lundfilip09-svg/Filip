@@ -481,7 +481,11 @@
     @media (max-width: 720px) { .gm-li .drag-handle { display: none; } }
 
     /* ── Mobil: rediger-modus for lister (long-press) ── */
-    .gm-li { -webkit-touch-callout: none; }
+    .gm-li, .gm-li * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
     .gm-list-edit-bar {
       display: none;
       align-items: center;
@@ -631,10 +635,12 @@
     .todo-item.completing .todo-text { text-decoration: line-through; }
     /* Touch-enheter (iPhone): ingen hover → vis kontroller alltid + ett trykk = handling */
     @media (hover: none) {
+      /* Skjul "I dag"/"I morgen"-snarveier og tom-prompt for dato/påminnelse på mobil.
+         Bruk detalj-modal i stedet — ett trykk på teksten åpner den. */
       .todo-quick:not(.on),
-      .todo-item:hover .todo-quick:not(.on) { opacity: 0.9; }
+      .todo-item:hover .todo-quick:not(.on) { opacity: 0; pointer-events: none; }
       .todo-add-date, .todo-item:hover .todo-add-date,
-      .todo-add-remind, .todo-item:hover .todo-add-remind { opacity: 0.6; }
+      .todo-add-remind, .todo-item:hover .todo-add-remind { opacity: 0; pointer-events: none; }
       .todo-del, .todo-item:hover .todo-del { opacity: 0.5; }
       .drag-handle, .todo-item:hover .drag-handle { opacity: 0.4; }
       /* nøytraliser rad-/tekst-hover så Safari ikke krever to trykk */
