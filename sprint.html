@@ -214,8 +214,12 @@
 
   <!-- Smertetrend per skade -->
   <div class="card">
-    <div class="section-title" data-i18n="sprint.history">Smerte — siste 5 økter</div>
-    <div id="trendInjPills" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="section-title" data-i18n="sprint.history" style="margin:0">Smerte — siste 5 økter</div>
+      <button id="manualPainBtn" class="btn btn-ghost btn-sm" style="display:none;font-size:10px;padding:2px 8px"
+        onclick="openManualModal()" data-i18n="pain.manual_btn">+ Manuell</button>
+    </div>
+    <div id="trendInjPills" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:10px;margin-top:10px"></div>
     <div id="kneeTrend"><div class="loading" data-i18n="loading">Laster…</div></div>
     <div id="kneeEditPanel" style="display:none;margin-top:12px;padding:12px;
       background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07)">
@@ -223,24 +227,7 @@
         text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px">
         <span data-i18n="sprint.edit_knee">Rediger knesmerte — </span><span id="kneeEditDate"></span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-        <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.before_short">FØR</div>
-          <input type="number" id="kneeEditBefore" min="0" max="10" class="input-sm" style="width:100%">
-        </div>
-        <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.during_short">UNDER</div>
-          <input type="number" id="kneeEditDuring" min="0" max="10" class="input-sm" style="width:100%">
-        </div>
-        <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.after_short">ETTER</div>
-          <input type="number" id="kneeEditAfter" min="0" max="10" class="input-sm" style="width:100%">
-        </div>
-        <div>
-          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px" data-i18n="knee.dayafter_short">DAGEN ETTER</div>
-          <input type="number" id="kneeEditDayAfter" min="0" max="10" class="input-sm" style="width:100%">
-        </div>
-      </div>
+      <div id="kneeEditMeters" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-success btn-sm" onclick="saveKneeInline()" data-i18n="save">Lagre</button>
         <button class="btn btn-ghost btn-sm" onclick="closeKneeEdit()" data-i18n="cancel">Avbryt</button>
@@ -248,10 +235,18 @@
     </div>
   </div>
 
-  <!-- Manuell smerteregistrering (tilbakedatering) -->
-  <div class="card" id="manualPainCard" style="display:none">
-    <div class="section-title" data-i18n="pain.manual_entry">Manuell registrering</div>
-    <div id="manualPainForms"></div>
+  <!-- Manuell smerteregistrering (tilbakedatering) → modal -->
+  <div id="manualPainModal" onclick="if(event.target===this)closeManualModal()"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;
+    align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto">
+    <div style="background:var(--bg-elevated,#1a1c20);border:1px solid rgba(255,255,255,0.12);
+      border-radius:12px;padding:18px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;box-sizing:border-box">
+      <div class="section-title" data-i18n="pain.manual_entry">Manuell registrering</div>
+      <div id="manualPainForms"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" onclick="closeManualModal()" data-i18n="close">Lukk</button>
+      </div>
+    </div>
   </div>
 
   <!-- History -->
@@ -372,37 +367,17 @@ function renderInjuryPainBlocks(containerId) {
   el.innerHTML = _severeInjuries.map(inj => `
 <div style="margin-bottom:12px">
   <div class="form-label" style="margin-bottom:8px">${escHtml(bodyPartName(inj))} (0–10)</div>
-  <div class="knee-log-row">${phases.map(ph => `
-    <div class="knee-row-item">
-      <span class="knee-row-label" data-i18n="${ph.label}">${t(ph.label)}</span>
-      <div class="pain-row" id="ip-${inj.id}-${ph.id}"></div>
-    </div>`).join('')}
-  </div>
+  ${phases.map(ph => {
+    const cur = (_injuryScores[inj.id] || {})[ph.id];
+    return painMeterHTML(`ipm-${inj.id}-${ph.id}`, (cur != null ? cur : null),
+      { label: t(ph.label), onset: `selectInjuryPain('${inj.id}','${ph.id}',$v)` });
+  }).join('')}
 </div>`).join('');
-  _severeInjuries.forEach(inj => {
-    phases.forEach(ph => {
-      const row = document.getElementById(`ip-${inj.id}-${ph.id}`);
-      if (!row) return;
-      row.innerHTML = [...Array(11)].map((_,i) =>
-        `<button type="button" class="pain-btn" data-inj="${inj.id}" data-ph="${ph.id}" data-s="${i}"
-          onclick="selectInjuryPain('${inj.id}','${ph.id}',${i});this.blur()">${i}</button>`
-      ).join('');
-      const cur = (_injuryScores[inj.id] || {})[ph.id];
-      if (cur != null) _highlightInjuryBtn(inj.id, ph.id, cur);
-    });
-  });
-}
-
-function _highlightInjuryBtn(injId, phase, score) {
-  document.querySelectorAll(`[data-inj="${injId}"][data-ph="${phase}"]`).forEach(b => {
-    b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
-  });
 }
 
 function selectInjuryPain(injId, phase, score) {
   if (!_injuryScores[injId]) _injuryScores[injId] = {};
-  _injuryScores[injId][phase] = score;
-  _highlightInjuryBtn(injId, phase, score);
+  _injuryScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
   saveDraft();
 }
 
@@ -422,12 +397,22 @@ async function loadSevereInjuries() {
 }
 
 // ── Manuell smerteregistrering ────────────────────────────────────────────────
+function openManualModal() {
+  renderManualPainForms();
+  const m = document.getElementById('manualPainModal');
+  if (m) m.style.display = 'flex';
+}
+function closeManualModal() {
+  const m = document.getElementById('manualPainModal');
+  if (m) m.style.display = 'none';
+}
 function renderManualPainForms() {
-  const card  = document.getElementById('manualPainCard');
+  const btn   = document.getElementById('manualPainBtn');
   const forms = document.getElementById('manualPainForms');
-  if (!card || !forms) return;
-  if (!_severeInjuries.length) { card.style.display = 'none'; return; }
-  card.style.display = '';
+  const show  = _severeInjuries.length > 0;
+  if (btn) btn.style.display = show ? '' : 'none';
+  if (!show) { closeManualModal(); return; }
+  if (!forms) return;
   const phases = [
     { id: 'before',   label: 'knee.before_session' },
     { id: 'during',   label: 'knee.during_session' },
@@ -442,13 +427,12 @@ function renderManualPainForms() {
     <label class="form-label" data-i18n="date">${t('date')}</label>
     <input type="date" id="mp-date-${inj.id}" class="input-sm" style="width:100%;box-sizing:border-box">
   </div>
-  <div class="knee-log-row" style="margin-bottom:8px">${phases.map(ph => `
-    <div class="knee-row-item">
-      <span class="knee-row-label" data-i18n="${ph.label}">${t(ph.label)}</span>
-      <div class="pain-row" id="mp-${inj.id}-${ph.id}"></div>
-    </div>`).join('')}
-  </div>
-  <div class="form-group" style="margin-bottom:8px">
+  ${phases.map(ph => {
+    const cur = (_manualScores[inj.id] || {})[ph.id];
+    return painMeterHTML(`mpm-${inj.id}-${ph.id}`, (cur != null ? cur : null),
+      { label: t(ph.label), onset: `selectManualPain('${inj.id}','${ph.id}',$v)` });
+  }).join('')}
+  <div class="form-group" style="margin:8px 0">
     <textarea class="input-sm" id="mp-notes-${inj.id}" rows="2"
       placeholder="${escHtml(t('pain.manual_notes_ph'))}"
       style="width:100%;resize:none;box-sizing:border-box"></textarea>
@@ -458,14 +442,6 @@ function renderManualPainForms() {
 </div>`).join('<hr style="border-color:rgba(255,255,255,0.07);margin:12px 0">');
 
   _severeInjuries.forEach(inj => {
-    phases.forEach(ph => {
-      const row = document.getElementById(`mp-${inj.id}-${ph.id}`);
-      if (!row) return;
-      row.innerHTML = [...Array(11)].map((_,i) =>
-        `<button type="button" class="pain-btn" data-injm="${inj.id}" data-phm="${ph.id}" data-s="${i}"
-          onclick="selectManualPain('${inj.id}','${ph.id}',${i});this.blur()">${i}</button>`
-      ).join('');
-    });
     const dateEl = document.getElementById(`mp-date-${inj.id}`);
     if (dateEl) dateEl.value = today();
   });
@@ -473,10 +449,7 @@ function renderManualPainForms() {
 
 function selectManualPain(injId, phase, score) {
   if (!_manualScores[injId]) _manualScores[injId] = {};
-  _manualScores[injId][phase] = score;
-  document.querySelectorAll(`[data-injm="${injId}"][data-phm="${phase}"]`).forEach(b => {
-    b.className = 'pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
-  });
+  _manualScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
 }
 
 async function saveManualPain(injId) {
@@ -501,13 +474,8 @@ async function saveManualPain(injId) {
 
   toast(t('pain.manual_saved'));
   _manualScores[injId] = {};
-  ['before','during','after','dayafter'].forEach(ph => {
-    document.querySelectorAll(`[data-injm="${injId}"][data-phm="${ph}"]`).forEach(b => {
-      b.className = 'pain-btn';
-    });
-  });
-  if (dateEl)  dateEl.value  = today();
-  if (notesEl) notesEl.value = '';
+  renderManualPainForms();   // re-render → nullstiller målerne
+  closeManualModal();
   await loadKneeTrend();
 }
 
@@ -975,29 +943,17 @@ function _buildSessCard(date, runs, isOpen) {
       const row = _histRowSp(inj);
       return `<div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${escHtml(bodyPartName(inj))}</div>
-      <div class="sess-edit-row">
-        ${[[t('knee.before'),'before_score',row?.before_score],[t('knee.during'),'during_score',row?.during_score],[t('knee.after'),'after_score',row?.after_score],[t('tp.knee_dayafter'),'day_after_score',row?.day_after_score]].map(([lbl,field,val]) => `
-          <div>
-            <div class="sess-edit-lbl">${lbl}</div>
-            <input type="number" min="0" max="10" class="sess-edit-input"
-              value="${val ?? ''}" placeholder="–"
-              onblur="saveHistInjuryPain('${inj.id}','${date}','${escHtml(sessType)}','${field}',this.value)"
-              onkeydown="if(event.key==='Enter')this.blur()">
-          </div>`).join('')}
-      </div>
+      ${[[t('knee.before'),'before_score',row?.before_score],[t('knee.during'),'during_score',row?.during_score],[t('knee.after'),'after_score',row?.after_score],[t('tp.knee_dayafter'),'day_after_score',row?.day_after_score]].map(([lbl,field,val]) =>
+          painMeterHTML(`sphm-${inj.id}-${field}`, (val != null ? val : null),
+            { label: lbl, onset: `saveHistInjuryPain('${inj.id}','${date}','${escHtml(sessType)}','${field}',$v)` })
+        ).join('')}
     </div>`;
     }).join('') : `<div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('knee.pain')}</div>
-      <div class="sess-edit-row">
-        ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) => `
-          <div>
-            <div class="sess-edit-lbl">${lbl}</div>
-            <input type="number" min="0" max="10" class="sess-edit-input"
-              value="${val ?? ''}" placeholder="–"
-              onblur="saveHistField('${date}','${field}',this.value)"
-              onkeydown="if(event.key==='Enter')this.blur()">
-          </div>`).join('')}
-      </div>
+      ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) =>
+          painMeterHTML(`sphm-_knee-${field}`, (val != null ? val : null),
+            { label: lbl, onset: `saveHistField('${date}','${field}',$v)` })
+        ).join('')}
     </div>`}
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('notes')}</div>
@@ -1270,11 +1226,12 @@ function renderKneeTrend(data) {
 function openKneeEdit(idx) {
   _editingKneeIdx = idx;
   const d = _kneeTrendData[idx];
-  document.getElementById('kneeEditDate').textContent    = fmtDate(d.date);
-  document.getElementById('kneeEditBefore').value        = d.before_score   ?? '';
-  document.getElementById('kneeEditDuring').value        = d.during_score   ?? '';
-  document.getElementById('kneeEditAfter').value         = d.after_score    ?? '';
-  document.getElementById('kneeEditDayAfter').value      = d.day_after_score ?? '';
+  document.getElementById('kneeEditDate').textContent = fmtDate(d.date);
+  document.getElementById('kneeEditMeters').innerHTML =
+      painMeterHTML('kem-before',   (d.before_score    != null ? d.before_score    : null), { label: t('knee.before') })
+    + painMeterHTML('kem-during',   (d.during_score    != null ? d.during_score    : null), { label: t('knee.during') })
+    + painMeterHTML('kem-after',    (d.after_score     != null ? d.after_score     : null), { label: t('knee.after') })
+    + painMeterHTML('kem-dayafter', (d.day_after_score != null ? d.day_after_score : null), { label: t('tp.knee_dayafter') });
   document.getElementById('kneeEditPanel').style.display = 'block';
 }
 
@@ -1286,18 +1243,14 @@ function closeKneeEdit() {
 // Redigerer trend-cellen i kildetabellen den kom fra (injury_pain, ellers legacy knee_pain).
 async function saveKneeInline() {
   if (_editingKneeIdx === null) return;
-  const d        = _kneeTrendData[_editingKneeIdx];
-  const before   = document.getElementById('kneeEditBefore').value;
-  const during   = document.getElementById('kneeEditDuring').value;
-  const after    = document.getElementById('kneeEditAfter').value;
-  const dayafter = document.getElementById('kneeEditDayAfter').value;
+  const d = _kneeTrendData[_editingKneeIdx];
 
   const table = d._src === 'injury_pain' ? 'injury_pain' : 'knee_pain';
   const { error } = await db.from(table).update({
-    before_score:    before   !== '' ? Number(before)   : null,
-    during_score:    during   !== '' ? Number(during)   : null,
-    after_score:     after    !== '' ? Number(after)    : null,
-    day_after_score: dayafter !== '' ? Number(dayafter) : null,
+    before_score:    painMeterValue('kem-before'),
+    during_score:    painMeterValue('kem-during'),
+    after_score:     painMeterValue('kem-after'),
+    day_after_score: painMeterValue('kem-dayafter'),
   }).eq('id', d.id);
 
   if (error) { toast(t('sprint.knee_save_error', {msg: error.message}), 'err'); return; }

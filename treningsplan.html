@@ -1665,19 +1665,14 @@ function _buildInjuryCheckpointHtml(row) {
   }</div>`;
 }
 function _buildInjuryEditHtml(inj, row, date, sessionType) {
-  return `<div class="sess-edit-row">${
-    [
+  return [
       { label: t('knee.before'),   field: 'before_score',    val: row?.before_score },
       { label: t('knee.during'),   field: 'during_score',    val: row?.during_score },
       { label: t('knee.after'),    field: 'after_score',     val: row?.after_score },
       { label: t('knee.dayafter'), field: 'day_after_score', val: row?.day_after_score },
-    ].map(p => `<div>
-      <div class="sess-edit-lbl">${p.label}</div>
-      <input type="number" min="0" max="10" class="sess-edit-input"
-        value="${p.val ?? ''}" placeholder="—"
-        onblur="autoSaveInjuryPainField('${inj.id}','${date}','${escHtml(sessionType)}','${p.field}',this.value)">
-    </div>`).join('')
-  }</div>`;
+    ].map(p => painMeterHTML(`tpim-${inj.id}-${p.field}`, (p.val != null ? p.val : null),
+      { label: p.label, onset: `autoSaveInjuryPainField('${inj.id}','${date}','${escHtml(sessionType)}','${p.field}',$v)` })
+    ).join('');
 }
 
 function calcPainTrend(kneeSessions) {
@@ -2717,13 +2712,7 @@ function renderActInjuryBlocks() {
   host.innerHTML = _severeInjuries.map(inj => `
     <div style="margin-bottom:12px">
       <div class="act-field-label" style="margin-bottom:6px">${escHtml(bodyPartName(inj))}</div>
-      <div class="act-pain-row">${
-        phases.map(p => `<div>
-          <div class="act-field-label">${p.lbl}</div>
-          <input class="input-sm actpain-input" data-inj="${inj.id}" data-field="${p.f}"
-            type="number" min="0" max="10" placeholder="—"
-            style="width:100%;box-sizing:border-box;text-align:center"></div>`).join('')
-      }</div>
+      ${phases.map(p => painMeterHTML(`actpm-${inj.id}-${p.f}`, null, { label: p.lbl })).join('')}
     </div>`).join('');
 }
 
@@ -2820,9 +2809,9 @@ async function saveActivity() {
   for (const inj of _severeInjuries) {
     const scores = { before_score: null, during_score: null, after_score: null, day_after_score: null };
     let hasAny = false;
-    document.querySelectorAll(`#actInjuryBlocks .actpain-input[data-inj="${inj.id}"]`).forEach(el => {
-      const v = el.value === '' ? null : Number(el.value);
-      scores[el.dataset.field] = v;
+    ['before_score','during_score','after_score','day_after_score'].forEach(f => {
+      const v = painMeterValue(`actpm-${inj.id}-${f}`);
+      scores[f] = v;
       if (v != null) hasAny = true;
     });
     if (!hasAny) continue;
