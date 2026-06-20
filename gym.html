@@ -506,7 +506,7 @@
           <button class="btn btn-ghost btn-sm ws-done" onclick="resetWorkout()">↺ <span data-i18n="gym.new_session">Ny økt</span></button>
         </div>
       </div>
-      <div class="wh-title" id="workoutTitle" data-i18n="gym.session">Økt</div>
+      <div class="wh-title" id="workoutTitle"></div>
       <div class="wh-meta">
         <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
         <div class="wh-meta-item">◈ <span id="whExCount">— <span data-i18n="gym.exercises_lc">øvelser</span></span></div>
@@ -987,7 +987,7 @@ function renderDayPills() {
       ondblclick="event.stopPropagation();renameDay('${escHtml(d.day_key)}')"
       title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}${del}</button>`;
   }).join('') +
-    `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">+ Dag</button>`;
+    `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">${t('gym.add_day')}</button>`;
 }
 
 // A6: tilgjengelige dag-typer (i18n-nøkler). NULL = ingen type.
