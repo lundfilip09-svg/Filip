@@ -135,14 +135,14 @@
     .csel-arrow { flex-shrink: 0; opacity: 0.45; transition: transform 0.18s; }
     .csel-btn.open .csel-arrow { transform: rotate(180deg); }
     .csel-menu {
-      position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 300;
+      position: fixed; z-index: 9999;
       background: #18181c; border: 1px solid rgba(255,255,255,0.12);
       border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-      overflow: hidden; max-height: 260px; overflow-y: auto;
+      overflow: hidden; max-height: 240px; overflow-y: auto;
     }
     .csel-menu.hidden { display: none; }
     .csel-opt {
-      padding: 10px 14px; cursor: pointer; font-size: 13px;
+      padding: 7px 12px; cursor: pointer; font-size: 13px;
       font-family: var(--font-sans); color: var(--text-secondary);
       transition: background 0.1s, color 0.1s; display: flex; align-items: center; gap: 8px;
     }
@@ -1370,15 +1370,20 @@ function _syncDetailDropLabel() {
 function toggleDetailDrop() {
   const menu = document.getElementById('detailPlanDropMenu');
   const btn  = document.getElementById('detailPlanDropBtn');
-  if (!menu) return;
+  if (!menu || !btn) return;
   const isOpen = !menu.classList.contains('hidden');
   if (isOpen) {
     menu.classList.add('hidden');
-    btn?.classList.remove('open');
+    btn.classList.remove('open');
   } else {
     _buildDetailDrop();
+    // Position fixed menu under button
+    const r = btn.getBoundingClientRect();
+    menu.style.top   = (r.bottom + 5) + 'px';
+    menu.style.left  = r.left + 'px';
+    menu.style.width = r.width + 'px';
     menu.classList.remove('hidden');
-    btn?.classList.add('open');
+    btn.classList.add('open');
     setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
   }
 }
