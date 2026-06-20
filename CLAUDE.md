@@ -1,7 +1,10 @@
 # CLAUDE.md — Filip's Dashboard
 
 Personlig helse-/treningsdashboard. Vanilla HTML/CSS/JS, Vercel + Supabase.
-Filip pusher/committer selv. Svar kort og token-effektivt.
+Svar kort og token-effektivt.
+
+## TERMINAL — VIKTIG!
+Etter hvert oppdrag eller når noe er ferdig, skal du skrive nøyaktig hva jeg kan kopiere til terminal for å pushe til main, committe, adde, eller cd, eller noe med index eller head lock som er stuck. Etter hver oppgave vil jeg ha det mulig å kopiere.
 
 ## ⚠️ KRITISK: RLS på ALLE tabeller
 
