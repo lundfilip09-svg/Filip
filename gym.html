@@ -472,7 +472,7 @@
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
-      .day-pill { padding: 8px 16px !important; font-size: 13px !important; }
+      .day-pill { padding: 8px 16px !important; font-size: 13px !important; user-select: none; -webkit-user-select: none; }
       .day-add-pill { padding: 8px 14px !important; font-size: 12px !important; }
       .day-pill-del { display: none !important; }
     }
@@ -1075,11 +1075,27 @@ async function createDay() {
 let _pillLongPressTimer = null;
 function pillLongPressStart(e, key) {
   _pillLongPressTimer = setTimeout(() => {
-    e.preventDefault();
-    renameDay(key);
+    pillLongPressCancel();
+    showPillMenu(e, key);
   }, 500);
 }
 function pillLongPressCancel() { clearTimeout(_pillLongPressTimer); }
+
+function showPillMenu(e, key) {
+  document.getElementById('pillMenu')?.remove();
+  const touch = e.touches?.[0] || e;
+  const menu = document.createElement('div');
+  menu.id = 'pillMenu';
+  menu.style.cssText = `position:fixed;z-index:999;top:${touch.clientY+10}px;left:${Math.min(touch.clientX, window.innerWidth-160)}px;
+    background:#1a1a20;border:1px solid rgba(255,255,255,0.12);border-radius:10px;
+    overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5)`;
+  menu.innerHTML = `
+    <button onclick="closePillMenu();renameDay('${key}')" style="display:block;width:100%;padding:13px 20px;background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.07);color:#fff;font-size:14px;text-align:left;cursor:pointer">✎ Gi nytt navn</button>
+    <button onclick="closePillMenu();deleteDay('${key}')" style="display:block;width:100%;padding:13px 20px;background:none;border:none;color:#ff6b6b;font-size:14px;text-align:left;cursor:pointer">🗑 Slett</button>`;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('touchstart', closePillMenu, { once: true }), 10);
+}
+function closePillMenu() { document.getElementById('pillMenu')?.remove(); }
 
 async function renameDay(key) {
   const d = getDay(key);
