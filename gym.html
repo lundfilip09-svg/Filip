@@ -677,7 +677,7 @@
       <div class="shortcut-bar">
         <button class="sc-btn" onclick="addSetToActive()" data-i18n-html="gym.add_set_br">Legg til<br>sett</button>
         <button class="sc-btn" onclick="jumpToNext()" data-i18n-html="gym.jump_next_br">Hopp til<br>neste</button>
-        <button class="sc-btn accent" onclick="finishWorkout()" data-i18n-html="gym.finish_br">Fullfør<br>økt</button>
+        <button class="sc-btn accent" onclick="finishAndSaveWorkout()" data-i18n="gym.finish_save">Fullfør og lagre</button>
       </div>
     </div>
 
@@ -2359,6 +2359,13 @@ function finishWorkout() {
   document.getElementById('doneStats').textContent = t('gym.sets_done', { done, total })
     + (_sessionDurationMin ? ` · ${_sessionDurationMin} min` : '');
   setWS('done');
+}
+
+async function finishAndSaveWorkout() {
+  // Fullfør økten (beregner varighet, viser done-banner)
+  finishWorkout();
+  // Lagre umiddelbart
+  await saveLog();
 }
 
 function resetWorkout() {

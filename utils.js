@@ -102,7 +102,7 @@ const TRANSLATIONS = {
     'dash.chip_sirk': 'Sirk.', 'dash.chip_mobil': 'Mobil.', 'dash.chip_kondi': 'Kondi.',
     'dash.chip_styrke': 'Styrke', 'dash.chip_hvile': 'Hvile', 'dash.chip_rehab': 'Rehab',
     // Gym
-    'gym.log_session': 'Lagre økt', 'gym.reset': 'Nullstill',
+    'gym.log_session': 'Lagre økt', 'gym.finish_save': 'Fullfør og lagre', 'gym.reset': 'Nullstill',
     'gym.sets': 'Sett', 'gym.reps': 'Reps', 'gym.weight': 'Vekt',
     'gym.rest': 'Pause', 'gym.timer': 'Timer',
     'gym.start': 'Start økt', 'gym.finish': 'Fullfør økt',
@@ -670,7 +670,7 @@ const TRANSLATIONS = {
     'dash.chip_sirk': 'Circ.', 'dash.chip_mobil': 'Mob.', 'dash.chip_kondi': 'Cond.',
     'dash.chip_styrke': 'Strength', 'dash.chip_hvile': 'Rest', 'dash.chip_rehab': 'Rehab',
     // Gym
-    'gym.log_session': 'Save session', 'gym.reset': 'Reset',
+    'gym.log_session': 'Save session', 'gym.finish_save': 'Finish & Save', 'gym.reset': 'Reset',
     'gym.sets': 'Sets', 'gym.reps': 'Reps', 'gym.weight': 'Weight',
     'gym.rest': 'Rest', 'gym.timer': 'Timer',
     'gym.start': 'Start session', 'gym.finish': 'Finish session',
