@@ -316,9 +316,9 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
   const PROG_DAY_NO = {
     monday: 'Mandag', wednesday: 'Onsdag', friday: 'Fredag',
     monday_warmup: 'Mandag (oppvarming)', wednesday_warmup: 'Onsdag (oppvarming)',
-    friday_warmup: 'Fredag (oppvarming)', warmup: 'Oppvarming', rehab: 'Rehab',
+    friday_warmup: 'Fredag (oppvarming)', rehab: 'Rehab',
   };
-  const PROG_ORDER = ['monday', 'monday_warmup', 'wednesday', 'wednesday_warmup', 'friday', 'friday_warmup', 'warmup', 'rehab'];
+  const PROG_ORDER = ['monday', 'monday_warmup', 'wednesday', 'wednesday_warmup', 'friday', 'friday_warmup', 'rehab'];
   const progRows = Array.isArray(programData) ? programData : [];
   const progByDay = {};
   progRows.forEach(r => { (progByDay[r.day] ||= []).push(r); });

@@ -472,6 +472,45 @@
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
+
+      /* Bigger, more visible exercise rows on mobile */
+      .ex-row { padding: 14px 12px; min-height: 54px; }
+      .ex-r-name { font-size: 14px !important; }
+      .ex-r-vol { font-size: 11px !important; }
+      .ex-chk { width: 24px !important; height: 24px !important; border-radius: 6px !important; }
+      .ex-drag-handle { display: none !important; }
+
+      /* X hidden by default on mobile — only visible in edit mode */
+      .ex-r-del { display: none !important; }
+      .gym-main.edit-mode .ex-r-del {
+        display: flex !important; opacity: 1 !important;
+        width: 36px; height: 36px; border-radius: 8px;
+        border: 1px solid rgba(255,107,107,0.35);
+        background: rgba(255,107,107,0.08);
+        color: var(--danger); font-size: 18px;
+        align-items: center; justify-content: center;
+      }
+
+      /* Edit mode toggle — mobile only */
+      .edit-mode-toggle { display: inline-flex !important; }
+    }
+    @media (min-width: 861px) {
+      .edit-mode-toggle { display: none !important; }
+    }
+    .edit-mode-toggle {
+      display: none;
+      align-items: center; gap: 5px;
+      background: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: var(--text-tertiary);
+      font-size: 11px; font-family: var(--font-mono);
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .edit-mode-toggle.active {
+      border-color: rgba(255,107,107,0.4);
+      color: var(--danger);
+      background: rgba(255,107,107,0.08);
     }
 
     /* Day-after rehab banner */
@@ -510,6 +549,7 @@
       <div class="wh-meta">
         <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
         <div class="wh-meta-item">◈ <span id="whExCount">— <span data-i18n="gym.exercises_lc">øvelser</span></span></div>
+        <button class="edit-mode-toggle" id="editModeToggle" onclick="toggleEditMode()" data-i18n="gym.edit_exercises">✎ Rediger</button>
       </div>
     </div>
 
@@ -1100,6 +1140,16 @@ async function deleteDay(key) {
 }
 function setWS(s) { workoutState = s; document.body.dataset.ws = s; try { renderGymManualPainForms(); } catch(e) {} }
 
+function toggleEditMode() {
+  const main = document.querySelector('.gym-main');
+  const btn  = document.getElementById('editModeToggle');
+  if (!main || !btn) return;
+  main.classList.toggle('edit-mode');
+  const on = main.classList.contains('edit-mode');
+  btn.classList.toggle('active', on);
+  btn.textContent = on ? ('✕ ' + t('gym.edit_done')) : ('✎ ' + t('gym.edit_exercises'));
+}
+
 // ── Session persistence ────────────────────────────────────────────
 function saveSession() {
   if (workoutState !== 'active') return;
@@ -1333,20 +1383,21 @@ function _applyLocalExOrders() {
       } catch {}
     }
   }
-  // Warmup: apply sort_orders from saved list
-  try {
-    const saved = JSON.parse(localStorage.getItem('ex_ord__warmup'));
-    if (saved?.length) {
-      saved.forEach((id, idx) => {
-        for (const wmDay of ['warmup', 'friday_warmup']) {
-          for (const exs of Object.values(allExercises[wmDay] || {})) {
+  // Warmup: apply sort_orders per day
+  for (const d of gymDays) {
+    const wmKey = d.day_key + '_warmup';
+    try {
+      const saved = JSON.parse(localStorage.getItem('ex_ord__' + wmKey));
+      if (saved?.length) {
+        saved.forEach((id, idx) => {
+          for (const exs of Object.values(allExercises[wmKey] || {})) {
             const ex = exs.find(e => String(e.id) === String(id));
             if (ex) { ex.sort_order = idx; return; }
           }
-        }
-      });
-    }
-  } catch {}
+        });
+      }
+    } catch {}
+  }
 }
 
 // ── Day ────────────────────────────────────────────────────────────
@@ -1383,15 +1434,8 @@ function oppdaterTidsestimat() {
     document.getElementById('whDuration').textContent = '~15 min';
     return;
   }
-  const isFri   = activeDay === 'friday';
-  const base    = allExercises['warmup'] || {};
-  const fri     = allExercises['friday_warmup'] || {};
-  const prepExs = [
-    ...(base['Hofteaktivering'] || []),
-    ...(base['Knær'] || []),
-    ...(base['Prepøvelser'] || []),
-    ...(isFri ? (fri['Ekstra'] || []) : []),
-  ];
+  const wmDay   = allExercises[activeDay + '_warmup'] || {};
+  const prepExs = Object.values(wmDay).flat();
   const mainExs = getSortedMainExercises();
   const raw     = 15 + prepExs.length * 2 + mainExs.length * 4;
   const rounded = Math.round(raw / 5) * 5;
@@ -1429,25 +1473,39 @@ async function seedRehabIfEmpty() {
 async function migrateWarmupData() {
   const log = { fixed: [], moved: [], seeded: [] };
 
-  // 0. Seed Monday sykkel if missing from warmup
-  const hasMondaySykkel = Object.entries(allExercises['warmup'] || {}).some(([sec, exs]) =>
+  // 0. JS-fallback: rename any leftover day='warmup' rows to 'monday_warmup'
+  if (allExercises['warmup'] && Object.keys(allExercises['warmup']).length) {
+    const ids = Object.values(allExercises['warmup']).flat().map(e => e.id);
+    if (ids.length) {
+      await db.from('workout_program').update({ day: 'monday_warmup' }).in('id', ids);
+      if (!allExercises['monday_warmup']) allExercises['monday_warmup'] = {};
+      for (const [sec, exs] of Object.entries(allExercises['warmup'])) {
+        if (!allExercises['monday_warmup'][sec]) allExercises['monday_warmup'][sec] = [];
+        exs.forEach(e => { e.day = 'monday_warmup'; allExercises['monday_warmup'][sec].push(e); });
+      }
+      delete allExercises['warmup'];
+    }
+  }
+
+  // 1. Seed Monday sykkel if missing from monday_warmup
+  const hasMondaySykkel = Object.entries(allExercises['monday_warmup'] || {}).some(([sec, exs]) =>
     /sirkul|sykkel/i.test(sec) || exs.some(e => /sykkel/i.test(e.exercise_name))
   );
   if (!hasMondaySykkel) {
     const { data, error } = await db.from('workout_program').insert({
-      day: 'warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
+      day: 'monday_warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
       sets: 1, reps: '8–10 min', sort_order: 0,
     }).select().single();
     if (data && !error) {
-      if (!allExercises['warmup']) allExercises['warmup'] = {};
-      if (!allExercises['warmup']['Sirkulasjon']) allExercises['warmup']['Sirkulasjon'] = [];
-      allExercises['warmup']['Sirkulasjon'].push(data);
-      log.seeded.push('Sykkel (warmup/Monday)');
+      if (!allExercises['monday_warmup']) allExercises['monday_warmup'] = {};
+      if (!allExercises['monday_warmup']['Sirkulasjon']) allExercises['monday_warmup']['Sirkulasjon'] = [];
+      allExercises['monday_warmup']['Sirkulasjon'].push(data);
+      log.seeded.push('Sykkel (monday_warmup)');
     }
   }
 
-  // 1. Fix Monday sykkel duration: should be 8–10 min, not 5–8 min
-  for (const [sec, exs] of Object.entries(allExercises['warmup'] || {})) {
+  // 2. Fix Monday sykkel duration: should be 8–10 min, not 5–8 min
+  for (const [sec, exs] of Object.entries(allExercises['monday_warmup'] || {})) {
     for (const ex of exs) {
       if (/5.?8\s*min/i.test(ex.reps)) {
         const { error } = await db.from('workout_program').update({ reps: '8–10 min' }).eq('id', ex.id);
@@ -1456,9 +1514,9 @@ async function migrateWarmupData() {
     }
   }
 
-  // 2. Move Friday-only exercises from warmup → friday_warmup
+  // 3. Move Friday-only exercises from monday_warmup → friday_warmup
   const fridayOnlyRE = /(backwards?|backward)\s*treadmill|sled\s*(pull|push)/i;
-  for (const [sec, exs] of Object.entries(allExercises['warmup'] || {})) {
+  for (const [sec, exs] of Object.entries(allExercises['monday_warmup'] || {})) {
     for (const ex of [...exs]) {
       if (!fridayOnlyRE.test(ex.exercise_name)) continue;
       const { error } = await db.from('workout_program').update({ day: 'friday_warmup' }).eq('id', ex.id);
@@ -1467,7 +1525,7 @@ async function migrateWarmupData() {
         if (!allExercises['friday_warmup'][sec]) allExercises['friday_warmup'][sec] = [];
         const alreadyThere = allExercises['friday_warmup'][sec].some(e => String(e.id) === String(ex.id));
         if (!alreadyThere) allExercises['friday_warmup'][sec].push({ ...ex, day: 'friday_warmup' });
-        allExercises['warmup'][sec] = allExercises['warmup'][sec].filter(e => String(e.id) !== String(ex.id));
+        allExercises['monday_warmup'][sec] = allExercises['monday_warmup'][sec].filter(e => String(e.id) !== String(ex.id));
         log.moved.push(ex.exercise_name);
       }
     }
@@ -1538,34 +1596,15 @@ function renderRehab() {
 
 // ── Warmup ─────────────────────────────────────────────────────────
 function renderWarmup() {
-  const el    = document.getElementById('warmupContent');
-  const isFri = activeDay === 'friday';
-  const base  = allExercises['warmup'] || {};
-  const fri   = allExercises['friday_warmup'] || {};
+  const el      = document.getElementById('warmupContent');
+  const wmDay   = activeDay + '_warmup';
+  const dayExs  = allExercises[wmDay] || {};
+  const cirKey  = dayExs['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
 
-  // Sykkel section key for each bucket
-  const baseCirKey = base['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
-  const friCirKey  = fri['Sirkulasjon']  ? 'Sirkulasjon' : 'Sykkel';
-
-  // Combined approach:
-  //   Monday  → base exercises only
-  //   Friday  → base exercises (shared, sykkel excluded) + friday_warmup (Friday sykkel + extras)
   const allWmExs = [];
-  if (isFri) {
-    for (const [sec, exs] of Object.entries(base)) {
-      if (sec === baseCirKey) continue; // Friday has its own sykkel in friday_warmup
-      for (const ex of exs) allWmExs.push({ ex, isSyk: false });
-    }
-    for (const [sec, exs] of Object.entries(fri)) {
-      for (const ex of exs) allWmExs.push({ ex, isSyk: sec === friCirKey });
-    }
-  } else {
-    for (const [sec, exs] of Object.entries(base)) {
-      for (const ex of exs) allWmExs.push({ ex, isSyk: sec === baseCirKey });
-    }
+  for (const [sec, exs] of Object.entries(dayExs)) {
+    for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey });
   }
-
-  // Sort by sort_order (null → last)
   allWmExs.sort((a, b) => (a.ex.sort_order ?? Infinity) - (b.ex.sort_order ?? Infinity));
 
   document.getElementById('warmupBadge').textContent =
@@ -1573,15 +1612,14 @@ function renderWarmup() {
 
   let zoneHtml = '';
   allWmExs.forEach(({ ex, isSyk }, i) => {
-    const exDay     = ex.day || (isFri ? 'friday_warmup' : 'warmup');
-    const cirKeyFallback = exDay === 'friday_warmup' ? friCirKey : baseCirKey;
+    const exDay = ex.day || wmDay;
     if (isSyk) {
       const curName = ex.exercise_name || 'Sykkel';
       const inList = CARDIO_MACHINES.some(([n]) => n === curName);
       const opts = (inList ? CARDIO_MACHINES : [[curName, cardioIcon(curName)], ...CARDIO_MACHINES])
         .map(([n, e]) => `<option value="${escHtml(n)}"${n === curName ? ' selected' : ''}>${e} ${escHtml(cardioLabel(n))}</option>`).join('');
       zoneHtml += `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"
-        draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(ex.section || cirKeyFallback)}"
+        draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(ex.section || cirKey)}"
         ondragstart="exDragStart(event)" ondragend="exDragEnd(event)">
         <div class="circ-row">
           <span class="ex-drag-handle" onclick="event.stopPropagation()">⠿</span>
@@ -1606,13 +1644,12 @@ function renderWarmup() {
     }
   });
 
-  const wmAddDay = isFri ? 'friday_warmup' : 'warmup';
-  const addId = `add-${wmAddDay}-Prepøvelser`;
+  const addId = `add-${wmDay}-Prepøvelser`;
   const addHtml = `<div class="add-ex-form" id="${addId}">
     <input class="input-sm" placeholder="${t('gym.exercise_ph')}" id="${addId}-name">
     <input class="input-sm w-short" type="number" placeholder="${t('gym.sets_ph')}" id="${addId}-sets">
     <input class="input-sm w-short" placeholder="${t('gym.reps_ph')}" id="${addId}-reps">
-    <button class="btn btn-success btn-sm" onclick="addExercise('${wmAddDay}','Prepøvelser','${addId}')">+</button>
+    <button class="btn btn-success btn-sm" onclick="addExercise('${wmDay}','Prepøvelser','${addId}')">+</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
   </div>
   <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">${t('gym.add_exercise_btn')}</button>`;
@@ -3415,10 +3452,8 @@ async function saveExOrder(day, section, orderedIds) {
 }
 
 // ── Warmup drag & drop ─────────────────────────────────────────────
-const _wmDays = new Set(['warmup', 'friday_warmup']);
-
 function wmDragOver(e) {
-  if (!_exDragId || !_wmDays.has(_exDragDay)) return;
+  if (!_exDragId || !_exDragDay?.endsWith('_warmup')) return;
   e.preventDefault(); e.dataTransfer.dropEffect = 'move';
   const target = e.target.closest('.ex-row-wrap[data-exid]');
   clearExDragClasses();
@@ -3431,7 +3466,7 @@ function wmDragLeave(e) {
 }
 async function wmDrop(e) {
   e.preventDefault();
-  if (!_wmDays.has(_exDragDay)) return;
+  if (!_exDragDay?.endsWith('_warmup')) return;
   const zone   = e.currentTarget;
   const target = e.target.closest('.ex-row-wrap[data-exid]');
   clearExDragClasses();
@@ -3443,18 +3478,15 @@ async function wmDrop(e) {
   await saveWarmupOrder(newOrder);
 }
 async function saveWarmupOrder(orderedIds) {
-  // Update in-memory sort_orders so renderWarmup re-sorts correctly on tab switch
+  const wmDay = activeDay + '_warmup';
   const orderMap = Object.fromEntries(orderedIds.map((id, idx) => [String(id), idx]));
-  for (const wmDay of ['warmup', 'friday_warmup']) {
-    for (const exs of Object.values(allExercises[wmDay] || {})) {
-      for (const ex of exs) {
-        const newIdx = orderMap[String(ex.id)];
-        if (newIdx !== undefined) ex.sort_order = newIdx;
-      }
+  for (const exs of Object.values(allExercises[wmDay] || {})) {
+    for (const ex of exs) {
+      const newIdx = orderMap[String(ex.id)];
+      if (newIdx !== undefined) ex.sort_order = newIdx;
     }
   }
-  // Persist to localStorage (reliable) + Supabase (cross-device)
-  try { localStorage.setItem('ex_ord__warmup', JSON.stringify(orderedIds.map(String))); } catch {}
+  try { localStorage.setItem('ex_ord__' + wmDay, JSON.stringify(orderedIds.map(String))); } catch {}
   await Promise.all(
     orderedIds.map((id, idx) =>
       db.from('workout_program').update({ sort_order: idx }).eq('id', isNaN(+id) ? id : +id)
@@ -3500,7 +3532,7 @@ async function saveWarmupOrder(orderedIds) {
     if (target && target !== _tEl) {
       let sec = target.closest(`[data-day="${_tDay}"][data-section="${_tSec}"]`);
       let isWmDrop = false;
-      if (!sec && _wmDays.has(_tDay)) {
+      if (!sec && _tDay?.endsWith('_warmup')) {
         sec = target.closest('[data-wm-zone]');
         isWmDrop = !!sec;
       }
