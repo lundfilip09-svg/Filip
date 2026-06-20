@@ -468,10 +468,21 @@
     .gym-history-card .sess-card::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--cat, var(--text-tertiary)); opacity: 0.75; }
     .gsx-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
     .gsx-results { font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); margin: 8px 0; letter-spacing: 0.02em; }
+    .sess-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+    .sess-rpe-tag {
+      font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.04em;
+      padding: 3px 9px; border-radius: 999px;
+      background: rgba(255,255,255,0.05); color: var(--text-tertiary);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
     .gsx-sec-lbl { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 9px; }
     .sess-detail { display: none; }
     .sess-detail.open { display: block; }
     .gym-history-card .sess-detail { padding: 20px 22px 18px; }
+    .he-status { font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.04em; color: var(--text-tertiary); transition: color 0.15s; min-height: 14px; }
+    .he-status.pending { color: var(--text-tertiary); }
+    .he-status.saved { color: var(--success); }
+    .he-status.error { color: var(--danger); }
     /* Tospalters drawer-kropp så innholdet fyller bredden i stedet for å strekkes */
     .gsx-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 4px 40px; }
     .gsx-col { min-width: 0; }
@@ -803,6 +814,10 @@ let _openGymDetail   = null; // gym_log.id på åpent detalj-kort (sprint-mønst
 let _lastSaved       = null; // { date, sessionType } — satt av saveLog(), for auto-persist smerte etter lagring
 let _heOrig          = {};  // gymId → [set_log.id] lastet ved skuff-åpning (for sett-diff)
 let _heDayKey        = {};  // gymId → day_key fra lastede sett (for nye sett-inserts)
+const _heSaveTimer   = {};  // gymId → debounce-timer for auto-lagring i historikk-skuffen
+const _heSaveBusy    = {};  // gymId → true mens en auto-lagring pågår (hindrer overlapp)
+const _heSaveAgain   = {};  // gymId → true hvis endring kom mens lagring pågikk (kjør på nytt)
+let _gymHistDirty    = false; // satt når en skuff er auto-lagret → full reload ved lukking så kortene oppdateres
 
 let _isSavingLog      = false;
 let _loggedThisSession = false;  // satt i saveLog — vakter «Ny økt» mot tap av ulagret økt
@@ -3279,9 +3294,7 @@ function _gymResultsLine(g) {
   const sRows = _gymSetMap[g.date] || [];
   if (!sRows.length) return '';
   const names = new Set(sRows.map(r => r.exercise_name));
-  let s = t('gym.hist_sets', { ex: names.size, sets: sRows.length });
-  if (g.rpe != null) s += ` · ${Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2))} RIR`;
-  return s;
+  return t('gym.hist_sets', { ex: names.size, sets: sRows.length });
 }
 // Smertemålere i drawer — samme element-id-er som saveHistEdit forventer (hep-…).
 function _gymPainBlocks(g, knee) {
@@ -3335,7 +3348,7 @@ function _gymDetailHtml(g, knee, kneeId, isOpen) {
       </div>
     </div>
     <div class="sess-detail-footer" style="justify-content:space-between">
-      <button class="btn btn-success btn-sm" onclick="event.stopPropagation();saveHistEdit('${g.id}')">${t('save')}</button>
+      <span class="he-status" id="he-status-${g.id}"></span>
       <button class="sess-detail-del" onclick="event.stopPropagation();deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
     </div>
   </div>`;
@@ -3384,9 +3397,15 @@ function renderGymHistory() {
 
   if (_openGymDetail != null) _populateGymDetail(_openGymDetail);
 }
-function toggleGymDetail(gymId) {
+async function toggleGymDetail(gymId) {
+  // Tøm eventuelle ventende auto-lagringer før vi bytter visning (så siste endring ikke tapes).
+  for (const id of Object.keys(_heSaveTimer)) {
+    if (_heSaveTimer[id]) { clearTimeout(_heSaveTimer[id]); _heSaveTimer[id] = null; await autoSaveHistEdit(id); }
+  }
   _openGymDetail = (_openGymDetail === gymId) ? null : gymId;
-  renderGymHistory();
+  // Hvis noe ble lagret, hent på nytt så kort-sammendraget (RPE/sett/smerte) stemmer.
+  if (_gymHistDirty) { _gymHistDirty = false; await loadGymHistory(); }
+  else renderGymHistory();
 }
 // Lazy-fyll RIR-slider + sett-editor i åpen drawer (samme id-er som saveHistEdit).
 function _populateGymDetail(gymId) {
@@ -3399,6 +3418,13 @@ function _populateGymDetail(gymId) {
     rirHost.innerHTML = rirSliderHTML(`he-rir-s-${gymId}`, rpe);
   }
   loadHistSets(gymId, panel.dataset.date);
+  // Auto-lagring: enhver endring i skuffen planlegger en debouncet lagring.
+  // 'input' fanger RIR-slider + sett-felt; 'click' fanger smertesegmenter,
+  // sett-/øvelse-slett (.he-x) og legg-til-knapper.
+  panel.addEventListener('input', () => scheduleHistSave(gymId));
+  panel.addEventListener('click', e => {
+    if (e.target.closest('.pain-seg, .he-x, .he-addset')) scheduleHistSave(gymId);
+  });
 }
 
 async function deleteGymSession(gymId, kneePainId, date) {
@@ -3478,6 +3504,110 @@ function addHistEx(gymId) {
   const host  = document.getElementById(`he-sets-${gymId}`);
   const addBtn = host && host.querySelector(':scope > button');
   if (addBtn) addBtn.insertAdjacentHTML('beforebegin', histExBlock(gymId, name, [null]));
+}
+
+// ── Auto-lagring av historikk-skuffen ──────────────────────────────────────
+// Ingen lagre-knapp: hver endring planlegger en debouncet lagring (800 ms).
+function setHistSaveStatus(gymId, state) {
+  const el = document.getElementById(`he-status-${gymId}`);
+  if (!el) return;
+  el.className = 'he-status' + (state ? ' ' + state : '');
+  el.textContent = state === 'pending' ? t('he.saving')
+                 : state === 'saved'   ? t('he.saved')
+                 : state === 'error'   ? t('he.save_err') : '';
+}
+function scheduleHistSave(gymId) {
+  setHistSaveStatus(gymId, 'pending');
+  clearTimeout(_heSaveTimer[gymId]);
+  _heSaveTimer[gymId] = setTimeout(() => { _heSaveTimer[gymId] = null; autoSaveHistEdit(gymId); }, 800);
+}
+// Persisterer RIR + sett-diff + smerte UTEN å re-rendre (beholder fokus/redigering).
+// Fanger inn nye rad-/smerte-id-er så gjentatte lagringer ikke dupliserer.
+async function autoSaveHistEdit(gymId) {
+  if (_heSaveBusy[gymId]) { _heSaveAgain[gymId] = true; return; }
+  const panel = document.getElementById(`knee-edit-${gymId}`);
+  if (!panel) return;
+  _heSaveBusy[gymId] = true;
+  try {
+    const date = panel.dataset.date, st = panel.dataset.st;
+    const parallel = [];
+    // RIR → gym_log.rpe
+    const newRpe  = rirValue(`he-rir-s-${gymId}`);
+    const origRpe = panel.dataset.rpe === '' ? null : Number(panel.dataset.rpe);
+    if (newRpe !== origRpe) {
+      parallel.push(db.from('gym_log').update({ rpe: newRpe }).eq('id', gymId));
+      panel.dataset.rpe = newRpe == null ? '' : String(newRpe);
+    }
+    // Sett-diff → set_log
+    const host = document.getElementById(`he-sets-${gymId}`);
+    const inserts = [];           // { row, payload }
+    const present = new Set();
+    if (host) {
+      host.querySelectorAll('.he-ex-block').forEach(block => {
+        const name = block.dataset.ex;
+        [...block.querySelectorAll('.he-set')].forEach((row, idx) => {
+          const id   = row.dataset.id;
+          const wRaw = row.querySelector('.he-w').value;
+          const wKg  = wRaw === '' ? null : toKg(Number(wRaw));
+          const reps = String(row.querySelector('.he-r').value ?? '').trim();
+          const wOk  = (wKg == null || isNaN(wKg)) ? null : wKg;
+          if (id) {
+            present.add(id);
+            parallel.push(db.from('set_log').update({ weight_kg: wOk, reps, set_index: idx, exercise_name: name }).eq('id', id));
+          } else {
+            inserts.push({ row, payload: { date, day_key: _heDayKey[gymId] ?? st, exercise_name: name, weight_kg: wOk, reps, set_index: idx } });
+          }
+        });
+      });
+      (_heOrig[gymId] || []).forEach(id => {
+        if (!present.has(id)) parallel.push(db.from('set_log').delete().eq('id', id));
+      });
+      _heOrig[gymId] = [...present];
+    }
+    // Smerte → injury_pain / legacy knee_pain
+    const fields = ['before_score','during_score','after_score','day_after_score'];
+    const painInserts = [];       // { table, payload, key?|assignKnee }
+    if (_severeInjuries.length) {
+      _severeInjuries.forEach(inj => {
+        const payload = {};
+        fields.forEach(f => { payload[f] = painMeterValue(`hep-${gymId}-${inj.id}-${f}`); });
+        const existing = _histInjuryPain[`${inj.id}|${date}`];
+        if (existing) parallel.push(db.from('injury_pain').update(payload).eq('id', existing.id));
+        else if (fields.some(f => payload[f] != null))
+          painInserts.push({ table: 'injury_pain', payload: { injury_id: inj.id, date, session_type: st, source: 'gym', ...payload }, key: `${inj.id}|${date}` });
+      });
+    } else {
+      const kneeId = panel.dataset.kneeId || '';
+      const payload = {};
+      fields.forEach(f => { payload[f] = painMeterValue(`hep-${gymId}-_knee-${f}`); });
+      if (kneeId) parallel.push(db.from('knee_pain').update(payload).eq('id', kneeId));
+      else if (fields.some(f => payload[f] != null))
+        painInserts.push({ table: 'knee_pain', payload: { date, session_type: st, ...payload }, assignKnee: true });
+    }
+    // Kjør oppdateringer/slettinger parallelt, deretter inserts sekvensielt for å fange id.
+    const res = await Promise.all(parallel);
+    if (res.some(r => r && r.error)) throw (res.find(r => r && r.error).error);
+    for (const ins of inserts) {
+      const { data, error } = await db.from('set_log').insert(ins.payload).select('id').single();
+      if (error) throw error;
+      if (data) { ins.row.dataset.id = String(data.id); _heOrig[gymId].push(String(data.id)); }
+    }
+    for (const pi of painInserts) {
+      const { data, error } = await db.from(pi.table).insert(pi.payload).select('id').single();
+      if (error) throw error;
+      if (data) {
+        if (pi.assignKnee) panel.dataset.kneeId = String(data.id);
+        if (pi.key) _histInjuryPain[pi.key] = { id: data.id, ...pi.payload };
+      }
+    }
+    _gymHistDirty = true;
+    setHistSaveStatus(gymId, 'saved');
+  } catch (e) {
+    setHistSaveStatus(gymId, 'error');
+  } finally {
+    _heSaveBusy[gymId] = false;
+    if (_heSaveAgain[gymId]) { _heSaveAgain[gymId] = false; scheduleHistSave(gymId); }
+  }
 }
 
 // Samlet lagring av skuffen: RIR + sett-diff + smerte i én Promise.all.
