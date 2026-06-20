@@ -3099,7 +3099,7 @@ async function loadGymHistory() {
   try {
     const sDates = [...new Set(sessions.map(g => g.date))];
     const { data: setRows } = await db.from('set_log')
-      .select('date,exercise_name,weight_kg,reps,set_index').in('date', sDates);
+      .select('id,date,exercise_name,weight_kg,reps,set_index').in('date', sDates);
     (setRows || []).forEach(r => { (setMap[r.date] ||= []).push(r); });
   } catch (e) { /* settdetalj er tilleggsinfo — visningen funker uten */ }
 
@@ -3231,6 +3231,29 @@ async function loadGymHistory() {
         <div id="hist-sets-${g.id}" style="display:none;padding:3px 0 1px">${detail}</div>`;
     }
 
+    // Redigerbare sett-rader (slette + endre vekt/reps)
+    const editSetsHtml = (() => {
+      const rows = (setMap[g.date] || []).slice().sort((a,b)=>(a.exercise_name||'').localeCompare(b.exercise_name||'')||(a.set_index??0)-(b.set_index??0));
+      if (!rows.length) return `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">${t('gym.no_sets_logged')}</div>`;
+      const byName = {};
+      rows.forEach(r => { (byName[r.exercise_name] ||= []).push(r); });
+      return Object.entries(byName).map(([name, sets]) =>
+        `<div style="margin-bottom:8px">
+          <div style="font-size:9px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:3px">${escHtml(name)}</div>
+          ${sets.map((r,i) => `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px">
+            <span style="color:var(--text-tertiary);min-width:16px">S${i+1}</span>
+            <input class="input-sm" type="number" min="0" step="0.5" value="${r.weight_kg??''}" style="width:50px" placeholder="kg"
+              onblur="updateSetRow('${r.id}','weight_kg',this.value,'${g.id}','${g.date}')">
+            <span style="color:var(--text-tertiary)">×</span>
+            <input class="input-sm" type="text" value="${r.reps??''}" style="width:44px" placeholder="reps"
+              onblur="updateSetRow('${r.id}','reps',this.value,'${g.id}','${g.date}')">
+            <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:11px;color:#FF6B6B;flex-shrink:0"
+              onclick="deleteSetRow('${r.id}','${g.id}','${g.date}')">×</button>
+          </div>`).join('')}
+        </div>`
+      ).join('');
+    })();
+
     return `<div id="hist-wrap-${g.id}" class="gym-history-item" style="--cat:${sessCatColor(g.session_type)}">
       <div class="hist-row">
         <div style="flex:1;min-width:0">
@@ -3241,10 +3264,16 @@ async function loadGymHistory() {
           ${painStr}
           ${setsHtml}
         </div>
-        <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')">✎</button>
+        <button class="edit-knee-btn" onclick="toggleSetsEdit('${g.id}')" title="${t('gym.edit_sets')}">✎</button>
+        <button class="edit-knee-btn" onclick="toggleKneeEdit('${g.id}')" title="${t('gym.edit_pain')}" style="font-size:10px">🩹</button>
         <button class="gym-del-btn" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')" title="${t('delete')}">✕</button>
       </div>
       ${painEditHtml(g, knee, kneeId)}
+      <div class="knee-edit-panel" id="sets-edit-${g.id}">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:8px">${t('gym.edit_sets')}</div>
+        ${editSetsHtml}
+        <div><button class="btn btn-ghost btn-sm" onclick="toggleSetsEdit('${g.id}')">${t('close')}</button></div>
+      </div>
     </div>`;
   }).join('') +
   `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
@@ -3273,6 +3302,19 @@ async function deleteGymSession(gymId, kneePainId, date) {
 
 function toggleKneeEdit(gymId) {
   document.getElementById(`knee-edit-${gymId}`)?.classList.toggle('open');
+}
+function toggleSetsEdit(gymId) {
+  document.getElementById(`sets-edit-${gymId}`)?.classList.toggle('open');
+}
+async function updateSetRow(id, field, val, gymId, date) {
+  const payload = {};
+  payload[field] = val === '' ? null : (field === 'reps' ? val : parseFloat(val));
+  await db.from('set_log').update(payload).eq('id', id);
+  toast(t('saved'));
+}
+async function deleteSetRow(id, gymId, date) {
+  await db.from('set_log').delete().eq('id', id);
+  await loadGymHistory();
 }
 
 function toggleHistSets(id) {
