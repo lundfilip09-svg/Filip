@@ -638,9 +638,9 @@
       /* Skjul alle dato/påminnelse-snarveier og knapper på mobil.
          Detalj-modal håndterer alt dette — ett trykk på raden åpner den. */
       .todo-quick, .todo-item:hover .todo-quick { opacity: 0; pointer-events: none; }
-      .todo-add-date, .todo-item:hover .todo-add-date,
-      .todo-add-remind, .todo-item:hover .todo-add-remind { opacity: 0; pointer-events: none; }
-      .todo-remind, .todo-item:hover .todo-remind { display: none; }
+      .todo-add-date, .todo-item:hover .todo-add-date { opacity: 0; pointer-events: none; }
+      .todo-remind, .todo-item:hover .todo-remind,
+      .todo-add-remind, .todo-item:hover .todo-add-remind { display: none; }
       .todo-del, .todo-item:hover .todo-del { opacity: 0.5; }
       .drag-handle, .todo-item:hover .drag-handle { opacity: 0.4; }
       /* nøytraliser rad-/tekst-hover så Safari ikke krever to trykk */
@@ -1649,7 +1649,7 @@ async function dtDelete() {
   renderTodos(); closeDetail(); toast(t('gm.deleted'));
 }
 
-// ── Touch: åpne detalj ved trykk på raden (unntatt handlingsknapper) ──
+// ── Touch: åpne detalj ved trykk på raden (unntatt handlingsknapper og drag-handle) ──
 (function() {
   const list = document.getElementById('todoList');
   let sx = 0, sy = 0, moved = false;
@@ -1664,13 +1664,68 @@ async function dtDelete() {
   }, { passive: true });
   list.addEventListener('touchend', e => {
     if (moved) return;
-    // Ikke åpne modal hvis man trykket på checkbox, stjerne, slett eller ✕-knapper
-    if (e.target.closest('.todo-cb, .star-btn, .todo-del, .todo-remind-x')) return;
+    // Ikke åpne modal på handlingsknapper eller drag-handle
+    if (e.target.closest('.todo-cb, .star-btn, .todo-del, .todo-remind-x, .drag-handle')) return;
     const item = e.target.closest('.todo-item[data-id]');
     if (!item) return;
-    e.preventDefault();                 // stopp simulert hover/click → ingen dobbelttrykk
+    e.preventDefault();
     openDetail(item.dataset.id);
   });
+})();
+
+// ── Touch drag-to-reorder (iOS har ikke HTML5 dnd) ────────────────────────
+(function() {
+  const container = document.getElementById('todoList');
+  let tdEl = null, tdMoved = false, tdSx = 0, tdSy = 0;
+
+  container.addEventListener('touchstart', e => {
+    if (!e.target.closest('.drag-handle')) return;
+    const item = e.target.closest('.todo-item[data-id]');
+    if (!item) return;
+    tdEl = item; tdMoved = false;
+    const t = e.touches[0]; tdSx = t.clientX; tdSy = t.clientY;
+    setTimeout(() => { if (tdEl) tdEl.classList.add('dragging'); }, 60);
+  }, { passive: true });
+
+  container.addEventListener('touchmove', e => {
+    if (!tdEl) return;
+    const t = e.touches[0];
+    if (!tdMoved && (Math.abs(t.clientX - tdSx) > 5 || Math.abs(t.clientY - tdSy) > 5)) {
+      tdMoved = true;
+      try { navigator.vibrate && navigator.vibrate(10); } catch(_) {}
+    }
+    if (!tdMoved) return;
+    e.preventDefault(); // stopp scroll mens vi drar
+    const pt = document.elementFromPoint(t.clientX, t.clientY);
+    const over = pt ? pt.closest('.todo-item[data-id]') : null;
+    clearDragClasses();
+    if (over && over !== tdEl) {
+      const r = over.getBoundingClientRect();
+      over.classList.add(t.clientY < r.top + r.height / 2 ? 'drag-before' : 'drag-after');
+    }
+  }, { passive: false });
+
+  function tdEnd(e) {
+    if (!tdEl) return;
+    if (tdMoved) {
+      const t = (e.changedTouches || [])[0];
+      if (t) {
+        const pt = document.elementFromPoint(t.clientX, t.clientY);
+        const over = pt ? pt.closest('.todo-item[data-id]') : null;
+        if (over && over !== tdEl) {
+          const r = over.getBoundingClientRect();
+          container.insertBefore(tdEl, t.clientY < r.top + r.height / 2 ? over : over.nextSibling);
+        }
+        const ids = [...container.querySelectorAll('.todo-item[data-id]')].map(el => el.dataset.id);
+        if (ids.length > 0) saveOrder(activeList, ids);
+      }
+    }
+    clearDragClasses();
+    tdEl.classList.remove('dragging');
+    tdEl = null; tdMoved = false;
+  }
+  container.addEventListener('touchend', tdEnd);
+  container.addEventListener('touchcancel', tdEnd);
 })();
 
 // ── Container drag listeners ──────────────────────────────────────────────
