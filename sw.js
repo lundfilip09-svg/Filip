@@ -14,7 +14,7 @@
 //
 // Bump VERSION ved endringer her — gamle cacher ryddes i activate.
 
-const VERSION = 'dash-v5';
+const VERSION = 'dash-v6';
 const SHELL = [
   '/', '/dashboard.html', '/gym.html', '/sprint.html', '/sovn.html',
   '/gjoremal.html', '/kalender.html', '/treningsplan.html', '/ai.html',
