@@ -2486,9 +2486,8 @@ function startRest(seconds) {
   restPaused    = false;
   try { localStorage.setItem(REST_PREF_KEY, String(seconds)); } catch (e) {}
   saveSession();
-  // 1) SW setTimeout — øyeblikkelig/forgrunn. 2) Web Push — bakgrunn (iOS).
-  swPost({ type: 'START_TIMER', seconds,
-    title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body') });
+  // Web Push leverer ÉN varsling (forgrunn + bakgrunn). Lyd/vibrasjon i
+  // playTimerDone gir umiddelbar tilbakemelding når app-en er åpen.
   scheduleRestPush(seconds);
   resumeRestTimer();
   const rv = document.getElementById('restVal');
@@ -2523,9 +2522,7 @@ function toggleRestPause() {
     restPaused = false;
     if (el) { el.classList.add('running'); el.classList.remove('done'); }
     if (btn) btn.textContent = '⏸';
-    // Re-arm both varslingsveier med gjenstående tid
-    swPost({ type: 'START_TIMER', seconds: remaining,
-      title: t('gym.notif_rest_done'), body: t('gym.notif_rest_body') });
+    // Re-arm web push med gjenstående tid
     scheduleRestPush(remaining);
     resumeRestTimer();
   } else {
@@ -3551,9 +3548,7 @@ function playTimerDone() {
   } catch(e) {}
   // Vibrate on mobile (pattern: short-pause-short)
   try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification(t('gym.notif_rest_done'), { body: t('gym.notif_rest_body'), tag: 'rest-timer' }); } catch(e) {}
-  }
+  // Selve varselbanneret kommer via Web Push (én kilde → ingen duplikater).
 }
 
 // ── Day-after pain reminder ──────────────────────────────────────
