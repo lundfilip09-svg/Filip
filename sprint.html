@@ -609,12 +609,12 @@ async function loadPBs() {
   const liveDists = _distances.filter(d => d.all_runs_count).map(d => d.distance);
   const live = {};
   await Promise.all(liveDists.map(async dist => {
-    const { data } = await db.from('sprint_log')
+    let q = db.from('sprint_log')
       .select('time_seconds,date')
       .eq('distance', dist)
-      .not('time_seconds', 'is', null)
-      .order('time_seconds', { ascending: true })
-      .limit(1);
+      .not('time_seconds', 'is', null);
+    if (dist === '60m_celler') q = q.eq('type', 'Trening');
+    const { data } = await q.order('time_seconds', { ascending: true }).limit(1);
     if (data?.length) live[dist] = { best_time: +data[0].time_seconds, date: data[0].date };
   }));
 
