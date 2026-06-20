@@ -635,12 +635,12 @@
     .todo-item.completing .todo-text { text-decoration: line-through; }
     /* Touch-enheter (iPhone): ingen hover → vis kontroller alltid + ett trykk = handling */
     @media (hover: none) {
-      /* Skjul "I dag"/"I morgen"-snarveier og tom-prompt for dato/påminnelse på mobil.
-         Bruk detalj-modal i stedet — ett trykk på teksten åpner den. */
-      .todo-quick:not(.on),
-      .todo-item:hover .todo-quick:not(.on) { opacity: 0; pointer-events: none; }
+      /* Skjul alle dato/påminnelse-snarveier og knapper på mobil.
+         Detalj-modal håndterer alt dette — ett trykk på raden åpner den. */
+      .todo-quick, .todo-item:hover .todo-quick { opacity: 0; pointer-events: none; }
       .todo-add-date, .todo-item:hover .todo-add-date,
       .todo-add-remind, .todo-item:hover .todo-add-remind { opacity: 0; pointer-events: none; }
+      .todo-remind, .todo-item:hover .todo-remind { display: none; }
       .todo-del, .todo-item:hover .todo-del { opacity: 0.5; }
       .drag-handle, .todo-item:hover .drag-handle { opacity: 0.4; }
       /* nøytraliser rad-/tekst-hover så Safari ikke krever to trykk */
@@ -1649,12 +1649,13 @@ async function dtDelete() {
   renderTodos(); closeDetail(); toast(t('gm.deleted'));
 }
 
-// ── Touch: åpne detalj på FØRSTE trykk (iOS lager ellers «hover»-dobbelttrykk) ──
+// ── Touch: åpne detalj ved trykk på raden (unntatt handlingsknapper) ──
 (function() {
   const list = document.getElementById('todoList');
   let sx = 0, sy = 0, moved = false;
   list.addEventListener('touchstart', e => {
-    if (!e.target.closest('.todo-text')) return;
+    const item = e.target.closest('.todo-item[data-id]');
+    if (!item) return;
     const t = e.touches[0]; sx = t.clientX; sy = t.clientY; moved = false;
   }, { passive: true });
   list.addEventListener('touchmove', e => {
@@ -1662,9 +1663,10 @@ async function dtDelete() {
     if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) moved = true;
   }, { passive: true });
   list.addEventListener('touchend', e => {
-    const tt = e.target.closest('.todo-text');
-    if (!tt || moved) return;
-    const item = tt.closest('.todo-item[data-id]');
+    if (moved) return;
+    // Ikke åpne modal hvis man trykket på checkbox, stjerne, slett eller ✕-knapper
+    if (e.target.closest('.todo-cb, .star-btn, .todo-del, .todo-remind-x')) return;
+    const item = e.target.closest('.todo-item[data-id]');
     if (!item) return;
     e.preventDefault();                 // stopp simulert hover/click → ingen dobbelttrykk
     openDetail(item.dataset.id);
