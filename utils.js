@@ -1742,20 +1742,21 @@ function painMeterHTML(id, value = null, opts = {}) {
     + `${label}<div class="pain-meter-segs">${segs}</div>`
     + `<span class="pain-meter-num" id="${id}-num" style="color:${col}">${touched ? v : '–'}</span></div>`;
 }
-// onclick-handler per segment: setter verdi, oppdaterer fyll + tall.
+// onclick-handler per segment: toggle verdi (klikk samme igjen = fjern).
 function painMeterSet(id, v) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
-  wrap.dataset.v = v;
-  wrap.dataset.touched = '1';
-  const col = painColor(v);
+  const cur = wrap.dataset.v === '' ? null : parseInt(wrap.dataset.v, 10);
+  const newV = (cur === v) ? null : v;
+  wrap.dataset.v = newV ?? '';
+  wrap.dataset.touched = (newV != null) ? '1' : '0';
   wrap.querySelectorAll('.pain-seg').forEach(b => {
     const i = parseInt(b.dataset.i, 10);
-    if (i <= v) { b.classList.add('fill'); b.style.background = col; b.style.borderColor = col; }
+    if (newV != null && i <= newV) { b.classList.add('fill'); b.style.background = painColor(newV); b.style.borderColor = painColor(newV); }
     else { b.classList.remove('fill'); b.style.background = ''; b.style.borderColor = ''; }
   });
   const num = document.getElementById(id + '-num');
-  if (num) { num.textContent = v; num.style.color = col; }
+  if (num) { num.textContent = (newV != null) ? newV : '–'; num.style.color = (newV != null) ? painColor(newV) : 'var(--text-tertiary)'; }
 }
 // Verdi: null hvis aldri rørt (= ikke logget), ellers tallet (0 er gyldig).
 function painMeterValue(id) {
