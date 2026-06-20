@@ -472,45 +472,9 @@
     @media (max-width: 860px) {
       .gym-shell { grid-template-columns: 1fr; }
       .gym-sidebar { position: static; max-height: none; }
-
-      /* Bigger, more visible exercise rows on mobile */
-      .ex-row { padding: 14px 12px; min-height: 54px; }
-      .ex-r-name { font-size: 14px !important; }
-      .ex-r-vol { font-size: 11px !important; }
-      .ex-chk { width: 24px !important; height: 24px !important; border-radius: 6px !important; }
-      .ex-drag-handle { display: none !important; }
-
-      /* X hidden by default on mobile — only visible in edit mode */
-      .ex-r-del { display: none !important; }
-      .gym-main.edit-mode .ex-r-del {
-        display: flex !important; opacity: 1 !important;
-        width: 36px; height: 36px; border-radius: 8px;
-        border: 1px solid rgba(255,107,107,0.35);
-        background: rgba(255,107,107,0.08);
-        color: var(--danger); font-size: 18px;
-        align-items: center; justify-content: center;
-      }
-
-      /* Edit mode toggle — mobile only */
-      .edit-mode-toggle { display: inline-flex !important; }
-    }
-    @media (min-width: 861px) {
-      .edit-mode-toggle { display: none !important; }
-    }
-    .edit-mode-toggle {
-      display: none;
-      align-items: center; gap: 5px;
-      background: none;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px;
-      color: var(--text-tertiary);
-      font-size: 11px; font-family: var(--font-mono);
-      padding: 4px 10px; cursor: pointer; transition: all 0.15s;
-    }
-    .edit-mode-toggle.active {
-      border-color: rgba(255,107,107,0.4);
-      color: var(--danger);
-      background: rgba(255,107,107,0.08);
+      .day-pill { padding: 8px 16px !important; font-size: 13px !important; }
+      .day-add-pill { padding: 8px 14px !important; font-size: 12px !important; }
+      .day-pill-del { display: none !important; }
     }
 
     /* Day-after rehab banner */
@@ -537,7 +501,7 @@
           <!-- A6: dag-pills genereres dynamisk fra gym_days i renderDayPills() -->
         </div>
         <div class="wh-cta">
-          <button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px" data-i18n="gym.start_session">▷ Start økt</button>
+<button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px" data-i18n="gym.start_session">▷ Start økt</button>
           <div class="elapsed-chip ws-active">
             <span class="elapsed-dot"></span>
             <span id="elapsedDisplay">0:00</span>
@@ -549,7 +513,6 @@
       <div class="wh-meta">
         <div class="wh-meta-item">⏱ <span id="whDuration">~75 min</span></div>
         <div class="wh-meta-item">◈ <span id="whExCount">— <span data-i18n="gym.exercises_lc">øvelser</span></span></div>
-        <button class="edit-mode-toggle" id="editModeToggle" onclick="toggleEditMode()" data-i18n="gym.edit_exercises">✎ Rediger</button>
       </div>
     </div>
 
@@ -1139,16 +1102,6 @@ async function deleteDay(key) {
   toast(t('gym.day_deleted'));
 }
 function setWS(s) { workoutState = s; document.body.dataset.ws = s; try { renderGymManualPainForms(); } catch(e) {} }
-
-function toggleEditMode() {
-  const main = document.querySelector('.gym-main');
-  const btn  = document.getElementById('editModeToggle');
-  if (!main || !btn) return;
-  main.classList.toggle('edit-mode');
-  const on = main.classList.contains('edit-mode');
-  btn.classList.toggle('active', on);
-  btn.textContent = on ? ('✕ ' + t('gym.edit_done')) : ('✎ ' + t('gym.edit_exercises'));
-}
 
 // ── Session persistence ────────────────────────────────────────────
 function saveSession() {
