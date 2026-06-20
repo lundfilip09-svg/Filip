@@ -27,8 +27,9 @@
       overflow-y: auto;
       scrollbar-width: none;
       background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
     .gym-sidebar::-webkit-scrollbar { display: none; }
 
@@ -37,14 +38,14 @@
       background: var(--card-bg);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 12px;
-      padding: 16px 20px 18px;
+      padding: 12px 20px 13px;
       margin-bottom: 12px;
     }
     .wh-row1 {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
     .day-pills { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
     /* A6 — legg-til-dag-knapp + dialog */
@@ -176,12 +177,12 @@
     /* Exercise row */
     .ex-row-wrap { }
     .ex-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px;
+      display: flex; align-items: center; gap: 11px;
+      padding: 12px 14px;
       background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.055);
       border-radius: 8px; cursor: pointer;
       transition: background 0.15s, border-color 0.15s, opacity 0.2s;
-      margin-bottom: 2px;
+      margin-bottom: 5px;
     }
     .ex-row:hover { background: rgba(255,255,255,0.04); }
     .ex-row.is-active { background: rgba(91,164,245,0.06); border-color: rgba(91,164,245,0.22); }
@@ -198,14 +199,14 @@
     .ex-chk.done { background: rgba(107,227,164,0.16); border-color: rgba(107,227,164,0.5); color: var(--success); }
     .ex-r-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 14px; flex-shrink: 0; }
     .ex-r-info { flex: 1; min-width: 0; }
-    .ex-r-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+    .ex-r-name { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
     .ex-name-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 12px; padding: 2px 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
     .ex-r-info:hover .ex-name-edit-btn { opacity: 0.6; }
     .ex-name-edit-btn:hover { color: var(--accent-blue); opacity: 1 !important; }
     .ex-name-edit-form { display: none; align-items: center; gap: 6px; padding: 7px 0; }
     .ex-name-edit-form.open { display: flex; }
     .ex-name-edit-form input { flex: 1; min-width: 120px; }
-    .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 1px; display: flex; align-items: center; gap: 3px; }
+    .ex-r-vol { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); opacity: 0.85; margin-top: 3px; display: flex; align-items: center; gap: 3px; }
     .ex-inline-input {
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
       border-radius: 4px; color: var(--text-primary); font-family: var(--font-mono);
@@ -306,9 +307,9 @@
     .add-ex-form .w-short { width: 54px; flex: none; }
 
     /* Sidebar sections */
-    .sb-sec { padding: 13px 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .sb-sec { padding: 16px 16px 15px; border-bottom: 1px solid rgba(255,255,255,0.045); }
     .sb-sec:last-child { border-bottom: none; }
-    .sb-hd { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); margin-bottom: 9px; }
+    .sb-hd { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-tertiary); margin-bottom: 12px; }
 
     /* Circular progress ring */
     .ring-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
@@ -460,6 +461,16 @@
     .he-x:hover { color: var(--danger); }
     .he-addset { font-size: 10px; padding: 2px 8px; }
 
+    /* Fullbredde økthistorikk (sprint-kort-stil) */
+    .gym-history-card { margin-top: 18px; }
+    .gym-history-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    .gym-history-card .sess-card { position: relative; padding-left: 18px; }
+    .gym-history-card .sess-card::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--cat, var(--text-tertiary)); opacity: 0.75; }
+    .gsx-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
+    .gsx-results { font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); margin: 8px 0; letter-spacing: 0.02em; }
+    .gsx-sec-lbl { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
+    .gym-history-card .sess-detail { padding: 18px 20px; }
+
     /* State visibility */
     body[data-ws="idle"]   .ws-active { display: none !important; }
     body[data-ws="idle"]   .ws-done   { display: none !important; }
@@ -515,7 +526,6 @@
           <!-- A6: dag-pills genereres dynamisk fra gym_days i renderDayPills() -->
         </div>
         <div class="wh-cta">
-<button class="btn btn-success ws-idle" onclick="startWorkout()" style="padding:6px 18px;font-size:12px" data-i18n="gym.start_session">▷ Start økt</button>
           <div class="elapsed-chip ws-active">
             <span class="elapsed-dot"></span>
             <span id="elapsedDisplay">0:00</span>
@@ -701,20 +711,20 @@
       </div>
     </div>
 
-    <!-- ALWAYS: history -->
-    <div class="sb-sec">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div class="sb-hd" data-i18n="gym.history" style="margin:0">Økthistorikk</div>
-        <button id="gymManualBtn" class="btn btn-ghost btn-sm" style="display:none;font-size:10px;padding:2px 8px"
-          onclick="openGymManualModal()" data-i18n="pain.manual_btn">+ Manuell</button>
-      </div>
-      <div id="gymHistory" style="max-height:260px;overflow-y:auto;margin-top:6px">
-        <div class="loading" data-i18n="loading">Laster…</div>
-      </div>
-    </div>
-
   </aside>
 </div>
+
+<!-- ══ ØKTHISTORIKK — fullbredde under øvelseslisten ════════════════ -->
+<section class="card gym-history-card">
+  <div class="gym-history-hd">
+    <div class="section-title" data-i18n="gym.history" style="margin:0;flex:1">Økthistorikk</div>
+    <button id="gymManualBtn" class="btn btn-ghost btn-sm" style="display:none;font-size:11px;padding:4px 10px"
+      onclick="openGymManualModal()" data-i18n="pain.manual_btn">+ Manuell</button>
+  </div>
+  <div id="gymHistory">
+    <div class="loading" data-i18n="loading">Laster…</div>
+  </div>
+</section>
 </main>
 
 <!-- A6: Ny økt-dialog -->
@@ -774,6 +784,10 @@ let _severeInjuries = [];   // [{id, body_part, side, status, severity}]
 let _injuryScores   = {};   // {injuryId: {before, during, after, dayafter}}
 let _gymManualScores = {};  // {injuryId: {before, during, after, dayafter}}
 let _histInjuryPain  = {};  // `${injuryId}|${date}` → injury_pain-rad (for historikk-skuffen)
+let _gymSessions     = [];  // cachet historikk for re-render uten ny DB-henting
+let _gymKneeMap      = {};  // date|session_type → knee_pain-rad (legacy)
+let _gymSetMap       = {};  // date → set_log-rader
+let _openGymDetail   = null; // gym_log.id på åpent detalj-kort (sprint-mønster)
 let _lastSaved       = null; // { date, sessionType } — satt av saveLog(), for auto-persist smerte etter lagring
 let _heOrig          = {};  // gymId → [set_log.id] lastet ved skuff-åpning (for sett-diff)
 let _heDayKey        = {};  // gymId → day_key fra lastede sett (for nye sett-inserts)
@@ -3208,161 +3222,170 @@ async function loadGymHistory() {
     }
   } catch (e) { /* injury_pain er tillegg — knee_pain-fallback dekker gammel historikk */ }
 
-  function fmtSessDate(ds) {
-    return new Date(ds + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'short', day:'numeric', month:'short' });
+  _gymSessions = sessions;
+  _gymKneeMap  = kneeMap;
+  _gymSetMap   = setMap;
+  renderGymHistory();
+}
+
+// ── Sprint-stil historikk: kort + detalj-drawer, gym-redigering beholdt ──────
+function _gymPainClr(v) {
+  if (v == null) return 'var(--text-tertiary)';
+  if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
+  if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
+}
+function _gymSessCatColor(raw) {
+  const k = _SESSION_TYPE_KEYS[(raw || '').trim().toLowerCase()];
+  if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
+  if (k === 'session.mobility') return 'var(--success)';
+  if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
+  return 'var(--text-tertiary)';
+}
+function _gymPainStrip(row) {
+  return `<div class="pstrip">` + [
+    { l:t('knee.before'),   v: row?.before_score },
+    { l:t('knee.during'),   v: row?.during_score },
+    { l:t('knee.after'),    v: row?.after_score },
+    { l:t('knee.dayafter'), v: row?.day_after_score },
+  ].map(p => `<div class="pcell" title="${escHtml(p.l)}"><span class="pcell-l">${escHtml(p.l.slice(0,3).toUpperCase())}</span><span class="pcell-v" style="color:${_gymPainClr(p.v)}">${p.v ?? '—'}</span></div>`).join('') + `</div>`;
+}
+function _gymHistRow(inj, g, knee) {
+  return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
+}
+function _gymPainSummary(g, knee) {
+  if (!_severeInjuries.length) {
+    const k = knee || {};
+    if ([k.before_score, k.during_score, k.after_score, k.day_after_score].every(v => v == null)) return '';
+    return `<div style="margin-top:9px"><div class="pinj">${_gymPainStrip(knee)}</div></div>`;
   }
-  function painClrH(v) {
-    if (v == null) return 'var(--text-tertiary)';
-    if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
-    if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
-  }
-  // Kategorifarge (venstre aksent-stripe) ut fra økt-type.
-  function sessCatColor(raw) {
-    const k = _SESSION_TYPE_KEYS[(raw || '').trim().toLowerCase()];
-    if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
-    if (k === 'session.mobility') return 'var(--success)';
-    if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
-    return 'var(--text-tertiary)';
-  }
-  // Smerteverdier for én rad (injury_pain → ev. knee_pain-fallback for kne) som
-  // 4 fargekodede celler. Label = forkortet t()-verdi (tospråklig), full i tooltip.
-  function _painStrip(row) {
-    return `<div class="pstrip">` + [
-      { l:t('knee.before'),   v: row?.before_score },
-      { l:t('knee.during'),   v: row?.during_score },
-      { l:t('knee.after'),    v: row?.after_score },
-      { l:t('knee.dayafter'), v: row?.day_after_score },
-    ].map(p => `<div class="pcell" title="${escHtml(p.l)}"><span class="pcell-l">${escHtml(p.l.slice(0,3).toUpperCase())}</span><span class="pcell-v" style="color:${painClrH(p.v)}">${p.v ?? '—'}</span></div>`).join('') + `</div>`;
-  }
-  function _histRow(inj, g, knee) {
-    return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
-  }
-  // Oppsummeringslinje(r) under hver økt — per-skade hvis skader finnes, ellers legacy kne.
-  function painSummaryHtml(g, knee) {
-    if (!_severeInjuries.length) return `<div class="pinj">${_painStrip(knee)}</div>`;
-    return _severeInjuries.map(inj =>
-      `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_painStrip(_histRow(inj, g, knee))}</div>`
-    ).join('');
-  }
-  // Redigerbar skuff per økt: RIR + sett + smerte (måler). Lagres samlet av saveHistEdit.
-  // RIR + sett fylles lazily i toggleKneeEdit (åpning) for å spare initial render.
-  function painEditHtml(g, knee, kneeId) {
-    const st  = escHtml(g.session_type || '');
-    const gid = g.id;
-    const mLine = (label, field, v) =>
-      painMeterHTML(`hep-${gid}-${field}`, (v != null ? v : null), { label });
-    let painBlocks;
-    if (_severeInjuries.length) {
-      painBlocks = _severeInjuries.map(inj => {
-        const row = _histRow(inj, g, knee);
-        const pre = `${inj.id}-`;
-        return `<div style="margin-bottom:8px">
-          <div class="he-inj-name">${escHtml(bodyPartName(inj))}</div>
-          ${mLine(t('knee.before'),      pre + 'before_score',    row?.before_score)}
-          ${mLine(t('knee.during'),      pre + 'during_score',    row?.during_score)}
-          ${mLine(t('knee.after'),       pre + 'after_score',     row?.after_score)}
-          ${mLine(t('tp.knee_dayafter'), pre + 'day_after_score', row?.day_after_score)}
-        </div>`;
-      }).join('');
-    } else {
-      painBlocks = `<div style="margin-bottom:8px">
-        ${mLine(t('knee.before'),      '_knee-before_score',    knee?.before_score)}
-        ${mLine(t('knee.during'),      '_knee-during_score',    knee?.during_score)}
-        ${mLine(t('knee.after'),       '_knee-after_score',     knee?.after_score)}
-        ${mLine(t('tp.knee_dayafter'), '_knee-day_after_score', knee?.day_after_score)}
+  const rows = _severeInjuries.map(inj =>
+    `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_gymPainStrip(_gymHistRow(inj, g, knee))}</div>`
+  ).join('');
+  return `<div style="margin-top:9px">${rows}</div>`;
+}
+function _gymResultsLine(g) {
+  const sRows = _gymSetMap[g.date] || [];
+  if (!sRows.length) return '';
+  const names = new Set(sRows.map(r => r.exercise_name));
+  let s = t('gym.hist_sets', { ex: names.size, sets: sRows.length });
+  if (g.rpe != null) s += ` · ${Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2))} RIR`;
+  return s;
+}
+// Smertemålere i drawer — samme element-id-er som saveHistEdit forventer (hep-…).
+function _gymPainBlocks(g, knee) {
+  const gid = g.id;
+  const mLine = (label, field, v) => painMeterHTML(`hep-${gid}-${field}`, (v != null ? v : null), { label });
+  if (_severeInjuries.length) {
+    return _severeInjuries.map(inj => {
+      const row = _gymHistRow(inj, g, knee);
+      const pre = `${inj.id}-`;
+      return `<div style="margin-bottom:10px">
+        <div class="he-inj-name">${escHtml(bodyPartName(inj))}</div>
+        ${mLine(t('knee.before'),      pre + 'before_score',    row?.before_score)}
+        ${mLine(t('knee.during'),      pre + 'during_score',    row?.during_score)}
+        ${mLine(t('knee.after'),       pre + 'after_score',     row?.after_score)}
+        ${mLine(t('tp.knee_dayafter'), pre + 'day_after_score', row?.day_after_score)}
       </div>`;
-    }
-    return `<div class="knee-edit-panel" id="knee-edit-${gid}" data-gid="${gid}" data-date="${g.date}"
-        data-st="${st}" data-knee-id="${kneeId}" data-rpe="${g.rpe ?? ''}">
-      <div id="he-rir-${gid}" style="margin-bottom:8px"></div>
-      <div id="he-sets-${gid}" class="he-sets"></div>
-      ${painBlocks}
-      <div style="display:flex;gap:5px;margin-top:6px">
-        <button class="btn btn-success btn-sm" onclick="saveHistEdit('${gid}')">${t('save')}</button>
-        <button class="btn btn-ghost btn-sm" onclick="toggleKneeEdit('${gid}')">${t('close')}</button>
+    }).join('');
+  }
+  return `<div style="margin-bottom:10px">
+    ${mLine(t('knee.before'),      '_knee-before_score',    knee?.before_score)}
+    ${mLine(t('knee.during'),      '_knee-during_score',    knee?.during_score)}
+    ${mLine(t('knee.after'),       '_knee-after_score',     knee?.after_score)}
+    ${mLine(t('tp.knee_dayafter'), '_knee-day_after_score', knee?.day_after_score)}
+  </div>`;
+}
+// Detalj-drawer (sprint .sess-detail) med gym-redigering: RIR + sett + smerte + slett.
+// Indre #knee-edit-${id} bærer data-attr som saveHistEdit leser.
+function _gymDetailHtml(g, knee, kneeId, isOpen) {
+  const st = escHtml(g.session_type || '');
+  const longDate = new Date(g.date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  return `<div class="sess-detail${isOpen ? ' open' : ''}" id="gymsess-detail-${g.id}" onclick="event.stopPropagation()">
+    <div class="sess-detail-hd">
+      <div>
+        <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
+        <div class="sess-detail-date">${longDate}</div>
       </div>
-    </div>`;
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleGymDetail('${g.id}')">✕</button>
+    </div>
+    <div id="knee-edit-${g.id}" data-gid="${g.id}" data-date="${g.date}" data-st="${st}" data-knee-id="${kneeId}" data-rpe="${g.rpe ?? ''}">
+      <div class="gsx-sec-lbl">RIR</div>
+      <div id="he-rir-${g.id}" style="margin-bottom:16px"></div>
+      <div class="gsx-sec-lbl">${t('gym.exercises_lc')}</div>
+      <div id="he-sets-${g.id}" class="he-sets" style="margin-bottom:16px"></div>
+      <div class="gsx-sec-lbl">${t('knee.pain')}</div>
+      ${_gymPainBlocks(g, knee)}
+    </div>
+    <div class="sess-detail-footer" style="justify-content:space-between">
+      <button class="btn btn-success btn-sm" onclick="event.stopPropagation();saveHistEdit('${g.id}')">${t('save')}</button>
+      <button class="sess-detail-del" onclick="event.stopPropagation();deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
+    </div>
+  </div>`;
+}
+function renderGymHistory() {
+  const el = document.getElementById('gymHistory');
+  if (!el) return;
+  const sessions = _gymSessions || [];
+  if (!sessions.length) { el.innerHTML = `<div class="empty">${t('gym.no_history')}</div>`; return; }
+
+  // Grupper per dato (sprint-mønster)
+  const groups = new Map();
+  for (const g of sessions) {
+    if (!groups.has(g.date)) groups.set(g.date, []);
+    groups.get(g.date).push(g);
   }
 
-  el.innerHTML = sessions.map(g => {
-    const knee    = g._knee || kneeMap[g.date + '|' + (g.session_type || '')] || null;
-    const kneeId  = knee?.id || '';
-    const painStr = painSummaryHtml(g, knee);
-
-    // Settoppsummering + utvidbar per-øvelse-detalj
-    const sRows = setMap[g.date] || [];
-    let setsHtml = '';
-    if (sRows.length) {
-      const byName = {};
-      sRows.forEach(r => { (byName[r.exercise_name] ||= []).push(r); });
-      const summary = t('gym.hist_sets', { ex: Object.keys(byName).length, sets: sRows.length })
-        + (g.rpe != null ? ` · ${Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2))} RIR` : '');
-      const detail = Object.entries(byName).map(([n, rows]) => {
-        rows.sort((a, b) => (a.set_index ?? 0) - (b.set_index ?? 0));
-        const ws      = rows.map(r => r.weight_kg);
-        const hasW    = ws.some(w => w != null);
-        const uniform = hasW && ws.every(w => w === ws[0]);
-        const repsArr = rows.map(r => String(r.reps ?? '').trim());
-        const repsU   = repsArr.every(r => r === repsArr[0]);
-        let vol;
-        if (!hasW)         vol = `${rows.length} × ${escHtml(repsU ? (repsArr[0] || '—') : repsArr.join('/'))}`;
-        else if (uniform)  vol = `${rows.length} × ${fromKg(ws[0])} ${weightUnit()}` + (repsU && repsArr[0] ? ` × ${escHtml(repsArr[0])}` : '');
-        else               vol = `${ws.map(w => w == null ? '—' : fromKg(w)).join('/')} ${weightUnit()}`;
-        return `<div class="hist-ex-row"><span class="hist-ex-name">${escHtml(n)}</span><span class="hist-ex-vol">${vol}</span></div>`;
-      }).join('');
-      setsHtml = `<div class="hist-sets-toggle" onclick="toggleHistSets('${g.id}')">
-          <span id="hist-arrow-${g.id}">▸</span> ${escHtml(summary)}</div>
-        <div id="hist-sets-${g.id}" style="display:none;padding:3px 0 1px">${detail}</div>`;
-    }
-
-    // Redigerbare sett-rader (slette + endre vekt/reps)
-    const editSetsHtml = (() => {
-      const rows = (setMap[g.date] || []).slice().sort((a,b)=>(a.exercise_name||'').localeCompare(b.exercise_name||'')||(a.set_index??0)-(b.set_index??0));
-      if (!rows.length) return `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">${t('gym.no_sets_logged')}</div>`;
-      const byName = {};
-      rows.forEach(r => { (byName[r.exercise_name] ||= []).push(r); });
-      return Object.entries(byName).map(([name, sets]) =>
-        `<div style="margin-bottom:8px">
-          <div style="font-size:9px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:3px">${escHtml(name)}</div>
-          ${sets.map((r,i) => `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px">
-            <span style="color:var(--text-tertiary);min-width:16px">S${i+1}</span>
-            <input class="input-sm" type="number" min="0" step="0.5" value="${r.weight_kg??''}" style="width:50px" placeholder="kg"
-              onblur="updateSetRow('${r.id}','weight_kg',this.value,'${g.id}','${g.date}')">
-            <span style="color:var(--text-tertiary)">×</span>
-            <input class="input-sm" type="text" value="${r.reps??''}" style="width:44px" placeholder="reps"
-              onblur="updateSetRow('${r.id}','reps',this.value,'${g.id}','${g.date}')">
-            <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:11px;color:#FF6B6B;flex-shrink:0"
-              onclick="deleteSetRow('${r.id}','${g.id}','${g.date}')">×</button>
-          </div>`).join('')}
-        </div>`
-      ).join('');
-    })();
-
-    return `<div id="hist-wrap-${g.id}" class="gym-history-item" style="--cat:${sessCatColor(g.session_type)}">
-      <div class="hist-row">
-        <div style="flex:1;min-width:0">
-          <div class="hist-head">
-            <span class="hist-t">${escHtml(displaySessionType(g.session_type))}</span>
-            <span class="hist-d">${fmtSessDate(g.date)}</span>
-          </div>
-          ${painStr}
-          ${setsHtml}
-        </div>
-      </div>
-      <div class="hist-actions">
-        <button class="hist-act-btn" onclick="toggleKneeEdit('${g.id}')">${t('gym.edit_session')}</button>
-        <button class="hist-act-btn hist-act-del" onclick="deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
-      </div>
-      ${painEditHtml(g, knee, kneeId)}
+  const html = [...groups.entries()].map(([date, gs]) => {
+    const dLabel = new Date(date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
+    const cards = gs.map(g => {
+      const knee    = g._knee || _gymKneeMap[g.date + '|' + (g.session_type || '')] || null;
+      const kneeId  = knee?.id || '';
+      const isOpen  = _openGymDetail === g.id;
+      const results = _gymResultsLine(g);
+      const rir     = g.rpe != null ? Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2)) : null;
+      const card = `<div class="sess-card${isOpen ? ' expanded' : ''}" id="gymsess-card-${g.id}"
+          onclick="toggleGymDetail('${g.id}')" style="--cat:${_gymSessCatColor(g.session_type)}">
+        <div class="gsx-title">${escHtml(displaySessionType(g.session_type))}</div>
+        ${results ? `<div class="gsx-results">${escHtml(results)}</div>` : ''}
+        ${rir != null ? `<div class="sess-meta"><span class="sess-rpe-tag">RPE ${g.rpe} · ${rir} RIR</span></div>` : ''}
+        ${_gymPainSummary(g, knee)}
+        ${g.session_notes ? `<div class="sess-notes-preview">${escHtml(g.session_notes)}</div>` : ''}
+      </div>`;
+      return card + _gymDetailHtml(g, knee, kneeId, isOpen);
+    }).join('');
+    return `<div class="hist-date-group">
+      <div class="hist-date-label">${dLabel}</div>
+      <div class="hist-sessions">${cards}</div>
     </div>`;
-  }).join('') +
-  `<a href="treningsplan.html" style="display:block;margin-top:8px;font-size:10px;
-    font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
-    text-align:center">${t('gym.full_log')}</a>`;
+  }).join('');
+
+  el.innerHTML = html +
+    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:11px;
+      font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
+      text-align:center">${t('gym.full_log')}</a>`;
+
+  if (_openGymDetail != null) _populateGymDetail(_openGymDetail);
+}
+function toggleGymDetail(gymId) {
+  _openGymDetail = (_openGymDetail === gymId) ? null : gymId;
+  renderGymHistory();
+}
+// Lazy-fyll RIR-slider + sett-editor i åpen drawer (samme id-er som saveHistEdit).
+function _populateGymDetail(gymId) {
+  const panel = document.getElementById(`knee-edit-${gymId}`);
+  if (!panel || panel.dataset.loaded) return;
+  panel.dataset.loaded = '1';
+  const rirHost = document.getElementById(`he-rir-${gymId}`);
+  if (rirHost) {
+    const rpe = panel.dataset.rpe === '' ? null : Number(panel.dataset.rpe);
+    rirHost.innerHTML = rirSliderHTML(`he-rir-s-${gymId}`, rpe);
+  }
+  loadHistSets(gymId, panel.dataset.date);
 }
 
 async function deleteGymSession(gymId, kneePainId, date) {
   if (!confirm(t('confirm.delete_session'))) return;
+  if (_openGymDetail === gymId) _openGymDetail = null;
   const ops = [db.from('gym_log').delete().eq('id', gymId)];
   // DEPRECATED (P6): knee_pain delete — keep until DROP migration
   if (kneePainId) ops.push(db.from('knee_pain').delete().eq('id', kneePainId));
