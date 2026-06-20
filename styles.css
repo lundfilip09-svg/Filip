@@ -534,6 +534,32 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,0.25); cursor: pointer;
 }
 
+/* ── Smerte-måler (delt: gym, sprint, treningsplan, dashboard) ───────── */
+.pain-meter { display: flex; align-items: center; gap: 10px; }
+.pain-meter-label {
+  font-size: 13px; color: var(--text-secondary); flex: 0 0 auto;
+  min-width: 78px;
+}
+.pain-meter-segs { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.pain-seg {
+  flex: 1 1 0; min-width: 0; aspect-ratio: 1 / 1; max-width: 30px;
+  padding: 0; border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.pain-seg:hover { border-color: var(--text-tertiary); }
+.pain-seg.fill { /* bakgrunn/kant settes inline via painColor(v) */ }
+.pain-meter-num {
+  font-family: var(--font-mono); font-weight: 700; font-size: 18px;
+  font-variant-numeric: tabular-nums; flex: 0 0 auto;
+  min-width: 1.6ch; text-align: right;
+}
+@media (max-width: 420px) {
+  .pain-meter-label { min-width: 64px; font-size: 12px; }
+  .pain-meter { gap: 7px; }
+  .pain-meter-segs { gap: 3px; }
+}
+
 /* ── Delte komponenter — ekstrahert fra sidene (falde fase 3) ─────────── */
 .hist-date-group { margin-bottom: 20px; }
 .hist-date-label {

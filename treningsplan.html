@@ -753,7 +753,6 @@
         <button class="btn btn-ghost btn-sm" onclick="saveWeekPreset()" data-i18n="tp.preset_save">Lagre som…</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteWeekPreset()" data-i18n="tp.preset_delete">Slett</button>
       </div>
-      <div id="wpMultiAssign" style="margin-bottom:12px"></div>
       <div id="weeklyPlanRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       <button class="act-save-btn" onclick="saveWeeklyPlan()" data-i18n="tp.save_plan">Lagre plan</button>
     </div>
@@ -1006,32 +1005,9 @@ function openEditWeeklyPlan() {
       <select class="input-sm" id="wp-day-${d}" style="flex:1">${tplOptions(selId)}</select>
     </div>`;
   }).join('');
-  // Multi-velg: sett samme økt på flere dager på én gang.
-  const ma = document.getElementById('wpMultiAssign');
-  if (ma) {
-    ma.innerHTML = `
-      <div class="act-field-label" style="margin-bottom:6px">${escHtml(t('tp.multi_assign'))}</div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <select class="input-sm" id="wpMultiSel" style="flex:1">${tplOptions('')}</select>
-        <button class="btn btn-ghost btn-sm" onclick="wpApplyMulti()" data-i18n="tp.apply">${escHtml(t('tp.apply'))}</button>
-      </div>
-      <div id="wpMultiDays" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px">
-        ${[0,1,2,3,4,5,6].map(d => `<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary)"><input type="checkbox" value="${d}"> ${escHtml(t('wd.'+((d+1)%7)))}</label>`).join('')}
-      </div>`;
-  }
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
   document.getElementById('wp-day-0')?.focus();
   loadWeekPresets();   // async, fyller dropdown
-}
-
-// Multi-velg i «Rediger ukeplan»: setter valgt økt på alle avhukede dager.
-// Endrer bare nedtrekkene — «Lagre plan» committer som vanlig.
-function wpApplyMulti() {
-  const v = document.getElementById('wpMultiSel')?.value ?? '';
-  const days = [...document.querySelectorAll('#wpMultiDays input:checked')].map(c => +c.value);
-  if (!days.length) { toast(t('tp.pick_days'), 'err'); return; }
-  days.forEach(d => { const s = document.getElementById('wp-day-'+d); if (s) s.value = v; });
-  document.querySelectorAll('#wpMultiDays input:checked').forEach(c => { c.checked = false; });
 }
 
 function closeEditWeeklyPlan() {
