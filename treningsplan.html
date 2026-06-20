@@ -411,6 +411,7 @@
       background: #0e0e10; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px; padding: 24px 28px; width: 100%; max-width: 480px;
       box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      box-sizing: border-box; overflow: hidden;
     }
     .act-modal-hd {
       display: flex; align-items: center; justify-content: space-between;
@@ -530,6 +531,13 @@
     .act-modal { border-radius: 18px; padding: 26px 28px; }
     .act-modal-title { font-size: 17px; }
     .add-activity-label { font-family: var(--font-sans); font-size: 12.5px; font-weight: 500; }
+
+    /* Overload-coach grid: 4 kolonner desktop, 2×2 på mobil */
+    .oc-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:2px; }
+    .oc-grid > div { min-width: 0; }
+    @media (max-width:480px) { .oc-grid { grid-template-columns:1fr 1fr; } }
+    .oc-ex-row { overflow: hidden; }
+    .oc-ex-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
 
     /* Trender-rad: lesbar */
     .tr-name { font-size: 12px; }
@@ -885,7 +893,7 @@
         <span class="act-modal-title" data-i18n="tp.oc_title">Overload-konfig</span>
         <button class="act-modal-close" onclick="closeOCModal()">✕</button>
       </div>
-      <div id="ocModalBody" style="max-height:60vh;overflow-y:auto">
+      <div id="ocModalBody" style="max-height:60vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch">
         <div class="loading" data-i18n="loading">Laster…</div>
       </div>
       <div style="margin-top:14px;display:flex;gap:8px">
@@ -2985,13 +2993,13 @@ function renderOCModal() {
     const defMax   = repsMatch ? repsMatch[2] : '—';
     return `<div class="oc-ex-row" data-ex="${escHtml(ex.exercise_name)}" style="margin-bottom:2px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(ex.exercise_name)}</span>
-        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);cursor:pointer">
+        <span class="oc-ex-name" style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(ex.exercise_name)}</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);cursor:pointer" title="${t('tp.oc_enabled_tip')}">
           <input type="checkbox" class="oc-enabled"${enabled ? ' checked' : ''}>
           <span data-i18n="tp.oc_enabled">${t('tp.oc_enabled')}</span>
         </label>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:2px">
+      <div class="oc-grid">
         <div>
           <div class="act-field-label" data-i18n="tp.oc_reps_min">${t('tp.oc_reps_min')}</div>
           <input type="number" class="input-sm oc-rep-min" value="${cfg.rep_min ?? ''}" placeholder="${defMin}" min="1" max="50" style="width:100%;box-sizing:border-box;text-align:center">
@@ -3004,8 +3012,8 @@ function renderOCModal() {
           <div class="act-field-label" data-i18n="tp.oc_step">${t('tp.oc_step')}</div>
           <input type="number" class="input-sm oc-step" value="${cfg.step_kg ?? ''}" placeholder="2.5" min="0.5" step="0.5" style="width:100%;box-sizing:border-box;text-align:center">
         </div>
-        <div>
-          <div class="act-field-label" data-i18n="tp.oc_pain">${t('tp.oc_pain')}</div>
+        <div title="${t('tp.oc_pain_tip')}">
+          <div class="act-field-label" data-i18n="tp.oc_pain" title="${t('tp.oc_pain_tip')}">${t('tp.oc_pain')}</div>
           <input type="number" class="input-sm oc-pain" value="${cfg.pain_limit ?? ''}" placeholder="3" min="0" max="10" style="width:100%;box-sizing:border-box;text-align:center">
         </div>
       </div>

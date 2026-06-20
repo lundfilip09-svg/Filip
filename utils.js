@@ -490,8 +490,10 @@ const TRANSLATIONS = {
     'tp.copy_one': 'Kopier', 'tp.copy_all': 'Kopier alle', 'tp.copied': 'Kopiert',
     'tp.copy_fail': 'Kunne ikke kopiere', 'tp.show_more': 'Vis mer', 'tp.show_less': 'Vis mindre',
     'tp.overload_config': '⚙ Overload-coach', 'tp.oc_title': 'Overload-coach-konfig',
-    'tp.oc_enabled': 'Aktiv', 'tp.oc_reps_min': 'Rep-min', 'tp.oc_reps_max': 'Rep-max',
-    'tp.oc_step': 'Vektsteg (kg)', 'tp.oc_pain': 'Smertegrense',
+    'tp.oc_enabled': 'Aktiv', 'tp.oc_enabled_tip': 'Aktiv = coachen følger med på denne øvelsen og foreslår vektøkning',
+    'tp.oc_reps_min': 'Rep-min', 'tp.oc_reps_max': 'Rep-max',
+    'tp.oc_step': 'Vektsteg (kg)', 'tp.oc_pain': 'Smertegrense (0–10)',
+    'tp.oc_pain_tip': 'Smertegrense: hvis knesmerte ≥ denne verdien foreslår coachen IKKE økt vekt',
     'tp.oc_no_ex': 'Ingen øvelser funnet', 'tp.oc_saved': 'Overload-konfig lagret',
     'tp.trends': 'Trender', 'tp.tr_knee': 'Knesmerte', 'tp.tr_sleep': 'Søvn',
     'tp.tr_load': 'Belastning', 'tp.tr_2w': 'Siste 2 uker',
@@ -1054,8 +1056,10 @@ const TRANSLATIONS = {
     'tp.copy_one': 'Copy', 'tp.copy_all': 'Copy all', 'tp.copied': 'Copied',
     'tp.copy_fail': 'Could not copy', 'tp.show_more': 'Show more', 'tp.show_less': 'Show less',
     'tp.overload_config': '⚙ Overload coach', 'tp.oc_title': 'Overload coach config',
-    'tp.oc_enabled': 'Enabled', 'tp.oc_reps_min': 'Rep min', 'tp.oc_reps_max': 'Rep max',
-    'tp.oc_step': 'Step (kg)', 'tp.oc_pain': 'Pain limit',
+    'tp.oc_enabled': 'Enabled', 'tp.oc_enabled_tip': 'Enabled = coach tracks this exercise and suggests weight increases',
+    'tp.oc_reps_min': 'Rep min', 'tp.oc_reps_max': 'Rep max',
+    'tp.oc_step': 'Step (kg)', 'tp.oc_pain': 'Pain limit (0–10)',
+    'tp.oc_pain_tip': 'Pain limit: if knee pain ≥ this value, the coach will NOT suggest increasing weight',
     'tp.oc_no_ex': 'No exercises found', 'tp.oc_saved': 'Overload config saved',
     'tp.trends': 'Trends', 'tp.tr_knee': 'Knee pain', 'tp.tr_sleep': 'Sleep',
     'tp.tr_load': 'Load', 'tp.tr_2w': 'Last 2 weeks',
@@ -1838,7 +1842,17 @@ async function ensurePushReady() {
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
-      if (sub) return true;
+      if (sub) {
+        // Re-lagre gjeldende abonnement (idempotent upsert) så serveren alltid
+        // har nøyaktig ett, riktig abonnement for denne enheten.
+        const token = await getAccessToken();
+        if (token) fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ subscription: sub.toJSON() }),
+        }).catch(() => {});
+        return true;
+      }
     } catch {}
     return enableNotifications({ silent: true });
   }
