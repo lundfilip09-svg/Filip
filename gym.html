@@ -711,6 +711,10 @@
   <div class="day-dialog">
     <h3 data-i18n="gym.new_day">Ny økt</h3>
     <div>
+      <label data-i18n="gym.session_name_lbl">Navn (valgfritt)</label>
+      <input id="ddName" type="text" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);font-size:13px;box-sizing:border-box" data-i18n-placeholder="gym.session_name_ph" placeholder="La stå tomt for å bruke type">
+    </div>
+    <div>
       <label data-i18n="gym.day_type">Økttype</label>
       <select id="ddType"></select>
     </div>
@@ -871,10 +875,9 @@ function detectDay() {
 function dayLabel(d) {
   if (!d) return '';
   if (d.day_key === 'rehab') return t('daytype.rehab');
+  if (d.custom_name) return d.custom_name;
   const typeName = d.type_label ? t(d.type_label) : '';
   const wdName   = (d.weekday != null) ? t('wd.' + d.weekday) : '';
-  // Ukedag-prefiks droppes på pillene (treningsoversikt har egne MAN/TIR-kort).
-  // Vis typen; fall tilbake til ukedag bare hvis dagen mangler type.
   return typeName || wdName || d.day_key;
 }
 
@@ -977,11 +980,12 @@ function renderDayPills() {
   const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
   wrap.innerHTML = sorted.map(d => {
     const active = d.day_key === activeDay ? ' active' : '';
-    const del = d.is_protected ? '' :
-      `<span class="day-pill-del" title="${t('gym.delete_day')}"
+    const del = `<span class="day-pill-del" title="${t('gym.delete_day')}"
          onclick="event.stopPropagation();deleteDay('${escHtml(d.day_key)}')">×</span>`;
     return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
-      onclick="setDay('${escHtml(d.day_key)}')">${escHtml(dayLabel(d))}${del}</button>`;
+      onclick="setDay('${escHtml(d.day_key)}')"
+      ondblclick="event.stopPropagation();renameDay('${escHtml(d.day_key)}')"
+      title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}${del}</button>`;
   }).join('') +
     `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">+ Dag</button>`;
 }
@@ -1004,18 +1008,24 @@ function openDayDialog() {
     copyable.map(d => `<option value="${escHtml(d.day_key)}">${escHtml(dayLabel(d))}</option>`).join('');
   document.getElementById('dayDialog').classList.add('open');
 }
-function closeDayDialog() { document.getElementById('dayDialog').classList.remove('open'); }
+function closeDayDialog() {
+  document.getElementById('dayDialog').classList.remove('open');
+  const n = document.getElementById('ddName'); if (n) n.value = '';
+}
 
 async function createDay() {
   const typeRaw = document.getElementById('ddType').value;
   const type_label = typeRaw || null;
-  // Unik nøkkel basert på type (ingen ukedag). Legg til suffix om typen allerede finnes.
-  const base = type_label ? type_label.replace('daytype.', '') : 'custom';
-  let day_key = base;
+  const customName = (document.getElementById('ddName')?.value || '').trim();
+  // Unik nøkkel basert på navn eller type (ingen ukedag). Legg til suffix om nøkkelen allerede finnes.
+  const base = customName
+    ? customName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    : (type_label ? type_label.replace('daytype.', '') : 'custom');
+  let day_key = base || 'custom';
   let n = 2;
   while (gymDays.some(d => d.day_key === day_key)) { day_key = `${base}_${n++}`; }
   const sort_order = Math.max(0, ...gymDays.filter(d => !d.is_protected).map(d => d.sort_order ?? 0)) + 1;
-  const row = { day_key, weekday: null, type_label, is_protected: false, sort_order };
+  const row = { day_key, weekday: null, type_label, custom_name: customName || null, is_protected: false, sort_order };
   // 051/F2-bolk1: unikt-navn-vakt (krav #2) FØR vi oppretter dagen — avbryt ved konflikt.
   if (type_label && !sessionTemplates.some(x => x.i18n_key === type_label)) {
     const candidate = type_label.replace('daytype.', '');
@@ -1057,9 +1067,22 @@ async function createDay() {
   toast(copied ? t('gym.day_copied') : t('gym.day_created'));
 }
 
+async function renameDay(key) {
+  const d = getDay(key);
+  if (!d) return;
+  const current = d.custom_name || dayLabel(d);
+  const name = prompt(t('gym.rename_prompt'), current);
+  if (name === null) return;
+  const trimmed = name.trim();
+  d.custom_name = trimmed || null;
+  await db.from('gym_days').update({ custom_name: d.custom_name }).eq('day_key', key);
+  renderDayPills();
+  document.getElementById('workoutTitle').textContent = dayLabel(d);
+}
+
 async function deleteDay(key) {
   const d = getDay(key);
-  if (!d || d.is_protected) return;
+  if (!d) return;
   if (!confirm(t('gym.delete_day_confirm'))) return;
   await db.from('workout_program').delete().eq('day', key);   // rydd øvelser på dagen
   await db.from('gym_days').delete().eq('day_key', key);

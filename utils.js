@@ -124,6 +124,8 @@ const TRANSLATIONS = {
     'daytype.sprint': 'Sprint', 'daytype.meet': 'Stevne',
     // A6 — dag-redigering UI
     'gym.add_day': '+ Økt', 'gym.new_day': 'Ny økt', 'gym.day_weekday': 'Ukedag',
+    'gym.session_name_lbl': 'Navn (valgfritt)', 'gym.session_name_ph': 'La stå tomt for å bruke type',
+    'gym.rename_prompt': 'Nytt navn på økt:', 'gym.dblclick_rename': 'Dobbeltklikk for å gi nytt navn',
     'gym.day_type': 'Økttype', 'gym.day_type_none': 'Ingen',
     'gym.create_day': 'Opprett økt', 'gym.delete_day': 'Slett økt',
     'gym.delete_day_confirm': 'Slett denne økten og alle øvelsene på den?',
@@ -683,6 +685,8 @@ const TRANSLATIONS = {
     'daytype.sprint': 'Sprint', 'daytype.meet': 'Competition',
     // A6 — day editing UI
     'gym.add_day': '+ Session', 'gym.new_day': 'New session', 'gym.day_weekday': 'Weekday',
+    'gym.session_name_lbl': 'Name (optional)', 'gym.session_name_ph': 'Leave empty to use type',
+    'gym.rename_prompt': 'New session name:', 'gym.dblclick_rename': 'Double-click to rename',
     'gym.day_type': 'Session type', 'gym.day_type_none': 'None',
     'gym.create_day': 'Create session', 'gym.delete_day': 'Delete session',
     'gym.delete_day_confirm': 'Delete this session and all its exercises?',
