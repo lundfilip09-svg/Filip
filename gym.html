@@ -3474,6 +3474,7 @@ async function updateSetRow(id, field, val, gymId, date) {
 async function deleteSetRow(id, gymId, date) {
   await db.from('set_log').delete().eq('id', id);
   await loadGymHistory();
+  document.getElementById(`sets-edit-${gymId}`)?.classList.add('open');
 }
 
 function toggleHistSets(id) {
