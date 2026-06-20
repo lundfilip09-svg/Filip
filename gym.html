@@ -2595,9 +2595,10 @@ function buildPainButtons() {
 function buildMiniPainButtons() { _refreshSbButtons(); }
 
 function selectPain(phase, score) {
-  kneePain[phase] = score;
+  kneePain[phase] = (kneePain[phase] === score) ? null : score;
   document.querySelectorAll(`[data-phase="${phase}"]`).forEach(b => {
-    b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
+    const cur = kneePain[phase];
+    b.className = 'pain-btn' + (cur != null && parseInt(b.dataset.score) === cur ? ' ' + painClass(cur) : '');
   });
   saveDraft();
 }
@@ -2609,9 +2610,12 @@ function _phaseLabel(p) { return t('knee.' + _phaseToInjKey(p)); }
 // Live-smerte (tb-knee): skriver til valgt skade via selectGymInjuryPain.
 function selectSbPain(score) {
   if (!_liveInjId) { toast(t('pain.no_severe'), 'err'); _refreshSbButtons(); return; }
-  selectGymInjuryPain(_liveInjId, _phaseToInjKey(sbKneePhase), score);  // _injuryScores + kne-sync + saveDraft
+  const phKey = _phaseToInjKey(sbKneePhase);
+  const cur = (_injuryScores[_liveInjId] || {})[phKey];
+  const newScore = (cur === score) ? null : score;
+  selectGymInjuryPain(_liveInjId, phKey, newScore);
   const kv = document.getElementById('kneeVal');
-  if (kv) kv.textContent = `${score} · ${_phaseLabel(sbKneePhase)}`;   // måleren er alt oppdatert visuelt av painMeterSet
+  if (kv) kv.textContent = newScore != null ? `${newScore} · ${_phaseLabel(sbKneePhase)}` : t('gym.register_pain');
   saveSession();
 }
 
@@ -2735,16 +2739,17 @@ function _highlightGymBtn(injId, phase, score) {
 
 function selectGymInjuryPain(injId, phase, score) {
   if (!_injuryScores[injId]) _injuryScores[injId] = {};
-  _injuryScores[injId][phase] = score;
-  _highlightGymBtn(injId, phase, score);
+  const cur = _injuryScores[injId][phase];
+  const newScore = (cur === score) ? null : score;
+  _injuryScores[injId][phase] = newScore;
+  _highlightGymBtn(injId, phase, newScore);
   // Sync knee into legacy kneePain state
   const ki = _kneeInjury();
   if (ki && ki.id === injId) {
     const phKey = phase === 'dayafter' ? 'day-after' : phase;
-    kneePain[phKey] = score;
-    // Update existing pain buttons from the legacy system too
+    kneePain[phKey] = newScore;
     document.querySelectorAll(`[data-phase="${phKey}"]`).forEach(b => {
-      b.className = 'pain-btn' + (parseInt(b.dataset.score) === score ? ' ' + painClass(score) : '');
+      b.className = 'pain-btn' + (newScore != null && parseInt(b.dataset.score) === newScore ? ' ' + painClass(newScore) : '');
     });
   }
   saveDraft();
@@ -2821,7 +2826,8 @@ function renderGymManualPainForms() {
 
 function selectGymManualPain(injId, phase, score) {
   if (!_gymManualScores[injId]) _gymManualScores[injId] = {};
-  _gymManualScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
+  const cur = _gymManualScores[injId][phase];
+  _gymManualScores[injId][phase] = (cur === score) ? null : score;
 }
 
 async function saveGymManualPain(injId) {
