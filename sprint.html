@@ -34,6 +34,11 @@
     .eval-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
     /* ── History — same mechanics as treningsplan ── */
     #historyList { display: flex; flex-direction: column; gap: 0; }
+    .tp-history-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .tp-history-title { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; gap: 9px; }
+    .tp-history-title::before { content: ''; width: 18px; height: 2px; border-radius: 2px; background: var(--accent-blue); flex-shrink: 0; }
+    .tp-history-toggle { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: var(--text-tertiary); cursor: pointer; font-size: 13px; padding: 5px 11px; transition: background 0.15s, color 0.15s; }
+    .tp-history-toggle:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
 
     
 
@@ -79,14 +84,6 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .btn-del-session:hover { background: rgba(160,40,40,0.15); border-color: rgba(200,80,80,0.35); color: rgba(220,100,100,0.9); }
-    .sess-dismiss-btn {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      color: var(--text-tertiary); border-radius: 5px; font-size: 14px; padding: 4px 7px;
-      cursor: pointer; transition: all 0.15s; line-height: 1; opacity: 0;
-    }
-    .sess-card:hover .sess-dismiss-btn { opacity: 0.8; }
-    .sess-dismiss-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
     .trend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .trend-label-sm { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
     @media (max-width: 600px) { .log-grid { grid-template-columns: 1fr 1fr; } }
@@ -259,7 +256,10 @@
 
   <!-- History -->
   <div class="card">
-    <div class="section-title" data-i18n="tp.history">Økthistorikk</div>
+    <div class="tp-history-hd">
+      <div class="tp-history-title" data-i18n="tp.history">Økthistorikk</div>
+      <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()" style="display:none">∨</button>
+    </div>
     <div id="historyList"><div class="loading" data-i18n="loading">Laster…</div></div>
   </div>
 
@@ -948,7 +948,6 @@ function _buildSessCard(date, runs, isOpen) {
       ${painSummary}
     </div>
     ${notes ? `<div class="sess-notes-preview">${escHtml(notes)}</div>` : ''}
-    <button class="sess-dismiss-btn" onclick="event.stopPropagation();dismissSprintDate('${date}')" title="${t('sprint.dismiss')}" aria-label="${t('sprint.dismiss')}">↑</button>
   </div>`;
 
   const d       = new Date(date + 'T12:00:00');
@@ -1015,6 +1014,8 @@ function _buildSessCard(date, runs, isOpen) {
   return card + detail;
 }
 
+let _historyCollapsed = true;
+
 function renderHistory() {
   const el = document.getElementById('historyList');
   if (!sprintLog.length) { el.innerHTML = `<div class="empty">${t('sprint.no_sessions')}</div>`; return; }
@@ -1025,14 +1026,30 @@ function renderHistory() {
     groups.get(s.date).push(s);
   }
 
-  el.innerHTML = [...groups.entries()].map(([date, runs]) => {
+  const grpHtmls = [...groups.entries()].map(([date, runs]) => {
     const d       = new Date(date + 'T12:00:00');
     const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
     return `<div class="hist-date-group">
       <div class="hist-date-label">${dateStr}</div>
       <div class="hist-sessions">${_buildSessCard(date, runs, _openDetail === date)}</div>
     </div>`;
-  }).join('');
+  });
+
+  const olderHtml = grpHtmls.length > 1
+    ? `<div id="histOlderSessions" style="${_historyCollapsed ? 'display:none' : ''}">${grpHtmls.slice(1).join('')}</div>`
+    : '';
+  el.innerHTML = (grpHtmls[0] || '') + olderHtml;
+
+  const btn = document.getElementById('histToggleBtn');
+  if (btn) btn.style.display = grpHtmls.length > 1 ? '' : 'none';
+}
+
+function toggleHistory() {
+  _historyCollapsed = !_historyCollapsed;
+  const older = document.getElementById('histOlderSessions');
+  const btn   = document.getElementById('histToggleBtn');
+  if (older) older.style.display = _historyCollapsed ? 'none' : '';
+  if (btn)   btn.textContent = _historyCollapsed ? '∨' : '∧';
 }
 
 function toggleSprintDetail(date) {
@@ -1124,13 +1141,6 @@ async function recomputeSprintPBs(distances) {
   }
 }
 
-async function dismissSprintDate(date) {
-  sprintLog = sprintLog.filter(r => r.date !== date);
-  renderHistory();
-  toast(t('sprint.dismissed'), 'ok', { label: t('undo'), fn: async () => {
-    await loadHistory();
-  }});
-}
 
 async function deleteSprintDate(date) {
   if (!confirm(t('confirm.delete_runs', { date }))) return;
