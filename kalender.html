@@ -71,6 +71,17 @@
     }
     .week-strip-wrap::-webkit-scrollbar { display: none; }
     .week-strip { display: flex; gap: 4px; min-width: 480px; }
+    /* Mobil: alle 7 dager skal få plass uten å bla horisontalt */
+    @media (max-width: 560px) {
+      .week-strip-wrap { overflow-x: visible; margin-bottom: 10px; }
+      .week-strip { min-width: 0; gap: 3px; }
+      .week-day { padding: 5px 4px; border-radius: 7px; gap: 3px; align-items: center; text-align: center; }
+      .wd-top { flex-direction: column; align-items: center; gap: 1px; }
+      .wd-name { font-size: 7px; letter-spacing: 0.08em; }
+      .wd-num { font-size: 14px; }
+      .wd-ev { display: none; }
+      .wd-dots { justify-content: center; gap: 2px; }
+    }
 
     .week-day {
       flex: 1; padding: 6px 8px; border-radius: 8px;
