@@ -2235,11 +2235,7 @@ function buildDetailHtml(g, knee) {
         <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
-          onclick="event.stopPropagation();deleteGymSession('${g.id}')">${t('tp.delete')}</button>
-        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')">✕</button>
-      </div>
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')" title="${t('close')}">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div>
@@ -2260,6 +2256,9 @@ function buildDetailHtml(g, knee) {
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveSessionNotes('${g.id}',this.value)">${escHtml(g.session_notes || '')}</textarea>
+    </div>
+    <div class="sess-detail-footer">
+      <button class="sess-detail-del" onclick="event.stopPropagation();deleteGymSession('${g.id}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
 }
@@ -2296,11 +2295,7 @@ function buildSprintDetailHtml(s, knee) {
         <div class="sess-detail-title">Sprint · ${escHtml(distList)}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
-          onclick="event.stopPropagation();deleteSprintSession('${s.date}')">${t('tp.delete')}</button>
-        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')">✕</button>
-      </div>
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')" title="${t('close')}">✕</button>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('tp.runs', {n: s.runs.length})}</div>
@@ -2325,6 +2320,9 @@ function buildSprintDetailHtml(s, knee) {
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveSprintField('${s.date}','notes',this.value)">${escHtml(s.notes || '')}</textarea>
+    </div>
+    <div class="sess-detail-footer">
+      <button class="sess-detail-del" onclick="event.stopPropagation();deleteSprintSession('${s.date}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
 }
@@ -2419,11 +2417,7 @@ function buildActDetailHtml(a) {
         <div class="sess-detail-title">${escHtml(label)}</div>
         <div class="sess-detail-date">${dateStr}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)"
-          onclick="event.stopPropagation();deleteActivity('${a.id}')">${t('tp.delete')}</button>
-        <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')">✕</button>
-      </div>
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')" title="${t('close')}">✕</button>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
@@ -2442,6 +2436,9 @@ function buildActDetailHtml(a) {
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
       <textarea class="sess-edit-textarea"
         onblur="autoSaveActField('${a.id}','notes',this.value)">${escHtml(a.notes || '')}</textarea>
+    </div>
+    <div class="sess-detail-footer">
+      <button class="sess-detail-del" onclick="event.stopPropagation();deleteActivity('${a.id}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
 }
