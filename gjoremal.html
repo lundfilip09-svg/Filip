@@ -297,18 +297,30 @@
       border-top: 1px solid rgba(255,255,255,0.06);
       background: rgba(255,255,255,0.015);
     }
-    .gm-add-bottom #todoDue {
-      width: 148px !important;
-      flex: none;
-      font-size: 12px !important;
-      padding: 5px 10px !important;
+    .gm-add-bottom #todoDue,
+    .gm-add-bottom #todoRemind { display: none; }
+    .add-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
     }
-    .gm-add-bottom #todoRemind {
-      width: 178px !important;
-      flex: none;
-      font-size: 12px !important;
-      padding: 5px 8px !important;
-      color-scheme: dark;
+    .add-chip:hover {
+      background: rgba(255,255,255,0.07);
+      color: var(--text-primary);
+    }
+    .add-chip.active {
+      background: rgba(91,164,245,0.15);
+      border-color: rgba(91,164,245,0.4);
+      color: var(--accent);
     }
     .todo-edit-date { color-scheme: dark; }
     .gm-add-spacer { flex: 1; }
@@ -864,8 +876,12 @@
                oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
       </div>
       <div class="gm-add-bottom">
-        <input type="date" id="todoDue" data-i18n-placeholder="gm.date_placeholder_no">
-        <input type="datetime-local" id="todoRemind" data-i18n-title="gm.reminder" title="Påminnelse">
+        <input type="date" id="todoDue">
+        <input type="datetime-local" id="todoRemind">
+        <button type="button" class="add-chip" id="chipDue" onclick="openChipPicker('todoDue')" data-i18n="gm.chip_due">+ dato</button>
+        <button type="button" class="add-chip" id="chipRemind" onclick="openChipPicker('todoRemind')" data-i18n="gm.chip_reminder">⏰ Påminnelse</button>
+        <button type="button" class="add-chip" id="chipToday" onclick="setQuickDue(0)" data-i18n="gm.chip_today">I dag</button>
+        <button type="button" class="add-chip" id="chipTomorrow" onclick="setQuickDue(1)" data-i18n="gm.chip_tomorrow">I morgen</button>
         <button class="star-btn" id="newImportant" onclick="toggleNewImportant()" data-i18n-title="gm.important_btn" title="Viktig">☆</button>
         <div class="gm-add-spacer"></div>
         <button class="btn btn-primary btn-sm" onclick="addTodo()" data-i18n="gm.add_btn">Legg til</button>
@@ -1186,7 +1202,7 @@ function renderTodos() {
   } else {
     el.innerHTML = items.map(todo => {
       const due = todo.due_date ? new Date(todo.due_date + 'T12:00:00') : null;
-      const isOverdue = due && due < new Date() && !todo.completed;
+      const isOverdue = todo.due_date && todo.due_date < today() && !todo.completed;
       return `<div class="todo-item ${todo.important?'important':''} ${todo.completed?'done':''}"
           data-id="${todo.id}" draggable="true"
           ondragstart="onDragStart(event,'${todo.id}')" ondragend="onDragEnd()">
@@ -1241,6 +1257,57 @@ function toggleNewImportant() {
   btn.style.color = newImportant ? 'var(--warning)' : '';
 }
 
+// ── Add-form chips ─────────────────────────────────────────────────────────
+function _dayStrLocal(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+function updateAddChips() {
+  const due    = document.getElementById('todoDue').value;
+  const remind = document.getElementById('todoRemind').value;
+  const today  = _dayStrLocal(0), tomorrow = _dayStrLocal(1);
+  document.getElementById('chipToday').classList.toggle('active', due === today);
+  document.getElementById('chipTomorrow').classList.toggle('active', due === tomorrow);
+  const dueChip = document.getElementById('chipDue');
+  if (due && due !== today && due !== tomorrow) {
+    const [y,m,d2] = due.split('-');
+    dueChip.textContent = `📅 ${d2}.${m}.${y}`;
+    dueChip.classList.add('active');
+  } else {
+    dueChip.textContent = t('gm.chip_due');
+    dueChip.classList.remove('active');
+  }
+  const remChip = document.getElementById('chipRemind');
+  if (remind) {
+    remChip.textContent = `⏰ ${fmtRemind(new Date(remind).toISOString())}`;
+    remChip.classList.add('active');
+  } else {
+    remChip.textContent = t('gm.chip_reminder');
+    remChip.classList.remove('active');
+  }
+}
+function setQuickDue(offset) {
+  const el  = document.getElementById('todoDue');
+  const val = _dayStrLocal(offset);
+  el.value  = el.value === val ? '' : val;  // toggle off if already set
+  updateAddChips();
+}
+function openChipPicker(id) {
+  const el = document.getElementById(id);
+  // toggle clear if chip is already active
+  if (el.value) {
+    if (id === 'todoDue') {
+      const today = _dayStrLocal(0), tomorrow = _dayStrLocal(1);
+      if (el.value !== today && el.value !== tomorrow) { el.value = ''; updateAddChips(); return; }
+    } else {
+      el.value = ''; updateAddChips(); return;
+    }
+  }
+  try { el.showPicker(); } catch(e) { el.focus(); }
+  el.addEventListener('change', updateAddChips, { once: true });
+}
+
 async function addTodo() {
   const title = document.getElementById('todoTitle').value.trim();
   const due   = document.getElementById('todoDue').value || null;
@@ -1271,6 +1338,7 @@ async function addTodo() {
   document.getElementById('todoDue').value     = '';
   document.getElementById('todoRemind').value  = '';
   localStorage.removeItem('gm_draft_title');
+  updateAddChips();
   newImportant = false;
   document.getElementById('newImportant').textContent = '☆';
   document.getElementById('newImportant').style.color = '';

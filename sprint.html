@@ -79,6 +79,14 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .btn-del-session:hover { background: rgba(160,40,40,0.15); border-color: rgba(200,80,80,0.35); color: rgba(220,100,100,0.9); }
+    .sess-dismiss-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-tertiary); border-radius: 5px; font-size: 14px; padding: 4px 7px;
+      cursor: pointer; transition: all 0.15s; line-height: 1; opacity: 0;
+    }
+    .sess-card:hover .sess-dismiss-btn { opacity: 0.8; }
+    .sess-dismiss-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
     .trend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .trend-label-sm { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 90px; flex-shrink: 0; }
     @media (max-width: 600px) { .log-grid { grid-template-columns: 1fr 1fr; } }
@@ -933,13 +941,14 @@ function _buildSessCard(date, runs, isOpen) {
   }
 
   const card = `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${date}"
-    onclick="toggleSprintDetail('${date}')">
+    onclick="toggleSprintDetail('${date}')" style="position:relative">
     <div style="margin-bottom:8px">${runRows}</div>
     <div class="sess-meta">
       ${rpe != null ? `<span class="sess-rpe-tag">RPE ${rpe}</span>` : ''}
       ${painSummary}
     </div>
     ${notes ? `<div class="sess-notes-preview">${escHtml(notes)}</div>` : ''}
+    <button class="sess-dismiss-btn" onclick="event.stopPropagation();dismissSprintDate('${date}')" title="${t('sprint.dismiss')}" aria-label="${t('sprint.dismiss')}">↑</button>
   </div>`;
 
   const d       = new Date(date + 'T12:00:00');
@@ -1113,6 +1122,14 @@ async function recomputeSprintPBs(distances) {
       await db.from('sprint_records').update({ best_time: null, date: null }).eq('distance', dist);
     }
   }
+}
+
+async function dismissSprintDate(date) {
+  sprintLog = sprintLog.filter(r => r.date !== date);
+  renderHistory();
+  toast(t('sprint.dismissed'), 'ok', { label: t('undo'), fn: async () => {
+    await loadHistory();
+  }});
 }
 
 async function deleteSprintDate(date) {
