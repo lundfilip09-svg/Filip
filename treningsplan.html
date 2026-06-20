@@ -1079,11 +1079,37 @@ async function deleteWeekPreset() {
 }
 
 async function saveWeeklyPlan() {
-  const rows = [0,1,2,3,4,5,6].map(d => {
+  // Determine new values from form before saving
+  const newRows = [0,1,2,3,4,5,6].map(d => {
     const tpl = tplById(document.getElementById(`wp-day-${d}`)?.value);
-    // template_id = sannhetskilde; session_type = lesbar snapshot (fallback til 052).
     return { user_id: userId, day: d, template_id: tpl ? tpl.id : null, session_type: tplLabel(tpl) };
   });
+
+  // Freeze past weeks: for any day whose value is changing, insert the CURRENT
+  // weeklyPlan value into training_plan_weekly for each past week that doesn't
+  // already have an override. This prevents retroactive changes to history.
+  const changedDays = newRows.filter(r => (weeklyPlan[r.day] || '') !== (r.session_type || ''));
+  if (changedDays.length) {
+    const WEEKS_BACK = 52;
+    const freezeRows = [];
+    for (let w = 1; w <= WEEKS_BACK; w++) {
+      const monday = localISODate(getMondayForOffset(-w));
+      changedDays.forEach(r => {
+        freezeRows.push({
+          user_id: userId,
+          week_monday: monday,
+          day_index: r.day,
+          session_text: weeklyPlan[r.day] || '',
+          notes: ''
+        });
+      });
+    }
+    const { error: ef } = await db.from('training_plan_weekly')
+      .upsert(freezeRows, { onConflict: 'user_id,week_monday,day_index', ignoreDuplicates: true });
+    if (ef) console.warn('freeze past weeks error:', ef);
+  }
+
+  const rows = newRows;
   const { error } = await db.from('weekly_plan').upsert(rows, { onConflict: 'user_id,day' });
   if (error) { console.error('saveWeeklyPlan error:', error); toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
   rows.forEach(r => { weeklyPlan[r.day] = r.session_type; weeklyPlanTpl[r.day] = r.template_id; });
