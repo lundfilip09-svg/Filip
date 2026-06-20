@@ -835,7 +835,7 @@ async function logSession() {
       if (!countsForPB) continue;
       const { data: rec } = await db.from('sprint_records')
         .select('best_time').eq('distance', r.distance).maybeSingle();
-      if (!rec || r.time < rec.best_time) {
+      if (!rec || rec.best_time == null || r.time < rec.best_time) {
         await db.from('sprint_records').upsert(
           { distance: r.distance, best_time: r.time, date },
           { onConflict: 'distance' }
