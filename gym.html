@@ -706,16 +706,12 @@
 </div>
 </main>
 
-<!-- A6: Ny dag-dialog -->
+<!-- A6: Ny økt-dialog -->
 <div class="day-dialog-backdrop" id="dayDialog">
   <div class="day-dialog">
-    <h3 data-i18n="gym.new_day">Ny dag</h3>
+    <h3 data-i18n="gym.new_day">Ny økt</h3>
     <div>
-      <label data-i18n="gym.day_weekday">Ukedag</label>
-      <select id="ddWeekday"></select>
-    </div>
-    <div>
-      <label data-i18n="gym.day_type">Type (valgfritt)</label>
+      <label data-i18n="gym.day_type">Økttype</label>
       <select id="ddType"></select>
     </div>
     <div>
@@ -724,7 +720,7 @@
     </div>
     <div class="day-dialog-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeDayDialog()" data-i18n="cancel">Avbryt</button>
-      <button class="btn btn-success btn-sm" onclick="createDay()" data-i18n="gym.create_day">Opprett dag</button>
+      <button class="btn btn-success btn-sm" onclick="createDay()" data-i18n="gym.create_day">Opprett økt</button>
     </div>
   </div>
 </div>
@@ -999,14 +995,9 @@ const DAY_TYPES = [
 
 function openDayDialog() {
   if (workoutState === 'active') { toast(t('gym.finish_first') || '⏸', 'err'); return; }
-  const wdSel = document.getElementById('ddWeekday');
   const tySel = document.getElementById('ddType');
-  // Ukedager man(1)..søn(0), satt opp man–søn for naturlig rekkefølge.
-  const order = [1, 2, 3, 4, 5, 6, 0];
-  wdSel.innerHTML = order.map(w => `<option value="${w}">${escHtml(t('wd.' + w))}</option>`).join('');
   tySel.innerHTML = `<option value="">${escHtml(t('gym.day_type_none'))}</option>` +
     DAY_TYPES.map(k => `<option value="${k}">${escHtml(t(k))}</option>`).join('');
-  // Kopier-fra: la brukeren starte en ny dag som en kopi av en eksisterende (f.eks. mandag).
   const cpSel = document.getElementById('ddCopyFrom');
   const copyable = gymDays.filter(d => d.day_key !== 'rehab');
   cpSel.innerHTML = `<option value="">${escHtml(t('gym.copy_empty'))}</option>` +
@@ -1016,14 +1007,15 @@ function openDayDialog() {
 function closeDayDialog() { document.getElementById('dayDialog').classList.remove('open'); }
 
 async function createDay() {
-  const weekday = parseInt(document.getElementById('ddWeekday').value, 10);
   const typeRaw = document.getElementById('ddType').value;
   const type_label = typeRaw || null;
-  // Unik nøkkel: ukedag + type (slik at "Tuesday Strength" og "Tuesday Soccer" kan sameksistere).
-  const day_key = `wd${weekday}` + (type_label ? '_' + type_label.replace('daytype.', '') : '');
-  if (gymDays.some(d => d.day_key === day_key)) { toast(t('gym.day_exists'), 'err'); closeDayDialog(); return; }
+  // Unik nøkkel basert på type (ingen ukedag). Legg til suffix om typen allerede finnes.
+  const base = type_label ? type_label.replace('daytype.', '') : 'custom';
+  let day_key = base;
+  let n = 2;
+  while (gymDays.some(d => d.day_key === day_key)) { day_key = `${base}_${n++}`; }
   const sort_order = Math.max(0, ...gymDays.filter(d => !d.is_protected).map(d => d.sort_order ?? 0)) + 1;
-  const row = { day_key, weekday, type_label, is_protected: false, sort_order };
+  const row = { day_key, weekday: null, type_label, is_protected: false, sort_order };
   // 051/F2-bolk1: unikt-navn-vakt (krav #2) FØR vi oppretter dagen — avbryt ved konflikt.
   if (type_label && !sessionTemplates.some(x => x.i18n_key === type_label)) {
     const candidate = type_label.replace('daytype.', '');
