@@ -2531,13 +2531,7 @@ function buildPainButtons() {
   buildMiniPainButtons();
 }
 
-function buildMiniPainButtons() {
-  const el = document.getElementById('sbKneeButtons');
-  if (!el) return;
-  el.innerHTML = [...Array(11)].map((_,i) =>
-    `<button class="mini-pain-btn" data-sb-score="${i}" onclick="selectSbPain(${i})">${i}</button>`
-  ).join('');
-}
+function buildMiniPainButtons() { _refreshSbButtons(); }
 
 function selectPain(phase, score) {
   kneePain[phase] = score;
@@ -2553,9 +2547,10 @@ function _phaseLabel(p) { return t('knee.' + _phaseToInjKey(p)); }
 
 // Live-smerte (tb-knee): skriver til valgt skade via selectGymInjuryPain.
 function selectSbPain(score) {
-  if (!_liveInjId) { toast(t('pain.no_severe'), 'err'); return; }
+  if (!_liveInjId) { toast(t('pain.no_severe'), 'err'); _refreshSbButtons(); return; }
   selectGymInjuryPain(_liveInjId, _phaseToInjKey(sbKneePhase), score);  // _injuryScores + kne-sync + saveDraft
-  _refreshSbButtons(score);
+  const kv = document.getElementById('kneeVal');
+  if (kv) kv.textContent = `${score} · ${_phaseLabel(sbKneePhase)}`;   // måleren er alt oppdatert visuelt av painMeterSet
   saveSession();
 }
 
@@ -2604,10 +2599,8 @@ function selectLiveInjury(injId) {
 function _refreshSbButtons(forceScore) {
   const scores = (_liveInjId && _injuryScores[_liveInjId]) || {};
   const cur = forceScore != null ? forceScore : scores[_phaseToInjKey(sbKneePhase)];
-  document.querySelectorAll('#sbKneeButtons .mini-pain-btn').forEach(b => {
-    const s = parseInt(b.dataset.sbScore);
-    b.className = 'mini-pain-btn' + (cur != null && s === cur ? ' ' + painClass(cur) : '');
-  });
+  const el = document.getElementById('sbKneeButtons');
+  if (el) el.innerHTML = painMeterHTML('sbPainMeter', (cur != null ? cur : null), { onset: 'selectSbPain($v)' });
   const kv = document.getElementById('kneeVal');
   if (kv) kv.textContent = (cur != null) ? `${cur} · ${_phaseLabel(sbKneePhase)}` : t('gym.register_pain');
 }
@@ -2639,21 +2632,14 @@ function renderInjuryBeforeBlocks() {
   }
   if (sec) sec.style.display = '';
   hd.textContent = _severeInjuries.map(i => bodyPartName(i)).join(' / ') + ` — ${t('knee.before_session')}`;
-  blk.innerHTML = _severeInjuries.map(inj => `
+  blk.innerHTML = _severeInjuries.map(inj => {
+    const cur = (_injuryScores[inj.id] || {}).before;
+    return `
 <div style="margin-bottom:8px">
   <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
-  <div class="pain-row" id="gib-${inj.id}"></div>
-</div>`).join('');
-  _severeInjuries.forEach(inj => {
-    const row = document.getElementById(`gib-${inj.id}`);
-    if (!row) return;
-    row.innerHTML = [...Array(11)].map((_,i) =>
-      `<button type="button" class="pain-btn" data-ginj="${inj.id}" data-gph="before" data-s="${i}"
-        onclick="selectGymInjuryPain('${inj.id}','before',${i});this.blur()">${i}</button>`
-    ).join('');
-    const cur = (_injuryScores[inj.id] || {}).before;
-    if (cur != null) _highlightGymBtn(inj.id, 'before', cur);
-  });
+  ${painMeterHTML(`gibm-${inj.id}`, (cur != null ? cur : null), { onset: `selectGymInjuryPain('${inj.id}','before',$v)` })}
+</div>`;
+  }).join('');
 }
 
 // DONE section: all 4 phases per injury
@@ -2756,12 +2742,15 @@ function renderGymManualPainForms() {
     <label style="font-size:10px;color:var(--text-tertiary)" data-i18n="date">${t('date')}</label>
     <input type="date" id="gmp-date-${inj.id}" class="input-sm" style="width:100%;box-sizing:border-box">
   </div>
-  ${phases.map(ph => `
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+  ${phases.map(ph => {
+    const cur = (_gymManualScores[inj.id] || {})[ph.id];
+    return `
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
     <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);width:70px;flex-shrink:0"
       data-i18n="${ph.label}">${t(ph.label)}</span>
-    <div class="mini-pain-row" id="gmp-${inj.id}-${ph.id}" style="gap:2px;flex-wrap:wrap"></div>
-  </div>`).join('')}
+    ${painMeterHTML(`gmpm-${inj.id}-${ph.id}`, (cur != null ? cur : null), { onset: `selectGymManualPain('${inj.id}','${ph.id}',$v)` })}
+  </div>`;
+  }).join('')}
   <textarea class="input-sm" id="gmp-notes-${inj.id}" rows="1"
     placeholder="${escHtml(t('pain.manual_notes_ph'))}"
     style="width:100%;resize:none;box-sizing:border-box;margin-top:4px;margin-bottom:4px"></textarea>
@@ -2770,14 +2759,6 @@ function renderGymManualPainForms() {
 </div>`).join('<hr style="border-color:rgba(255,255,255,0.07);margin:8px 0">');
 
   _severeInjuries.forEach(inj => {
-    phases.forEach(ph => {
-      const row = document.getElementById(`gmp-${inj.id}-${ph.id}`);
-      if (!row) return;
-      row.innerHTML = [...Array(11)].map((_,i) =>
-        `<button class="mini-pain-btn" data-ginjm="${inj.id}" data-gphm="${ph.id}" data-s="${i}"
-          onclick="selectGymManualPain('${inj.id}','${ph.id}',${i})">${i}</button>`
-      ).join('');
-    });
     const dateEl = document.getElementById(`gmp-date-${inj.id}`);
     if (dateEl) dateEl.value = today();
   });
@@ -2785,10 +2766,7 @@ function renderGymManualPainForms() {
 
 function selectGymManualPain(injId, phase, score) {
   if (!_gymManualScores[injId]) _gymManualScores[injId] = {};
-  _gymManualScores[injId][phase] = score;
-  document.querySelectorAll(`[data-ginjm="${injId}"][data-gphm="${phase}"]`).forEach(b => {
-    b.className = 'mini-pain-btn' + (parseInt(b.dataset.s) === score ? ' ' + painClass(score) : '');
-  });
+  _gymManualScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
 }
 
 async function saveGymManualPain(injId) {
@@ -2813,13 +2791,8 @@ async function saveGymManualPain(injId) {
 
   toast(t('pain.manual_saved'));
   _gymManualScores[injId] = {};
-  ['before','during','after','dayafter'].forEach(ph => {
-    document.querySelectorAll(`[data-ginjm="${injId}"][data-gphm="${ph}"]`).forEach(b => {
-      b.className = 'mini-pain-btn';
-    });
-  });
-  if (dateEl)  dateEl.value  = today();
-  if (notesEl) notesEl.value = '';
+  renderGymManualPainForms();   // re-render → nullstiller målerne for denne skaden
+  closeGymManualModal();
 }
 
 // ── Weight ─────────────────────────────────────────────────────────
@@ -3574,32 +3547,23 @@ async function checkDayAfterRehab() {
 function renderDayAfterBanner() {
   const btnsEl = document.getElementById('dayAfterPainBtns');
   if (!btnsEl) return;
-  const mkRow = (injId) => [...Array(11)].map((_,i) =>
-    `<button class="mini-pain-btn" data-da-inj="${injId}" data-da-score="${i}"
-       onclick="selectDayAfterPain('${injId}',${i})">${i}</button>`).join('');
+  const meter = (injId) => {
+    const cur = _dayAfterScores[injId];
+    return painMeterHTML(`dam-${injId}`, (cur != null ? cur : null), { onset: `selectDayAfterPain('${injId}',$v)` });
+  };
   if (_dayAfterInjuries.length) {
     btnsEl.innerHTML = _dayAfterInjuries.map(({ inj }) => `
       <div style="margin-bottom:8px">
         <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
-        <div class="mini-pain-row" style="gap:3px">${mkRow(inj.id)}</div>
+        ${meter(inj.id)}
       </div>`).join('');
   } else {
-    btnsEl.innerHTML = `<div class="mini-pain-row" style="gap:3px">${mkRow('_legacy')}</div>`;
+    btnsEl.innerHTML = meter('_legacy');
   }
-  // Re-highlight valgte verdier (ved språkbytte-rerender)
-  Object.entries(_dayAfterScores).forEach(([injId, score]) => {
-    if (score == null) return;
-    document.querySelectorAll(`[data-da-inj="${injId}"]`).forEach(b => {
-      b.className = 'mini-pain-btn' + (parseInt(b.dataset.daScore) === score ? ' ' + painClass(score) : '');
-    });
-  });
 }
 
 function selectDayAfterPain(injId, score) {
-  _dayAfterScores[injId] = score;
-  document.querySelectorAll(`[data-da-inj="${injId}"]`).forEach(b => {
-    b.className = 'mini-pain-btn' + (parseInt(b.dataset.daScore) === score ? ' ' + painClass(score) : '');
-  });
+  _dayAfterScores[injId] = score;   // måleren er alt oppdatert visuelt av painMeterSet
 }
 
 async function saveDayAfterPain() {

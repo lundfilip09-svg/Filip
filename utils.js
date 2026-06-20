@@ -17,6 +17,7 @@ const TRANSLATIONS = {
     // Knee pain
     'knee.before': 'Før', 'knee.during': 'Under', 'knee.after': 'Etter',
     'knee.dayafter': 'Dagen etter',
+    'pain.meter': 'Smerteskala 0–10',
     'knee.before_short': 'FØR', 'knee.during_short': 'UNDER',
     'knee.after_short': 'ETTER', 'knee.dayafter_short': 'D.ETTER',
     'knee.before_session': 'Før økt', 'knee.during_session': 'Under økt',
@@ -452,6 +453,8 @@ const TRANSLATIONS = {
     'tp.select_day': 'Velg en dag', 'tp.session_activity': 'Økt / Aktivitet',
     'tp.plan_placeholder': 'Legg inn økt…', 'tp.notes_placeholder': 'Mål, teknikk, kommentarer…',
     'tp.save': 'Lagre', 'tp.clear_day': 'Tøm dag', 'tp.this_week': 'Denne uken',
+    'tp.custom': 'Egendefinert…', 'tp.multi_assign': 'Sett samme økt på flere dager',
+    'tp.apply': 'Bruk', 'tp.pick_days': 'Velg minst én dag', 'tp.multi_days_btn': 'Bruk på flere dager…',
     'tp.stat_done': 'Fullførte', 'tp.stat_planned': 'Planlagte',
     'tp.stat_consistency': 'Konsistens', 'tp.stat_rest': 'Hviledager',
     'tp.week_load': 'Ukens belastning', 'tp.edit_plan': '✎ Rediger ukeplan',
@@ -573,6 +576,7 @@ const TRANSLATIONS = {
     // Knee pain
     'knee.before': 'Before', 'knee.during': 'During', 'knee.after': 'After',
     'knee.dayafter': 'Day after',
+    'pain.meter': 'Pain scale 0–10',
     'knee.before_short': 'BEFORE', 'knee.during_short': 'DURING',
     'knee.after_short': 'AFTER', 'knee.dayafter_short': 'D.AFTER',
     'knee.before_session': 'Before session', 'knee.during_session': 'During session',
@@ -1008,6 +1012,8 @@ const TRANSLATIONS = {
     'tp.select_day': 'Select a day', 'tp.session_activity': 'Session / Activity',
     'tp.plan_placeholder': 'Enter session…', 'tp.notes_placeholder': 'Goals, technique, comments…',
     'tp.save': 'Save', 'tp.clear_day': 'Clear day', 'tp.this_week': 'This week',
+    'tp.custom': 'Custom…', 'tp.multi_assign': 'Set the same session on several days',
+    'tp.apply': 'Apply', 'tp.pick_days': 'Pick at least one day', 'tp.multi_days_btn': 'Apply to several days…',
     'tp.stat_done': 'Completed', 'tp.stat_planned': 'Planned',
     'tp.stat_consistency': 'Consistency', 'tp.stat_rest': 'Rest days',
     'tp.week_load': "Week's load", 'tp.edit_plan': '✎ Edit weekly plan',
@@ -1685,6 +1691,60 @@ function rirValue(id) {
   const rir = parseFloat(el.value);
   if (isNaN(rir)) return null;
   return Math.max(0, Math.min(100, 100 - rir * 10));
+}
+
+// ── Smerte-måler (0–10) ─────────────────────────────────────────────────────
+// Delt komponent. Én rad med 11 trykkbare segmenter; ett trykk setter verdi og
+// fyller 0..v farget av painColor(v). value = startverdi (null/'' = ikke logget,
+// = tall vises "–", ingen fyll). MERK: 0 er en GYLDIG logget verdi (≠ ikke logget) —
+// derfor sjekkes value != null eksplisitt, aldri "if (value)".
+// Tilstand lagres i DOM (data-v + data-touched på wrapperen) så flere målere kan
+// leve samtidig. Les med painMeterValue(id) → tall|null.
+// opts: { label } = valgfri inline-etikett til venstre (allerede oversatt tekst).
+//       { onset } = JS-uttrykk som kjøres ETTER at måleren er oppdatert, for
+//                   live-kontekster som persisterer hvert trykk. Bruk `$v` som
+//                   plassholder for verdien, f.eks. "selectSbPain($v)" eller
+//                   "selectGymInjuryPain('abc','before',$v)". Utelat for
+//                   "les ved lagring"-bruk (les da med painMeterValue(id)).
+function painMeterHTML(id, value = null, opts = {}) {
+  const touched = (value != null && value !== '');
+  const v = touched ? Math.max(0, Math.min(10, Math.round(Number(value)))) : null;
+  const col = touched ? painColor(v) : 'var(--text-tertiary)';
+  const label = opts.label ? `<span class="pain-meter-label">${opts.label}</span>` : '';
+  let segs = '';
+  for (let i = 0; i <= 10; i++) {
+    const fill = touched && i <= v;
+    const sty = fill ? ` style="background:${col};border-color:${col}"` : '';
+    const onset = opts.onset ? (';' + opts.onset.replace(/\$v/g, i)) : '';
+    segs += `<button type="button" class="pain-seg${fill ? ' fill' : ''}" data-i="${i}"${sty}`
+      + ` aria-label="${i}" onclick="painMeterSet('${id}',${i})${onset}"></button>`;
+  }
+  return `<div class="pain-meter" id="${id}" role="group" aria-label="${opts.label || t('pain.meter')}"`
+    + ` data-v="${touched ? v : ''}" data-touched="${touched ? '1' : '0'}">`
+    + `${label}<div class="pain-meter-segs">${segs}</div>`
+    + `<span class="pain-meter-num" id="${id}-num" style="color:${col}">${touched ? v : '–'}</span></div>`;
+}
+// onclick-handler per segment: setter verdi, oppdaterer fyll + tall.
+function painMeterSet(id, v) {
+  const wrap = document.getElementById(id);
+  if (!wrap) return;
+  wrap.dataset.v = v;
+  wrap.dataset.touched = '1';
+  const col = painColor(v);
+  wrap.querySelectorAll('.pain-seg').forEach(b => {
+    const i = parseInt(b.dataset.i, 10);
+    if (i <= v) { b.classList.add('fill'); b.style.background = col; b.style.borderColor = col; }
+    else { b.classList.remove('fill'); b.style.background = ''; b.style.borderColor = ''; }
+  });
+  const num = document.getElementById(id + '-num');
+  if (num) { num.textContent = v; num.style.color = col; }
+}
+// Verdi: null hvis aldri rørt (= ikke logget), ellers tallet (0 er gyldig).
+function painMeterValue(id) {
+  const wrap = document.getElementById(id);
+  if (!wrap || wrap.dataset.touched !== '1') return null;
+  const n = parseInt(wrap.dataset.v, 10);
+  return isNaN(n) ? null : n;
 }
 
 async function getConfig() {
