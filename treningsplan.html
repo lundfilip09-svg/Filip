@@ -120,6 +120,38 @@
     .detail-input { width: 100%; box-sizing: border-box; }
     .detail-actions { display: flex; gap: 10px; margin-top: 12px; }
 
+    /* ── Custom session dropdown ──────────────────────────────── */
+    .csel-wrap { position: relative; width: 100%; box-sizing: border-box; }
+    .csel-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 8px 12px; cursor: pointer; text-align: left;
+      color: var(--text-primary); font-family: var(--font-sans); font-size: 13px;
+      transition: border-color 0.15s; gap: 8px;
+    }
+    .csel-btn:hover { border-color: rgba(255,255,255,0.25); }
+    .csel-btn:focus { outline: none; border-color: rgba(255,255,255,0.3); }
+    .csel-btn.open { border-color: rgba(255,255,255,0.25); }
+    .csel-arrow { flex-shrink: 0; opacity: 0.45; transition: transform 0.18s; }
+    .csel-btn.open .csel-arrow { transform: rotate(180deg); }
+    .csel-menu {
+      position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 300;
+      background: #18181c; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      overflow: hidden; max-height: 260px; overflow-y: auto;
+    }
+    .csel-menu.hidden { display: none; }
+    .csel-opt {
+      padding: 10px 14px; cursor: pointer; font-size: 13px;
+      font-family: var(--font-sans); color: var(--text-secondary);
+      transition: background 0.1s, color 0.1s; display: flex; align-items: center; gap: 8px;
+    }
+    .csel-opt:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+    .csel-opt.is-selected { color: #F2C063; background: rgba(242,192,99,0.07); }
+    .csel-opt .csel-check { opacity: 0; font-size: 11px; flex-shrink: 0; color: #F2C063; }
+    .csel-opt.is-selected .csel-check { opacity: 1; }
+    .csel-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 3px 0; }
+
     /* ── History section ─────────────────────────────────────── */
     .tp-history-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .tp-history-title { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; gap: 9px; }
@@ -561,7 +593,17 @@
           <div class="detail-2col">
             <div class="detail-field">
               <div class="detail-field-label" data-i18n="tp.session_activity">Økt / Aktivitet</div>
-              <select class="input-sm detail-input" id="detailPlanSel" onchange="onDetailPlanSelChange()"></select>
+              <!-- Hidden native select keeps state; custom dropdown handles UI -->
+              <select id="detailPlanSel" style="display:none" onchange="onDetailPlanSelChange()"></select>
+              <div class="csel-wrap" id="detailPlanDropWrap">
+                <button type="button" class="csel-btn" id="detailPlanDropBtn" onclick="toggleDetailDrop()">
+                  <span id="detailPlanDropLabel">—</span>
+                  <svg class="csel-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <div class="csel-menu hidden" id="detailPlanDropMenu"></div>
+              </div>
               <input class="input-sm detail-input" id="detailPlanCustom" type="text"
                 style="display:none;margin-top:6px"
                 placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder"
@@ -1284,6 +1326,7 @@ function _setDetailPlanField(txt) {
     sel.innerHTML = _detailPlanOptions('', true); sel.value = '__custom__';
     cust.style.display = ''; cust.value = txt;
   }
+  _buildDetailDrop();
 }
 function onDetailPlanSelChange() {
   const sel  = document.getElementById('detailPlanSel');
@@ -1291,6 +1334,71 @@ function onDetailPlanSelChange() {
   const custom = sel.value === '__custom__';
   cust.style.display = custom ? '' : 'none';
   if (custom) cust.focus();
+  _syncDetailDropLabel();
+}
+
+// ── Custom dropdown for Økt/Aktivitet ────────────────────────────────────────
+function _buildDetailDrop() {
+  const sel  = document.getElementById('detailPlanSel');
+  const menu = document.getElementById('detailPlanDropMenu');
+  if (!sel || !menu) return;
+  menu.innerHTML = '';
+  const opts = Array.from(sel.options);
+  // Find index of __custom__ to add a divider before it
+  const customIdx = opts.findIndex(o => o.value === '__custom__');
+  opts.forEach((opt, i) => {
+    if (i === customIdx && i > 0) {
+      const div = document.createElement('div');
+      div.className = 'csel-divider';
+      menu.appendChild(div);
+    }
+    const el = document.createElement('div');
+    el.className = 'csel-opt' + (opt.value === sel.value ? ' is-selected' : '');
+    el.innerHTML = `<span class="csel-check">✓</span><span>${escHtml(opt.text)}</span>`;
+    el.onclick = () => _selectDetailOpt(opt.value);
+    menu.appendChild(el);
+  });
+  _syncDetailDropLabel();
+}
+function _syncDetailDropLabel() {
+  const sel = document.getElementById('detailPlanSel');
+  const lbl = document.getElementById('detailPlanDropLabel');
+  if (!sel || !lbl) return;
+  const opt = sel.options[sel.selectedIndex];
+  lbl.textContent = opt ? opt.text : '—';
+}
+function toggleDetailDrop() {
+  const menu = document.getElementById('detailPlanDropMenu');
+  const btn  = document.getElementById('detailPlanDropBtn');
+  if (!menu) return;
+  const isOpen = !menu.classList.contains('hidden');
+  if (isOpen) {
+    menu.classList.add('hidden');
+    btn?.classList.remove('open');
+  } else {
+    _buildDetailDrop();
+    menu.classList.remove('hidden');
+    btn?.classList.add('open');
+    setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
+  }
+}
+function _closeDetailDropOutside(e) {
+  const wrap = document.getElementById('detailPlanDropWrap');
+  if (wrap && wrap.contains(e.target)) {
+    // click was inside — re-register listener
+    setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
+    return;
+  }
+  document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
+  document.getElementById('detailPlanDropBtn')?.classList.remove('open');
+}
+function _selectDetailOpt(value) {
+  const sel = document.getElementById('detailPlanSel');
+  if (sel) sel.value = value;
+  document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
+  document.getElementById('detailPlanDropBtn')?.classList.remove('open');
+  onDetailPlanSelChange();
+  _buildDetailDrop();
 }
 // Avledet session_text fra velgeren: mal-navn, '' for Hvile, eller fritekst.
 function _detailPlanValue() {
