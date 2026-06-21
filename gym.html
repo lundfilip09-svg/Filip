@@ -497,7 +497,7 @@
     .sess-hdr { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
     .sess-hdr-body { flex: 1; min-width: 0; }
     .sess-type {
-      font-size: 13px; font-weight: 650; color: var(--text-primary);
+      font-size: 15px; font-weight: 650; color: var(--text-primary);
       letter-spacing: -0.01em; line-height: 1.2;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -886,20 +886,11 @@
       </div>
     </div>
 
-    <!-- DONE: save log -->
-    <div class="sb-sec ws-done">
-      <div class="sb-hd" data-i18n="gym.log_session">Lagre økt</div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label" data-i18n="date">Dato</label>
-        <input type="date" id="logDate" class="input-sm" style="width:100%;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:10px" id="injuryDoneBlocks"></div>
-      <div class="form-group" style="margin-bottom:10px" id="gymRpeHost"></div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label" data-i18n="notes">Notater</label>
-        <textarea id="sessionNotes" class="input-sm" rows="2" style="width:100%;resize:vertical;box-sizing:border-box"></textarea>
-      </div>
-    </div>
+    <!-- hidden fields for saveLog compatibility -->
+    <input type="hidden" id="logDate">
+    <textarea id="sessionNotes" style="display:none"></textarea>
+    <div style="display:none" id="injuryDoneBlocks"></div>
+    <div style="display:none" id="gymRpeHost"></div>
 
   </aside>
 </div>
@@ -1090,8 +1081,10 @@ function restoreDraft() {
     if (d.exRir && d.logDate === today()) exRir = d.exRir;
     if (d.kneePain)     Object.assign(kneePain, d.kneePain);
     if (d.injuryScores) Object.assign(_injuryScores, d.injuryScores);
-    if (d.logDate)      document.getElementById('logDate').value = d.logDate;
-    if (d.sessionNotes) document.getElementById('sessionNotes').value = d.sessionNotes;
+    const _ld = document.getElementById('logDate');
+    if (d.logDate && _ld) _ld.value = d.logDate;
+    const _sn = document.getElementById('sessionNotes');
+    if (d.sessionNotes && _sn) _sn.value = d.sessionNotes;
     if (d.sidebarNotes) {
       const el = document.getElementById('sidebarNotes');
       if (el) { el.value = d.sidebarNotes; try { updateNotesCount(); } catch(e) {} }
@@ -1914,6 +1907,7 @@ function renderWarmup() {
           </div>
           <button class="edit-knee-btn" style="opacity:0.6" title="${t('gym.cardio_edit')}"
             onclick="event.stopPropagation();toggleCardioEdit('${ex.id}')">✎</button>
+          <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
         </div>
         <div class="ex-edit-form" id="cardio-edit-${ex.id}">
           <select class="input-sm" id="cardio-name-${ex.id}">${opts}</select>
@@ -1928,6 +1922,10 @@ function renderWarmup() {
     }
   });
 
+  const hasCardio = allWmExs.some(({ isSyk }) => isSyk);
+  const addCardioHtml = hasCardio ? '' :
+    `<button class="add-ex-btn" style="margin-bottom:4px" onclick="addCardioMachine('${wmDay}')">${t('gym.add_cardio')}</button>`;
+
   const addId = `add-${wmDay}-Prepøvelser`;
   const addHtml = `<div class="add-ex-form" id="${addId}">
     <input class="input-sm" placeholder="${t('gym.exercise_ph')}" id="${addId}-name">
@@ -1936,6 +1934,7 @@ function renderWarmup() {
     <button class="btn btn-success btn-sm" onclick="addExercise('${wmDay}','Prepøvelser','${addId}')">+</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${addId}').classList.remove('open')">✕</button>
   </div>
+  ${addCardioHtml}
   <button class="add-ex-btn" onclick="document.getElementById('${addId}').classList.toggle('open')">${t('gym.add_exercise_btn')}</button>`;
 
   el.innerHTML = zoneHtml
@@ -2431,9 +2430,6 @@ function renderDrawer(exId) {
     </div>
     <div class="drawer-actions">
       <button class="btn btn-ghost btn-sm" onclick="addSet('${exId}')">+ ${t('gym.col_sets')}</button>
-      <span class="drawer-spacer"></span>
-      <button class="btn btn-ghost btn-sm" onclick="saveSetWeights('${exId}')">${t('save')}</button>
-      <button class="btn btn-success btn-sm" onclick="completeExercise('${exId}')">${t('gym.complete_exercise')}</button>
     </div>`;
   el.classList.add('open');
 }
@@ -2478,6 +2474,11 @@ function toggleSetDone(exId, setIdx) {
   updateProgress();
   updateNextEx();
   saveSession();
+  // Auto-complete when all sets checked
+  const _ex = findExById(exId);
+  if (_ex && d[setIdx].done && d.filter(s => s.done).length >= _ex.sets && d.every(s => s.done)) {
+    setTimeout(() => completeExercise(exId), 400);
+  }
 }
 
 function addSet(exId) {
@@ -2641,7 +2642,8 @@ function finishWorkout() {
   stopRest();
   if (activeDrawer) closeDrawer();
   const sbNotes = document.getElementById('sidebarNotes')?.value || '';
-  if (sbNotes) document.getElementById('sessionNotes').value = sbNotes;
+  const _snEl = document.getElementById('sessionNotes');
+  if (sbNotes && _snEl) _snEl.value = sbNotes;
   const total = getTotalSets(), done = getDoneSets();
   document.getElementById('doneStats').textContent = t('gym.sets_done', { done, total })
     + (_sessionDurationMin ? ` · ${_sessionDurationMin} min` : '');
@@ -3271,6 +3273,17 @@ async function saveCardio(id) {
   toast(t('gm.saved'));
 }
 
+async function addCardioMachine(wmDay) {
+  const row = { day: wmDay, section: 'Sirkulasjon', exercise_name: 'Sykkel', sets: 1, reps: '8–10 min', sort_order: 0 };
+  const { data, error } = await db.from('workout_program').insert(row).select().single();
+  if (error) { toast(error.message, 'err'); return; }
+  if (!allExercises[wmDay]) allExercises[wmDay] = {};
+  if (!allExercises[wmDay]['Sirkulasjon']) allExercises[wmDay]['Sirkulasjon'] = [];
+  allExercises[wmDay]['Sirkulasjon'].push(data);
+  renderAll();
+  toast(t('gm.saved'));
+}
+
 async function saveExMeta(id) {
   const name = document.getElementById(`edit-name-${id}`)?.value.trim();
   const sets = parseInt(document.getElementById(`edit-sets-${id}`).value);
@@ -3638,6 +3651,13 @@ function _gymDetailHtml(g, knee, kneeId, isOpen, results, rir) {
           </div>
         </div>
       </div>
+    </div>
+    <div style="padding:10px 14px 0">
+      <div class="gsx-sec-lbl" style="margin-bottom:5px">${t('notes')}</div>
+      <textarea id="he-notes-${g.id}" class="input-sm" rows="2"
+        style="width:100%;resize:vertical;box-sizing:border-box;font-size:12px"
+        onchange="scheduleHistSave('${g.id}')"
+        placeholder="—">${escHtml(g.session_notes || '')}</textarea>
     </div>
     <div class="sess-detail-footer" style="justify-content:space-between">
       <span class="he-status" id="he-status-${g.id}"></span>
@@ -4025,10 +4045,14 @@ async function saveHistEdit(gymId) {
   if (!panel) return;
   const date = panel.dataset.date, st = panel.dataset.st;
   const ops = [];
-  // RIR → gym_log.rpe
+  // RIR + notes → gym_log
   const newRpe  = rirValue(`he-rir-s-${gymId}`);
   const origRpe = panel.dataset.rpe === '' ? null : Number(panel.dataset.rpe);
-  if (newRpe !== origRpe) ops.push(db.from('gym_log').update({ rpe: newRpe }).eq('id', gymId));
+  const notesEl = document.getElementById(`he-notes-${gymId}`);
+  const gymLogPatch = {};
+  if (newRpe !== origRpe) gymLogPatch.rpe = newRpe;
+  if (notesEl) gymLogPatch.session_notes = notesEl.value.trim();
+  if (Object.keys(gymLogPatch).length) ops.push(db.from('gym_log').update(gymLogPatch).eq('id', gymId));
   // Sett-diff → set_log (samme felt/format som saveLog())
   const host = document.getElementById(`he-sets-${gymId}`);
   if (host) {
