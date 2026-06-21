@@ -577,13 +577,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   margin-bottom: 7px;
 }
 .hist-date-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
-.hist-sessions { display: flex; flex-direction: column; gap: 3px; }
+.hist-sessions { display: flex; flex-direction: column; gap: 8px; }
 .sess-card {
   position: relative;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.05);
   border-radius: 9px;
-  padding: 9px 12px 9px 16px;
+  padding: 13px 14px 13px 18px;
   cursor: pointer; overflow: hidden;
 }
 .sess-card::before {
