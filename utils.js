@@ -1691,8 +1691,7 @@ const _NOTE_ICON = `<svg class="snp-icon" width="12" height="12" viewBox="0 0 16
 
 function renderNoteBlock(noteText) {
   if (!noteText) return '';
-  return `<div class="sess-notes-preview">${_NOTE_ICON}${escHtml(noteText)}</div>`
-    + `<button class="sess-notes-toggle" onclick="toggleNoteExpand(this)">${t('note.expand')}</button>`;
+  return `<div class="sess-notes-preview">${_NOTE_ICON}${escHtml(noteText)}</div>`;
 }
 
 // ── Core utilities ────────────────────────────────────────────────────────────
