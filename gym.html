@@ -460,20 +460,31 @@
     .knee-edit-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .knee-edit-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); }
     .he-inj-name { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 5px; }
-    /* Exercise blocks in expanded detail — reduced border weight */
-    .he-ex-block { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    .he-ex-block:last-of-type { border-bottom: none; padding-bottom: 0; }
-    .he-ex-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
-    .he-ex-nm { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-    .he-rows { display: flex; flex-direction: column; gap: 3px; margin-bottom: 3px; }
-    .he-set { display: flex; align-items: center; gap: 4px; }
-    .he-x { background: none; border: none; color: rgba(255,255,255,0.2); cursor: pointer; font-size: 11px; padding: 2px 4px; transition: color 0.12s; }
+    /* Exercise blocks in expanded detail — card style */
+    .he-ex-block {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 7px 9px 6px;
+      margin-bottom: 0;
+    }
+    .he-ex-hd { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 5px; }
+    .he-ex-nm { font-size: 12px; font-weight: 700; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .he-rows { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+    .he-set {
+      display: grid;
+      grid-template-columns: 14px 1fr 1fr 18px;
+      gap: 3px;
+      align-items: center;
+    }
+    .he-set > span { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-align: right; }
+    .he-x { background: none; border: none; color: rgba(255,255,255,0.2); cursor: pointer; font-size: 11px; padding: 1px 2px; transition: color 0.12s; line-height: 1; }
     .he-x:hover { color: var(--danger); }
     .he-addset { font-size: 9px; padding: 2px 7px; opacity: 0.7; }
     .he-addset:hover { opacity: 1; }
     /* Exercises in 2 columns */
-    .he-sets { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: start; }
-    .he-sets > button { grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
+    .he-sets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: start; }
+    .he-sets > button { grid-column: 1 / -1; justify-self: start; margin-top: 0; }
 
     /* ── Økthistorikk redesign ─────────────────────────────────────────── */
     .gym-history-card { margin-top: 20px; }
@@ -635,7 +646,7 @@
     .he-ex-picker-item.already-added { opacity: 0.35; cursor: default; pointer-events: none; }
     .he-ex-picker-item-name { font-size: 13px; color: var(--text-primary); flex: 1; }
     .he-ex-picker-item-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
-    .he-ex-block-hd-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-left: 4px; }
+    .he-ex-block-hd-meta { font-size: 9px; font-family: var(--font-mono); color: var(--text-secondary); background: rgba(255,255,255,0.07); border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
 
     /* Footer inside detail */
     .gym-history-card .sess-detail-footer {
@@ -3797,9 +3808,9 @@ function histSetRow(r, idx) {
   const reps = r ? (r.reps ?? '') : '';
   const setNum = (idx != null ? idx : (r?.set_index ?? '')) + 1;
   return `<div class="he-set" data-id="${r?.id || ''}">
-    <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);width:16px;flex-shrink:0;text-align:right">${setNum || ''}</span>
-    <input class="input-sm he-w" type="number" step="${weightStep(false)}" value="${w}" placeholder="${weightUnit()}" style="width:64px">
-    <input class="input-sm he-r" type="text" value="${escHtml(String(reps))}" placeholder="reps" style="width:52px">
+    <span>${setNum || ''}</span>
+    <input class="input-sm he-w" type="number" step="${weightStep(false)}" value="${w}" placeholder="${weightUnit()}" style="width:100%;min-width:0">
+    <input class="input-sm he-r" type="text" value="${escHtml(String(reps))}" placeholder="reps" style="width:100%;min-width:0">
     <button class="he-x" onclick="this.closest('.he-set').remove()">✕</button>
   </div>`;
 }
