@@ -236,6 +236,7 @@ const TRANSLATIONS = {
     'online_again': 'Online igjen',
     'sw_updated': 'Ny versjon lastet — gjelder fra neste sidebytte',
     'tp.duration': 'Varighet (min)',
+    'tp.min_played': 'Minutter i kamp/spill (valgfritt)', 'tp.min_played_short': '{n} min spilt',
     'tp.week_load': 'Ukeslast (sRPE)',
     'tp.week_load_hint': 'RPE/10 × aktivitetsvekt — sprint tungt, gåtur ~0',
     'tp.load_mult': 'Belastningsvekt (multiplikator)',
@@ -518,6 +519,34 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
     'tp.rest_rehab': 'Hvile & rehab', 'tp.rest': 'Hvile', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
+    // Profil
+    'tp.profile_btn': '👤 Profil',
+    'tp.profile_title': 'Profil & innstillinger',
+    'tp.prof_personal': 'Personlig info',
+    'tp.prof_name': 'Fullt navn', 'tp.prof_name_ph': 'F.eks. Filip Lund',
+    'tp.prof_birth': 'Fødselsdato',
+    'tp.prof_leg': 'Dominant ben',
+    'tp.prof_leg_left': 'Venstre', 'tp.prof_leg_right': 'Høyre',
+    'tp.prof_phase': 'Treningsfase',
+    'tp.prof_phase_pre': 'Forsesong', 'tp.prof_phase_comp': 'Konkurransesong',
+    'tp.prof_phase_off': 'Off-sesong', 'tp.prof_phase_trans': 'Overgang',
+    'tp.prof_height': 'Høyde (cm)',
+    'tp.prof_save': 'Lagre profil', 'tp.prof_saved': 'Profil lagret',
+    'tp.prof_weight_section': 'Vekt',
+    'tp.prof_weight': 'Vekt (kg)', 'tp.prof_weight_date': 'Dato',
+    'tp.prof_add_weight': 'Logg', 'tp.prof_weight_hist': 'Historikk',
+    'tp.prof_no_weight': 'Ingen målinger ennå',
+    'tp.prof_weight_saved': 'Vekt lagret', 'tp.prof_weight_del': 'Slett',
+    'tp.prof_coaches': 'Trener / Coach',
+    'tp.prof_coach_name': 'Navn', 'tp.prof_coach_role': 'Rolle / Type',
+    'tp.prof_coach_role_ph': 'F.eks. Friidrett, Fotball, Styrke…',
+    'tp.prof_add_coach': '+ Legg til trener',
+    'tp.prof_no_coaches': 'Ingen trenere registrert',
+    'tp.prof_coach_saved': 'Trener lagret', 'tp.prof_coach_deleted': 'Trener slettet',
+    'tp.prof_role_head': 'Hovedtrener', 'tp.prof_role_asst': 'Assistent',
+    'tp.prof_role_track': 'Friidrett', 'tp.prof_role_soccer': 'Fotball',
+    'tp.prof_role_strength': 'Styrke', 'tp.prof_role_physio': 'Fysioterapeut',
+    'tp.prof_role_other': 'Annet',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
@@ -809,6 +838,7 @@ const TRANSLATIONS = {
     'online_again': 'Back online',
     'sw_updated': 'New version loaded — applies on next page change',
     'tp.duration': 'Duration (min)',
+    'tp.min_played': 'Game minutes (optional)', 'tp.min_played_short': '{n} min played',
     'tp.week_load': 'Weekly load (sRPE)',
     'tp.week_load_hint': 'RPE/10 × activity weight — sprint heavy, walk ~0',
     'tp.load_mult': 'Load weight (multiplier)',
@@ -1091,6 +1121,34 @@ const TRANSLATIONS = {
     'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
     'tp.rest_rehab': 'Rest & rehab', 'tp.rest': 'Rest', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
+    // Profile
+    'tp.profile_btn': '👤 Profile',
+    'tp.profile_title': 'Profile & settings',
+    'tp.prof_personal': 'Personal info',
+    'tp.prof_name': 'Full name', 'tp.prof_name_ph': 'E.g. Filip Lund',
+    'tp.prof_birth': 'Date of birth',
+    'tp.prof_leg': 'Dominant leg',
+    'tp.prof_leg_left': 'Left', 'tp.prof_leg_right': 'Right',
+    'tp.prof_phase': 'Training phase',
+    'tp.prof_phase_pre': 'Pre-season', 'tp.prof_phase_comp': 'Competition',
+    'tp.prof_phase_off': 'Off-season', 'tp.prof_phase_trans': 'Transition',
+    'tp.prof_height': 'Height (cm)',
+    'tp.prof_save': 'Save profile', 'tp.prof_saved': 'Profile saved',
+    'tp.prof_weight_section': 'Weight',
+    'tp.prof_weight': 'Weight (kg)', 'tp.prof_weight_date': 'Date',
+    'tp.prof_add_weight': 'Log', 'tp.prof_weight_hist': 'History',
+    'tp.prof_no_weight': 'No measurements yet',
+    'tp.prof_weight_saved': 'Weight logged', 'tp.prof_weight_del': 'Delete',
+    'tp.prof_coaches': 'Coach / Coaches',
+    'tp.prof_coach_name': 'Name', 'tp.prof_coach_role': 'Role / Type',
+    'tp.prof_coach_role_ph': 'E.g. Track, Soccer, Strength…',
+    'tp.prof_add_coach': '+ Add coach',
+    'tp.prof_no_coaches': 'No coaches registered',
+    'tp.prof_coach_saved': 'Coach saved', 'tp.prof_coach_deleted': 'Coach deleted',
+    'tp.prof_role_head': 'Head coach', 'tp.prof_role_asst': 'Assistant',
+    'tp.prof_role_track': 'Track & Field', 'tp.prof_role_soccer': 'Soccer',
+    'tp.prof_role_strength': 'Strength', 'tp.prof_role_physio': 'Physiotherapist',
+    'tp.prof_role_other': 'Other',
     // AI
     'ai.title': 'AI Overseer',
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
@@ -1163,7 +1221,7 @@ function distLabel(d) {
   return String(d ?? '').replace(/(\d+\s*k?m)_([a-zA-ZæøåÆØÅ]+)/g, '$1 ($2)');
 }
 
-function fmtLocale() { return _lang === 'en' ? 'en-GB' : 'no-NO'; }
+function fmtLocale() { return _lang === 'en' ? 'en-US' : 'no-NO'; }
 
 // ── Vekt-enhet (kg ↔ lbs) ────────────────────────────────────────────────────
 // All lagring/in-memory er ALLTID i kg (kanonisk). Konverter kun ved
@@ -1427,11 +1485,18 @@ function _renderNotifPanel() {
     if (!list.length) continue;
     any = true;
     html += `<div class="notif-group-label">${label}</div>`;
-    html += list.map(i => `<a class="notif-item notif-${section}" href="${i.url}">
+    html += list.map(i => {
+      const todoId = i.key.startsWith('todo:') ? i.key.split(':')[1] : null;
+      const canOpen = todoId && typeof openDetail === 'function';
+      const extraAttr = canOpen
+        ? `onclick="event.preventDefault();_notifOpen=false;_closeNotifPanel(document.getElementById('notifPanel'));openDetail('${todoId}')"`
+        : '';
+      return `<a class="notif-item notif-${section}" href="${i.url}" ${extraAttr}>
         <span class="notif-dot"></span>
         <span class="notif-text">${escHtml(_notifTitle(i))}</span>
         <span class="notif-when">${escHtml(_notifSub(i))}</span>
-      </a>`).join('');
+      </a>`;
+    }).join('');
   }
   if (!any) html += `<div class="notif-empty">${t('notif.empty')}</div>`;
   panel.innerHTML = html;
@@ -1505,15 +1570,22 @@ function _renderPageBanners(items) {
   _bannerItems = items;
   const w = _ensureBannerWrap();
   if (!items.length) { w.innerHTML = ''; return; }
-  w.innerHTML = items.map((i, idx) => `
+  w.innerHTML = items.map((i, idx) => {
+    const todoId = i.key.startsWith('todo:') ? i.key.split(':')[1] : null;
+    const canOpen = todoId && typeof openDetail === 'function';
+    const bodyExtra = canOpen
+      ? `onclick="event.preventDefault();openDetail('${todoId}')"`
+      : '';
+    return `
     <div class="page-banner page-banner-${i.section}" data-banner="${idx}">
       <span class="page-banner-icon">${NOTIF_ICON[i.section] || '🔔'}</span>
-      <a class="page-banner-body" href="${i.url}">
+      <a class="page-banner-body" href="${i.url}" ${bodyExtra}>
         <span class="page-banner-title">${escHtml(_notifTitle(i))}</span>
         <span class="page-banner-sub">${escHtml(_notifSub(i))}</span>
       </a>
       <button class="page-banner-close" aria-label="${t('notif.dismiss')}" onclick="_dismissBanner(${idx})">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function _dismissBanner(idx) {
   const el = document.querySelector(`[data-banner="${idx}"]`);
