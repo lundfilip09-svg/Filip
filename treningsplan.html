@@ -773,6 +773,8 @@
         <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)" data-i18n="tp.act_basketball">Basketball</button>
         <button class="act-type-btn" data-type="Amerikansk fotball" onclick="selectActType(this)" data-i18n="tp.act_amfootball">Amerikansk fotball</button>
         <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)" data-i18n="tp.act_walk">Turgåing</button>
+        <button class="act-type-btn" data-type="Frisbeegolf" onclick="selectActType(this)" data-i18n="tp.act_frisbee">Frisbeegolf</button>
+        <button class="act-type-btn" data-type="Bading" onclick="selectActType(this)" data-i18n="tp.act_swim_rec">Bading</button>
         <button class="act-type-btn" data-type="Rolig dag" onclick="selectActType(this)" data-i18n="tp.act_easy">Rolig dag</button>
         <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>
       </div>
@@ -2572,7 +2574,8 @@ async function autoSaveSessionNotes(gymId, value) {
 function trActType(type) {
   const m = { 'Fotball':'tp.act_soccer', 'Amerikansk fotball':'tp.act_amfootball', 'Padel':'tp.act_padel',
               'Svømming':'tp.act_swim', 'Sykling':'tp.act_cycle', 'Basketball':'tp.act_basketball',
-              'Turgåing':'tp.act_walk', 'Rolig dag':'tp.act_easy', 'Annet':'tp.act_other' };
+              'Turgåing':'tp.act_walk', 'Frisbeegolf':'tp.act_frisbee', 'Bading':'tp.act_swim_rec',
+              'Rolig dag':'tp.act_easy', 'Annet':'tp.act_other' };
   return m[type] ? t(m[type]) : type;
 }
 
