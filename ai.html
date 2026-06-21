@@ -947,7 +947,7 @@ async function copyHealthReport() {
   toast(t('ai.report_building'));
   try {
     const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
-    const [health, knee, gym, sprint, activity, records, physio, injuries, injPain] = await Promise.all([
+    const [health, knee, gym, sprint, activity, records, physio, injuries, injPain, profRes, weightRes, coachRes] = await Promise.all([
       db.from('health_data').select('date,sleep_score,hrv,rhr,sleep_hours,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes').gte('date', cutoff).order('date', { ascending: false }),
       db.from('knee_pain').select('date,before_score,during_score,after_score,day_after_score,notes').gte('date', cutoff).order('date', { ascending: false }),
       db.from('gym_log').select('date,session_type,rpe,session_notes,duration_min').gte('date', cutoff).order('date', { ascending: false }),
@@ -957,11 +957,15 @@ async function copyHealthReport() {
       db.from('physio_notes').select('date,therapist,note').order('date', { ascending: false }).limit(3),
       db.from('injuries').select('id,body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
       db.from('injury_pain').select('injury_id,date,before_score,during_score,after_score,day_after_score,created_at').gte('date', cutoff).order('date', { ascending: false }),
+      db.from('user_profile').select('full_name,birth_date,dominant_leg,training_phase,height_cm').limit(1).maybeSingle(),
+      db.from('body_measurements').select('date,weight_kg').order('date', { ascending: false }).limit(1).maybeSingle(),
+      db.from('coaches').select('name,role').order('created_at', { ascending: true }),
     ]);
 
     const H = health.data || [], K = knee.data || [], G = gym.data || [],
           S = sprint.data || [], A = activity.data || [], R = records.data || [],
           P = physio.data || [], I = injuries.data || [], IP = injPain.data || [];
+    const _profData = profRes.data, _wData = weightRes.data, _coachData = coachRes.data || [];
 
     // Per-skade smerte: injury_pain er kilde-til-sannhet (kun alvorlige skader logges).
     const _isKneeBp = bp => bp === 'body.knee' || /kne|knee/i.test(bp || '');
@@ -1041,13 +1045,23 @@ async function copyHealthReport() {
       ? 'Analyze if my injury pain trends (per active issue listed above) indicate that my current soccer/football/sprint load is safe or causing regression.'
       : 'Analyze if my injury pain trends (per active issue listed above) indicate that my current sprint/strength load is safe or causing regression.';
 
+    const _rptName   = _profData?.full_name || 'Filip Lund';
+    const _rptBirth  = _profData?.birth_date ? ` (born ${_profData.birth_date})` : ' (born 2009)';
+    const _rptHeight = _profData?.height_cm  ? `${_profData.height_cm} cm` : '187 cm';
+    const _rptWeight = _wData?.weight_kg     ? `${_wData.weight_kg} kg (${_wData.date})` : '70 kg';
+    const _rptPhase  = _profData?.training_phase ? ` | Phase: ${_profData.training_phase}` : '';
+    const _rptLeg    = _profData?.dominant_leg   ? ` | Dominant leg: ${_profData.dominant_leg}` : '';
+    const _rptCoaches = _coachData.length
+      ? _coachData.map(c => `${c.name} (${c.role})`).join(', ')
+      : 'Not registered';
+
     const report =
 `=== ATHLETE CONTEXT ===
-Name: Filip Lund (born 2009) — competitive 100m/200m sprinter, Norway
-Height: 187 cm / Weight: 70 kg
+Name: ${_rptName}${_rptBirth} — competitive 100m/200m sprinter, Norway
+Height: ${_rptHeight} / Weight: ${_rptWeight}${_rptPhase}${_rptLeg}
 Main Events: ${eventsLine}
 Current Club: Norna-Salhus IL (Norway)
-Coaching Team: Erlend Sæterstøl, Jørgen Homstad, Joakim Dang, Sondre Amundsen
+Coaching Team: ${_rptCoaches}
 
 === MEDICAL & INJURY HISTORY ===
 Primary diagnosis: Patellar tendinopathy (jumper's knee), left knee — onset January 2026 after a rapid ramp-up in sprint volume. Tolerates static/slow heavy loading well, but is highly sensitive to high-velocity stretch-shortening cycles (football, max sprinting). Doing daily targeted rehab.
@@ -1099,7 +1113,7 @@ async function copyInjuryStatus() {
     const I = inj.data || [], K = knee.data || [], G = gym.data || [],
           S = sprint.data || [], A = act.data || [], IP = injPain.data || [];
 
-    const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
+    const loc = _lang === 'en' ? 'en-US' : 'nb-NO';
     const fmtDM = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' }) : '–';
     // Notat-sammendrag: de to første setningene + «Provoserer:»/«Hjelper:»-
     // setninger uansett hvor de står i notatet. Setningsskille = .!? fulgt av
@@ -1185,7 +1199,7 @@ async function copySleepAnalysis() {
     const rows = (data || []).filter(r => r.sleep_hours || r.sleep_score || r.hrv);
     if (!rows.length) { toast(t('ai.report_copy_fail')); return; }
 
-    const loc = _lang === 'en' ? 'en-GB' : 'nb-NO';
+    const loc = _lang === 'en' ? 'en-US' : 'nb-NO';
     const fmtDM = ds => new Date(ds + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: 'short' });
     const avg = arr => { const v = arr.filter(x => x != null); return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; };
     const pct = (min, total) => total > 0 ? Math.round(min / total * 100) : null;
@@ -1240,7 +1254,7 @@ async function copySleepAnalysis() {
 
     const en = _lang === 'en';
     const header = en
-      ? `Sleep Analysis — Filip Lund, ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})}`
+      ? `Sleep Analysis — Filip Lund, ${new Date().toLocaleDateString('en-US', {day:'2-digit',month:'short',year:'numeric'})}`
       : `Søvnanalyse — Filip Lund, ${new Date().toLocaleDateString('nb-NO', {day:'2-digit',month:'short',year:'numeric'})}`;
 
     const summaryLabel = en ? `Last ${rows.length} nights (${fmtDM(rows[0].date)} – ${fmtDM(rows[rows.length-1].date)}):` : `Siste ${rows.length} netter (${fmtDM(rows[0].date)} – ${fmtDM(rows[rows.length-1].date)}):`;

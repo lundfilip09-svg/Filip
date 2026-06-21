@@ -115,6 +115,10 @@ const TR = {
     th_date:'Dato', th_cat:'Kategori', th_type:'Innhold', th_notes:'Notater',
     th_pain:'Smerte (f/u/e/d.e.)', th_rpe:'RPE', th_dur:'Varighet',
     cat_gym:'Styrke', cat_sprint:'Sprint', cat_act:'Aktivitet',
+    sec_lifts:'Nøkkelløft', none_lifts:'Ingen styrkeløft logget i perioden.',
+    lifts_note:'Tyngste loggede sett per øvelse i perioden. Est. 1RM = Epley-formel.',
+    th_exercise:'Øvelse', th_topset:'Tyngste sett', th_e1rm:'Est. 1RM', th_lift_date:'Dato',
+    min_played:'{n} min spilt',
     sec_log:'Øktlogg', none_log:'Ingen økter i perioden.',
     pain_legend:'Smerte: før / under / etter / dagen etter (0–10). Per registrerte alvorlige skade.',
     sec_load_week:'Ukentlig belastning', load_note:'sRPE = varighet (min) × RPE/10. Uker fra mandag. Manglende varighet estimeres: rehab 35, styrke 120, sprint 75, aktivitet 60 min.',
@@ -141,6 +145,10 @@ const TR = {
     th_date:'Date', th_cat:'Category', th_type:'Content', th_notes:'Notes',
     th_pain:'Pain (b/d/a/d.a.)', th_rpe:'RPE', th_dur:'Duration',
     cat_gym:'Strength', cat_sprint:'Sprint', cat_act:'Activity',
+    sec_lifts:'Key lifts', none_lifts:'No lifts logged in this period.',
+    lifts_note:'Heaviest logged set per exercise in this period. Est. 1RM = Epley formula.',
+    th_exercise:'Exercise', th_topset:'Top set', th_e1rm:'Est. 1RM', th_lift_date:'Date',
+    min_played:'{n} min played',
     sec_log:'Session log', none_log:'No sessions in this period.',
     pain_legend:'Pain: before / during / after / day after (0–10). Per logged severe injury.',
     sec_load_week:'Weekly load', load_note:'sRPE = duration (min) × RPE/10. Weeks start Monday. Missing durations estimated: rehab 35, strength 120, sprint 75, activity 60 min.',
@@ -213,16 +221,24 @@ const _SRPE_DEF = { gym: 120, rehab: 35, sprint: 75, act: 60 };
 function gymDef(sessionType){ return /rehab/i.test(sessionType || '') ? _SRPE_DEF.rehab : _SRPE_DEF.gym; }
 function srpe(dur, def, rpe){ return (realDur(dur) ?? def) * ((rpe || 0) / 10); }
 
+// Vekt-enhet følger språk (no=kg, en=lbs) — samme default som resten av appen.
+const _LB_PER_KG = 2.2046226218;
+function wUnit(){ return _lang === 'en' ? 'lbs' : 'kg'; }
+function wDisp(kg){ if(kg==null) return null; return _lang === 'en' ? Math.round(kg*_LB_PER_KG) : Math.round(kg*10)/10; }
+function repsNum(reps){ const m = String(reps??'').match(/\d+/); return m ? parseInt(m[0],10) : null; }
+// Epley est. 1RM (kg-basis): w × (1 + reps/30)
+function e1rm(kg, reps){ const r = repsNum(reps); return (kg!=null && r) ? kg*(1+r/30) : null; }
+
 function fmtD(ds){
   if(!ds) return '';
   const d = new Date(ds+'T12:00:00');
-  const loc = _lang==='en' ? 'en-GB' : 'nb-NO';
+  const loc = _lang==='en' ? 'en-US' : 'nb-NO';
   return d.toLocaleDateString(loc, { day:'2-digit', month:'short', year:'numeric' });
 }
 function fmtDM(ds){
   if(!ds) return '';
   const d = new Date(ds+'T12:00:00');
-  const loc = _lang==='en' ? 'en-GB' : 'nb-NO';
+  const loc = _lang==='en' ? 'en-US' : 'nb-NO';
   return d.toLocaleDateString(loc, { day:'2-digit', month:'short' });
 }
 function painCls(s){ if(s==null) return ''; return s<=3?'lo':s<=5?'mid':'hi'; }
@@ -265,7 +281,7 @@ async function loadReport(){
   const to   = document.getElementById('toDate').value;
   if(!from || !to) return;
   document.getElementById('doc').innerHTML = `<div class="loading">${t('loading')}</div>`;
-  const [gym, knee, sprint, acts, inj, recs, injPain] = await Promise.all([
+  const [gym, knee, sprint, acts, inj, recs, injPain, sets, profRes, wRes] = await Promise.all([
     db.from('gym_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
     db.from('knee_pain').select('*').gte('date', from).lte('date', to),
     db.from('sprint_log').select('*').gte('date', from).lte('date', to).order('date', {ascending:false}),
@@ -273,16 +289,33 @@ async function loadReport(){
     db.from('injuries').select('*').in('status', ['active','improving']).order('updated_at', {ascending:false}),
     db.from('sprint_records').select('distance,best_time').order('distance', {ascending:true}),
     db.from('injury_pain').select('*').gte('date', from).lte('date', to),
+    db.from('set_log').select('exercise_name,weight_kg,reps,date').gte('date', from).lte('date', to),
+    db.from('user_profile').select('full_name,birth_date,height_cm').limit(1).maybeSingle(),
+    db.from('body_measurements').select('date,weight_kg').order('date', {ascending:false}).limit(1).maybeSingle(),
   ]);
   _data = { gym: gym.data||[], knee: knee.data||[], sprint: sprint.data||[], acts: acts.data||[],
-            injuries: inj.data||[], records: recs.data||[], injPain: injPain.data||[], from, to };
+            injuries: inj.data||[], records: recs.data||[], injPain: injPain.data||[], sets: sets.data||[], from, to,
+            profile: profRes.data, latestWeight: wRes.data };
   render();
 }
 
 function _isKneeBody(bp){ return bp === 'body.knee' || /kne|knee/i.test(bp || ''); }
 
 function render(){
-  const { gym, knee, sprint, acts, injuries, records, injPain, from, to } = _data;
+  const { gym, knee, sprint, acts, injuries, records, injPain, sets, from, to, profile, latestWeight } = _data;
+
+  // Dynamisk subtitle fra profil + siste vektmåling
+  const _lang = localStorage.getItem('lang') || 'no';
+  const _subName = profile?.full_name || 'Filip Lund';
+  const _subH = profile?.height_cm ? `${profile.height_cm} cm` : '187 cm';
+  const _subW = latestWeight?.weight_kg ? `${latestWeight.weight_kg} kg` : '70 kg';
+  const _subBirth = profile?.birth_date ? profile.birth_date.slice(0,4) : '2009';
+  const _subHlbs = latestWeight?.weight_kg ? ` (${(latestWeight.weight_kg * 2.20462).toFixed(0)} lbs)` : '';
+  const _subHft = profile?.height_cm ? ` (${Math.floor(profile.height_cm/30.48)}′${Math.round((profile.height_cm/30.48%1)*12)}″)` : '';
+  const _dynamicSubtitle = _lang === 'en'
+    ? `${_subName} — sprinter (100/200m) & strength · b. ${_subBirth} · ${_subH}${_subHft} / ${_subW}${_subHlbs}`
+    : `${_subName} — sprinter (100/200m) & styrke · f. ${_subBirth} · ${_subH} / ${_subW}`;
+
   // Knesmerte koblet til dato (for gym-rader)
   const kneeByDate = {};
   knee.forEach(k => { if(!kneeByDate[k.date]) kneeByDate[k.date] = k; });
@@ -344,7 +377,7 @@ function render(){
   let html = `
     <div class="doc-head">
       <h1 class="doc-title">${t('title')}</h1>
-      <div class="doc-sub">${t('subtitle')}${pbLine ? ` · ${t('pb')}: ${pbLine}` : ''}</div>
+      <div class="doc-sub">${_dynamicSubtitle}${pbLine ? ` · ${t('pb')}: ${pbLine}` : ''}</div>
       <div class="doc-meta">${t('period')}: ${fmtD(from)} – ${fmtD(to)} · ${t('generated')}: ${fmtD(new Date().toISOString().slice(0,10))}</div>
     </div>
 
@@ -474,13 +507,41 @@ function render(){
       : trType(a.activity_type||'') + (a.activity_label && a.activity_type !== 'Annet' ? ` (${a.activity_label})` : '');
     rows.push({
       date: a.date, cat: 'act',
-      type: label,
+      type: label + (a.minutes_played != null ? ` · ${t('min_played').replace('{n}', a.minutes_played)}` : ''),
       dur: realDur(a.duration_min), rpe: a.rpe,
       pain: painCellMulti(a.date, { before_score:a.knee_before, during_score:a.knee_during, after_score:a.knee_after, day_after_score:a.knee_day_after }),
       note: a.notes || ''
     });
   });
   rows.sort((a,b) => b.date.localeCompare(a.date));
+
+  // ── Nøkkelløft: tyngste sett per øvelse (+ est. 1RM) ──────────
+  const liftBest = {};
+  (_data.sets || []).forEach(s => {
+    if (s.weight_kg == null) return;
+    const cur = liftBest[s.exercise_name];
+    if (!cur || s.weight_kg > cur.weight_kg) liftBest[s.exercise_name] = s;
+  });
+  const lifts = Object.values(liftBest)
+    .sort((a,b) => (e1rm(b.weight_kg,b.reps)||b.weight_kg) - (e1rm(a.weight_kg,a.reps)||a.weight_kg));
+  html += `<h2 class="sec">${t('sec_lifts')}</h2><div class="sec-note">${t('lifts_note')}</div>`;
+  if (lifts.length) {
+    const u = wUnit();
+    html += `<table><thead><tr>
+      <th>${t('th_exercise')}</th><th>${t('th_topset')}</th><th>${t('th_e1rm')}</th><th>${t('th_lift_date')}</th>
+    </tr></thead><tbody>`;
+    lifts.forEach(s => {
+      const w = wDisp(s.weight_kg);
+      const est = e1rm(s.weight_kg, s.reps);
+      html += `<tr>
+        <td>${esc(s.exercise_name)}</td>
+        <td class="num">${w} ${u}${s.reps ? ` × ${esc(String(s.reps))}` : ''}</td>
+        <td class="num">${est != null ? wDisp(est) + ' ' + u : '–'}</td>
+        <td class="num">${fmtDM(s.date)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else html += `<div class="empty">${t('none_lifts')}</div>`;
 
   html += `<h2 class="sec">${t('sec_log')}</h2><div class="sec-note">${t('pain_legend')}</div>`;
   if (rows.length) {
