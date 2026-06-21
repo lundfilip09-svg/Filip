@@ -914,6 +914,21 @@
   </div>
 </div>
 
+<!-- Rename day modal -->
+<div class="day-dialog-backdrop" id="renameModal" onclick="if(event.target===this)closeRenameModal()">
+  <div class="day-dialog">
+    <h3 data-i18n="gym.rename_day">Gi nytt navn</h3>
+    <div>
+      <label data-i18n="gym.rename_label">Navn på økt</label>
+      <input id="renameInput" type="text" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);font-size:13px;box-sizing:border-box;outline:none" autocomplete="off">
+    </div>
+    <div class="day-dialog-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeRenameModal()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-success btn-sm" onclick="confirmRename()" data-i18n="save">Lagre</button>
+    </div>
+  </div>
+</div>
+
 <!-- Manuell smerteregistrering (tilbakedatering) → modal -->
 <div class="day-dialog-backdrop" id="gymManualModal" onclick="if(event.target===this)closeGymManualModal()">
   <div class="day-dialog" style="max-height:80vh;overflow-y:auto">
@@ -1328,13 +1343,29 @@ function closePillMenu() {
   setTimeout(() => { if (!done) rm(); }, 200);
 }
 
-async function renameDay(key) {
+let _renameKey = null;
+function renameDay(key) {
   const d = getDay(key);
   if (!d) return;
-  const current = d.custom_name || dayLabel(d);
-  const name = prompt(t('gym.rename_prompt'), current);
-  if (name === null) return;
-  const trimmed = name.trim();
+  _renameKey = key;
+  const inp = document.getElementById('renameInput');
+  inp.value = d.custom_name || dayLabel(d);
+  const modal = document.getElementById('renameModal');
+  modal.classList.add('open');
+  setTimeout(() => { inp.focus(); inp.select(); }, 80);
+  inp.onkeydown = e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') closeRenameModal(); };
+}
+function closeRenameModal() {
+  document.getElementById('renameModal').classList.remove('open');
+  _renameKey = null;
+}
+async function confirmRename() {
+  const key = _renameKey;
+  if (!key) return;
+  const trimmed = document.getElementById('renameInput').value.trim();
+  closeRenameModal();
+  const d = getDay(key);
+  if (!d) return;
   d.custom_name = trimmed || null;
   await db.from('gym_days').update({ custom_name: d.custom_name }).eq('day_key', key);
   renderDayPills();
@@ -3275,13 +3306,14 @@ async function saveLog() {
     const gRes = await db.from('gym_log').insert({
       date, session_type: sessionType, session_notes: notes, rpe: gymRpe,
       duration_min: _sessionDurationMin,                       // sRPE (migrasjon 026)
-    });
+    }).select('id').single();
     if (gRes.error) {
       // Offline? Behold draft og lagre automatisk når nettet er tilbake.
       if (!navigator.onLine) armOfflineResave();
       else toast(`${t('gym.save_error')}: ${gRes.error.message}`, 'err');
       return;
     }
+    const gymLogId = gRes.data?.id ?? null;
     // Merk lagret økt — pain registrert etter dette auto-persisteres
     _lastSaved = { date, sessionType };
     // Skriv injury_pain for alle alvorlige skader
@@ -3325,6 +3357,7 @@ async function saveLog() {
           weight_kg: (w == null || isNaN(w)) ? null : w,
           reps: String(s.reps ?? ex.reps ?? ''), set_index: i, knee_max: kneeMax,
           rir: exRir[exId] ?? null,   // innsats per øvelse → RIR-aware coach
+          gym_log_id: gymLogId,
         });
       });
     }
@@ -3706,9 +3739,16 @@ async function toggleKneeEdit(gymId) {
 async function loadHistSets(gymId, date) {
   const host = document.getElementById(`he-sets-${gymId}`);
   if (!host) return;
-  const { data } = await db.from('set_log')
+  // Prøv gym_log_id-query først (ny data); fall tilbake til date for eldre rader
+  let { data } = await db.from('set_log')
     .select('id,exercise_name,weight_kg,reps,set_index,day_key')
-    .eq('date', date).order('set_index', { ascending: true });
+    .eq('gym_log_id', gymId).order('set_index', { ascending: true });
+  if (!data || !data.length) {
+    const fallback = await db.from('set_log')
+      .select('id,exercise_name,weight_kg,reps,set_index,day_key')
+      .eq('date', date).is('gym_log_id', null).order('set_index', { ascending: true });
+    data = fallback.data || [];
+  }
   const rows = data || [];
   _heOrig[gymId]   = rows.map(r => r.id);
   _heDayKey[gymId] = rows.length ? (rows[0].day_key ?? null) : null;
