@@ -129,6 +129,7 @@
       transition: background 0.2s, border-color 0.2s, transform 0.15s;
     }
     .session-cta:hover { background: rgba(91,164,245,0.18); border-color: rgba(91,164,245,0.38); transform: translateY(-1px); }
+    .session-cta:active { transform: scale(0.97); opacity: 0.85; }
     .session-cta .cta-arrow { display: inline-block; transition: transform 0.2s; }
     .session-cta:hover .cta-arrow { transform: translateX(3px); }
 
@@ -150,6 +151,7 @@
     }
     .fokus-item.is-checkable { cursor: pointer; }
     .fokus-item.is-checkable:hover { background: rgba(255,255,255,0.038); }
+    .fokus-item.is-checkable:active { background: rgba(255,255,255,0.06); transform: scale(0.98); }
     .fokus-item.is-done { opacity: 0.38; }
     .fokus-item.is-done .fokus-text { text-decoration: line-through; color: var(--text-tertiary); }
     .fokus-item.cat-styrke   { border-left-color: rgba(255,184,77,0.55); }
@@ -198,6 +200,7 @@
     .dash-todo-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
     .dtt { flex: 1; text-align: center; padding: 6px 4px; border-radius: 7px; font-size: 9.5px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); background: rgba(255,255,255,0.03); border: 1px solid transparent; cursor: pointer; transition: all 0.12s; }
     .dtt:hover { color: var(--text-secondary); }
+    .dtt:active { transform: scale(0.96); opacity: 0.75; }
     .dtt.active { color: var(--text-primary); background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
     .dtt.overdue.active { color: var(--danger); }
     .dtt-n { opacity: 0.55; }
@@ -636,7 +639,14 @@ async function loadSleep() {
   if (!data?.length) {
     el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null;
   }
-  const d = data[0];
+  _sleepRowCache = data[0];
+  return renderSleepCard(_sleepRowCache);
+}
+
+// Rendrer søvnkortet fra cachet rad — kalles direkte ved språkbytte (ingen DB-kall)
+function renderSleepCard(d) {
+  const el = document.getElementById('sleepCard');
+  if (!d) { el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null; }
   const sc   = d.sleep_score > 0  ? d.sleep_score  : null;
   const hrs  = d.sleep_hours > 0  ? d.sleep_hours  : null;
   const rhr  = d.rhr > 0          ? d.rhr          : null;
@@ -738,16 +748,10 @@ async function loadInjuryCards() {
   const injIds = _severeInjuries.map(i => i.id);
   const kneeInj = _severeInjuries.find(i => _isDashKneeInj(i));
 
-  const ipFetch = db.from('injury_pain').select('*')
-    .in('injury_id', injIds).order('date', { ascending: false }).limit(injIds.length * 10);
-  const knFetch = kneeInj
-    ? db.from('knee_pain').select('*').order('date', { ascending: false }).limit(1)
-    : Promise.resolve({ data: [] });
+  const { ipRows, knRows } = await _getPain42(injIds, kneeInj);
+  const kneeRow = knRows[0] || null;
 
-  const [ipRes, knRes] = await Promise.all([ipFetch, knFetch]);
-  const kneeRow = (knRes.data || [])[0] || null;
-
-  _injuryCardDataCache = { injuries: _severeInjuries, injuryPainRows: ipRes.data || [], kneeRow };
+  _injuryCardDataCache = { injuries: _severeInjuries, injuryPainRows: ipRows, kneeRow };
   renderInjuryCards();
   return kneeRow;   // knee_pain row — compat med renderDailyFokus
 }
@@ -831,6 +835,26 @@ let _loadPainCache  = null;   // { series, injuryPainSeries } — gjenbrukes ved
 let _loadPainChart  = null;
 let _severeInjuries = [];   // [{id,body_part,side,status,severity}] — deles med loadInjuryCards + loadLoadPain
 let _injuryCardDataCache = null;  // { injuries, injuryPainRows, kneeRow }
+let _pain42Prom = null;    // memoized promise — injury_pain + knee_pain (42 days), deles av loadInjuryCards + loadLoadPain
+
+// Henter injury_pain + knee_pain for siste 42 dager én gang per sidelast.
+// Begge funksjonene som trenger disse dataene kaller hit; den andre returnerer
+// den allerede-startet-Promise slik at bare én DB-runde-tur sendes.
+function _getPain42(injIds, kneeInj) {
+  if (_pain42Prom) return _pain42Prom;
+  const since42 = _isoDaysAgo(41);
+  const ipF = injIds.length
+    ? db.from('injury_pain').select('*').in('injury_id', injIds).gte('date', since42).order('date', { ascending: false })
+    : Promise.resolve({ data: [] });
+  const knF = kneeInj
+    ? db.from('knee_pain').select('*').gte('date', since42).order('date', { ascending: false })
+    : Promise.resolve({ data: [] });
+  _pain42Prom = Promise.all([ipF, knF]).then(([ip, kn]) => ({
+    ipRows: ip.data || [],
+    knRows: kn.data || [],
+  }));
+  return _pain42Prom;
+}
 
 function _isDashKneeInj(inj) {
   const bp = (inj.body_part || '').toLowerCase();
@@ -850,7 +874,6 @@ function _isoDaysAgo(n) {
 async function loadLoadPain() {
   const DAYS = 42;
   const since70 = _isoDaysAgo(97);   // 42d graf + 56d EWMA-oppvarming bakover
-  const since42 = _isoDaysAgo(DAYS - 1);
   const todayISO = _isoDaysAgo(0);
 
   const [spRes, gyRes, acRes] = await Promise.all([
@@ -880,17 +903,10 @@ async function loadLoadPain() {
   const injIds = injuries.map(i => i.id);
   const kneeInj = injuries.find(i => _isDashKneeInj(i));
 
-  const ipFetch = injIds.length
-    ? db.from('injury_pain')
-        .select('injury_id,date,before_score,during_score,after_score,day_after_score')
-        .in('injury_id', injIds).gte('date', since42)
-    : Promise.resolve({ data: [] });
-  const knFetch = kneeInj
-    ? db.from('knee_pain')
-        .select('date,before_score,during_score,after_score,day_after_score').gte('date', since42)
-    : Promise.resolve({ data: [] });
-
-  const [ipRes, knRes] = await Promise.all([ipFetch, knFetch]);
+  // Rebruk delte pain-data (én DB-runde-tur delt med loadInjuryCards)
+  const { ipRows: ipData, knRows: knData } = await _getPain42(injIds, kneeInj);
+  const ipRes = { data: ipData };
+  const knRes = { data: knData };
 
   const events = AcwrCore.buildLoadEvents({
     sprint: sp.data || [], gym: gy.data || [], activity: ac.data || [],
@@ -1191,6 +1207,8 @@ async function renderWeekStrip() {
 
 // ── Dagens fokus ─────────────────────────────────────────────────────────────
 let _calUpcoming   = [];
+let _calTodayEvts  = [];   // cache — re-rendres uten nettverksfall ved språkbytte
+let _sleepRowCache = null; // cache — re-rendres uten DB-kall ved språkbytte
 let _lastFokusData = null;
 
 function _fokusKey(id)    { return `fokus_done_${today()}_${id}`; }
@@ -1594,22 +1612,32 @@ async function loadCalendar() {
       sessionStorage.setItem(CAL_KEY, JSON.stringify({ ts: Date.now(), data: calData }));
     }
     const { today: todayEvts = [], upcoming = [] } = calData;
-    _calUpcoming = upcoming;
-
-    elToday.innerHTML = todayEvts.length
-      ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
-      : `<p class="cal-empty">${t('dash.no_today')}</p>`;
-
-    const future = upcoming.filter(e => !_calIsToday(e.start));
-    elUpcoming.innerHTML = future.length
-      ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
-      : `<p class="cal-empty">${t('dash.cal_nothing_planned')}</p>`;
-
+    _calUpcoming  = upcoming;
+    _calTodayEvts = todayEvts;
+    renderCalendar();
     renderNextEvent(upcoming);
   } catch {
-    elToday.innerHTML    = `<p class="cal-error">${t('dash.cal_not_connected')}</p>`;
-    elUpcoming.innerHTML = '';
+    const elToday2    = document.getElementById('cal-today');
+    const elUpcoming2 = document.getElementById('cal-upcoming');
+    if (elToday2)    elToday2.innerHTML    = `<p class="cal-error">${t('dash.cal_not_connected')}</p>`;
+    if (elUpcoming2) elUpcoming2.innerHTML = '';
   }
+}
+
+// Re-render kalender fra cache — ingen nettverksfall, brukt ved språkbytte
+function renderCalendar() {
+  const elToday    = document.getElementById('cal-today');
+  const elUpcoming = document.getElementById('cal-upcoming');
+  if (!elToday || !elUpcoming) return;
+  const todayEvts = _calTodayEvts;
+  const upcoming  = _calUpcoming;
+  elToday.innerHTML = todayEvts.length
+    ? todayEvts.map(e => _calEventHTML(_calFmtTime(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
+    : `<p class="cal-empty">${t('dash.no_today')}</p>`;
+  const future = upcoming.filter(e => !_calIsToday(e.start));
+  elUpcoming.innerHTML = future.length
+    ? future.slice(0, 8).map(e => _calEventHTML(_calFmtDate(e.start), e.summary || t('dash.untitled'), !e.start.dateTime)).join('')
+    : `<p class="cal-empty">${t('dash.cal_nothing_planned')}</p>`;
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -1661,18 +1689,18 @@ async function loadCalendar() {
 })();
 
 // Re-render dynamic content when language toggles (utils.js calls this from toggleLang)
+// Ingen DB-kall her — alt re-rendres fra lokale cacher for umiddelbar respons.
 onLangChange = () => {
   applyLang();
-  rebuildWeekPlanLabels();           // re-resolve økt-labels til nytt språk
-  loadSession();                     // synkron — bygger badge/CTA med t()
-  loadSleep().catch(() => {});        // re-render søvnkort (Dyp-label, timer, dataalder)
-  renderInjuryCards();               // re-render skadekort (fasenavn, kroppsdelsnavn)
+  rebuildWeekPlanLabels();        // re-resolve økt-labels til nytt språk
+  loadSession();                  // synkron — bygger badge/CTA med t()
+  renderSleepCard(_sleepRowCache);// re-render fra cache (ingen DB-kall)
+  renderInjuryCards();            // re-render skadekort (fasenavn, kroppsdelsnavn)
   renderWeekStrip().catch(() => {});
-  if (typeof renderDashTodos === 'function') renderDashTodos();
+  if (typeof renderDashTodos === 'function') renderDashTodos(); // bruker dashTodoData-cache
   if (_lastFokusData) renderDailyFokus(_lastFokusData);
-  renderLoadPain();                  // re-render graf med oversatte etiketter
-  loadTodos().catch(() => {});
-  loadCalendar().catch(() => {});
+  renderLoadPain();               // re-render graf med oversatte etiketter
+  renderCalendar();               // re-render fra _calTodayEvts/_calUpcoming-cache
 };
 </script>
 </body>
