@@ -59,7 +59,8 @@
       position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200;
       display: none; align-items: center; justify-content: center;
     }
-    .day-dialog-backdrop.open { display: flex; }
+    .day-dialog-backdrop.open { display: flex; animation: modalBackdropIn 0.18s ease both; }
+    .day-dialog-backdrop.open .day-dialog { animation: modalPanelIn 0.24s cubic-bezier(0.2,0.7,0.2,1) both; }
     .day-dialog {
       background: #16161a; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
       padding: 22px; width: min(340px, 90vw); display: flex; flex-direction: column; gap: 14px;
@@ -202,6 +203,7 @@
     .ex-r-name { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
     .ex-name-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 12px; padding: 2px 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
     .ex-r-info:hover .ex-name-edit-btn { opacity: 0.6; }
+    @media (hover: none) { .ex-name-edit-btn { opacity: 0.5; } } /* alltid synlig på touch */
     .ex-name-edit-btn:hover { color: var(--accent-blue); opacity: 1 !important; }
     .ex-name-edit-form { display: none; align-items: center; gap: 6px; padding: 7px 0; }
     .ex-name-edit-form.open { display: flex; }
@@ -249,7 +251,7 @@
       margin-top: -2px; margin-bottom: 2px;
       overflow: hidden;
     }
-    .set-drawer.open { display: block; }
+    .set-drawer.open { display: block; animation: modalPanelIn 0.2s cubic-bezier(0.2,0.7,0.2,1) both; }
     .drawer-hd {
       display: flex; align-items: center; gap: 8px;
       padding: 9px 14px 8px;
@@ -302,7 +304,7 @@
       padding: 8px 10px; margin-top: 4px;
       background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px;
     }
-    .add-ex-form.open { display: flex; }
+    .add-ex-form.open { display: flex; animation: modalPanelIn 0.2s cubic-bezier(0.2,0.7,0.2,1) both; }
     .add-ex-form input { flex: 1; }
     .add-ex-form .w-short { width: 54px; flex: none; }
 
@@ -439,6 +441,10 @@
     .edit-knee-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 3px; margin-left: auto; flex-shrink: 0; opacity: 0.45; transition: opacity 0.15s, color 0.15s; }
     .gym-history-item:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
+    /* Touch: gjør reveal-on-hover-handlinger synlige (drag-handle utelatt med vilje) */
+    @media (hover: none) {
+      .ex-r-del, .ex-r-menu, .edit-knee-btn { opacity: 0.5; }
+    }
     .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0.45; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
     .gym-history-item:hover .gym-del-btn { opacity: 1; }
     .gym-del-btn:hover { color: var(--danger); }
@@ -448,7 +454,7 @@
     .hist-act-del { margin-left: auto; color: var(--danger); border-color: rgba(255,80,80,0.22); }
     .hist-act-del:hover { background: rgba(255,80,80,0.08); border-color: rgba(255,80,80,0.45); color: var(--danger); }
     .knee-edit-panel { display: none; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; }
-    .knee-edit-panel.open { display: block; }
+    .knee-edit-panel.open { display: block; animation: modalPanelIn 0.2s cubic-bezier(0.2,0.7,0.2,1) both; }
     .knee-edit-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .knee-edit-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); }
     .he-inj-name { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 4px; }
@@ -477,7 +483,12 @@
     }
     .gsx-sec-lbl { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 9px; }
     .sess-detail { display: none; }
-    .sess-detail.open { display: block; }
+    .sess-detail.open { display: block; animation: modalPanelIn 0.2s cubic-bezier(0.2,0.7,0.2,1) both; }
+    /* Slå av drawer/dialog-inn-animasjon ved redusert bevegelse */
+    @media (prefers-reduced-motion: reduce) {
+      .set-drawer.open, .add-ex-form.open, .knee-edit-panel.open,
+      .sess-detail.open, .day-dialog-backdrop.open .day-dialog { animation: none; }
+    }
     .gym-history-card .sess-detail { padding: 20px 22px 18px; }
     .he-status { font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.04em; color: var(--text-tertiary); transition: color 0.15s; min-height: 14px; }
     .he-status.pending { color: var(--text-tertiary); }
@@ -1145,10 +1156,14 @@ function pillLongPressStart(e, key) {
 function pillLongPressCancel() { clearTimeout(_pillLongPressTimer); }
 
 function showPillMenu(e, key) {
+  // fjern både aktiv (#pillMenu) og en evt. utgående meny (id nullet ved lukking)
   document.getElementById('pillMenu')?.remove();
+  document.querySelectorAll('.menu-anim[data-pillmenu]').forEach(m => m.remove());
   const touch = e.touches?.[0] || e;
   const menu = document.createElement('div');
   menu.id = 'pillMenu';
+  menu.dataset.pillmenu = '1';
+  menu.className = 'menu-anim';
   menu.style.cssText = `position:fixed;z-index:999;top:${touch.clientY+10}px;left:${Math.min(touch.clientX, window.innerWidth-160)}px;
     background:#1a1a20;border:1px solid rgba(255,255,255,0.12);border-radius:10px;
     overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5)`;
@@ -1162,9 +1177,20 @@ function showPillMenu(e, key) {
   menu.appendChild(mkBtn('✎ Gi nytt navn', () => renameDay(key), 'color:#fff;border-bottom:1px solid rgba(255,255,255,0.07)'));
   menu.appendChild(mkBtn('🗑 Slett', () => deleteDay(key), 'color:#ff6b6b'));
   document.body.appendChild(menu);
+  requestAnimationFrame(() => menu.classList.add('open'));   // glid + fade inn
   setTimeout(() => document.addEventListener('touchstart', closePillMenu, { once: true }), 10);
 }
-function closePillMenu() { document.getElementById('pillMenu')?.remove(); }
+function closePillMenu() {
+  const m = document.getElementById('pillMenu');
+  if (!m) return;
+  m.id = '';                                  // hindrer dobbel-lukking på samme element
+  m.classList.remove('open');
+  const rm = () => m.remove();
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { rm(); return; }
+  let done = false;
+  m.addEventListener('transitionend', () => { done = true; rm(); }, { once: true });
+  setTimeout(() => { if (!done) rm(); }, 200);
+}
 
 async function renameDay(key) {
   const d = getDay(key);
@@ -1458,7 +1484,18 @@ function setDay(day) {
   const d = getDay(day);
   document.getElementById('workoutTitle').textContent = d ? dayLabel(d) : t('gym.session');
   renderAll();
+  _gymCrossfade();
   saveDraft();
+}
+
+// Crossfade øktinnholdet ved dagbytte (item 7).
+function _gymCrossfade() {
+  const el = document.getElementById('workoutBlocks');
+  if (!el) return;
+  el.classList.add('view-fade');
+  el.classList.remove('is-swapping');
+  void el.offsetWidth;
+  el.classList.add('is-swapping');
 }
 
 function renderAll() {

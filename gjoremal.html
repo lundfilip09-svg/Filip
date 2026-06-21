@@ -713,6 +713,11 @@
       z-index: 1000; backdrop-filter: blur(4px); padding: 16px;
     }
     .dt-overlay.hidden { display: none; }
+    .dt-overlay:not(.hidden) { animation: modalBackdropIn 0.18s ease both; }
+    .dt-overlay:not(.hidden) .dt-modal { animation: modalPanelIn 0.24s cubic-bezier(0.2,0.7,0.2,1) both; }
+    @media (prefers-reduced-motion: reduce) {
+      .dt-overlay:not(.hidden), .dt-overlay:not(.hidden) .dt-modal { animation: none; }
+    }
     .dt-modal {
       background: #0e0e10; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 16px; padding: 22px 24px 24px; width: 100%; max-width: 460px;
@@ -945,6 +950,7 @@ let activeList   = 'Generelt';
 let allTodos     = [];
 let filter       = 'active';
 let newImportant = false;
+let _justAddedId = null;   // id på nylig lagt-til todo → glir inn ved neste render
 
 // ── Drag & drop state ─────────────────────────────────────────────────────
 let _dragId = null;
@@ -1033,7 +1039,12 @@ async function autoClean() {
 // ── Stats ─────────────────────────────────────────────────────────────────
 function updateStats() {
   const todayStr = today();
-  const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  const set = (id, val) => {
+    const e = document.getElementById(id); if (!e) return;
+    // Tell opp kun ved første render (når feltet fortsatt viser plassholder), ellers sett direkte
+    if (typeof val === 'number' && /^[–—-]?$/.test(e.textContent.trim())) countUp(e, val);
+    else e.textContent = val;
+  };
 
   // Sidebar: global across all lists
   set('sbActive',    allTodos.filter(t => !t.completed).length);
@@ -1112,6 +1123,17 @@ function selectList(name) {
   renderListsBar();
   document.getElementById('listHeading').textContent = name;
   renderTodos();
+  _todoListCrossfade();
+}
+
+// Crossfade todo-lista ved liste-/filter-bytte (item 7).
+function _todoListCrossfade() {
+  const tl = document.getElementById('todoList');
+  if (!tl) return;
+  tl.classList.add('view-fade');
+  tl.classList.remove('is-swapping');
+  void tl.offsetWidth;
+  tl.classList.add('is-swapping');
 }
 
 async function renameList(oldName) {
@@ -1249,6 +1271,11 @@ function renderTodos() {
       </div>`;
     }).join('');
     applyOrder(el, activeList);
+    if (_justAddedId) {
+      const newRow = el.querySelector(`.todo-item[data-id="${_justAddedId}"]`);
+      if (newRow) newRow.classList.add('li-enter');
+      _justAddedId = null;
+    }
   }
 
   renderListsBar();
@@ -1262,6 +1289,7 @@ function setFilter(f) {
     b.classList.toggle('active', b.dataset.filter === f);
   });
   renderTodos();
+  _todoListCrossfade();
 }
 
 // ── Add todo ──────────────────────────────────────────────────────────────
@@ -1347,6 +1375,7 @@ async function addTodo() {
   if (error) { toast(t('gm.save_error'), 'err'); return; }
 
   allTodos.unshift(data);
+  _justAddedId = String(data.id);
   const _ord = getOrder(activeList) || [];
   saveOrder(activeList, [String(data.id), ..._ord]);
   document.getElementById('todoTitle').value  = '';
@@ -1466,8 +1495,9 @@ async function deleteTodo(id) {
   if (error) { toast(t('gm.delete_error'), 'err'); return; }
   cancelTodoReminder(id);
   allTodos = allTodos.filter(x => x.id !== id);
-  renderTodos();
-  toast(t('gm.deleted'));
+  const row = document.querySelector(`.todo-item[data-id="${id}"]`);
+  if (row) removeWithCollapse(row, () => { renderTodos(); toast(t('gm.deleted')); });
+  else { renderTodos(); toast(t('gm.deleted')); }
 }
 
 // ── Inline edit: title ────────────────────────────────────────────────────

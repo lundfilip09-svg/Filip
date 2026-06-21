@@ -1613,12 +1613,23 @@ function setView(mode) {
     if (stripWrap) stripWrap.style.display = 'none';
     miniMonth = { year: selectedDate.getFullYear(), month: selectedDate.getMonth() };
     renderMonthView();
+    _crossfade(monthCard);
   } else {
     if (dayCard)   dayCard.style.display   = 'block';
     if (monthCard) monthCard.style.display = 'none';
     if (stripWrap) stripWrap.style.display = '';
     renderDayView(toLocalStr(selectedDate));
+    _crossfade(dayCard);
   }
+}
+
+// Crossfade ved view-bytte: restart .view-fade-animasjonen på kortet som vises.
+function _crossfade(el) {
+  if (!el) return;
+  el.classList.add('view-fade');
+  el.classList.remove('is-swapping');
+  void el.offsetWidth;            // tving reflow så animasjonen restartes
+  el.classList.add('is-swapping');
 }
 
 // ── Render all ─────────────────────────────────────────────────────────────

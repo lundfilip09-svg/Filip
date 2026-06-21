@@ -1431,17 +1431,36 @@ function _renderNotifPanel() {
   panel.innerHTML = html;
 }
 
+// Glid/fade panelet inn og ut via .menu-anim/.open. Ved lukking venter vi på
+// transitionend før display:none (faller tilbake til timeout under reduced-motion).
+function _openNotifPanel(panel) {
+  panel.classList.add('menu-anim');
+  panel.style.display = 'block';
+  void panel.offsetWidth;                 // tving reflow så .open animerer fra lukket-tilstand
+  panel.classList.add('open');
+}
+function _closeNotifPanel(panel) {
+  panel.classList.remove('open');
+  const done = () => { if (!panel.classList.contains('open')) panel.style.display = 'none'; };
+  if (_prefersReducedMotion && _prefersReducedMotion()) { done(); return; }
+  let fired = false;
+  panel.addEventListener('transitionend', function te() {
+    fired = true; panel.removeEventListener('transitionend', te); done();
+  }, { once: true });
+  setTimeout(() => { if (!fired) done(); }, 220);   // sikkerhetsnett
+}
+
 function toggleNotifPanel(ev) {
   if (ev) ev.stopPropagation();
   _notifOpen = !_notifOpen;
   const panel = document.getElementById('notifPanel');
   if (!panel) return;
   if (_notifOpen) {
-    panel.style.display = 'block';
+    _openNotifPanel(panel);
     _renderNotifPanel();                  // vis det vi har umiddelbart
     loadNotifications().catch(() => {});  // og hent ferskt (db garantert klar her)
   } else {
-    panel.style.display = 'none';
+    _closeNotifPanel(panel);
   }
 }
 
@@ -1451,7 +1470,7 @@ document.addEventListener('click', (e) => {
   if (wrap && !wrap.contains(e.target)) {
     _notifOpen = false;
     const p = document.getElementById('notifPanel');
-    if (p) p.style.display = 'none';
+    if (p) _closeNotifPanel(p);
   }
 });
 
@@ -1985,6 +2004,71 @@ function _initOfflineBanner() {
   update();
 }
 
+/* ── Delte animasjons-hjelpere (brukes av alle sider) ──────────────────────
+   Alle respekterer prefers-reduced-motion ved å hoppe rett til sluttverdi. */
+const _prefersReducedMotion = () =>
+  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* countUp(el, to, opts): teller opp et tall ~600ms ved last.
+   opts.decimals (default 0), opts.suffix/prefix, opts.duration (ms).
+   Hopper til sluttverdi ved reduced-motion eller hvis 'to' ikke er endelig. */
+function countUp(el, to, opts = {}) {
+  if (!el) return;
+  const { decimals = 0, prefix = '', suffix = '', duration = 600 } = opts;
+  const fmt = v => prefix + Number(v).toFixed(decimals) + suffix;
+  if (!isFinite(to)) { el.textContent = fmt(to || 0); return; }
+  if (_prefersReducedMotion()) { el.textContent = fmt(to); return; }
+  el.classList.add('counting');
+  const start = performance.now();
+  const from = 0;
+  const tick = now => {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+    el.textContent = fmt(from + (to - from) * eased);
+    if (p < 1) requestAnimationFrame(tick);
+    else { el.textContent = fmt(to); el.classList.remove('counting'); }
+  };
+  requestAnimationFrame(tick);
+}
+
+/* countUpAll(root): kjør count-up på alle [data-countup] under root.
+   data-countup="<tall>", data-cu-decimals, data-cu-suffix, data-cu-prefix. */
+function countUpAll(root = document) {
+  root.querySelectorAll('[data-countup]').forEach(el => {
+    if (el.dataset.cuDone) return;
+    el.dataset.cuDone = '1';
+    countUp(el, parseFloat(el.getAttribute('data-countup')), {
+      decimals: parseInt(el.dataset.cuDecimals || '0', 10),
+      prefix: el.dataset.cuPrefix || '',
+      suffix: el.dataset.cuSuffix || '',
+    });
+  });
+}
+
+/* staggerIn(els): legg .anim-in med trinnvis forsinkelse (maks 5 trinn). */
+function staggerIn(els) {
+  const list = [...els];
+  list.forEach((el, i) => {
+    el.style.setProperty('--anim-i', Math.min(i, 4));
+    el.classList.add('anim-in');
+  });
+}
+
+/* fadeInChart(canvasEl): kall etter at Chart.js har rendret. */
+function fadeInChart(canvas) {
+  if (!canvas) return;
+  canvas.classList.add('chart-fade');
+  requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.add('chart-ready')));
+}
+
+/* removeWithCollapse(el, after): kollaps-ut animasjon, så fjern fra DOM. */
+function removeWithCollapse(el, after) {
+  if (!el) { if (after) after(); return; }
+  if (_prefersReducedMotion()) { el.remove(); if (after) after(); return; }
+  el.classList.add('li-leave');
+  el.addEventListener('animationend', () => { el.remove(); if (after) after(); }, { once: true });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   _initOfflineBanner();
   const warmed = new Set();
@@ -1998,4 +2082,12 @@ document.addEventListener('DOMContentLoaded', () => {
     a.addEventListener('pointerenter', () => warm(href));
     a.addEventListener('touchstart',   () => warm(href), { passive: true });
   });
+
+  // Opt-in entrance: <body data-entrance> → staggret fade+slide-up på topp-kortene.
+  // Kun statiske kort som finnes ved last; JS-rendret innhold styrer sin egen anim.
+  if (document.body.hasAttribute('data-entrance') && !_prefersReducedMotion()) {
+    const root = document.querySelector('.page, main, .sovn-page, .gm-shell') || document.body;
+    const cards = [...root.children].filter(c => c.matches('.card, [data-anim-card]'));
+    if (cards.length) staggerIn(cards);
+  }
 });

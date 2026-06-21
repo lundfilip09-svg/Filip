@@ -251,7 +251,7 @@
       <div id="bbCurveStats" style="display:flex;gap:14px;font-family:var(--font-mono);font-size:10.5px"></div>
     </div>
     <div class="chart-wrap">
-      <canvas id="bbCurveChart"></canvas>
+      <canvas id="bbCurveChart" class="chart-fade"></canvas>
     </div>
   </div>
 
@@ -276,7 +276,7 @@
     </div>
     <div class="chart-legend" id="chartLegend"></div>
     <div class="chart-wrap">
-      <canvas id="sleepChart"></canvas>
+      <canvas id="sleepChart" class="chart-fade"></canvas>
     </div>
   </div>
 
@@ -442,7 +442,7 @@ function renderHero(d) {
   el.innerHTML = `
     <div class="hero-inner">
       <div class="hero-score-box${cls}">
-        <div class="hero-score-num" style="${sc && sc >= 80 ? 'color:#6BE3A4' : sc && sc >= 60 ? 'color:#F2C063' : sc && sc < 60 ? 'color:#FF6B6B' : ''}">${sc ?? '–'}</div>
+        <div class="hero-score-num" style="${sc && sc >= 80 ? 'color:#6BE3A4' : sc && sc >= 60 ? 'color:#F2C063' : sc && sc < 60 ? 'color:#FF6B6B' : ''}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
         <div class="hero-score-lbl">${t('sovn.score_sub')}</div>
       </div>
       <div class="hero-right">
@@ -467,6 +467,7 @@ function renderHero(d) {
         </button>` : ''}
       </div>
     </div>`;
+  countUpAll(el);
 }
 
 async function fetchSleepNow(btn) {
@@ -593,15 +594,23 @@ function renderMetrics(d) {
     byKey['awake'] || { key:'awake', val:'–', label:t('sovn.awake'),       unit:'min',  level:'none', badge:'', color:'', glow:'', advice:'' },
   ];
 
-  el.innerHTML = cards.map(m => `
-    <div class="metric-card" style="${m.glow ? `box-shadow:0 0 28px ${m.glow};border-color:${m.color}22` : ''}">
+  el.innerHTML = cards.map((m, i) => {
+    // Ren numerisk verdi → count-up. Strenger som «7t 23m» eller «–» vises rått.
+    const numeric = typeof m.val !== 'string' || /^-?\d+(\.\d+)?$/.test(m.val.trim());
+    const valHtml = numeric
+      ? `<span data-countup="${parseFloat(m.val) || 0}">0</span>`
+      : m.val;
+    return `
+    <div class="metric-card" style="--anim-i:${Math.min(i,4)};${m.glow ? `box-shadow:0 0 28px ${m.glow};border-color:${m.color}22` : ''}">
       <div class="mc-top-lbl">${m.label}</div>
-      <div class="mc-val" style="${m.color ? `color:${m.color}` : ''}">${m.val}</div>
+      <div class="mc-val" style="${m.color ? `color:${m.color}` : ''}">${valHtml}</div>
       ${m.unit ? `<div class="mc-unit">${m.unit}</div>` : ''}
       ${m.badge ? `<div class="mc-status-badge" style="color:${m.color};border-color:${m.color}55;background:${m.color}11">${m.badge}</div>` : ''}
       ${m.advice ? `<div class="mc-advice">${m.advice}</div>` : ''}
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
+  staggerIn(el.querySelectorAll('.metric-card'));
+  countUpAll(el);
 }
 
 // ── Render: Sleep Architecture ─────────────────────────────────────────────
@@ -776,6 +785,7 @@ function renderBbCurve(d) {
       },
     },
   });
+  fadeInChart(document.getElementById('bbCurveChart'));
 }
 
 // ── Render: All ────────────────────────────────────────────────────────────
@@ -958,6 +968,7 @@ function renderChart(metric, days) {
       },
     },
   });
+  fadeInChart(document.getElementById('sleepChart'));
 
   // Vis melding hvis lite historikk
   if (chartData.length < 3) {

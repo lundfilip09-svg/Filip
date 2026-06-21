@@ -13,15 +13,30 @@
   <title>Logg inn</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .login-wrap { max-width: 360px; margin: 80px auto 0; }
-    .login-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-    .login-sub { font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 24px; }
-    .login-error { color: var(--danger); font-size: 12px; font-family: var(--font-mono); min-height: 18px; margin-top: 6px; }
+    .login-wrap {
+      max-width: 360px; margin: 14vh auto 0; padding: 28px 26px 26px;
+      animation: animInUp 0.5s cubic-bezier(0.2,0.7,0.2,1) both;
+    }
+    .login-mark {
+      width: 46px; height: 46px; border-radius: 13px; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; font-family: var(--font-mono);
+      color: var(--accent-blue);
+      background: rgba(91,164,245,0.12);
+      border: 1px solid rgba(91,164,245,0.28);
+      box-shadow: 0 0 28px rgba(91,164,245,0.14);
+    }
+    .login-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 5px; }
+    .login-sub { font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 26px; }
+    .login-error { color: var(--danger); font-size: 12px; font-family: var(--font-mono); min-height: 18px; margin-top: 8px; }
+    .login-wrap .form-group + .form-group { margin-top: 14px; }
+    @media (prefers-reduced-motion: reduce) { .login-wrap { animation: none; } }
   </style>
 </head>
 <body>
 <main class="page">
   <div class="card login-wrap">
+    <div class="login-mark">F</div>
     <div class="login-title">Filip's Dashboard</div>
     <div class="login-sub" data-i18n="login.sub">Logg inn for å fortsette</div>
     <div class="form-group">

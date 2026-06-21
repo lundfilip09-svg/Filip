@@ -30,6 +30,7 @@
     .run-del  { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 13px; opacity: 0; transition: opacity 0.15s; margin-left: auto; }
     .run-row:hover .run-del { opacity: 1; }
     .run-del:hover { color: var(--danger); }
+    @media (hover: none) { .run-del { opacity: 0.5; } } /* alltid synlig på touch */
     .session-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 18px 0 14px; }
     .eval-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
     /* ── History — same mechanics as treningsplan ── */
@@ -116,7 +117,7 @@
     }
   </style>
 </head>
-<body>
+<body data-entrance>
 
 <nav class="main-nav" data-nav></nav>
 
@@ -508,13 +509,16 @@ function addRun() {
   document.getElementById('logTime').value = '';
   document.getElementById('logTime').focus();
   renderRuns();
+  // ny rad glir inn (li-enter); siste .run-row = den nettopp lagt til
+  const rows = document.querySelectorAll('#runsList .run-row');
+  rows[rows.length - 1]?.classList.add('li-enter');
   saveDraft();
 }
 
 function removeRun(i) {
-  runs.splice(i, 1);
-  renderRuns();
-  saveDraft();
+  const rows = document.querySelectorAll('#runsList .run-row');
+  const doRemove = () => { runs.splice(i, 1); renderRuns(); saveDraft(); };
+  removeWithCollapse(rows[i], doRemove);
 }
 
 function renderRuns() {
@@ -603,19 +607,24 @@ async function loadPBs() {
   _pbData = byDist;
 
   const el = document.getElementById('pbGrid');
-  el.innerHTML = _distances.filter(d => d.show_pb).map(d => {
+  el.innerHTML = _distances.filter(d => d.show_pb).map((d, i) => {
     const r = byDist[d.distance];
     const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
     const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
-    return `<div class="pb-cell" id="pb-${d.distance}">
+    const timeHtml = r?.best_time != null
+      ? `<span data-countup="${r.best_time}" data-cu-decimals="2">0.00</span>`
+      : '–';
+    return `<div class="pb-cell" id="pb-${d.distance}" style="--anim-i:${Math.min(i,4)}">
       <div class="pb-dist">${distLabel(d.distance)}</div>
       <div id="pb-display-${d.distance}">
-        <div class="pb-time">${r?.best_time != null ? r.best_time.toFixed(2) : '–'}</div>
+        <div class="pb-time">${timeHtml}</div>
         <div class="pb-date">${r?.date ? fmtDate(r.date) : '—'}</div>
       </div>
       <div class="pb-bar" style="background:${barClr}"></div>
     </div>`;
   }).join('');
+  staggerIn(el.querySelectorAll('.pb-cell'));
+  countUpAll(el);
 }
 
 // ── Sprint goals ──────────────────────────────────────────────────────────

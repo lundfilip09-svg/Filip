@@ -141,6 +141,12 @@
       overflow: hidden; max-height: 240px; overflow-y: auto;
     }
     .csel-menu.hidden { display: none; }
+    .csel-menu:not(.hidden) {
+      transform-origin: top;
+      animation: cselDrop 0.16s cubic-bezier(0.2,0.7,0.2,1) both;
+    }
+    @keyframes cselDrop { from { opacity: 0; transform: translateY(-6px) scale(0.985); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .csel-menu:not(.hidden) { animation: none; } }
     .csel-opt {
       padding: 7px 12px; cursor: pointer; font-size: 13px;
       font-family: var(--font-sans); color: var(--text-secondary);
@@ -407,6 +413,11 @@
       z-index: 1000; backdrop-filter: blur(4px);
     }
     .act-modal-overlay.hidden { display: none; }
+    .act-modal-overlay:not(.hidden) { animation: modalBackdropIn 0.18s ease both; }
+    .act-modal-overlay:not(.hidden) .act-modal { animation: modalPanelIn 0.24s cubic-bezier(0.2,0.7,0.2,1) both; }
+    @media (prefers-reduced-motion: reduce) {
+      .act-modal-overlay:not(.hidden), .act-modal-overlay:not(.hidden) .act-modal { animation: none; }
+    }
     .act-modal {
       background: #0e0e10; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px; padding: 24px 28px; width: 100%; max-width: 480px;
@@ -567,7 +578,7 @@
     .card { border-radius: 18px; }
   </style>
 </head>
-<body>
+<body data-entrance>
 
 <nav class="main-nav" data-nav></nav>
 
@@ -934,6 +945,7 @@
 let db;
 document.querySelector('[data-p="treningsplan"]').classList.add('active');
 applyLang();
+staggerIn(document.querySelectorAll('.page > .card'));
 
 function localISODate(d) {
   return d.getFullYear() + '-' +
@@ -1261,8 +1273,15 @@ function renderHero() {
     if (tp && !tp.startsWith('hvile') && !tp.startsWith('fri')) daysLeft++;
   }
 
-  document.getElementById('kpiDone').textContent = `${logged}`;
-  document.getElementById('kpiLeft').textContent = `${daysLeft}`;
+  _cuSet('kpiDone', logged);
+  _cuSet('kpiLeft', daysLeft);
+}
+
+// Tell opp tall kun ved første render (når feltet viser plassholder), ellers sett direkte.
+function _cuSet(id, val, opts) {
+  const e = document.getElementById(id); if (!e) return;
+  if (typeof val === 'number' && /^[–—-]?$/.test(e.textContent.trim())) countUp(e, val, opts);
+  else e.textContent = (opts && opts.suffix) ? val + opts.suffix : val;
 }
 
 // ── Day strip ──────────────────────────────────────────────────────────────
@@ -1447,6 +1466,13 @@ function selectDay(i) {
   selectedIdx = i;
   renderDayStrip();
   renderDetail();
+  const dw = document.querySelector('.tp-detail-wrap');
+  if (dw) {
+    dw.classList.add('view-fade');
+    dw.classList.remove('is-swapping');
+    void dw.offsetWidth;
+    dw.classList.add('is-swapping');
+  }
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
@@ -1471,10 +1497,10 @@ function renderSidebar() {
   }
   const pct = planned > 0 ? Math.round(logged / planned * 100) : 0;
 
-  document.getElementById('sbLogged').textContent  = logged;
-  document.getElementById('sbPlanned').textContent = planned;
-  document.getElementById('sbPct').textContent     = pct + '%';
-  document.getElementById('sbRest').textContent    = rest;
+  _cuSet('sbLogged',  logged);
+  _cuSet('sbPlanned', planned);
+  _cuSet('sbPct',     pct, { suffix: '%' });
+  _cuSet('sbRest',    rest);
 
   // Bar chart — load-aware. (Ukens belastning-kortet er fjernet i redesign;
   // hopp over hvis elementet ikke finnes.)

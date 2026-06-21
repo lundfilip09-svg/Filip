@@ -650,7 +650,7 @@ async function loadSleep() {
   el.innerHTML = `
     <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-        <div style="font-size:32px;font-weight:800;font-family:var(--font-mono);letter-spacing:-0.03em;color:${clr};line-height:1">${sc ?? '–'}</div>
+        <div style="font-size:32px;font-weight:800;font-family:var(--font-mono);letter-spacing:-0.03em;color:${clr};line-height:1">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
         <div>
           <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">${t('dash.sleep_score')}</div>
           <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px">${fmtHours(hrs)}</div>
@@ -676,6 +676,7 @@ async function loadSleep() {
         </div>` : ''}
       </div>
     </a>`;
+  countUpAll(el);
   return d;
 }
 
@@ -915,7 +916,7 @@ function renderLoadPain() {
     return;
   }
 
-  wrap.innerHTML = '<canvas id="loadPainChart"></canvas>';
+  wrap.innerHTML = '<canvas id="loadPainChart" class="chart-fade"></canvas>';
   if (_loadPainChart) { _loadPainChart.destroy(); _loadPainChart = null; }
 
   const dates  = series.map(p => p.date);
@@ -1031,6 +1032,7 @@ function renderLoadPain() {
       },
     },
   });
+  fadeInChart(document.getElementById('loadPainChart'));
 }
 
 // ── Today's session ────────────────────────────────────────────────────────
@@ -1605,6 +1607,7 @@ async function loadCalendar() {
   }
 
   applyLang();
+  staggerIn(document.querySelectorAll('.page > .card'));
   await loadSessionTemplates().catch(() => {});
   await loadWeekPlan().catch(() => {});
   const sessionData = loadSession();

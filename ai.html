@@ -216,6 +216,14 @@
       font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
       text-transform: uppercase; color: var(--text-secondary);
     }
+    .ws-new-badge {
+      display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px;
+      background: #e03131; color: #fff; font-size: 9px; font-weight: 800;
+      letter-spacing: 0.08em; vertical-align: middle; animation: ws-pulse 2s infinite;
+    }
+    @keyframes ws-pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.65; }
+    }
     .ws-btn {
       font-size: 11px; font-family: var(--font-mono); padding: 5px 12px; border-radius: 7px;
       background: rgba(177,151,252,0.14); border: 1px solid rgba(177,151,252,0.3);
@@ -248,7 +256,8 @@
       backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; padding: 20px;
     }
-    .ws-modal-backdrop.open { display: flex; }
+    .ws-modal-backdrop.open { display: flex; animation: modalBackdropIn 0.18s ease both; }
+    .ws-modal-backdrop.open .ws-modal { animation: modalPanelIn 0.24s cubic-bezier(0.2,0.7,0.2,1) both; }
     .ws-modal {
       background: #101014; border: 1px solid rgba(177,151,252,0.25);
       border-radius: 14px; max-width: 640px; width: 100%; max-height: 82vh;
@@ -345,7 +354,7 @@
   <!-- Ukesrapporter: genereres automatisk lørdag morgen (cron), lagres i Supabase -->
   <aside class="ws-panel">
     <div class="ws-panel-hd">
-      <span class="ws-panel-title">📅 <span data-i18n="ws.panel_title">Ukesrapporter</span></span>
+      <span class="ws-panel-title">📅 <span data-i18n="ws.panel_title">Ukesrapporter</span><span class="ws-new-badge" id="wsNewBadge" style="display:none" data-i18n="ws.new_badge">NY</span></span>
       <button class="ws-btn" id="wsRegenBtn" onclick="regenWeeklySummary()" data-i18n="ws.regenerate">↻ Lag på nytt</button>
     </div>
     <div class="ws-list" id="wsList"></div>
@@ -712,11 +721,21 @@ function _isoWeekToSunday(year, week) {
   return sun.toISOString().slice(0, 10);
 }
 
+function wsUpdateNewBadge() {
+  const badge = document.getElementById('wsNewBadge');
+  if (!badge || !wsSummaries.length) return;
+  const newest = wsSummaries[0].week_start; // nyeste først
+  const lastSeen = localStorage.getItem('ws_last_seen') || '';
+  badge.style.display = newest > lastSeen ? '' : 'none';
+  badge.textContent = t('ws.new_badge');
+}
+
 function renderWsList() {
   const list = document.getElementById('wsList');
   if (!list) return;
   if (!wsSummaries.length) {
     list.innerHTML = `<div class="ws-empty">${t('ws.none')}</div>`;
+    wsUpdateNewBadge();
     return;
   }
   const cur = wsCurrentWeekStart();
@@ -726,12 +745,17 @@ function renderWsList() {
       <span class="ws-item-date">${s.week_start} → +6d</span>
       ${s.week_start === cur ? `<span class="ws-badge">${t('ws.current')}</span>` : ''}
     </button>`).join('');
+  wsUpdateNewBadge();
 }
 
 function openWsModal(weekStart) {
   const s = wsSummaries.find(x => x.week_start === weekStart);
   if (!s) return;
   wsOpenWeek = weekStart;
+  // Merk som sett: lagre nyeste rapport-dato slik at badge forsvinner
+  const newest = wsSummaries.length ? wsSummaries[0].week_start : weekStart;
+  localStorage.setItem('ws_last_seen', newest);
+  wsUpdateNewBadge();
   const content = (_lang === 'en' ? (s.content_en || s.content_no) : (s.content_no || s.content_en)) || '';
   document.getElementById('wsModalTitle').textContent = '📅 ' + wsLabel(weekStart);
   document.getElementById('wsModalBody').innerHTML = `<p>${mdToHtml(content)}</p>`;

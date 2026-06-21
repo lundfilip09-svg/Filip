@@ -9,6 +9,9 @@
   --accent-blue:    #5BA4F5;
   --card-bg:        rgba(255,255,255,0.04);
   --card-radius:    16px;
+  /* Standardiserte hårstrek-kanter (samler ~11 spredte opasiteter til to verdier) */
+  --hairline:       rgba(255,255,255,0.08);   /* standard kant på kort/rader/tiles */
+  --hairline-soft:  rgba(255,255,255,0.05);   /* svakere kant på nøstede/sekundære flater */
   --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -437,6 +440,11 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 .todo-item:hover .todo-remind-x { opacity: 0.6; }
 .todo-remind-x:hover { opacity: 1; color: var(--danger); }
+/* Touch: ingen hover, så reveal-on-hover-kontroller må være synlige permanent */
+@media (hover: none) {
+  .todo-del { opacity: 0.45; }
+  .todo-item .todo-remind-x { opacity: 0.5; }
+}
 
 /* ── Grid helpers ─────────────────────────────────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -467,8 +475,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .toast-action:hover { opacity: 1; background: rgba(255,255,255,0.08); }
 
 /* ── States ───────────────────────────────────────────────────────────── */
-.loading { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); text-align: center; padding: 24px; }
-.empty   { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); text-align: center; padding: 24px; }
+.loading { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); text-align: center; padding: 16px 12px; }
+.empty   { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); text-align: center; padding: 16px 12px; }
 
 /* ── Skeleton shimmer ─────────────────────────────────────────────────── */
 @keyframes shimmer {
@@ -569,7 +577,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     }
 .hist-sessions { display: flex; flex-direction: column; gap: 4px; }
 .sess-card {
-      background: var(--card-bg); border: 1px solid rgba(255,255,255,0.07);
+      background: var(--card-bg); border: 1px solid var(--hairline);
       border-radius: 10px; padding: 14px 16px;
       cursor: pointer; transition: background 0.15s, border-color 0.15s;
     }
@@ -630,3 +638,125 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       padding: 6px 8px; line-height: 1.5; resize: vertical; min-height: 52px;
     }
 .sess-edit-textarea:focus { outline: none; border-color: rgba(91,164,245,0.4); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL ANIMATION LAYER  (fase «smooth» — delt av alle sider)
+   Vanilla CSS, ingen avhengigheter. Touch-trygt: hover-effekter ligger bak
+   @media (hover:hover) så de ikke «henger» etter tap på iPhone. Alt slås av
+   under prefers-reduced-motion lengst ned.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Kort-konsistens ───────────────────────────────────────────────────
+   .card hadde kun skygge, ingen kant. Sidene la til kanter inline i 8 ulike
+   opasiteter (0.05–0.12). Standardiser på én subtil hairline her; inline-
+   overstyringer på enkeltsider vinner fortsatt (samme spesifisitet, senere). */
+.card { border: 1px solid var(--hairline); }
+
+/* ── 2. Trykk-feedback (item 8) ──────────────────────────────────────────
+   :active scale på ALLE interaktive flater. Hurtig (90ms) så det føles snappy
+   på touch. Gjelder knapper, lenker-som-knapper og kjente klikkbare celler. */
+button:not(:disabled),
+[role="button"],
+.pain-btn, .pain-seg, .todo-cb, .star-btn, .day-tab, .gm-li,
+.metric-tile, .metric-card, .pb-cell, .sess-card, .hero-chip {
+  transition: transform 0.09s ease, background 0.15s, border-color 0.15s, color 0.15s, opacity 0.12s;
+}
+button:not(:disabled):active,
+[role="button"]:active,
+.pain-btn:active, .pain-seg:active, .todo-cb:active, .star-btn:active,
+.day-tab:active, .gm-li:active, .metric-tile:active, .metric-card:active,
+.pb-cell:active, .sess-card:active, .hero-chip:active {
+  transform: scale(0.96);
+}
+/* Slidere/teksfelt skal ikke krympe ved trykk */
+input:active, textarea:active, select:active,
+.rpe-slider:active, input[type="range"]:active { transform: none; }
+
+/* ── 3. Entrance: staggered fade + slide-up (item 12) ─────────────────────
+   Legg klassen .anim-in på et kort/element ved sidelast. Stagger via
+   --anim-i (0–4) som forsinkelse-steg. Maks 5 trinn som spesifisert. */
+@keyframes animInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.anim-in {
+  animation: animInUp 0.42s cubic-bezier(0.2,0.7,0.2,1) both;
+  animation-delay: calc(var(--anim-i, 0) * 70ms);
+}
+
+/* ── 4. List-item add/remove (item 6) ────────────────────────────────────
+   .li-enter: ny rad glir inn. .li-leave: rad kollapser ut (maks-høyde + fade)
+   før den fjernes fra DOM via animationend i JS. */
+@keyframes liEnter { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.li-enter { animation: liEnter 0.3s cubic-bezier(0.2,0.7,0.2,1) both; }
+.li-leave {
+  overflow: hidden;
+  animation: liLeave 0.32s cubic-bezier(0.4,0,0.2,1) both;
+  pointer-events: none;
+}
+@keyframes liLeave {
+  from { opacity: 1; max-height: 200px; transform: none; }
+  to   { opacity: 0; max-height: 0; transform: translateX(-12px);
+         margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
+}
+
+/* ── 5. Dropdown / meny: slide + fade (item 5) ───────────────────────────
+   Bruk .menu-anim på panel som vises. JS legger til .open når åpen.
+   Default (lukket) = usynlig + løftet; .open = synlig. Ikke display-basert
+   her — komponenten styrer display selv; dette er det visuelle laget. */
+.menu-anim {
+  transform-origin: top;
+  transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.2,0.7,0.2,1);
+}
+.menu-anim:not(.open) { opacity: 0; transform: translateY(-6px) scale(0.985); }
+.menu-anim.open       { opacity: 1; transform: none; }
+/* notif-panel bruker nå .menu-anim (lagt til i JS) for symmetrisk åpne/lukke-
+   glid. Egen entrance-animasjon fjernet så de to ikke kolliderer. */
+
+/* ── 6. Tab / view-bytte crossfade (item 7) ──────────────────────────────
+   Legg .view-fade på innholdscontaineren og kall ::triggerViewFade i JS
+   (toggle .is-swapping) når innholdet byttes. */
+@keyframes viewFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.view-fade.is-swapping { animation: viewFade 0.26s ease both; }
+
+/* ── 7. Chart fade-in (item 11) ──────────────────────────────────────────
+   Canvas starter usynlig; JS legger .chart-ready etter render. */
+canvas.chart-fade { opacity: 0; transition: opacity 0.5s ease; }
+canvas.chart-fade.chart-ready { opacity: 1; }
+
+/* ── 8. Count-up tall (item 10) ──────────────────────────────────────────
+   Tabular-nums hindrer at bredden hopper mens tallet teller opp. */
+[data-countup], .counting { font-variant-numeric: tabular-nums; }
+
+/* ── 8b. Modal/dialog animate-in (item 4) ────────────────────────────────
+   Delte keyframes for modaler/dialoger som vises via en .open-klasse
+   (display:none → flex/block). Backdrop fader, panelet glir + skalerer inn.
+   Brukes per side ved å legge animasjonen på .<backdrop>.open og panelet.
+   Lukking forblir umiddelbar (display:none) — trygt på alle Safari-versjoner. */
+@keyframes modalBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalPanelIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* ── 9. Drag-feedback (item 9) ───────────────────────────────────────────
+   Generisk klasse JS kan legge på et element mens det dras. */
+.dragging {
+  opacity: 0.85; transform: scale(1.03);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+  cursor: grabbing; z-index: 50;
+}
+
+/* ── Reduced motion: slå av ALT over ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  button, [role="button"], .pain-btn, .pain-seg, .todo-cb, .star-btn,
+  .day-tab, .gm-li, .metric-tile, .metric-card, .pb-cell, .sess-card, .hero-chip {
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  button:active, [role="button"]:active, .pain-btn:active, .pain-seg:active,
+  .todo-cb:active, .star-btn:active, .day-tab:active, .gm-li:active,
+  .metric-tile:active, .metric-card:active, .pb-cell:active, .sess-card:active,
+  .hero-chip:active { transform: none; }
+  .anim-in, .li-enter, .li-leave, .view-fade.is-swapping, .notif-panel {
+    animation: none !important;
+  }
+  .li-leave { max-height: 0; opacity: 0; }
+  .menu-anim { transition: none; }
+  canvas.chart-fade { transition: none; opacity: 1; }
+  .dragging { transform: none; }
+  [class*="-backdrop"].open, [class*="-backdrop"].open > * { animation: none !important; }
+}

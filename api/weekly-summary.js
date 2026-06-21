@@ -15,6 +15,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET   (kun for cron-modus)
 
 import { SYSTEM_PROMPT, buildAiContext } from './_lib/context.js';
+import { sendToAll } from './_lib/push.js';
 
 const EN_SPLIT = '===EN===';
 
@@ -136,6 +137,20 @@ export default async function handler(req, res) {
         results.push({ user: u.id, ok: false, error: e.message });
       }
     }
+
+    // Send push-varsel hvis minst én rapport ble generert
+    const anyOk = results.some(r => r.ok);
+    if (anyOk) {
+      try {
+        await sendToAll({
+          title: '📅 Ny ukesrapport er klar',
+          body: 'Treningsoversikten din for denne uka er klar.',
+          tag: 'weekly-summary',
+          url: '/ai',
+        });
+      } catch { /* push-feil skal ikke brekke cron-svaret */ }
+    }
+
     return res.status(200).json({ results });
   }
 
