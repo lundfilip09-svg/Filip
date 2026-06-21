@@ -974,33 +974,59 @@ function _buildSessCard(date, runs, isOpen) {
   const distList = [...new Set(runs.map(r => distLabel(r.distance)))].join('/');
   const sessType = `Sprint ${distList}`.trim();
   const _histRowSp = inj => _histInjuryPain[`${inj.id}|${date}`] || (_isKneeInjury(inj) ? kneeLegacy : null);
-  const _painLineSp = row => [
-    { l: t('knee.before'),      v: row?.before_score },
-    { l: t('knee.during'),      v: row?.during_score },
-    { l: t('knee.after'),       v: row?.after_score },
-    { l: t('tp.knee_dayafter'), v: row?.day_after_score },
-  ].map(x => `${x.l}: <span class="sess-pain-val ${_painColorClass(x.v)}">${x.v ?? '—'}</span>`).join(' · ');
 
-  let painSummary;
-  if (_severeInjuries.length) {
-    painSummary = _severeInjuries.map(inj => {
-      const row = _histRowSp(inj);
-      if (!row || [row.before_score, row.during_score, row.after_score, row.day_after_score].every(v => v == null)) return '';
-      return `<div class="sess-pain"><span style="color:var(--text-secondary)">${escHtml(bodyPartName(inj))}</span> — ${_painLineSp(row)}</div>`;
-    }).filter(Boolean).join('');
-  } else {
-    const hasPain = [kneeBefore, kneeDuring, kneeAfter, kneeDayAfter].some(v => v != null);
-    painSummary = hasPain ? `<span class="sess-pain">${_painLineSp(kneeLegacy)}</span>` : '';
+  // Gym-stil skade-chips
+  function _sprintPainSummary() {
+    const INJ_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
+    if (_severeInjuries.length) {
+      const chips = _severeInjuries.map((inj, idx) => {
+        const row = _histRowSp(inj);
+        if (!row) return '';
+        const phases = [
+          { l: t('knee.before_short'),   v: row.before_score },
+          { l: t('knee.during_short'),   v: row.during_score },
+          { l: t('knee.after_short'),    v: row.after_score },
+          { l: t('knee.dayafter_short'), v: row.day_after_score },
+        ].filter(p => p.v != null);
+        if (!phases.length) return '';
+        const col = INJ_COLORS[idx % INJ_COLORS.length];
+        return `<span class="sess-inj" style="--inj:${col}">
+          <span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
+          phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${_painColorClass(p.v)}">${p.v}</b></span>`).join('')
+        }</span>`;
+      }).filter(Boolean);
+      return chips.length ? `<div class="gym-hist-injs">${chips.join('')}</div>` : '';
+    } else {
+      const vals = [kneeBefore, kneeDuring, kneeAfter, kneeDayAfter];
+      if (vals.every(v => v == null)) return '';
+      const phases = [
+        { l: t('knee.before_short'),   v: kneeBefore },
+        { l: t('knee.during_short'),   v: kneeDuring },
+        { l: t('knee.after_short'),    v: kneeAfter },
+        { l: t('knee.dayafter_short'), v: kneeDayAfter },
+      ].filter(p => p.v != null);
+      return `<div class="gym-hist-injs"><span class="sess-inj" style="--inj:#FF6B6B">
+        <span class="sess-inj-name">${t('knee.pain')}</span>${
+        phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${_painColorClass(p.v)}">${p.v}</b></span>`).join('')
+      }</span></div>`;
+    }
   }
 
+  const volTxt = t('sprint.runs_count', { n: runs.length });
   const card = `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${date}"
-    onclick="toggleSprintDetail('${date}')" style="position:relative">
-    <div style="margin-bottom:8px">${runRows}</div>
-    <div class="sess-meta">
-      ${rpe != null ? `<span class="sess-rpe-tag">RPE ${rpe}</span>` : ''}
-      ${painSummary}
+    onclick="toggleSprintDetail('${date}')" style="--cat:var(--accent-blue)">
+    <div class="sess-hdr">
+      <div class="sess-hdr-body">
+        <div class="sess-type">${escHtml(sessType)}</div>
+        <div class="sess-info-row">
+          <span class="sess-vol-txt">${escHtml(volTxt)}</span>
+          ${rpe != null ? `<span class="sess-rir-badge">RPE ${rpe}</span>` : ''}
+        </div>
+        ${_sprintPainSummary()}
+        ${renderNoteBlock(notes)}
+      </div>
+      <span class="sess-caret">›</span>
     </div>
-    ${renderNoteBlock(notes)}
   </div>`;
 
   const d       = new Date(date + 'T12:00:00');
@@ -1008,47 +1034,54 @@ function _buildSessCard(date, runs, isOpen) {
 
   const detail = isOpen ? `<div class="sess-detail open" id="sess-detail-${date}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">${t('sprint.runs_count', { n: runs.length })}</div>
-        <div class="sess-detail-date">${dateStr}</div>
+      <div class="sdh-left">
+        <span class="sdh-dot" style="background:var(--accent-blue)"></span>
+        <div>
+          <div class="sdh-title">${escHtml(sessType)}</div>
+          <div class="sdh-meta">${dateStr} · ${escHtml(volTxt)}</div>
+        </div>
       </div>
-      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSprintDetail('${date}')">✕</button>
+      <button class="sess-detail-close" onclick="event.stopPropagation();toggleSprintDetail('${date}')" title="${t('close')}">✕</button>
     </div>
-    <div style="margin-bottom:14px">
+    <div style="padding:12px 14px 0">
+      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('sprint.runs')}</div>
+      <div>${runRows}</div>
+    </div>
+    <div style="padding:12px 14px 0">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">RPE</div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
         <input type="number" min="1" max="100" class="sess-edit-input" style="max-width:60px"
           value="${rpe ?? ''}" placeholder="–"
           onblur="saveHistField('${date}','rpe',this.value)"
           onkeydown="if(event.key==='Enter')this.blur()">
         <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">1–100</span>
       </div>
+      ${_severeInjuries.length ? _severeInjuries.map(inj => {
+        const row = _histRowSp(inj);
+        return `<div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${escHtml(bodyPartName(inj))}</div>
+        ${[[t('knee.before'),'before_score',row?.before_score],[t('knee.during'),'during_score',row?.during_score],[t('knee.after'),'after_score',row?.after_score],[t('tp.knee_dayafter'),'day_after_score',row?.day_after_score]].map(([lbl,field,val]) =>
+            painMeterHTML(`sphm-${inj.id}-${field}`, (val != null ? val : null),
+              { label: lbl, onset: `saveHistInjuryPain('${inj.id}','${date}','${escHtml(sessType)}','${field}',$v)` })
+          ).join('')}
+      </div>`;
+      }).join('') : `<div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('knee.pain')}</div>
+        ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) =>
+            painMeterHTML(`sphm-_knee-${field}`, (val != null ? val : null),
+              { label: lbl, onset: `saveHistField('${date}','${field}',$v)` })
+          ).join('')}
+      </div>`}
+      <div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('notes')}</div>
+        <textarea class="sess-edit-textarea"
+          onblur="saveHistField('${date}','notes',this.value)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"
+        >${notes ? escHtml(notes) : ''}</textarea>
+      </div>
     </div>
-    ${_severeInjuries.length ? _severeInjuries.map(inj => {
-      const row = _histRowSp(inj);
-      return `<div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${escHtml(bodyPartName(inj))}</div>
-      ${[[t('knee.before'),'before_score',row?.before_score],[t('knee.during'),'during_score',row?.during_score],[t('knee.after'),'after_score',row?.after_score],[t('tp.knee_dayafter'),'day_after_score',row?.day_after_score]].map(([lbl,field,val]) =>
-          painMeterHTML(`sphm-${inj.id}-${field}`, (val != null ? val : null),
-            { label: lbl, onset: `saveHistInjuryPain('${inj.id}','${date}','${escHtml(sessType)}','${field}',$v)` })
-        ).join('')}
-    </div>`;
-    }).join('') : `<div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">${t('knee.pain')}</div>
-      ${[[t('knee.before'),'knee_before',kneeBefore],[t('knee.during'),'knee_during',kneeDuring],[t('knee.after'),'knee_after',kneeAfter],[t('tp.knee_dayafter'),'knee_day_after',kneeDayAfter]].map(([lbl,field,val]) =>
-          painMeterHTML(`sphm-_knee-${field}`, (val != null ? val : null),
-            { label: lbl, onset: `saveHistField('${date}','${field}',$v)` })
-        ).join('')}
-    </div>`}
-    <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('notes')}</div>
-      <textarea class="sess-edit-textarea"
-        onblur="saveHistField('${date}','notes',this.value)"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"
-      >${notes ? escHtml(notes) : ''}</textarea>
-    </div>
-    <div style="display:flex;justify-content:flex-end">
-      <button class="btn-del-session" onclick="event.stopPropagation();deleteSprintDate('${date}')">${t('sprint.delete_session')}</button>
+    <div class="sess-detail-footer" style="justify-content:flex-end">
+      <button class="sess-detail-del" onclick="event.stopPropagation();deleteSprintDate('${date}')">${t('sprint.delete_session')}</button>
     </div>
   </div>` : `<div class="sess-detail" id="sess-detail-${date}"></div>`;
 

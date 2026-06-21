@@ -288,15 +288,29 @@
 
     
 
-    /* Session detail drawer */
+    /* Session detail drawer — gym-stil (ingen padding på root, innhold har padding inne) */
     .sess-detail {
       display: none;
-      background: rgba(91,164,245,0.04);
-      border: 1px solid rgba(91,164,245,0.15);
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-top: 4px;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-radius: 0 0 14px 14px;
+      margin-top: -1px;
+      overflow: hidden;
       grid-column: 1 / -1;
+    }
+    .sess-detail.open {
+      display: block;
+      animation: sessDetailIn 240ms cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes sessDetailIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .sess-detail-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 14px;
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     .sess-detail-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
@@ -521,6 +535,43 @@
     .sess-name { font-size: 16.5px; font-weight: 700; margin-bottom: 9px; }
     .sess-meta { gap: 8px; row-gap: 7px; }
 
+    /* ── Gym-stil kortstruktur (identisk med gym.html) ──────────────── */
+    .sess-hdr { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+    .sess-hdr-body { flex: 1; min-width: 0; }
+    .sess-type {
+      font-size: 17px; font-weight: 650; color: var(--text-primary);
+      letter-spacing: -0.01em; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sess-info-row {
+      display: flex; align-items: center; gap: 7px; margin-top: 5px;
+      flex-wrap: nowrap; min-width: 0;
+    }
+    .sess-vol-txt {
+      font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .sess-rir-badge {
+      font-size: 11px; font-family: var(--font-mono); padding: 2px 7px;
+      border-radius: 5px; background: rgba(91,164,245,0.09);
+      color: #5BA4F5; border: 1px solid rgba(91,164,245,0.16);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .sess-caret {
+      color: var(--text-tertiary); flex-shrink: 0; font-size: 16px; line-height: 1;
+      transition: transform 0.22s cubic-bezier(0.2,0.7,0.2,1), color 0.15s;
+      margin-left: 2px;
+    }
+    .sess-card.expanded .sess-caret { transform: rotate(90deg); color: #5BA4F5; }
+    .sess-card:hover .sess-caret { color: var(--text-secondary); }
+    .gym-hist-injs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+    /* Drawer-header gym-stil */
+    .sdh-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sdh-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; opacity: 0.9; box-shadow: 0 0 6px currentColor; }
+    .sdh-title { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.2; }
+    .sdh-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.02em; }
+
     /* Per-skade smerte = fargekodet chip (kne vs hamstring lett å skille) */
     .sess-inj {
       display: inline-flex; align-items: center; gap: 8px;
@@ -537,7 +588,7 @@
     .sess-inj-ph b.pain-low  { color: #6BE3A4; }
     .sess-inj-ph b.pain-mid  { color: var(--warning); }
     .sess-inj-ph b.pain-high { color: #FF6B6B; }
-    .sess-detail { border-radius: 14px; padding: 18px 20px; }
+    /* .sess-detail — se gym-stil-blokken over */
     .sess-detail-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
     .sess-detail-lbl, .sess-edit-lbl, .act-field-label {
       font-family: var(--font-sans); font-size: 11px; text-transform: none;
@@ -2304,19 +2355,37 @@ function renderSessionGrid() {
         const knee   = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
         const isOpen = _openDetail === String(g.id);
         const notesPreview = (g.session_notes || '').trim();
+        const gymCatColor = (() => {
+          const k = _SESSION_TYPE_KEYS[(g.session_type || '').trim().toLowerCase()];
+          if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
+          if (k === 'session.mobility') return 'var(--success)';
+          if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
+          return 'rgba(107,227,164,0.7)';
+        })();
+        const gymRir = g.rpe != null ? Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2)) : null;
+        const painChips = buildPainSummaryForDate(g.date, knee);
+        const painBlock = painChips ? `<div class="gym-hist-injs">${painChips}</div>` : '';
+        const durInput = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
+          <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+            value="${g.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+          <span>min</span></span>`;
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${g.id}"
-            style="border-top-color:rgba(107,227,164,0.3)"
+            style="--cat:${gymCatColor}"
             onclick="toggleSessionDetail('${g.id}')">
-            <div class="sess-name">${escHtml(displaySessionType(g.session_type))}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(g.date, knee)}<span class="sess-tag">${t('tp.gym_badge')}</span>
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${g.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
-                <span>min</span>
-              </span>
+            <div class="sess-hdr">
+              <div class="sess-hdr-body">
+                <div class="sess-type">${escHtml(displaySessionType(g.session_type))}</div>
+                <div class="sess-info-row">
+                  ${durInput}
+                  ${gymRir != null ? `<span class="sess-rir-badge">RIR ${gymRir}</span>` : ''}
+                  <span class="sess-tag">${t('tp.gym_badge')}</span>
+                </div>
+                ${painBlock}
+                ${renderNoteBlock(notesPreview)}
+              </div>
+              <span class="sess-caret">›</span>
             </div>
-            ${renderNoteBlock(notesPreview)}
           </div>
           ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
       } else if (entry.type === 'sprint') {
@@ -2325,19 +2394,32 @@ function renderSessionGrid() {
         const knee   = _kneeSprint[s.date] || null;
         const isOpen = _openDetail === sid;
         const distSummary = [...new Set(s.runs.map(r => distLabel(r.distance)))].join(' / ');
+        const sprintTitle = `Sprint · ${distSummary}`;
+        const sprintVolTxt = t('sprint.runs_count', { n: s.runs.length });
+        const sprintPainChips = buildPainSummaryForDate(s.date, knee);
+        const sprintPainBlock = sprintPainChips ? `<div class="gym-hist-injs">${sprintPainChips}</div>` : '';
+        const sprintDur = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
+          <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+            value="${s.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+          <span>min</span></span>`;
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${sid}"
-            style="border-top-color:rgba(91,164,245,0.3)"
+            style="--cat:var(--accent-blue)"
             onclick="toggleSessionDetail('${sid}')">
-            <div class="sess-name">Sprint · ${escHtml(distSummary)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(s.date, knee)}<span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span>
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${s.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
-                <span>min</span>
-              </span>
+            <div class="sess-hdr">
+              <div class="sess-hdr-body">
+                <div class="sess-type">${escHtml(sprintTitle)}</div>
+                <div class="sess-info-row">
+                  <span class="sess-vol-txt">${escHtml(sprintVolTxt)}</span>
+                  ${s.rpe != null ? `<span class="sess-rir-badge">RPE ${s.rpe}</span>` : ''}
+                  ${sprintDur}
+                  <span class="sess-tag" style="background:rgba(91,164,245,0.1);color:#5BA4F5;border-color:rgba(91,164,245,0.2)">${t('tp.sprint_badge')}</span>
+                </div>
+                ${sprintPainBlock}
+                ${renderNoteBlock(s.notes)}
+              </div>
+              <span class="sess-caret">›</span>
             </div>
-            ${renderNoteBlock(s.notes)}
           </div>
           ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
       } else {
@@ -2347,24 +2429,30 @@ function renderSessionGrid() {
         const isOpen = _openDetail === aid;
         const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
         const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
-        const hasPain = [a.knee_before, a.knee_during, a.knee_after, a.knee_day_after].some(v => v != null);
-        const actEmoji = '';
-        const metaExtra = '';
-        const rpeExtra  = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
-        const mpExtra   = a.minutes_played != null ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">${escHtml(t('tp.min_played_short',{n:a.minutes_played}))}</span>` : '';
+        const actPainChips = buildPainSummaryForDate(a.date, kneeAct);
+        const actPainBlock = actPainChips ? `<div class="gym-hist-injs">${actPainChips}</div>` : '';
+        const rpeExtra  = a.rpe ? `<span class="sess-rir-badge">RPE ${a.rpe}</span>` : '';
+        const mpExtra   = a.minutes_played != null ? `<span class="sess-vol-txt">${escHtml(t('tp.min_played_short',{n:a.minutes_played}))}</span>` : '';
+        const actDur = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
+          <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+            value="${a.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveActField('${a.id}','duration_min',this.value)">
+          <span>min</span></span>`;
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
-            style="border-top-color:rgba(242,192,99,0.3)"
+            style="--cat:rgba(242,192,99,0.8)"
             onclick="toggleSessionDetail('${aid}')">
-            <div class="sess-name">${escHtml(label)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}${mpExtra}
-              <span class="sess-dur-wrap" onclick="event.stopPropagation()">
-                <input class="sess-dur-input" type="number" min="5" max="600" step="5"
-                  value="${a.duration_min ?? ''}" placeholder="—"
-                  onblur="autoSaveActField('${a.id}','duration_min',this.value)">
-                <span>min</span>
-              </span>
+            <div class="sess-hdr">
+              <div class="sess-hdr-body">
+                <div class="sess-type">${escHtml(label)}</div>
+                <div class="sess-info-row">
+                  ${mpExtra}${rpeExtra}${actDur}
+                  <span class="act-tag">${escHtml(trActType(a.activity_type))}</span>
+                </div>
+                ${actPainBlock}
+                ${renderNoteBlock(a.notes)}
+              </div>
+              <span class="sess-caret">›</span>
             </div>
-            ${renderNoteBlock(a.notes)}
           </div>
           ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
       }
@@ -2418,35 +2506,47 @@ function buildDetailHtml(g, knee) {
     </div>`;
   }).join('');
 
+  const gymCatColorDtl = (() => {
+    const k = _SESSION_TYPE_KEYS[(g.session_type || '').trim().toLowerCase()];
+    if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
+    if (k === 'session.mobility') return 'var(--success)';
+    if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
+    return 'rgba(107,227,164,0.7)';
+  })();
   return `<div class="sess-detail open" id="sess-detail-${g.id}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
-        <div class="sess-detail-date">${dateStr}</div>
+      <div class="sdh-left">
+        <span class="sdh-dot" style="background:${gymCatColorDtl}"></span>
+        <div>
+          <div class="sdh-title">${escHtml(displaySessionType(g.session_type))}</div>
+          <div class="sdh-meta">${dateStr}</div>
+        </div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${g.id}')" title="${t('close')}">✕</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div>
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-        <input type="number" min="1" max="100" class="sess-edit-input"
-          value="${g.rpe ?? ''}" placeholder="—"
-          onblur="autoSaveGymField('${g.id}','rpe',this.value)">
+    <div style="padding:14px 16px 0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+          <input type="number" min="1" max="100" class="sess-edit-input"
+            value="${g.rpe ?? ''}" placeholder="—"
+            onblur="autoSaveGymField('${g.id}','rpe',this.value)">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
+          <input type="number" min="5" max="600" step="5" class="sess-edit-input"
+            value="${g.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+        </div>
       </div>
-      <div>
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
-        <input type="number" min="5" max="600" step="5" class="sess-edit-input"
-          value="${g.duration_min ?? ''}" placeholder="—"
-          onblur="autoSaveGymField('${g.id}','duration_min',this.value)">
+      ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
+      <div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
+        <textarea class="sess-edit-textarea"
+          onblur="autoSaveSessionNotes('${g.id}',this.value)">${escHtml(g.session_notes || '')}</textarea>
       </div>
     </div>
-    ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
-    <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
-      <textarea class="sess-edit-textarea"
-        onblur="autoSaveSessionNotes('${g.id}',this.value)">${escHtml(g.session_notes || '')}</textarea>
-    </div>
-    <div class="sess-detail-footer">
+    <div class="sess-detail-footer" style="justify-content:flex-end">
       <button class="sess-detail-del" onclick="event.stopPropagation();deleteGymSession('${g.id}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
@@ -2480,37 +2580,42 @@ function buildSprintDetailHtml(s, knee) {
 
   return `<div class="sess-detail open" id="sess-detail-${sid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">Sprint · ${escHtml(distList)}</div>
-        <div class="sess-detail-date">${dateStr}</div>
+      <div class="sdh-left">
+        <span class="sdh-dot" style="background:var(--accent-blue)"></span>
+        <div>
+          <div class="sdh-title">Sprint · ${escHtml(distList)}</div>
+          <div class="sdh-meta">${dateStr} · ${t('sprint.runs_count', { n: s.runs.length })}</div>
+        </div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${sid}')" title="${t('close')}">✕</button>
     </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('tp.runs', {n: s.runs.length})}</div>
-      ${runsHtml}
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div>
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-        <input type="number" min="1" max="100" class="sess-edit-input"
-          value="${s.rpe ?? ''}" placeholder="—"
-          onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
+    <div style="padding:14px 16px 0">
+      <div style="margin-bottom:12px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">${t('sprint.runs')}</div>
+        ${runsHtml}
       </div>
-      <div>
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
-        <input type="number" min="5" max="600" step="5" class="sess-edit-input"
-          value="${s.duration_min ?? ''}" placeholder="—"
-          onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+          <input type="number" min="1" max="100" class="sess-edit-input"
+            value="${s.rpe ?? ''}" placeholder="—"
+            onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
+          <input type="number" min="5" max="600" step="5" class="sess-edit-input"
+            value="${s.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
+        </div>
+      </div>
+      ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
+      <div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
+        <textarea class="sess-edit-textarea"
+          onblur="autoSaveSprintField('${s.date}','notes',this.value)">${escHtml(s.notes || '')}</textarea>
       </div>
     </div>
-    ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
-    <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
-      <textarea class="sess-edit-textarea"
-        onblur="autoSaveSprintField('${s.date}','notes',this.value)">${escHtml(s.notes || '')}</textarea>
-    </div>
-    <div class="sess-detail-footer">
+    <div class="sess-detail-footer" style="justify-content:flex-end">
       <button class="sess-detail-del" onclick="event.stopPropagation();deleteSprintSession('${s.date}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
@@ -2603,31 +2708,38 @@ function buildActDetailHtml(a) {
 
   return `<div class="sess-detail open" id="sess-detail-${aid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">${escHtml(label)}</div>
-        <div class="sess-detail-date">${dateStr}</div>
+      <div class="sdh-left">
+        <span class="sdh-dot" style="background:rgba(242,192,99,0.9)"></span>
+        <div>
+          <div class="sdh-title">${escHtml(label)}</div>
+          <div class="sdh-meta">${dateStr}</div>
+        </div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleSessionDetail('${aid}')" title="${t('close')}">✕</button>
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
-      <input type="number" min="1" max="100" class="sess-edit-input"
-        value="${a.rpe ?? ''}" placeholder="—"
-        onblur="autoSaveActField('${a.id}','rpe',this.value)">
+    <div style="padding:14px 16px 0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">RPE</div>
+          <input type="number" min="1" max="100" class="sess-edit-input"
+            value="${a.rpe ?? ''}" placeholder="—"
+            onblur="autoSaveActField('${a.id}','rpe',this.value)">
+        </div>
+        <div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
+          <input type="number" min="5" max="600" step="5" class="sess-edit-input"
+            value="${a.duration_min ?? ''}" placeholder="—"
+            onblur="autoSaveActField('${a.id}','duration_min',this.value)">
+        </div>
+      </div>
+      ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
+      <div style="margin-bottom:14px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
+        <textarea class="sess-edit-textarea"
+          onblur="autoSaveActField('${a.id}','notes',this.value)">${escHtml(a.notes || '')}</textarea>
+      </div>
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${t('tp.duration')}</div>
-      <input type="number" min="5" max="600" step="5" class="sess-edit-input"
-        value="${a.duration_min ?? ''}" placeholder="—"
-        onblur="autoSaveActField('${a.id}','duration_min',this.value)">
-    </div>
-    ${injSections || `<div style="font-size:11px;color:var(--text-tertiary);padding:6px 0">${t('pain.no_severe')}</div>`}
-    <div>
-      <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">${t('tp.notes')}</div>
-      <textarea class="sess-edit-textarea"
-        onblur="autoSaveActField('${a.id}','notes',this.value)">${escHtml(a.notes || '')}</textarea>
-    </div>
-    <div class="sess-detail-footer">
+    <div class="sess-detail-footer" style="justify-content:flex-end">
       <button class="sess-detail-del" onclick="event.stopPropagation();deleteActivity('${a.id}')">✕ ${t('tp.delete')}</button>
     </div>
   </div>`;
