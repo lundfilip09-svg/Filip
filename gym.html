@@ -1361,7 +1361,7 @@ async function init() {
       const pb = document.getElementById('restPauseBtn');
       if (pb) { pb.textContent = '⏸'; pb.disabled = false; }
     }
-    toast(t('gym.session_saved'));
+    toast(t('gym.session_restored'));
   } else {
     restoreDraft();   // populates setData + kneePain before rendering
     renderAll();
@@ -2889,10 +2889,11 @@ async function _doPersistInjuryPain(injId) {
 }
 
 async function loadSevereInjuries() {
-  const { data } = await db.from('injuries')
+  const { data, error } = await db.from('injuries')
     .select('id, body_part, side, status, severity')
     .in('status', ['active', 'improving'])
     .eq('severity', 'severe');
+  if (error) { console.error('gym/loadSevereInjuries', error); toast(t('err.load_data'), 'err'); return; }
   _severeInjuries = data || [];
   _severeInjuries.forEach(inj => {
     if (!_injuryScores[inj.id])
@@ -3247,6 +3248,11 @@ async function loadGymHistory() {
   const { data: gymData, error: gymErr } = await db.from('gym_log')
     .select('*').order('date', { ascending: false }).limit(10);
 
+  if (gymErr) {
+    console.error('loadGymHistory', gymErr);
+    el.innerHTML = `<div class="empty">${t('err.load_data')}</div>`;
+    return;
+  }
   let sessions = gymData || [];
   let kneeMap  = {};
 
@@ -3974,11 +3980,12 @@ async function checkDayAfterRehab() {
   yesterday.setDate(yesterday.getDate() - 1);
   const yDate = yesterday.toLocaleDateString('sv');
 
-  const { data: sessions } = await db.from('gym_log')
+  const { data: sessions, error: sessErr } = await db.from('gym_log')
     .select('id, session_type, date')
     .eq('date', yDate)
     .limit(1);
 
+  if (sessErr) { console.error('checkDayAfterRehab', sessErr); return; }
   if (!sessions?.length) return;
   const gym = sessions[0];
 

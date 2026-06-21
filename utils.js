@@ -107,7 +107,7 @@ const TRANSLATIONS = {
     'gym.sets': 'Sett', 'gym.reps': 'Reps', 'gym.weight': 'Vekt',
     'gym.rest': 'Pause', 'gym.timer': 'Timer',
     'gym.start': 'Start økt', 'gym.finish': 'Fullfør økt',
-    'gym.session_saved': 'Økt lagret!', 'gym.save_error': 'Feil ved lagring',
+    'gym.session_saved': 'Økt lagret!', 'gym.session_restored': 'Økt gjenopprettet', 'gym.save_error': 'Feil ved lagring',
     'gym.day_after_title': 'Registrer smerte dagen etter',
     'gym.day_after_saved': 'Smerte etter rehab lagret',
     'gym.history': 'Økthistorikk', 'gym.full_log': 'Se full øktlogg →',
@@ -575,6 +575,7 @@ const TRANSLATIONS = {
     'login.password': 'Passord', 'login.email_ph': 'din@epost.no',
     'login.btn': 'Logg inn', 'login.loading': 'Logger inn…',
     'login.empty': 'Fyll inn e-post og passord',
+    'err.load_data': 'Lasting feilet — sjekk tilkobling',
   },
   en: {
     // Nav
@@ -679,7 +680,7 @@ const TRANSLATIONS = {
     'gym.sets': 'Sets', 'gym.reps': 'Reps', 'gym.weight': 'Weight',
     'gym.rest': 'Rest', 'gym.timer': 'Timer',
     'gym.start': 'Start session', 'gym.finish': 'Finish session',
-    'gym.session_saved': 'Session saved!', 'gym.save_error': 'Error saving',
+    'gym.session_saved': 'Session saved!', 'gym.session_restored': 'Session restored', 'gym.save_error': 'Error saving',
     'gym.day_after_title': 'Log day-after pain',
     'gym.day_after_saved': 'Post-rehab pain logged',
     'gym.history': 'Session History', 'gym.full_log': 'See full session log →',
@@ -1147,6 +1148,7 @@ const TRANSLATIONS = {
     'login.password': 'Password', 'login.email_ph': 'your@email.com',
     'login.btn': 'Log in', 'login.loading': 'Logging in…',
     'login.empty': 'Please enter email and password',
+    'err.load_data': 'Load failed — check connection',
   },
 };
 

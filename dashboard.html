@@ -15,7 +15,9 @@
   <style>
     /* ── Hero ── */
     .page { max-width: 1440px; gap: 24px; }
-    .nav-inner { max-width: 1440px; }
+    .nav-inner { max-width: 1100px; }
+    /* Topp (hero/status/graf) full bredde; nederste moduler tilbake til designbredde så de ikke strekkes */
+    .dash-lower { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 1180px; margin-inline: auto; }
     .dash-hero {
       display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
       padding-bottom: 4px;
@@ -395,6 +397,8 @@
     </div>
   </div>
 
+  <div class="dash-lower">
+
   <!-- ══════════════════  OVERSIKT  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(107,227,164,0.55);box-shadow:0 0 7px rgba(107,227,164,0.3)"></div>
@@ -545,6 +549,8 @@
     </div>
   </div>
 
+  </div><!-- /dash-lower -->
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -619,9 +625,14 @@ async function autoCleanTodos() {
 // ── Sleep card ─────────────────────────────────────────────────────────────
 async function loadSleep() {
   // Hent nyeste rad sortert på timestamp (ikke bare dato) for å unngå duplikat-problemet
-  const { data } = await db.from('health_data')
+  const { data, error } = await db.from('health_data')
     .select('*').order('date', { ascending: false }).order('timestamp', { ascending: false }).limit(1);
   const el = document.getElementById('sleepCard');
+  if (error) {
+    console.error('loadSleep', error);
+    el.innerHTML = `<div class="empty">${t('err.load_data')}</div>`;
+    return null;
+  }
   if (!data?.length) {
     el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null;
   }
@@ -707,9 +718,14 @@ async function loadRehabData() {
 
 // ── Injury status cards (generisk, én blokk per alvorlig skade) ────────────
 async function loadInjuryCards() {
-  const { data: injData } = await db.from('injuries')
+  const { data: injData, error: injErr } = await db.from('injuries')
     .select('id,body_part,side,status,severity')
     .eq('severity', 'severe').in('status', ['active', 'improving']);
+  if (injErr) {
+    console.error('loadInjuryCards/injuries', injErr);
+    document.getElementById('injuryStatusCards').innerHTML = `<div class="empty">${t('err.load_data')}</div>`;
+    return null;
+  }
   _severeInjuries = injData || [];
 
   const el = document.getElementById('injuryStatusCards');
@@ -837,11 +853,19 @@ async function loadLoadPain() {
   const since42 = _isoDaysAgo(DAYS - 1);
   const todayISO = _isoDaysAgo(0);
 
-  const [sp, gy, ac] = await Promise.all([
+  const [spRes, gyRes, acRes] = await Promise.all([
     db.from('sprint_log').select('date,rpe').gte('date', since70),
     db.from('gym_log').select('date,rpe').gte('date', since70),
     db.from('activity_log').select('date,rpe').gte('date', since70),
   ]);
+  if (spRes.error || gyRes.error || acRes.error) {
+    const err = spRes.error || gyRes.error || acRes.error;
+    console.error('loadLoadPain/activity', err);
+    toast(t('err.load_data'), 'err');
+  }
+  const sp = { data: spRes.data || [] };
+  const gy = { data: gyRes.data || [] };
+  const ac = { data: acRes.data || [] };
 
   // Hent skader hvis ikke allerede lastet av loadInjuryCards
   let injuries = _severeInjuries;
