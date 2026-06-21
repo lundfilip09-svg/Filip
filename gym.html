@@ -202,9 +202,8 @@
     .ex-r-num { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); width: 14px; flex-shrink: 0; }
     .ex-r-info { flex: 1; min-width: 0; }
     .ex-r-name { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
-    .ex-name-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 12px; padding: 2px 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
-    .ex-r-info:hover .ex-name-edit-btn { opacity: 0.6; }
-    @media (hover: none) { .ex-name-edit-btn { opacity: 0.5; } } /* alltid synlig på touch */
+    .ex-name-edit-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 14px; padding: 5px 7px; opacity: 0.4; transition: opacity 0.15s; flex-shrink: 0; } /* alltid synlig (var reveal-on-hover → uoppdagbart) */
+    .ex-r-info:hover .ex-name-edit-btn { opacity: 0.75; }
     .ex-name-edit-btn:hover { color: var(--accent-blue); opacity: 1 !important; }
     .ex-name-edit-form { display: none; align-items: center; gap: 6px; padding: 7px 0; }
     .ex-name-edit-form.open { display: flex; }
@@ -218,10 +217,10 @@
     .ex-inline-input:focus { outline: none; border-color: rgba(91,164,245,0.4); }
     .ex-r-del {
       background: none; border: none; color: var(--text-tertiary); cursor: pointer;
-      font-size: 15px; padding: 2px 6px; opacity: 0;
+      font-size: 16px; padding: 5px 9px; opacity: 0.4;
       transition: opacity 0.15s, color 0.15s; flex-shrink: 0;
-    }
-    .ex-row:hover .ex-r-del { opacity: 0.5; }
+    } /* alltid synlig (var reveal-on-hover) */
+    .ex-row:hover .ex-r-del { opacity: 0.7; }
     .ex-r-del:hover { opacity: 1 !important; color: var(--danger); }
     .ex-r-prog { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0; }
     .ex-r-prog.partial { color: var(--warning); }
@@ -1868,6 +1867,7 @@ async function renderOverloadCoach() {
     const wMin  = ws.length ? Math.min(...ws) : null;
     const uniform  = ws.length > 0 && wMax === wMin;
     const lastPain = Math.max(0, ...sets.map(s => s.knee_max ?? 0));   // hele økta, ikke ett sett
+    const painLogged = sets.some(s => s.knee_max != null);   // null på ALLE = smerte aldri logget (≠ 0 = logget, ingen smerte)
     const repsArr  = sets.map(s => String(s.reps ?? '').trim()).filter(Boolean);
     const repsUniform = repsArr.length > 0 && repsArr.every(r => r === repsArr[0]);
 
@@ -1945,6 +1945,14 @@ async function renderOverloadCoach() {
       } else {
         recCls = 'hold'; recTxt = t('po.keep');
       }
+    }
+
+    // Sikkerhetsnett: aldri auto-løft på ufullstendig data. Mangler RIR (innsats)
+    // eller smerte for nyeste økt → vi VET ikke om løftet var fortjent/trygt.
+    // Hold og be om dataen i stedet. Fail safe, ikke fail progress (kritisk for kneet).
+    if (recCls === 'up' && (!painLogged || loggedRir == null)) {
+      recCls = 'hold';
+      recTxt = loggedRir == null ? t('po.need_rir') : t('po.need_pain');
     }
 
     // «Sist»-visning: ekte settbilde, ikke bare toppsettet
@@ -2130,7 +2138,7 @@ function renderExRow(ex, day, num, isWarmup) {
       <div class="ex-r-num">${num}</div>
       <div class="ex-r-info">
         <div class="ex-r-name">
-          <span>${escHtml(ex.exercise_name)}</span>
+          <span ondblclick="event.stopPropagation();toggleExNameEdit('${ex.id}')" title="${t('gym.rename_exercise')}" style="cursor:text">${escHtml(ex.exercise_name)}</span>
           <button class="ex-name-edit-btn" onclick="event.stopPropagation();toggleExNameEdit('${ex.id}')" title="${t('gym.rename_exercise')}">✎</button>
         </div>
         <div class="ex-name-edit-form" id="ex-name-edit-form-${ex.id}">
@@ -3547,6 +3555,22 @@ function addHistEx(gymId) {
   if (addBtn) addBtn.insertAdjacentHTML('beforebegin', histExBlock(gymId, name, [null]));
 }
 
+// Etterregistrering: les økt-RIR-slideren + smertemålerne i drawer-en så
+// nye sett (øvelser lagt til ETTER økta) får samme rir/knee_max som live-lagring,
+// ellers kommer de inn «blinde» og coachen holder dem tilbake (sikkerhetsnettet).
+// rir: RPE-slider (0–100) → RIR 0–5 = (100−rpe)/10.  knee_max: maks knesmerte.
+function heRirVal(gymId) {
+  const rpe = rirValue(`he-rir-s-${gymId}`);
+  return rpe == null ? null : Math.max(0, Math.min(5, (100 - rpe) / 10));
+}
+function heKneeMax(gymId) {
+  const fields = ['before_score','during_score','after_score','day_after_score'];
+  const ki = _kneeInjury();
+  const prefix = (_severeInjuries.length && ki) ? `hep-${gymId}-${ki.id}-` : `hep-${gymId}-_knee-`;
+  const vals = fields.map(f => painMeterValue(prefix + f)).filter(v => v != null);
+  return vals.length ? Math.max(0, ...vals) : null;
+}
+
 // ── Auto-lagring av historikk-skuffen ──────────────────────────────────────
 // Ingen lagre-knapp: hver endring planlegger en debouncet lagring (800 ms).
 function setHistSaveStatus(gymId, state) {
@@ -3596,7 +3620,7 @@ async function autoSaveHistEdit(gymId) {
             present.add(id);
             parallel.push(db.from('set_log').update({ weight_kg: wOk, reps, set_index: idx, exercise_name: name }).eq('id', id));
           } else {
-            inserts.push({ row, payload: { date, day_key: _heDayKey[gymId] ?? st, exercise_name: name, weight_kg: wOk, reps, set_index: idx } });
+            inserts.push({ row, payload: { date, day_key: _heDayKey[gymId] ?? st, exercise_name: name, weight_kg: wOk, reps, set_index: idx, rir: heRirVal(gymId), knee_max: heKneeMax(gymId) } });
           }
         });
       });
@@ -3680,6 +3704,7 @@ async function saveHistEdit(gymId) {
           ops.push(db.from('set_log').insert({
             date, day_key: _heDayKey[gymId] ?? st, exercise_name: name,
             weight_kg: wOk, reps, set_index: idx,
+            rir: heRirVal(gymId), knee_max: heKneeMax(gymId),
           }));
         }
       });
