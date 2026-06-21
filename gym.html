@@ -1924,7 +1924,11 @@ function renderWarmup() {
 
   const hasCardio = allWmExs.some(({ isSyk }) => isSyk);
   const addCardioHtml = hasCardio ? '' :
-    `<button class="add-ex-btn" style="margin-bottom:4px" onclick="addCardioMachine('${wmDay}')">${t('gym.add_cardio')}</button>`;
+    `<div class="circ-row add-cardio-row" onclick="addCardioMachine('${wmDay}')" style="cursor:pointer;opacity:0.55;border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;margin-bottom:6px;transition:opacity 0.15s" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='0.55'">
+      <div class="circ-icon">🚴</div>
+      <div style="flex:1"><div class="circ-name" data-i18n="gym.add_cardio">${t('gym.add_cardio') || '+ Legg til kondisjon'}</div></div>
+      <span style="font-size:18px;color:var(--text-tertiary)">＋</span>
+    </div>`;
 
   const addId = `add-${wmDay}-Prepøvelser`;
   const addHtml = `<div class="add-ex-form" id="${addId}">
@@ -3660,8 +3664,7 @@ function _gymDetailHtml(g, knee, kneeId, isOpen, results, rir) {
         onchange="scheduleHistSave('${g.id}')"
         placeholder="—">${escHtml(g.session_notes || '')}</textarea>
     </div>
-    <div class="sess-detail-footer" style="justify-content:space-between">
-      <span class="he-status" id="he-status-${g.id}"></span>
+    <div class="sess-detail-footer" style="justify-content:flex-end">
       <button class="sess-detail-del" onclick="event.stopPropagation();deleteGymSession('${g.id}','${kneeId}','${g.date}')">${t('delete')}</button>
     </div>
   </div>`;
@@ -4526,3 +4529,4 @@ async function autoSaveGymInjuryPain(injId, date, sessionType, field, value) {
 </script>
 </body>
 </html>
+                                                                  
