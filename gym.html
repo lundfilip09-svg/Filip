@@ -435,6 +435,21 @@
     .pcell { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.035); border-radius: 4px; padding: 2px 6px; }
     .pcell-l { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); }
     .pcell-v { font-size: 11px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+    /* Skade-chips — identisk med treningsplan.html */
+    .sess-inj {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-sans);
+      padding: 3px 5px 3px 9px; border-radius: 8px;
+      background: color-mix(in srgb, var(--inj) 13%, transparent);
+      border: 1px solid color-mix(in srgb, var(--inj) 38%, transparent);
+    }
+    .sess-inj-name { font-size: 11px; font-weight: 700; color: var(--inj); letter-spacing: 0.01em; }
+    .sess-inj-ph { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .sess-inj-ph b { font-weight: 700; margin-left: 3px; }
+    .sess-inj-ph b.pain-low  { color: #6BE3A4; }
+    .sess-inj-ph b.pain-mid  { color: var(--warning); }
+    .sess-inj-ph b.pain-high { color: #FF6B6B; }
+    .gym-hist-injs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .hist-sets-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 3px 8px; }
     .hist-sets-toggle:hover { color: var(--text-secondary); background: rgba(255,255,255,0.07); }
     .hist-ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 2px; font-size: 9px; font-family: var(--font-mono); border-top: 1px solid rgba(255,255,255,0.04); }
@@ -3533,6 +3548,13 @@ function _gymPainClr(v) {
   if (v <= 3) return '#6BE3A4'; if (v <= 5) return '#F2C063';
   if (v <= 7) return 'rgba(242,130,60,1)'; return '#FF6B6B';
 }
+function painColorClass(v) {
+  if (v == null || v === undefined) return '';
+  if (v <= 3) return 'pain-low';
+  if (v <= 6) return 'pain-mid';
+  return 'pain-high';
+}
+const _GYM_INJ_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
 function _gymSessCatColor(raw) {
   const k = _SESSION_TYPE_KEYS[(raw || '').trim().toLowerCase()];
   if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
@@ -3552,15 +3574,38 @@ function _gymHistRow(inj, g, knee) {
   return _histInjuryPain[`${inj.id}|${g.date}`] || (_isKneeInjury(inj) ? knee : null);
 }
 function _gymPainSummary(g, knee) {
+  // Fallback: ingen injuries-tabell → vis knee_pain som enkelt chip
   if (!_severeInjuries.length) {
     const k = knee || {};
-    if ([k.before_score, k.during_score, k.after_score, k.day_after_score].every(v => v == null)) return '';
-    return `<div style="margin-top:9px"><div class="pinj">${_gymPainStrip(knee)}</div></div>`;
+    const phases = [
+      { l: t('knee.before_short'),   v: k.before_score },
+      { l: t('knee.during_short'),   v: k.during_score },
+      { l: t('knee.after_short'),    v: k.after_score },
+      { l: t('knee.dayafter_short'), v: k.day_after_score },
+    ].filter(p => p.v != null);
+    if (!phases.length) return '';
+    return `<div class="gym-hist-injs"><span class="sess-inj" style="--inj:#FF6B6B">
+      <span class="sess-inj-name">${t('knee.pain')}</span>${
+        phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
+      }</span></div>`;
   }
-  const rows = _severeInjuries.map(inj =>
-    `<div class="pinj"><span class="pinj-name">${escHtml(bodyPartName(inj))}</span>${_gymPainStrip(_gymHistRow(inj, g, knee))}</div>`
-  ).join('');
-  return `<div style="margin-top:9px">${rows}</div>`;
+  const chips = _severeInjuries.map((inj, idx) => {
+    const row = _gymHistRow(inj, g, knee);
+    const phases = [
+      { l: t('knee.before_short'),   v: row?.before_score },
+      { l: t('knee.during_short'),   v: row?.during_score },
+      { l: t('knee.after_short'),    v: row?.after_score },
+      { l: t('knee.dayafter_short'), v: row?.day_after_score },
+    ].filter(p => p.v != null);
+    if (!phases.length) return '';
+    const col = _GYM_INJ_COLORS[idx % _GYM_INJ_COLORS.length];
+    return `<span class="sess-inj" style="--inj:${col}">
+      <span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
+        phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
+      }</span>`;
+  }).filter(Boolean);
+  if (!chips.length) return '';
+  return `<div class="gym-hist-injs">${chips.join('')}</div>`;
 }
 // Compact inline pain phases: before · during · after · day-after as colored numbers
 function _spsPhases(vals) {
