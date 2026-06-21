@@ -292,6 +292,8 @@
     .ind-styrke   { background: #FFB84D; box-shadow: 0 0 5px rgba(255,184,77,0.5); }
     .ind-sprint   { background: #5BA4F5; box-shadow: 0 0 5px rgba(91,164,245,0.5); }
     .ind-kondisjon { background: #6BE3A4; box-shadow: 0 0 5px rgba(107,227,164,0.4); }
+    .ind-rehab    { background: #B19FFE; box-shadow: 0 0 5px rgba(177,159,254,0.5); }
+    .ind-soccer   { background: #F97FB8; box-shadow: 0 0 5px rgba(249,127,184,0.5); }
     .week-session-chip {
       font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.04em;
       padding: 3px 7px; border-radius: 3px; white-space: nowrap; line-height: 1.2;
@@ -299,6 +301,8 @@
     .week-session-chip.ind-styrke   { background: rgba(255,184,77,0.15);  color: #FFB84D; }
     .week-session-chip.ind-sprint   { background: rgba(91,164,245,0.15);  color: #5BA4F5; }
     .week-session-chip.ind-kondisjon { background: rgba(107,227,164,0.15); color: #6BE3A4; }
+    .week-session-chip.ind-rehab    { background: rgba(177,159,254,0.15); color: #B19FFE; }
+    .week-session-chip.ind-soccer   { background: rgba(249,127,184,0.15); color: #F97FB8; }
 
     /* ── Oversikt footer ── */
     .oversikt-footer { margin-top: 14px; display: flex; justify-content: flex-end; }
@@ -1174,7 +1178,8 @@ async function renderWeekStrip() {
       let cls = 'ind-styrke';
       if (/sprint/i.test(gymType))                              cls = 'ind-sprint';
       else if (/mobilitet|sirkulasjon|kondisjon|mobility|condition/i.test(gymType)) cls = 'ind-kondisjon';
-      else if (/rehab/i.test(gymType))                          cls = 'ind-kondisjon';
+      else if (/rehab/i.test(gymType))                          cls = 'ind-rehab';
+      else if (/fotball|soccer|basket|football/i.test(gymType)) cls = 'ind-soccer';
       chips.push({ cls, label: _weekStripLabel(gymType) || t('dash.chip_styrke') });
     }
 
@@ -1191,6 +1196,8 @@ async function renderWeekStrip() {
         let cls = 'ind-styrke';
         if (/sprint/.test(t)) cls = 'ind-sprint';
         else if (/kondisjon|sirkulasjon|mobilitet|condition|mobility/.test(t)) cls = 'ind-kondisjon';
+        else if (/rehab/.test(t)) cls = 'ind-rehab';
+        else if (/fotball|soccer|basket|football/.test(t)) cls = 'ind-soccer';
         chips.push({ cls, label: _weekStripLabel(txt) });
       }
     }
@@ -1464,7 +1471,7 @@ function renderDashTodos() {
   } else {
     const moveBtns = (td) => {
       const b = (when, label) => `<span class="todo-move" onclick="event.stopPropagation(); moveTodo('${td.id}', '${when}', this)">→ ${label}</span>`;
-      if (tab === 'overdue')  return b('today', t('dash.move_today')) + b('tomorrow', t('dash.move_tomorrow'));
+      if (tab === 'overdue')  return b('today', t('dash.move_today')) + b('tomorrow', t('dash.move_tomorrow')) + `<span class="todo-move" onclick="event.stopPropagation(); clearDueDash('${td.id}', this)" title="${t('gm.clear_date')}">✕ dato</span>`;
       if (tab === 'today')    return b('tomorrow', t('dash.move_tomorrow'));
       if (tab === 'tomorrow') return b('today', t('dash.move_today'));
       return '';
@@ -1509,7 +1516,17 @@ async function moveTodo(id, when, el) {
   await loadTodos().catch(() => {});
 }
 
-// Legg til fra forsiden — havner på dagen som matcher aktiv fane (I morgen → i morgen, ellers i dag)
+// Fjern forfallsdato på forfalt-fanen i dashboardet
+async function clearDueDash(id, el) {
+  const item = el && el.closest('.todo-item');
+  if (item) item.classList.add('completing');
+  const { error } = await db.from('todos').update({ due_date: null }).eq('id', id);
+  if (error) { if (item) item.classList.remove('completing'); toast(t('gm.save_error'), 'err'); return; }
+  toast(t('gm.date_removed'));
+  await loadTodos().catch(() => {});
+}
+
+// Legg til fra forsiden — havner på dagen som matcher aktiv fane (I morgen → i morgen, ellers idag)
 async function addDashTodo() {
   const input = document.getElementById('dashTodoInput');
   const title = input.value.trim();
