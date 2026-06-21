@@ -623,7 +623,7 @@
     .he-status.error   { color: var(--danger); }
 
     /* Øvelse-picker modal */
-    .he-ex-picker-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; }
+    .he-ex-picker-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: rgba(0,0,0,0.82); display: flex; align-items: center; justify-content: center; }
     .he-ex-picker { background: var(--card-bg, #1c1c1e); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; width: 360px; max-width: 95vw; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     .he-ex-picker-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
     .he-ex-picker-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
@@ -3858,7 +3858,7 @@ function addHistEx(gymId) {
 
   backdrop.innerHTML = `<div class="he-ex-picker" onclick="event.stopPropagation()">
     <div class="he-ex-picker-hd">
-      <span class="he-ex-picker-title">${t('gym.exercises_lc')}</span>
+      <span class="he-ex-picker-title">${t('gym.exercises_cap') || 'Øvelser'}</span>
       <button class="he-ex-picker-close" onclick="this.closest('.he-ex-picker-backdrop').remove()">✕</button>
     </div>
     <div class="he-ex-picker-body">${itemsHtml || `<div style="padding:16px;font-size:12px;color:var(--text-tertiary)">Ingen øvelser funnet for denne dagen</div>`}</div>
