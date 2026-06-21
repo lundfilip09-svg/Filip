@@ -1102,7 +1102,7 @@ function loadSession() {
   };
   const dayNow = new Date().toLocaleDateString(fmtLocale(), { weekday: 'long' });
   // Soccer/basket har ingen egen logg-side → send til treningsoversikt; rehab/kondisjon/styrke → gym
-  const ctaHref  = cls === 'power' ? 'sprint.html' : cls === 'soccer' ? 'treningsplan.html' : 'gym.html';
+  const ctaHref  = cls === 'power' ? 'sprint.html' : cls === 'soccer' ? 'treningsplan.html' : 'gym.html?day=today';
   const ctaLabel = cls === 'power' ? t('dash.open_sprint')
                  : cls === 'soccer' ? t('dash.full_overview')
                  : t('dash.open_gym');

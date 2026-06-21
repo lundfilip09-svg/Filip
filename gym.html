@@ -1525,9 +1525,14 @@ async function init() {
   // A6: last data (inkl. gymDays) FØR vi avgjør aktiv dag, så pills kan rendres.
   await loadData();
 
-  // Restore active day — session key wins, then draft, then detectDay()
+  // Restore active day — ?day=today forces detectDay(), session key wins, then draft, then detectDay()
+  const _urlDay = new URLSearchParams(location.search).get('day');
   let wantDay = null;
-  if (saved?.activeDay) {
+  if (_urlDay === 'today') {
+    wantDay = null; // force detectDay() below
+  } else if (_urlDay && _urlDay !== 'today') {
+    wantDay = _urlDay;
+  } else if (saved?.activeDay) {
     wantDay = saved.activeDay;
   } else {
     try {
