@@ -453,7 +453,7 @@ const TRANSLATIONS = {
     'tp.activity_saved': 'Aktivitet lagret', 'tp.delete_error': 'Feil ved sletting',
     'tp.activity_deleted': 'Aktivitet slettet', 'tp.save_plan': 'Lagre plan',
     'tp.plan_saved': 'Plan lagret', 'tp.plan_load_error': 'Kunne ikke laste plan',
-    'tp.add_activity': '+ Aktivitet', 'tp.loading_log': 'Laster øktlogg…',
+    'tp.add_activity': 'Aktivitet', 'tp.loading_log': 'Laster øktlogg…',
     'tp.hero_loading': 'I dag — laster…',
     'tp.today': 'I dag', 'tp.week': 'Uke', 'tp.next': 'Neste',
     'tp.rest': 'Hviledag', 'tp.free': 'Fri',
@@ -517,7 +517,8 @@ const TRANSLATIONS = {
     'tp.act_custom_ph': 'F.eks. Volleyball', 'tp.act_replaced_ph': 'F.eks. Sprint — tok det rolig pga hamstring',
     'tp.act_soccer': 'Fotball', 'tp.act_swim': 'Svømming', 'tp.act_cycle': 'Sykling',
     'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Amerikansk fotball',
-    'tp.act_walk': 'Turgåing', 'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
+    'tp.act_walk': 'Turgåing', 'tp.act_frisbee': 'Frisbeegolf', 'tp.act_swim_rec': 'Bading',
+    'tp.act_other': 'Annet', 'tp.edit_weekly_plan': 'Rediger ukeplan',
     'tp.rest_rehab': 'Hvile & rehab', 'tp.rest': 'Hvile', 'tp.delete': 'Slett',
     'tp.wp_placeholder': 'F.eks. Sprint, Soccer, Hvile…',
     // Profil
@@ -566,7 +567,7 @@ const TRANSLATIONS = {
     'inj.side_left': 'venstre', 'inj.side_right': 'høyre', 'inj.side_both': 'begge',
     'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderat', 'inj.sev_severe': 'alvorlig',
     'inj.st_active': 'aktiv', 'inj.st_improving': 'i bedring',
-    'gym.cardio_edit': 'Endre maskin/tid', 'gym.cardio_time_ph': 'f.eks. 5–8 min',
+    'gym.cardio_edit': 'Endre maskin/tid', 'gym.cardio_time_ph': 'f.eks. 5–8 min', 'gym.add_cardio': '+ Legg til kondisjon',
     'cardio.bike': 'Sykkel', 'cardio.treadmill': 'Tredemølle', 'cardio.elliptical': 'Ellipse',
     'cardio.rower': 'Romaskin', 'cardio.skierg': 'SkiErg', 'cardio.stairmaster': 'Stairmaster',
     'cardio.walk': 'Gange', 'cardio.jogging': 'Jogging',
@@ -1056,7 +1057,7 @@ const TRANSLATIONS = {
     'tp.activity_saved': 'Activity saved', 'tp.delete_error': 'Error deleting',
     'tp.activity_deleted': 'Activity deleted', 'tp.save_plan': 'Save plan',
     'tp.plan_saved': 'Plan saved', 'tp.plan_load_error': 'Could not load plan',
-    'tp.add_activity': '+ Activity', 'tp.loading_log': 'Loading session log…',
+    'tp.add_activity': 'Activity', 'tp.loading_log': 'Loading session log…',
     'tp.hero_loading': 'Today — loading…',
     'tp.today': 'Today', 'tp.week': 'Week', 'tp.next': 'Next',
     'tp.rest': 'Rest day', 'tp.free': 'Off',
@@ -1120,7 +1121,8 @@ const TRANSLATIONS = {
     'tp.act_custom_ph': 'E.g. Volleyball', 'tp.act_replaced_ph': 'E.g. Sprint — took it easy due to hamstring',
     'tp.act_soccer': 'Soccer', 'tp.act_swim': 'Swimming', 'tp.act_cycle': 'Cycling',
     'tp.act_basketball': 'Basketball', 'tp.act_padel': 'Padel', 'tp.act_amfootball': 'Football',
-    'tp.act_walk': 'Walking', 'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
+    'tp.act_walk': 'Walking', 'tp.act_frisbee': 'Disc golf', 'tp.act_swim_rec': 'Swimming (rec)',
+    'tp.act_other': 'Other', 'tp.edit_weekly_plan': 'Edit weekly plan',
     'tp.rest_rehab': 'Rest & rehab', 'tp.rest': 'Rest', 'tp.delete': 'Delete',
     'tp.wp_placeholder': 'E.g. Sprint, Soccer, Rest…',
     // Profile
@@ -1169,7 +1171,7 @@ const TRANSLATIONS = {
     'inj.side_left': 'left', 'inj.side_right': 'right', 'inj.side_both': 'both',
     'inj.sev_mild': 'mild', 'inj.sev_moderate': 'moderate', 'inj.sev_severe': 'severe',
     'inj.st_active': 'active', 'inj.st_improving': 'improving',
-    'gym.cardio_edit': 'Change machine/time', 'gym.cardio_time_ph': 'e.g. 5–8 min',
+    'gym.cardio_edit': 'Change machine/time', 'gym.cardio_time_ph': 'e.g. 5–8 min', 'gym.add_cardio': '+ Add cardio',
     'cardio.bike': 'Bike', 'cardio.treadmill': 'Treadmill', 'cardio.elliptical': 'Elliptical',
     'cardio.rower': 'Rower', 'cardio.skierg': 'SkiErg', 'cardio.stairmaster': 'Stairmaster',
     'cardio.walk': 'Walk', 'cardio.jogging': 'Jogging',
@@ -2052,6 +2054,8 @@ function loadMultiplier(source, typeText, labelText) {
   if (/padel|padle/.test(s))                             return 3.0;
   if (/basket/.test(s))                                  return 3.0;
   if (/løp|jog|run/.test(s))                             return 1.5;
+  if (/frisbee|disc.?golf/.test(s))                      return 0.75;
+  if (/bading|swim.*rec|rec.*swim/.test(s))              return 0.5;
   if (/svøm|swim|sykl|cycl|bike|ellipse|rehab/.test(s)) return 1.0;
   if (/rolig|lett|easy/.test(s))                         return 1.5;
   return 1.5;
