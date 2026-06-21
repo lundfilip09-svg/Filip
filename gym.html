@@ -449,6 +449,8 @@
     .sess-inj-ph b.pain-low  { color: #6BE3A4; }
     .sess-inj-ph b.pain-mid  { color: var(--warning); }
     .sess-inj-ph b.pain-high { color: #FF6B6B; }
+    .sess-inj-missing { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      opacity: 0.6; font-style: italic; margin-top: 6px; }
     .gym-hist-injs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .hist-sets-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 3px 8px; }
     .hist-sets-toggle:hover { color: var(--text-secondary); background: rgba(255,255,255,0.07); }
@@ -552,11 +554,16 @@
     .sess-pain-inj-row { display: flex; align-items: center; gap: 4px; }
     .sess-pain-inj-name { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); flex-shrink: 0; }
 
-    /* Notes single-line clamp */
+    /* Notes preview */
     .sess-notes-preview {
-      font-size: 10px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4;
+      font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;
       overflow: hidden; text-overflow: ellipsis;
-      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      background: rgba(255,255,255,0.04);
+      border-left: 2px solid rgba(255,255,255,0.12);
+      border-radius: 0 4px 4px 0;
+      padding: 4px 8px;
+      font-style: italic;
     }
 
     /* Expanded detail panel */
@@ -3106,7 +3113,7 @@ async function _doPersistInjuryPain(injId) {
 
 async function loadSevereInjuries() {
   const { data, error } = await db.from('injuries')
-    .select('id, body_part, side, status, severity')
+    .select('id, body_part, side, status, severity, created_at, start_date')
     .in('status', ['active', 'improving'])
     .eq('severity', 'severe');
   if (error) { console.error('gym/loadSevereInjuries', error); toast(t('err.load_data'), 'err'); return; }
@@ -3589,7 +3596,14 @@ function _gymPainSummary(g, knee) {
         phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
       }</span></div>`;
   }
-  const chips = _severeInjuries.map((inj, idx) => {
+  const sessionDate = g.date; // 'YYYY-MM-DD'
+  const chips = [];
+  const missingNames = [];
+  _severeInjuries.forEach((inj, idx) => {
+    // Vis bare skader som var aktive på økt-datoen
+    const injStart = (inj.start_date || inj.created_at || '').slice(0, 10);
+    if (injStart && injStart > sessionDate) return;
+
     const row = _gymHistRow(inj, g, knee);
     const phases = [
       { l: t('knee.before_short'),   v: row?.before_score },
@@ -3597,15 +3611,23 @@ function _gymPainSummary(g, knee) {
       { l: t('knee.after_short'),    v: row?.after_score },
       { l: t('knee.dayafter_short'), v: row?.day_after_score },
     ].filter(p => p.v != null);
-    if (!phases.length) return '';
+
+    if (!phases.length) {
+      missingNames.push(bodyPartName(inj));
+      return;
+    }
     const col = _GYM_INJ_COLORS[idx % _GYM_INJ_COLORS.length];
-    return `<span class="sess-inj" style="--inj:${col}">
+    chips.push(`<span class="sess-inj" style="--inj:${col}">
       <span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
         phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
-      }</span>`;
-  }).filter(Boolean);
-  if (!chips.length) return '';
-  return `<div class="gym-hist-injs">${chips.join('')}</div>`;
+      }</span>`);
+  });
+
+  const missing = missingNames.length
+    ? `<div class="sess-inj-missing">⚠ ${t('gym.pain_missing')}: ${missingNames.map(n => escHtml(n)).join(', ')}</div>`
+    : '';
+  if (!chips.length && !missing) return '';
+  return `<div class="gym-hist-injs">${chips.join('')}</div>${missing}`;
 }
 // Compact inline pain phases: before · during · after · day-after as colored numbers
 function _spsPhases(vals) {
@@ -3750,7 +3772,7 @@ function renderGymHistory() {
               ${rir != null ? `<span class="sess-rir-badge">RIR ${rir}</span>` : ''}
             </div>
             ${_gymPainSummary(g, knee)}
-            ${g.session_notes ? `<div class="sess-notes-preview">${escHtml(g.session_notes)}</div>` : ''}
+            ${g.session_notes ? `<div class="sess-notes-preview"><span style="opacity:0.5;font-style:normal;margin-right:4px;">✎</span>${escHtml(g.session_notes)}</div>` : ''}
           </div>
           <span class="sess-caret">›</span>
         </div>
