@@ -17,7 +17,7 @@ FYSIO-/NAPRAPAT-RÅD: Filip fører selv inn notater fra hver fysio-/naprapat-tim
 
 Andreas Havre er ikke lenger tilgjengelig for nye timer — Filip kan ikke dra til ham, selv om eldre notater nevner å komme tilbake til ham (f.eks. hver ~5. uke); ignorer de oppfordringene. Bruk gjerne rådene Havre allerede har gitt (se FYSIO-NOTATER) og siter dem direkte — de er fortsatt verdifulle og gyldige.
 
-Vær ærlig om behandlingsbehov: hvis noe genuint krever klinisk eller hands-on vurdering, si det rett ut og tydelig — ikke bagatelliser eller skjul det for å være hyggelig. Men ingen bestemt behandling er "non-negotiable": Filip har flere alternativer (trener Erlend Sæterstøl, fysioterapeut i USA, eller andre steder) — bare ikke Havre. Anbefal passende hjelp generelt når det faktisk trengs, og la Filip velge hvor. Ikke mas, og send ham aldri tilbake til Havre.
+Vær ærlig om behandlingsbehov: hvis noe genuint krever klinisk eller hands-on vurdering, si det rett ut og tydelig — ikke bagatelliser eller skjul det for å være hyggelig. Filips tilgjengelige trenere og støttepersonell fremgår av [PROFIL]-blokken — bruk dem når du refererer til hvem han kan kontakte. Anbefal passende hjelp generelt når det faktisk trengs, og la Filip velge hvor. Ikke mas, og send ham aldri tilbake til Havre (Andreas Havre er ikke lenger tilgjengelig for nye timer).
 
 TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Sprint-dager: Søndag, Tirsdag og Torsdag (kan reduseres til 2 dager i vondere perioder).
 
@@ -63,7 +63,8 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   // Tabeller UTEN user_id-kolonne (enbruker-app). Å legge uf på disse gir PostgREST 400 →
   // tom liste — det var derfor ukesrapporten manglet søvn/HRV (health_data) og AI-notater.
   // injury_pain har sitt eget unntak lenger ned (hentes via sbFetch uten uf).
-  const USERLESS = new Set(['health_data', 'knee_pain', 'sprint_log', 'gym_log', 'sprint_records', 'ai_notes']);
+  const USERLESS = new Set(['health_data', 'knee_pain', 'sprint_log', 'gym_log', 'sprint_records', 'ai_notes',
+    'user_profile', 'body_measurements', 'coaches']);
   const sb = (table, params) =>
     sbFetch(supabaseUrl, apikey, token, table, params + (USERLESS.has(table) ? '' : uf));
 
@@ -79,7 +80,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
   const [healthData, sprintData, gymData, kneePainData, activityData,
          sprintRecords, weeklyPlan, planOverrides,
          knee28, sprint28, gym28, act28, aiNotesData, physioNotesData, injuriesData, programData,
-         templatesData] = await Promise.all([
+         templatesData, userProfileData, latestWeightData, coachesData] = await Promise.all([
     sb('health_data',
       'select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,mood,body_battery,stress_avg&order=date.desc&limit=7'),
     sb('sprint_log', 'select=*&order=date.desc&limit=7'),
@@ -104,6 +105,12 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('workout_program', 'select=day,section,exercise_name,sets,reps&order=day.asc,sort_order.asc'),
     // 051: økt-mal-bibliotek — for å resolve template_id -> lesbart navn i ukeplanen
     sb('session_templates', 'select=id,name,i18n_key'),
+    // 060: brukerprofil (navn, fødselsdato, dominant ben, treningsfase, høyde)
+    sb('user_profile', 'select=full_name,birth_date,dominant_leg,training_phase,height_cm&limit=1'),
+    // 059: siste vektmåling
+    sb('body_measurements', 'select=date,weight_kg&order=date.desc&limit=1'),
+    // 061: trenere
+    sb('coaches', 'select=name,role&order=created_at.asc'),
   ]);
 
   // ── Fase 2: injury_pain per alvorlig aktiv skade (trenger ID-er fra fase 1) ──
@@ -311,6 +318,34 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     painLogBlock  = JSON.stringify(stripMeta(kneePainData));
   }
 
+  // ── Profil-blokk (navn, alder, dominant ben, treningsfase, vekt/høyde, trenere) ──
+  const _prof = Array.isArray(userProfileData) ? userProfileData[0] : userProfileData;
+  const _latestW = Array.isArray(latestWeightData) ? latestWeightData[0] : null;
+  const _coaches = Array.isArray(coachesData) ? coachesData : [];
+  const _calcAge = (bd) => {
+    if (!bd) return null;
+    const b = new Date(bd + 'T00:00:00'), t = new Date(_todayISO + 'T00:00:00');
+    let age = t.getFullYear() - b.getFullYear();
+    if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) age--;
+    return age;
+  };
+  const PHASE_NO = { pre_season:'Forsesong', competition:'Konkurransesong', off_season:'Off-sesong', transition:'Overgang' };
+  const LEG_NO   = { left:'venstre', right:'høyre' };
+  const profLines = [];
+  if (_prof?.full_name)      profLines.push(`Navn: ${_prof.full_name}`);
+  if (_prof?.birth_date) {
+    const age = _calcAge(_prof.birth_date);
+    profLines.push(`Fødselsdato: ${_prof.birth_date}${age != null ? ` (${age} år)` : ''}`);
+  }
+  if (_prof?.dominant_leg)   profLines.push(`Dominant ben: ${LEG_NO[_prof.dominant_leg] || _prof.dominant_leg}`);
+  if (_prof?.training_phase) profLines.push(`Treningsfase: ${PHASE_NO[_prof.training_phase] || _prof.training_phase}`);
+  if (_prof?.height_cm)      profLines.push(`Høyde: ${_prof.height_cm} cm`);
+  if (_latestW?.weight_kg)   profLines.push(`Siste vekt: ${_latestW.weight_kg} kg (${_latestW.date})`);
+  if (_coaches.length)       profLines.push(`Trenere: ${_coaches.map(c => `${c.name} (${c.role})`).join(', ')}`);
+  const profileBlock = profLines.length
+    ? `[PROFIL]\n${profLines.join('\n')}`
+    : '';
+
   // Gym-program per styrkedag — så AI vet hvilke øvelser Filip faktisk har på man/ons/fre
   // (gym_log viser bare det som er logget; dette er selve planen med anbefalte sett×reps).
   const PROG_DAY_NO = {
@@ -338,7 +373,7 @@ ${progKeys.map(k => `${PROG_DAY_NO[k] || k}:\n${progByDay[k].map(progFmt).join('
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
-${metricsBlock}
+${profileBlock ? profileBlock + '\n\n' : ''}${metricsBlock}
 
 ${injuriesBlock}
 

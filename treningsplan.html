@@ -597,6 +597,8 @@
             <div class="hero-eyebrow" id="heroEyebrow" data-i18n="tp.hero_loading">I dag — laster…</div>
             <div class="hero-session" id="heroSession">—</div>
             <div class="hero-next" id="heroNext"></div>
+            <button id="heroQuickLog" onclick="quickLogToday()" data-i18n="tp.ql_btn"
+              style="margin-top:12px;padding:9px 16px;border-radius:9px;border:1px solid var(--accent-blue,#5BA4F5);background:rgba(91,164,245,0.12);color:var(--accent-blue,#5BA4F5);font:inherit;font-size:13px;font-weight:600;cursor:pointer">Logg dagens økt</button>
           </div>
           <div class="tp-hero-week" id="heroWeekNav">
             <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
@@ -753,6 +755,7 @@
         <button class="physio-trigger" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
         <button class="physio-trigger" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
         <button class="physio-trigger" onclick="openOCModal()" data-i18n="tp.overload_config">⚙ Overload-coach</button>
+        <button class="physio-trigger" onclick="openProfileModal()" data-i18n="tp.profile_btn">👤 Profil</button>
       </div>
 
     </aside>
@@ -800,6 +803,10 @@
       <div style="margin-bottom:12px">
         <div class="act-field-label" data-i18n="tp.duration">Varighet (min)</div>
         <input class="input-sm" id="actDuration" type="number" min="5" max="600" step="5" placeholder="60" style="width:110px">
+      </div>
+      <div id="actMinPlayedWrap" style="display:none;margin-bottom:12px">
+        <div class="act-field-label" data-i18n="tp.min_played">Minutter i kamp/spill (valgfritt)</div>
+        <input class="input-sm" id="actMinPlayed" type="number" min="0" max="600" step="5" placeholder="—" style="width:110px">
       </div>
       <div style="margin-bottom:12px;max-width:260px" id="actRpeHost"></div>
       <div style="margin-bottom:12px">
@@ -931,6 +938,103 @@
       <div style="margin-top:14px;display:flex;gap:8px">
         <button class="act-save-btn" onclick="saveOCConfig()" data-i18n="save" style="flex:1">Lagre</button>
         <button class="input-sm" onclick="closeOCModal()" data-i18n="cancel" style="cursor:pointer;flex-shrink:0">Avbryt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profil modal -->
+  <div class="act-modal-overlay hidden" id="profileModal" onclick="if(event.target===this)closeProfileModal()">
+    <div class="act-modal" style="max-width:540px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title" data-i18n="tp.profile_title">Profil & innstillinger</span>
+        <button class="act-modal-close" onclick="closeProfileModal()">✕</button>
+      </div>
+      <div style="max-height:72vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:2px">
+
+        <!-- Personlig info -->
+        <div class="act-field-label" style="margin-bottom:10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary)" data-i18n="tp.prof_personal">Personlig info</div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="flex:2;min-width:140px">
+            <div class="act-field-label" data-i18n="tp.prof_name">Fullt navn</div>
+            <input class="input-sm" id="profName" type="text" data-i18n-placeholder="tp.prof_name_ph" placeholder="F.eks. Filip Lund" style="width:100%;box-sizing:border-box">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <div class="act-field-label" data-i18n="tp.prof_birth">Fødselsdato</div>
+            <input class="input-sm" id="profBirth" type="date" style="width:100%;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:110px">
+            <div class="act-field-label" data-i18n="tp.prof_leg">Dominant ben</div>
+            <select class="input-sm" id="profLeg" style="width:100%;box-sizing:border-box">
+              <option value="">—</option>
+              <option value="left" data-i18n="tp.prof_leg_left">Venstre</option>
+              <option value="right" data-i18n="tp.prof_leg_right">Høyre</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px">
+            <div class="act-field-label" data-i18n="tp.prof_phase">Treningsfase</div>
+            <select class="input-sm" id="profPhase" style="width:100%;box-sizing:border-box">
+              <option value="">—</option>
+              <option value="pre_season" data-i18n="tp.prof_phase_pre">Forsesong</option>
+              <option value="competition" data-i18n="tp.prof_phase_comp">Konkurransesong</option>
+              <option value="off_season" data-i18n="tp.prof_phase_off">Off-sesong</option>
+              <option value="transition" data-i18n="tp.prof_phase_trans">Overgang</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:90px">
+            <div class="act-field-label" data-i18n="tp.prof_height">Høyde (cm)</div>
+            <input class="input-sm" id="profHeight" type="number" min="100" max="230" step="0.1" style="width:100%;box-sizing:border-box">
+          </div>
+        </div>
+        <button class="act-save-btn" onclick="saveProfile()" data-i18n="tp.prof_save" style="width:100%;margin-bottom:18px">Lagre profil</button>
+
+        <!-- Vekt -->
+        <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;margin-bottom:10px">
+          <div class="act-field-label" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px" data-i18n="tp.prof_weight_section">Vekt</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:90px">
+              <div class="act-field-label" data-i18n="tp.prof_weight">Vekt (kg)</div>
+              <input class="input-sm" id="profWeightVal" type="number" min="30" max="200" step="0.1" style="width:100%;box-sizing:border-box">
+            </div>
+            <div style="flex:1;min-width:120px">
+              <div class="act-field-label" data-i18n="tp.prof_weight_date">Dato</div>
+              <input class="input-sm" id="profWeightDate" type="date" style="width:100%;box-sizing:border-box">
+            </div>
+            <button class="act-save-btn" onclick="saveWeight()" data-i18n="tp.prof_add_weight" style="flex-shrink:0;padding:8px 16px">Logg</button>
+          </div>
+          <div style="margin-top:10px">
+            <div class="act-field-label" style="margin-bottom:6px" data-i18n="tp.prof_weight_hist">Historikk</div>
+            <div id="profWeightList" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto"></div>
+          </div>
+        </div>
+
+        <!-- Trenere -->
+        <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px">
+          <div class="act-field-label" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px" data-i18n="tp.prof_coaches">Trener / Coach</div>
+          <div id="profCoachesList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div style="flex:2;min-width:120px">
+              <div class="act-field-label" data-i18n="tp.prof_coach_name">Navn</div>
+              <input class="input-sm" id="profCoachName" type="text" placeholder="Erlend Sæterstøl" style="width:100%;box-sizing:border-box">
+            </div>
+            <div style="flex:2;min-width:140px">
+              <div class="act-field-label" data-i18n="tp.prof_coach_role">Rolle / Type</div>
+              <input class="input-sm" id="profCoachRole" type="text" data-i18n-placeholder="tp.prof_coach_role_ph" list="coachRoleSuggestions" placeholder="F.eks. Friidrett, Fotball…" style="width:100%;box-sizing:border-box">
+              <datalist id="coachRoleSuggestions">
+                <option data-i18n="tp.prof_role_head">Hovedtrener</option>
+                <option data-i18n="tp.prof_role_asst">Assistent</option>
+                <option data-i18n="tp.prof_role_track">Friidrett</option>
+                <option data-i18n="tp.prof_role_soccer">Fotball</option>
+                <option data-i18n="tp.prof_role_strength">Styrke</option>
+                <option data-i18n="tp.prof_role_physio">Fysioterapeut</option>
+                <option data-i18n="tp.prof_role_other">Annet</option>
+              </datalist>
+            </div>
+            <button class="act-save-btn" onclick="addCoach()" data-i18n="tp.prof_add_coach" style="flex-shrink:0;padding:8px 14px;font-size:12px">+ Legg til trener</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1235,6 +1339,30 @@ function dayDate(i) {
   return d;
 }
 
+// ── N1: hurtiglogg av dagens planlagte økt ─────────────────────────────────
+// Ruter til riktig logger basert på dagens plan (sprint/styrke/aktivitet).
+function quickLogToday() {
+  const ti = todayIdx();
+  if (isRest(ti)) { toast(t('tp.ql_rest'), 'err'); return; }
+  const lo = todayPlanText(ti).toLowerCase();
+  if (!lo) { toast(t('tp.ql_rest'), 'err'); return; }
+  if (/sprint|power|fart|akselerasjon|\bløp/.test(lo)) { location.href = 'sprint.html'; return; }
+  const map = [['fotball','Fotball'],['soccer','Fotball'],['amerikansk','Amerikansk fotball'],
+    ['basket','Basketball'],['padel','Padel'],['svøm','Svømming'],['swim','Svømming'],
+    ['sykkel','Sykling'],['sykling','Sykling'],['cycl','Sykling']];
+  for (const [kw, type] of map) {
+    if (lo.includes(kw)) {
+      openActModal();
+      const dEl = document.getElementById('actDate'); if (dEl) dEl.value = today();
+      const b = document.querySelector(`.act-type-btn[data-type="${type}"]`);
+      if (b) selectActType(b);
+      return;
+    }
+  }
+  // styrke / rehab / kondisjon / mobilitet → gym-loggeren
+  location.href = 'gym.html';
+}
+
 // ── Hero ───────────────────────────────────────────────────────────────────
 function renderHero() {
   const ti  = todayIdx();
@@ -1252,6 +1380,8 @@ function renderHero() {
     sessionEl.textContent = t('tp.rest');
     sessionEl.className   = 'hero-session is-rest';
   }
+  const qlBtn = document.getElementById('heroQuickLog');
+  if (qlBtn) qlBtn.style.display = (txt && !isRest(ti)) ? '' : 'none';
 
   let nextStr = '';
   for (let d = 1; d <= 6; d++) {
@@ -2210,11 +2340,12 @@ function renderSessionGrid() {
         const actEmoji = '';
         const metaExtra = '';
         const rpeExtra  = a.rpe ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE ${a.rpe}</span>` : '';
+        const mpExtra   = a.minutes_played != null ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary)">${escHtml(t('tp.min_played_short',{n:a.minutes_played}))}</span>` : '';
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
             style="border-top-color:rgba(242,192,99,0.3)"
             onclick="toggleSessionDetail('${aid}')">
             <div class="sess-name">${escHtml(label)}</div>
-            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}
+            <div class="sess-meta">${buildPainSummaryForDate(a.date, kneeAct)}<span class="act-tag">${escHtml(trActType(a.activity_type))}</span>${metaExtra}${rpeExtra}${mpExtra}
               <span class="sess-dur-wrap" onclick="event.stopPropagation()">
                 <input class="sess-dur-input" type="number" min="5" max="600" step="5"
                   value="${a.duration_min ?? ''}" placeholder="—"
@@ -2772,6 +2903,8 @@ function openActModal() {
   document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('actCustomWrap').style.display = 'none';
   document.getElementById('actSoccerLevel').style.display = 'none';
+  const mpw = document.getElementById('actMinPlayedWrap');
+  if (mpw) { mpw.style.display = 'none'; document.getElementById('actMinPlayed').value = ''; }
   const rw = document.getElementById('actReplacedWrap');
   if (rw) { rw.style.display = 'none'; document.getElementById('actReplacedLabel').value = ''; }
   _setMultSlider(1.5);
@@ -2808,6 +2941,8 @@ function selectActType(btn) {
   _actType = btn.dataset.type;
   document.getElementById('actCustomWrap').style.display = _actType === 'Annet' ? 'block' : 'none';
   document.getElementById('actSoccerLevel').style.display = (_actType === 'Fotball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
+  document.getElementById('actMinPlayedWrap').style.display =
+    (_actType === 'Fotball' || _actType === 'Basketball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
   _setMultSlider(loadMultiplier('activity', _actType, _soccerLevel));
 
   // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
@@ -2836,6 +2971,8 @@ async function saveActivity() {
   else if (_actType === 'Fotball' || _actType === 'Amerikansk fotball') actLabel = _soccerLevel;
   const durRaw     = document.getElementById('actDuration')?.value;
   const duration   = (durRaw === '' || durRaw == null) ? null : Math.round(Number(durRaw));
+  const mpRaw      = document.getElementById('actMinPlayed')?.value;
+  const minPlayed  = (mpRaw === '' || mpRaw == null) ? null : Math.round(Number(mpRaw));
   const rpe        = rpeValue('actRpe');
   const notes      = document.getElementById('actNotes').value.trim() || null;
   const multRaw    = document.getElementById('actLoadMult')?.value;
@@ -2843,7 +2980,7 @@ async function saveActivity() {
 
   const { data, error } = await db.from('activity_log').insert({
     user_id: userId, date, activity_type: _actType, activity_label: actLabel,
-    duration_min: duration, rpe,
+    duration_min: duration, minutes_played: minPlayed, rpe,
     notes, load_multiplier: loadMult,
   }).select().single();
 
@@ -3081,6 +3218,135 @@ async function saveOCConfig() {
   closeOCModal();
 }
 
+// ── Profil ─────────────────────────────────────────────────────────────────
+function openProfileModal() {
+  document.getElementById('profileModal').classList.remove('hidden');
+  document.getElementById('profWeightDate').value = localISODate(new Date());
+  loadProfileData();
+}
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.add('hidden');
+}
+
+async function loadProfileData() {
+  // Profil
+  const { data: prof } = await db.from('user_profile').select('*').limit(1).maybeSingle();
+  if (prof) {
+    document.getElementById('profName').value   = prof.full_name   || '';
+    document.getElementById('profBirth').value  = prof.birth_date  || '';
+    document.getElementById('profLeg').value    = prof.dominant_leg || '';
+    document.getElementById('profPhase').value  = prof.training_phase || '';
+    document.getElementById('profHeight').value = prof.height_cm   || '';
+  }
+  // Vekt
+  const { data: weights } = await db.from('body_measurements')
+    .select('id,date,weight_kg,notes')
+    .order('date', { ascending: false })
+    .limit(10);
+  renderWeightList(weights || []);
+  // Trenere
+  const { data: coaches } = await db.from('coaches')
+    .select('id,name,role,notes')
+    .order('created_at', { ascending: true });
+  renderCoachesList(coaches || []);
+}
+
+function renderWeightList(rows) {
+  const el = document.getElementById('profWeightList');
+  if (!rows.length) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary)">${t('tp.prof_no_weight')}</div>`;
+    return;
+  }
+  el.innerHTML = rows.map((r, i) => {
+    const prev = rows[i + 1];
+    let diff = '';
+    if (prev && prev.weight_kg != null && r.weight_kg != null) {
+      const d = (r.weight_kg - prev.weight_kg).toFixed(1);
+      const col = d > 0 ? '#F2C063' : d < 0 ? '#6BE3A4' : 'var(--text-tertiary)';
+      diff = `<span style="font-size:10px;color:${col};margin-left:6px">${d > 0 ? '+' : ''}${d}</span>`;
+    }
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:7px">
+      <span style="font-size:12px;color:var(--text-secondary)">${r.date}</span>
+      <span style="font-size:13px;font-weight:600;font-family:var(--font-mono)">${r.weight_kg != null ? r.weight_kg + ' kg' : '—'}${diff}</span>
+      <button onclick="deleteWeight('${r.id}')" style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:0 2px" data-i18n="tp.prof_weight_del">Slett</button>
+    </div>`;
+  }).join('');
+  applyLang();
+}
+
+function renderCoachesList(rows) {
+  const el = document.getElementById('profCoachesList');
+  if (!rows.length) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary)">${t('tp.prof_no_coaches')}</div>`;
+    return;
+  }
+  el.innerHTML = rows.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.04);border-radius:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${c.name}</div>
+        <div style="font-size:11px;color:var(--accent-blue);margin-top:1px">${c.role}</div>
+      </div>
+      <button onclick="deleteCoach('${c.id}')" style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0" data-i18n="tp.prof_weight_del">Slett</button>
+    </div>`).join('');
+  applyLang();
+}
+
+async function saveProfile() {
+  const payload = {
+    full_name:      document.getElementById('profName').value.trim()   || null,
+    birth_date:     document.getElementById('profBirth').value          || null,
+    dominant_leg:   document.getElementById('profLeg').value            || null,
+    training_phase: document.getElementById('profPhase').value          || null,
+    height_cm:      parseFloat(document.getElementById('profHeight').value) || null,
+    updated_at:     new Date().toISOString()
+  };
+  // Upsert: slett gammel rad og sett inn ny (single-row tabell)
+  const { data: existing } = await db.from('user_profile').select('id').limit(1).maybeSingle();
+  if (existing) {
+    await db.from('user_profile').update(payload).eq('id', existing.id);
+  } else {
+    await db.from('user_profile').insert(payload);
+  }
+  toast(t('tp.prof_saved'));
+}
+
+async function saveWeight() {
+  const val  = parseFloat(document.getElementById('profWeightVal').value);
+  const date = document.getElementById('profWeightDate').value;
+  if (!val || !date) return;
+  await db.from('body_measurements').insert({ date, weight_kg: val });
+  document.getElementById('profWeightVal').value = '';
+  toast(t('tp.prof_weight_saved'));
+  const { data } = await db.from('body_measurements')
+    .select('id,date,weight_kg').order('date',{ascending:false}).limit(10);
+  renderWeightList(data || []);
+}
+
+async function deleteWeight(id) {
+  await db.from('body_measurements').delete().eq('id', id);
+  const { data } = await db.from('body_measurements')
+    .select('id,date,weight_kg').order('date',{ascending:false}).limit(10);
+  renderWeightList(data || []);
+}
+
+async function addCoach() {
+  const name = document.getElementById('profCoachName').value.trim();
+  const role = document.getElementById('profCoachRole').value.trim();
+  if (!name || !role) return;
+  await db.from('coaches').insert({ name, role });
+  document.getElementById('profCoachName').value = '';
+  document.getElementById('profCoachRole').value = '';
+  toast(t('tp.prof_coach_saved'));
+  const { data } = await db.from('coaches').select('id,name,role').order('created_at',{ascending:true});
+  renderCoachesList(data || []);
+}
+
+async function deleteCoach(id) {
+  await db.from('coaches').delete().eq('id', id);
+  const { data } = await db.from('coaches').select('id,name,role').order('created_at',{ascending:true});
+  renderCoachesList(data || []);
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -3121,6 +3387,7 @@ async function saveOCConfig() {
     if (!document.getElementById('actModal').classList.contains('hidden')) renderActInjuryBlocks();
     if (!document.getElementById('ocModal').classList.contains('hidden')) renderOCModal();
     if (!document.getElementById('weeklyPlanModal').classList.contains('hidden')) openEditWeeklyPlan();
+    if (!document.getElementById('profileModal').classList.contains('hidden')) loadProfileData();
   };
   applyLang();
   renderHero();

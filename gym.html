@@ -534,7 +534,7 @@
       animation: sessDetailIn 240ms cubic-bezier(0.16,1,0.3,1) both;
     }
     @keyframes sessDetailIn {
-      from { opacity: 0; transform: translateY(-5px); }
+      from { opacity: 0; transform: translateY(-4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     /* Slå av animasjon ved redusert bevegelse */
@@ -546,35 +546,73 @@
     }
 
     .gym-history-card .sess-detail {
-      padding: 14px 14px 12px 16px;
-      background: rgba(0,0,0,0.14);
-      border-top: 1px solid rgba(255,255,255,0.04);
+      padding: 0;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(255,255,255,0.05);
       border-radius: 0 0 9px 9px;
       margin-top: -1px;
+      overflow: hidden;
     }
 
-    /* Expanded detail header */
-    .sess-detail-hd { padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    /* ── Expanded detail header (AI-page-inspired) ── */
+    .sess-detail-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 14px;
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 0;
+    }
+    .sdh-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sdh-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; opacity: 0.9;
+      box-shadow: 0 0 6px currentColor;
+    }
+    .sdh-title {
+      font-size: 13px; font-weight: 700; color: var(--text-primary);
+      letter-spacing: -0.01em; line-height: 1.2;
+    }
+    .sdh-meta {
+      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      margin-top: 2px; letter-spacing: 0.02em;
+    }
 
-    /* Two-column layout — left wider (exercises) right narrower (pain) */
+    /* ── Two-column layout ── */
     .gsx-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-      gap: 0 28px;
+      gap: 0;
+      padding: 14px 14px 0 16px;
     }
-    .gsx-col { min-width: 0; }
+    .gsx-col { min-width: 0; padding-bottom: 14px; }
     .gsx-col + .gsx-col {
       border-left: 1px solid rgba(255,255,255,0.04);
-      padding-left: 24px;
+      padding-left: 20px;
+      margin-left: 4px;
+    }
+
+    /* Section blocks — subtle framing */
+    .gsx-sec-block {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 7px;
+      padding: 9px 10px;
     }
     .gsx-sec-lbl {
       font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 7px;
+      text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px;
     }
     .gsx-grid .gsx-sec-lbl { margin-top: 0; }
-    .gsx-grid .gsx-col > .gsx-sec-lbl:not(:first-child) { margin-top: 14px; }
 
-    /* RIR section — de-emphasized, compact */
+    /* RIR slider — compact in history context */
+    .gym-history-card .rpe-slider-wrap { gap: 4px; }
+    .gym-history-card .rpe-slider-top span:first-child { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; }
+    .gym-history-card .rpe-slider-val { font-size: 15px; }
+    .gym-history-card .rpe-slider-val.empty { font-size: 12px; }
+    .gym-history-card .rpe-slider { height: 4px; opacity: 0.7; }
+    .gym-history-card .rpe-slider::-webkit-slider-thumb { width: 14px; height: 14px; }
+    .gym-history-card .rpe-slider::-moz-range-thumb { width: 12px; height: 12px; }
+    .gym-history-card .rpe-slider-hint { font-size: 9px; opacity: 0.7; }
     .he-rir-section { margin-bottom: 0; }
 
     /* Status line */
@@ -583,9 +621,17 @@
     .he-status.saved   { color: var(--success); }
     .he-status.error   { color: var(--danger); }
 
+    /* Footer inside detail */
+    .gym-history-card .sess-detail-footer {
+      padding: 8px 14px 10px;
+      margin-top: 0;
+      background: rgba(0,0,0,0.1);
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+
     @media (max-width: 820px) {
-      .gsx-grid { grid-template-columns: 1fr; gap: 0; }
-      .gsx-col + .gsx-col { border-left: none; padding-left: 0; margin-top: 16px; }
+      .gsx-grid { grid-template-columns: 1fr; gap: 0; padding: 12px 12px 0; }
+      .gsx-col + .gsx-col { border-left: none; padding-left: 0; margin-left: 0; margin-top: 10px; }
     }
 
     /* State visibility */
@@ -3488,28 +3534,42 @@ function _gymPainBlocks(g, knee) {
 }
 // Detalj-drawer (sprint .sess-detail) med gym-redigering: RIR + sett + smerte + slett.
 // Indre #knee-edit-${id} bærer data-attr som saveHistEdit leser.
-function _gymDetailHtml(g, knee, kneeId, isOpen) {
+function _gymDetailHtml(g, knee, kneeId, isOpen, results, rir) {
   const st = escHtml(g.session_type || '');
-  const longDate = new Date(g.date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const shortDate = new Date(g.date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const catColor = _gymSessCatColor(g.session_type);
+  // Build meta tag strip (date · volume · RIR)
+  const metaParts = [shortDate];
+  if (results) metaParts.push(escHtml(results));
+  if (rir != null) metaParts.push(`RIR ${rir}`);
   return `<div class="sess-detail${isOpen ? ' open' : ''}" id="gymsess-detail-${g.id}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
-      <div>
-        <div class="sess-detail-title">${escHtml(displaySessionType(g.session_type))}</div>
-        <div class="sess-detail-date">${longDate}</div>
+      <div class="sdh-left">
+        <span class="sdh-dot" style="background:${catColor}"></span>
+        <div>
+          <div class="sdh-title">${escHtml(displaySessionType(g.session_type))}</div>
+          <div class="sdh-meta">${metaParts.join(' · ')}</div>
+        </div>
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleGymDetail('${g.id}')" title="${t('close')}">✕</button>
     </div>
     <div id="knee-edit-${g.id}" data-gid="${g.id}" data-date="${g.date}" data-st="${st}" data-knee-id="${kneeId}" data-rpe="${g.rpe ?? ''}">
       <div class="gsx-grid">
         <div class="gsx-col">
-          <div class="gsx-sec-lbl">RIR</div>
-          <div id="he-rir-${g.id}" class="he-rir-section"></div>
-          <div class="gsx-sec-lbl">${t('gym.exercises_lc')}</div>
-          <div id="he-sets-${g.id}" class="he-sets"></div>
+          <div class="gsx-sec-block">
+            <div class="gsx-sec-lbl">RIR</div>
+            <div id="he-rir-${g.id}" class="he-rir-section"></div>
+          </div>
+          <div class="gsx-sec-block" style="margin-top:10px">
+            <div class="gsx-sec-lbl">${t('gym.exercises_lc')}</div>
+            <div id="he-sets-${g.id}" class="he-sets"></div>
+          </div>
         </div>
         <div class="gsx-col">
-          <div class="gsx-sec-lbl">${t('knee.pain')}</div>
-          ${_gymPainBlocks(g, knee)}
+          <div class="gsx-sec-block">
+            <div class="gsx-sec-lbl">${t('knee.pain')}</div>
+            ${_gymPainBlocks(g, knee)}
+          </div>
         </div>
       </div>
     </div>
@@ -3555,7 +3615,7 @@ function renderGymHistory() {
           <span class="sess-caret">›</span>
         </div>
       </div>`;
-      return card + _gymDetailHtml(g, knee, kneeId, isOpen);
+      return card + _gymDetailHtml(g, knee, kneeId, isOpen, results, rir);
     }).join('');
     return `<div class="hist-date-group">
       <div class="hist-date-label">${dLabel}</div>
