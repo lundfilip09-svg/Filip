@@ -13,6 +13,7 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    .page { max-width: 1440px; }
     .gym-shell {
       display: grid;
       grid-template-columns: 1fr 276px;
@@ -466,6 +467,9 @@
     .he-x { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 12px; padding: 2px 5px; }
     .he-x:hover { color: var(--danger); }
     .he-addset { font-size: 10px; padding: 2px 8px; }
+    /* Øvelser i 2 kolonner (desktop + mobil) så de pakkes 2-og-2 i stedet for én lang stripe */
+    .he-sets { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; align-items: start; }
+    .he-sets > button { grid-column: 1 / -1; justify-self: start; }
 
     /* Fullbredde økthistorikk (sprint-kort-stil) */
     .gym-history-card { margin-top: 18px; }
