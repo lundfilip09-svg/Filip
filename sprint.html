@@ -64,12 +64,85 @@
     .history-dist { color: var(--accent-blue); min-width: 100px; flex-shrink: 0; white-space: nowrap; font-weight: 600; }
     .history-time { color: var(--text-primary); font-weight: 700; font-size: 16px; flex: 1; letter-spacing: -0.01em; }
     .history-type { color: var(--text-tertiary); font-size: 10px; flex-shrink: 0; }
+    /* ── Gym-stil kortstruktur ────────────────────────────────── */
+    .sess-hdr { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+    .sess-hdr-body { flex: 1; min-width: 0; }
+    .sess-type {
+      font-size: 17px; font-weight: 650; color: var(--text-primary);
+      letter-spacing: -0.01em; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sess-info-row {
+      display: flex; align-items: center; gap: 7px; margin-top: 5px;
+      flex-wrap: nowrap; min-width: 0;
+    }
+    .sess-vol-txt {
+      font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .sess-rir-badge {
+      font-size: 11px; font-family: var(--font-mono); padding: 2px 7px;
+      border-radius: 5px; background: rgba(91,164,245,0.09);
+      color: #5BA4F5; border: 1px solid rgba(91,164,245,0.16);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .sess-caret {
+      color: var(--text-tertiary); flex-shrink: 0; font-size: 16px; line-height: 1;
+      transition: transform 0.22s cubic-bezier(0.2,0.7,0.2,1), color 0.15s;
+      margin-left: 2px;
+    }
+    .sess-card.expanded .sess-caret { transform: rotate(90deg); color: #5BA4F5; }
+    .sess-card:hover .sess-caret { color: var(--text-secondary); }
+
+    /* Skade-chips */
+    .sess-inj {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-sans);
+      padding: 3px 5px 3px 9px; border-radius: 8px;
+      background: color-mix(in srgb, var(--inj) 13%, transparent);
+      border: 1px solid color-mix(in srgb, var(--inj) 38%, transparent);
+    }
+    .sess-inj-name { font-size: 11px; font-weight: 700; color: var(--inj); letter-spacing: 0.01em; }
+    .sess-inj-ph { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .sess-inj-ph b { font-weight: 700; margin-left: 3px; }
+    .sess-inj-ph b.pain-low  { color: #6BE3A4; }
+    .sess-inj-ph b.pain-mid  { color: var(--warning); }
+    .sess-inj-ph b.pain-high { color: #FF6B6B; }
+    .gym-hist-injs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
     /* Detail drawer */
     .sess-detail {
-      display: none; background: rgba(91,164,245,0.04);
-      border: 1px solid rgba(91,164,245,0.15); border-radius: 10px;
-      padding: 16px 20px; margin-top: 4px;
+      display: none;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-radius: 0 0 11px 11px;
+      margin-top: -1px;
+      overflow: hidden;
     }
+    .sess-detail.open {
+      display: block;
+      animation: sessDetailIn 240ms cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes sessDetailIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Drawer-header (gym-stil) */
+    .sess-detail-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 14px;
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .sdh-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sdh-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; opacity: 0.9;
+      box-shadow: 0 0 6px currentColor;
+    }
+    .sdh-title { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.2; }
+    .sdh-meta  { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.02em; }
 
     .sess-detail-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
     .sess-detail-date  { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
