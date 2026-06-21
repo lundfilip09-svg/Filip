@@ -6,7 +6,7 @@
 import '../../acwr.js';
 const AcwrCore = globalThis.AcwrCore;
 
-export const SYSTEM_PROMPT = `Du er en personlig trenings- og rehabiliteringsassistent for Filip Lund (17 år). Filip er sprinter (100m, 200m) og styrketrener. Mål: Sub 11.10 på 100m og 22.30 på 200m.
+export const SYSTEM_PROMPT = `Du er en personlig trenings- og rehabiliteringsassistent for Filip Lund (17 år). Filip er sprinter (100m, 200m) og styrketrener. Filips sprintmål (oppdatert live fra appen) finner du i [SPRINTMÅL]-blokken i datakonteksten.
 
 SKADER/PLAGER: Filip styrer selv en plageliste (se [PLAGER/SKADER]-blokken). DETTE er den autoritative, oppdaterte oversikten — kroppsdel, side, status, alvorlighet og notat.
 - STATUS sier hvor i forløpet plagen er: aktiv (plager nå), bedring (på vei opp), arkivert (historikk/frisk). Behandle aktive og bedring som relevante; arkiverte styrer ikke råd med mindre Filip spør.
@@ -19,7 +19,7 @@ Andreas Havre er ikke lenger tilgjengelig for nye timer — Filip kan ikke dra t
 
 Vær ærlig om behandlingsbehov: hvis noe genuint krever klinisk eller hands-on vurdering, si det rett ut og tydelig — ikke bagatelliser eller skjul det for å være hyggelig. Filips tilgjengelige trenere og støttepersonell fremgår av [PROFIL]-blokken — bruk dem når du refererer til hvem han kan kontakte. Anbefal passende hjelp generelt når det faktisk trengs, og la Filip velge hvor. Ikke mas, og send ham aldri tilbake til Havre (Andreas Havre er ikke lenger tilgjengelig for nye timer).
 
-TRENINGSOPPSETT: Styrke mandag/onsdag/fredag. Sprint 2-3 ganger/uke — trappes ned til 2 i vondere perioder. Sprint-dager: Søndag, Tirsdag og Torsdag (kan reduseres til 2 dager i vondere perioder).
+TRENINGSOPPSETT: Se [UKEPLAN]-blokken i datakonteksten for gjeldende ukeplan. Les den direkte — ikke anta faste dager.
 
 ANDRE IDRETTER: Filip kan drive andre idretter enn sprint og styrke (f.eks. fotball/soccer, basket, padel). Disse ligger i aktivitetsloggen og ukeplanen. Ballidrett med mye retningsendring, hopp og akselerasjon gir ekstra belastning (særlig på aktive plager i kne/legg/hofte) — vurder total ukesbelastning på tvers av ALT Filip faktisk har gjort, ikke bare sprint og styrke. Les hva han faktisk trener fra dataene; ikke anta. Hvis Filip skriver på engelsk, svar på engelsk.
 
@@ -87,7 +87,7 @@ export async function buildAiContext({ supabaseUrl, apikey, token, localDate, tz
     sb('gym_log', 'select=*&order=date.desc&limit=7'),
     sb('knee_pain', 'select=*&order=date.desc&limit=7'),
     sb('activity_log', 'select=*&order=date.desc&limit=7'),
-    sb('sprint_records', 'select=distance,best_time,date&order=distance.asc'),
+    sb('sprint_records', 'select=distance,best_time,date,goal_time&order=distance.asc'),
     sb('weekly_plan', 'select=day,session_type,template_id&order=day.asc'),
     sb('training_plan_weekly', `select=day_index,session_text,notes,template_id&week_monday=eq.${weekMondayISO}&order=day_index.asc`),
     // B6: 28-dagers vinduer for forhåndsberegnede nøkkeltall (ACWR, smertefri-dager)
@@ -370,6 +370,18 @@ ${progKeys.map(k => `${PROG_DAY_NO[k] || k}:\n${progByDay[k].map(progFmt).join('
     : `[GYM-PROGRAM PER DAG]
 (Ingen øvelser lagt inn i programmet ennå.)`;
 
+  // Sprintmål — hent goal_time per distanse fra sprint_records
+  const sprintGoalLines = (Array.isArray(sprintRecords) ? sprintRecords : [])
+    .filter(r => r.goal_time != null)
+    .map(r => {
+      const pb = r.best_time != null ? `PB: ${r.best_time}s` : 'ingen PB ennå';
+      const diff = r.best_time != null ? (r.best_time - r.goal_time).toFixed(2) : null;
+      return `- ${r.distance}: Mål ${r.goal_time}s | ${pb}${diff != null ? ` | ${diff}s fra mål` : ''}`;
+    });
+  const sprintGoalsBlock = sprintGoalLines.length
+    ? `[SPRINTMÅL — Filips egne mål per distanse, satt i appen]\n${sprintGoalLines.join('\n')}`
+    : `[SPRINTMÅL]\n(Ingen mål satt ennå.)`;
+
   const context = `[DAGENS DATO]
 ${osloDate} (${osloDateISO})
 
@@ -385,6 +397,8 @@ ${notesBlock}
 ${weekPlanReadable}
 
 ${programBlock}
+
+${sprintGoalsBlock}
 
 [PERSONLIGE REKORDER (PB) — sprint]
 ${JSON.stringify(stripMeta(sprintRecords))}
