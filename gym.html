@@ -3409,6 +3409,7 @@ async function saveLog() {
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
+    resetWorkout();          // tilbake til idle-tilstand uten "Økt fullført"-banner
     await loadGymHistory();
     renderOverloadCoach();   // ny set_log-data → oppdater forslagene
   } finally {
