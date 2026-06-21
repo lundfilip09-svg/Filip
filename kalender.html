@@ -1596,30 +1596,34 @@ async function shiftMiniMonth(dir) {
 }
 
 // ── View toggle ────────────────────────────────────────────────────────────
-function setView(mode) {
-  viewMode = mode;
-  localStorage.setItem('kal_view', mode);
-  document.getElementById('vtAgenda').classList.toggle('active', mode === 'agenda');
-  document.getElementById('vtTimeline').classList.toggle('active', mode === 'timeline');
-  document.getElementById('vtMonth').classList.toggle('active', mode === 'month');
+// Sync toggle-knapper + kort-synlighet til gjeldende viewMode (uten å re-rendre).
+function applyViewChrome() {
+  document.getElementById('vtAgenda').classList.toggle('active', viewMode === 'agenda');
+  document.getElementById('vtTimeline').classList.toggle('active', viewMode === 'timeline');
+  document.getElementById('vtMonth').classList.toggle('active', viewMode === 'month');
 
   const dayCard   = document.getElementById('dayViewCard');
   const monthCard = document.getElementById('monthViewCard');
   const stripWrap = document.querySelector('.week-strip-wrap');
+  const isMonth   = viewMode === 'month';
+
+  if (dayCard)   dayCard.style.display   = isMonth ? 'none'  : 'block';
+  if (monthCard) monthCard.style.display = isMonth ? 'block' : 'none';
+  if (stripWrap) stripWrap.style.display = isMonth ? 'none'  : '';
+}
+
+function setView(mode) {
+  viewMode = mode;
+  localStorage.setItem('kal_view', mode);
+  applyViewChrome();
 
   if (mode === 'month') {
-    if (dayCard)   dayCard.style.display   = 'none';
-    if (monthCard) monthCard.style.display = 'block';
-    if (stripWrap) stripWrap.style.display = 'none';
     miniMonth = { year: selectedDate.getFullYear(), month: selectedDate.getMonth() };
     renderMonthView();
-    _crossfade(monthCard);
+    _crossfade(document.getElementById('monthViewCard'));
   } else {
-    if (dayCard)   dayCard.style.display   = 'block';
-    if (monthCard) monthCard.style.display = 'none';
-    if (stripWrap) stripWrap.style.display = '';
     renderDayView(toLocalStr(selectedDate));
-    _crossfade(dayCard);
+    _crossfade(document.getElementById('dayViewCard'));
   }
 }
 
@@ -1670,6 +1674,7 @@ function getISOWeek(d) {
   }
 
   applyLang();
+  applyViewChrome();
   await Promise.all([loadGCalRange(), loadCustomEvents()]);
   renderAll();
 
