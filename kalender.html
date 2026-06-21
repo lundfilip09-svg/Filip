@@ -820,14 +820,24 @@ async function loadGCalRange(anchorDate) {
     if (!r.ok) throw new Error('API ' + r.status);
     const { events = [] } = await r.json();
     gcalEvents = events.map(e => {
-      // For all-day events, Google's end.date is exclusive (day after last day)
       let endDate = null;
       if (e.start?.date && e.end?.date) {
+        // All-day: Google end.date is exclusive — subtract 1 day
         const d = new Date(e.end.date + 'T00:00:00');
         d.setDate(d.getDate() - 1);
-        const excl = e.end.date.slice(0, 10);
-        const start = e.start.date.slice(0, 10);
-        endDate = excl > start ? toLocalStr(d) : null; // null if single-day
+        const last = toLocalStr(d);
+        endDate = last > e.start.date.slice(0, 10) ? last : null;
+      } else if (e.start?.dateTime && e.end?.dateTime) {
+        // Timed: check if end date is on a different (later) day
+        const startD = new Date(e.start.dateTime);
+        const endD   = new Date(e.end.dateTime);
+        const startStr = toLocalStr(startD);
+        const endStr   = toLocalStr(endD);
+        // If end is exactly midnight, the event ends at the start of that day — use day before
+        const adjEnd = (endD.getHours() === 0 && endD.getMinutes() === 0)
+          ? toLocalStr(new Date(endD.getTime() - 86400000))
+          : endStr;
+        endDate = adjEnd > startStr ? adjEnd : null;
       }
       return {
         id: 'gcal-' + e.id, source: 'gcal',
