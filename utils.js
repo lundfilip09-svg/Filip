@@ -2054,7 +2054,7 @@ function loadMultiplier(source, typeText, labelText) {
   if (/padel|padle/.test(s))                             return 3.0;
   if (/basket/.test(s))                                  return 3.0;
   if (/løp|jog|run/.test(s))                             return 1.5;
-  if (/frisbee|disc.?golf/.test(s))                      return 0.75;
+  if (/frisbee|disc.?golf/.test(s))                      return 1.0;
   if (/bading|swim.*rec|rec.*swim/.test(s))              return 0.5;
   if (/svøm|swim|sykl|cycl|bike|ellipse|rehab/.test(s)) return 1.0;
   if (/rolig|lett|easy/.test(s))                         return 1.5;
