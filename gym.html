@@ -3748,8 +3748,8 @@ function renderGymHistory() {
             <div class="sess-info-row">
               ${results ? `<span class="sess-vol-txt">${escHtml(results)}</span>` : ''}
               ${rir != null ? `<span class="sess-rir-badge">RIR ${rir}</span>` : ''}
-              ${_gymPainCompact(g, knee)}
             </div>
+            ${_gymPainSummary(g, knee)}
             ${g.session_notes ? `<div class="sess-notes-preview">${escHtml(g.session_notes)}</div>` : ''}
           </div>
           <span class="sess-caret">›</span>
