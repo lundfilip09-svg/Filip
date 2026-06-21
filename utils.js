@@ -1384,7 +1384,7 @@ async function loadNotifications() {
     for (const td of todos || []) {
       const overdue = td.due_date && td.due_date < todayStr;
       const isToday = td.due_date === todayStr;
-      const remind  = td.remind_at && td.remind_at > nowIso;
+      const remind  = td.remind_at && td.remind_at <= nowIso;
       let section = null;
       if (overdue)      section = 'overdue';
       else if (remind)  section = 'reminder';
@@ -1491,7 +1491,7 @@ function _renderNotifPanel() {
       const todoId = i.key.startsWith('todo:') ? i.key.split(':')[1] : null;
       const canOpen = todoId && typeof openDetail === 'function';
       const extraAttr = canOpen
-        ? `onclick="event.preventDefault();_notifOpen=false;_closeNotifPanel(document.getElementById('notifPanel'));openDetail('${todoId}')"`
+        ? `onclick="event.preventDefault();_notifMarkRead(['${i.key}']);_notifOpen=false;_closeNotifPanel(document.getElementById('notifPanel'));openDetail('${todoId}')"`
         : '';
       return `<a class="notif-item notif-${section}" href="${i.url}" ${extraAttr}>
         <span class="notif-dot"></span>
@@ -1576,7 +1576,7 @@ function _renderPageBanners(items) {
     const todoId = i.key.startsWith('todo:') ? i.key.split(':')[1] : null;
     const canOpen = todoId && typeof openDetail === 'function';
     const bodyExtra = canOpen
-      ? `onclick="event.preventDefault();openDetail('${todoId}')"`
+      ? `onclick="event.preventDefault();_notifMarkRead(['${i.key}']);openDetail('${todoId}')"`
       : '';
     return `
     <div class="page-banner page-banner-${i.section}" data-banner="${idx}">
