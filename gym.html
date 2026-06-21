@@ -2366,7 +2366,7 @@ function renderExRow(ex, day, num, isWarmup) {
             onclick="event.stopPropagation()"
             onblur="autoSaveExField('${ex.id}','sets',this.value)">
           <span style="color:var(--text-tertiary);font-family:var(--font-mono)">×</span>
-          <input class="ex-inline-input" value="${escHtml(ex.reps)}" style="width:54px"
+          <input class="ex-inline-input" value="${escHtml(ex.reps)}" style="min-width:64px;width:auto;max-width:120px"
             onclick="event.stopPropagation()"
             onblur="autoSaveExField('${ex.id}','reps',this.value)">
           ${!isWarmup ? `<span style="color:rgba(255,255,255,0.18);font-family:var(--font-mono);margin:0 2px">·</span>
