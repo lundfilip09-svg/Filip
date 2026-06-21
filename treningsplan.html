@@ -749,14 +749,6 @@
         </div>
       </div>
 
-      <!-- Hurtighandlinger -->
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <button class="physio-trigger" onclick="openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
-        <button class="physio-trigger" onclick="openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
-        <button class="physio-trigger" onclick="openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
-        <button class="physio-trigger" onclick="openOCModal()" data-i18n="tp.overload_config">⚙ Overload-coach</button>
-        <button class="physio-trigger" onclick="openProfileModal()" data-i18n="tp.profile_btn">👤 Profil</button>
-      </div>
 
     </aside>
   </div>
@@ -938,6 +930,23 @@
       <div style="margin-top:14px;display:flex;gap:8px">
         <button class="act-save-btn" onclick="saveOCConfig()" data-i18n="save" style="flex:1">Lagre</button>
         <button class="input-sm" onclick="closeOCModal()" data-i18n="cancel" style="cursor:pointer;flex-shrink:0">Avbryt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Innstillinger modal -->
+  <div class="act-modal-overlay hidden" id="settingsModal" onclick="if(event.target===this)closeSettingsModal()">
+    <div class="act-modal" style="max-width:340px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title">Innstillinger</span>
+        <button class="act-modal-close" onclick="closeSettingsModal()">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">
+        <button class="physio-trigger" onclick="closeSettingsModal();openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
+        <button class="physio-trigger" onclick="closeSettingsModal();openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
+        <button class="physio-trigger" onclick="closeSettingsModal();openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
+        <button class="physio-trigger" onclick="closeSettingsModal();openOCModal()" data-i18n="tp.overload_config">⚙ Overload-coach</button>
+        <button class="physio-trigger" onclick="closeSettingsModal();openProfileModal()" data-i18n="tp.profile_btn">👤 Profil</button>
       </div>
     </div>
   </div>
@@ -3218,6 +3227,15 @@ async function saveOCConfig() {
   closeOCModal();
 }
 
+// ── Innstillinger ──────────────────────────────────────────────────────────
+function openSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('hidden');
+  applyLang();
+}
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+
 // ── Profil ─────────────────────────────────────────────────────────────────
 function openProfileModal() {
   document.getElementById('profileModal').classList.remove('hidden');
@@ -3389,6 +3407,11 @@ async function deleteCoach(id) {
     if (!document.getElementById('weeklyPlanModal').classList.contains('hidden')) openEditWeeklyPlan();
     if (!document.getElementById('profileModal').classList.contains('hidden')) loadProfileData();
   };
+  // Vis settings-tannhjul i nav — kun på denne siden
+  const _sb = document.getElementById('settingsNavBtn');
+  if (_sb) _sb.style.display = '';
+  window.openSettingsModal = openSettingsModal;
+
   applyLang();
   renderHero();
   renderWeekNav();
