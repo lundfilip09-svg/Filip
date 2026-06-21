@@ -515,7 +515,7 @@
       font-family: var(--font-sans); font-size: 10px; font-weight: 600;
       padding: 3px 9px; border-radius: 20px;
     }
-    .sess-notes-preview { font-size: 12px; margin-top: 9px; }
+    /* sess-notes-preview: defined in styles.css */
 
     /* Større, tydeligere økt-tittel */
     .sess-name { font-size: 16.5px; font-weight: 700; margin-bottom: 9px; }
@@ -2316,7 +2316,7 @@ function renderSessionGrid() {
                 <span>min</span>
               </span>
             </div>
-            ${notesPreview ? `<div class="sess-notes-preview">${escHtml(notesPreview)}</div>` : ''}
+            ${renderNoteBlock(notesPreview)}
           </div>
           ${isOpen ? buildDetailHtml(g, knee) : `<div class="sess-detail" id="sess-detail-${g.id}"></div>`}`;
       } else if (entry.type === 'sprint') {
@@ -2337,7 +2337,7 @@ function renderSessionGrid() {
                 <span>min</span>
               </span>
             </div>
-            ${s.notes ? `<div class="sess-notes-preview">${escHtml(s.notes)}</div>` : ''}
+            ${renderNoteBlock(s.notes)}
           </div>
           ${isOpen ? buildSprintDetailHtml(s, knee) : `<div class="sess-detail" id="sess-detail-${sid}"></div>`}`;
       } else {
@@ -2364,7 +2364,7 @@ function renderSessionGrid() {
                 <span>min</span>
               </span>
             </div>
-            ${a.notes ? `<div class="sess-notes-preview">${escHtml(a.notes)}</div>` : ''}
+            ${renderNoteBlock(a.notes)}
           </div>
           ${isOpen ? buildActDetailHtml(a) : `<div class="sess-detail" id="sess-detail-${aid}"></div>`}`;
       }

@@ -14,6 +14,7 @@ const TRANSLATIONS = {
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
     'cancel': 'Avbryt', 'delete': 'Slett', 'close': 'Lukk', 'add': 'Legg til',
     'edit': 'Rediger', 'reset': 'Nullstill', 'date': 'Dato', 'notes': 'Notater', 'unit.sec': 'sek',
+    'note.expand': 'Vis mer', 'note.collapse': 'Vis mindre',
     // Knee pain
     'knee.before': 'Før', 'knee.during': 'Under', 'knee.after': 'Etter',
     'knee.dayafter': 'Dagen etter',
@@ -619,6 +620,7 @@ const TRANSLATIONS = {
     'loading': 'Loading…', 'no_data': 'No data', 'save': 'Save',
     'cancel': 'Cancel', 'delete': 'Delete', 'close': 'Close', 'add': 'Add',
     'edit': 'Edit', 'reset': 'Reset', 'date': 'Date', 'notes': 'Notes', 'unit.sec': 'sec',
+    'note.expand': 'Show more', 'note.collapse': 'Show less',
     // Knee pain
     'knee.before': 'Before', 'knee.during': 'During', 'knee.after': 'After',
     'knee.dayafter': 'Day after',
@@ -1674,6 +1676,23 @@ function toggleLang() {
   _relangNotifs();
   // Re-render dynamic content if a page-level function exists
   if (typeof onLangChange === 'function') onLangChange();
+}
+
+// ── Session note expand/collapse ─────────────────────────────────────────────
+function toggleNoteExpand(btn) {
+  const wrap = btn.previousElementSibling;
+  const expanded = wrap.classList.toggle('expanded');
+  btn.textContent = expanded ? t('note.collapse') : t('note.expand');
+}
+
+// Render a note block with icon + expand toggle.
+// noteText: raw string, returns HTML string.
+const _NOTE_ICON = `<svg class="snp-icon" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13 1H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2l3 2 3-2h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+function renderNoteBlock(noteText) {
+  if (!noteText) return '';
+  return `<div class="sess-notes-preview">${_NOTE_ICON}${escHtml(noteText)}</div>`
+    + `<button class="sess-notes-toggle" onclick="toggleNoteExpand(this)">${t('note.expand')}</button>`;
 }
 
 // ── Core utilities ────────────────────────────────────────────────────────────

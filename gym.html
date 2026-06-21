@@ -554,17 +554,7 @@
     .sess-pain-inj-row { display: flex; align-items: center; gap: 4px; }
     .sess-pain-inj-name { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); flex-shrink: 0; }
 
-    /* Notes preview */
-    .sess-notes-preview {
-      font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;
-      overflow: hidden; text-overflow: ellipsis;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      background: rgba(255,255,255,0.04);
-      border-left: 2px solid rgba(255,255,255,0.12);
-      border-radius: 0 4px 4px 0;
-      padding: 4px 8px;
-      font-style: italic;
-    }
+    /* sess-notes-preview: defined in styles.css */
 
     /* Expanded detail panel */
     .sess-detail { display: none; }
@@ -3772,7 +3762,7 @@ function renderGymHistory() {
               ${rir != null ? `<span class="sess-rir-badge">RIR ${rir}</span>` : ''}
             </div>
             ${_gymPainSummary(g, knee)}
-            ${g.session_notes ? `<div class="sess-notes-preview"><span style="opacity:0.5;font-style:normal;margin-right:4px;">✎</span>${escHtml(g.session_notes)}</div>` : ''}
+            ${renderNoteBlock(g.session_notes)}
           </div>
           <span class="sess-caret">›</span>
         </div>

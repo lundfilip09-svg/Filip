@@ -927,7 +927,7 @@ function _buildSessCard(date, runs, isOpen) {
       ${rpe != null ? `<span class="sess-rpe-tag">RPE ${rpe}</span>` : ''}
       ${painSummary}
     </div>
-    ${notes ? `<div class="sess-notes-preview">${escHtml(notes)}</div>` : ''}
+    ${renderNoteBlock(notes)}
   </div>`;
 
   const d       = new Date(date + 'T12:00:00');
