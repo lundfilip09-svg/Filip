@@ -496,9 +496,16 @@
       font-size: 12px; font-weight: 700; font-family: var(--font-mono);
       color: var(--text-secondary); margin-bottom: 8px;
     }
+    .mv-dots { display: none; }
+    .mv-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     @media (max-width: 640px) {
-      .mv-cell { min-height: 54px; }
-      .mv-chip { display: none; }
+      .mv-cell { min-height: 54px; align-items: center; padding: 6px 2px; }
+      .mv-num { font-size: 13px; }
+      .mv-chip, .mv-more { display: none; }
+      .mv-dots {
+        display: flex; flex-wrap: wrap; gap: 3px;
+        justify-content: center; align-items: center; margin-top: 3px;
+      }
     }
 
     /* Category colors */
@@ -1198,8 +1205,14 @@ function renderMonthView() {
     const more = dayEvts.length > 3
       ? `<div class="mv-more">+${dayEvts.length - 3}</div>` : '';
 
+    // Mobil: prikker i stedet for chips (for liten skjerm til tekst)
+    const dots = dayEvts.length
+      ? `<div class="mv-dots">${dayEvts.slice(0,4).map(e =>
+          `<span class="mv-dot" style="background:${getEventColor(e)}"></span>`).join('')}</div>`
+      : '';
+
     cells += `<div class="mv-cell${isToday?' today':''}${isSel?' selected':''}" onclick="selectDay('${dStr}')">
-      <div class="mv-num">${d}</div>${chips}${more}
+      <div class="mv-num">${d}</div>${chips}${more}${dots}
     </div>`;
   }
 
