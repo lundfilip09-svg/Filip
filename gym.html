@@ -623,7 +623,7 @@
     .he-status.error   { color: var(--danger); }
 
     /* Øvelse-picker modal */
-    .he-ex-picker-backdrop { position: fixed; inset: 0; z-index: 1200; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
+    .he-ex-picker-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; }
     .he-ex-picker { background: var(--card-bg, #1c1c1e); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; width: 360px; max-width: 95vw; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     .he-ex-picker-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
     .he-ex-picker-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
@@ -3755,15 +3755,23 @@ async function loadHistSets(gymId, date) {
   const host = document.getElementById(`he-sets-${gymId}`);
   if (!host) return;
   // Prøv gym_log_id-query først (ny data); fall tilbake til date for eldre rader
-  let { data } = await db.from('set_log')
-    .select('id,exercise_name,weight_kg,reps,set_index,day_key')
-    .eq('gym_log_id', gymId).order('set_index', { ascending: true });
-  if (!data || !data.length) {
-    const fallback = await db.from('set_log')
+  let data = null;
+  try {
+    const res = await db.from('set_log')
       .select('id,exercise_name,weight_kg,reps,set_index,day_key')
-      .eq('date', date).is('gym_log_id', null).order('set_index', { ascending: true });
-    data = fallback.data || [];
+      .eq('gym_log_id', gymId).order('set_index', { ascending: true });
+    if (!res.error) data = res.data;
+  } catch (e) { /* ignorér — faller tilbake */ }
+  if (!data || !data.length) {
+    // Fallback: søk på dato (dekker eldre rader uten gym_log_id)
+    try {
+      const res2 = await db.from('set_log')
+        .select('id,exercise_name,weight_kg,reps,set_index,day_key')
+        .eq('date', date).order('set_index', { ascending: true });
+      if (!res2.error) data = res2.data;
+    } catch (e) { /* ignorér */ }
   }
+  data = data || [];
   const rows = data || [];
   _heOrig[gymId]   = rows.map(r => r.id);
   _heDayKey[gymId] = rows.length ? (rows[0].day_key ?? null) : null;
@@ -3807,7 +3815,13 @@ function addHistEx(gymId) {
   const host = document.getElementById(`he-sets-${gymId}`);
   if (!host) return;
   const panel = document.getElementById(`knee-edit-${gymId}`);
-  const dayKey = _heDayKey[gymId] ?? panel?.dataset?.st ?? null;
+  // Finn day_key: fra sett-historikk, eller match session_type mot gymDays-labels
+  let dayKey = _heDayKey[gymId] ?? null;
+  if (!dayKey) {
+    const st = panel?.dataset?.st || '';
+    const match = gymDays.find(d => dayLabel(d) === st || d.day_key === st || d.type_label === st);
+    dayKey = match?.day_key ?? null;
+  }
 
   // Samle øvelser fra øktens dag (alle seksjoner)
   const dayExMap = (dayKey && allExercises[dayKey]) ? allExercises[dayKey] : {};
