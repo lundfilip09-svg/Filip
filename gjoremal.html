@@ -1089,7 +1089,7 @@ function onLangChange() {
 // ── Lists ─────────────────────────────────────────────────────────────────
 async function loadLists() {
   const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
-  const defaultLists = ['Generelt', 'Trening'].filter(d => !hidden.includes(d));
+  const defaultLists = ['Generelt'].filter(d => !hidden.includes(d));
 
   // Load from todo_lists (persisted order). Fall back to deriving from todos if table missing.
   const { data: listRows, error: listErr } = await db.from('todo_lists')
@@ -1163,7 +1163,7 @@ async function renameList(oldName) {
   const { error } = await db.from('todos').update({ list_name: newName }).eq('list_name', oldName);
   if (error) { toast(t('gm.save_error'), 'err'); return; }
   // Hvis en default-liste døpes om, skjul den så den ikke re-injiseres ved neste lasting
-  if (['Generelt','Trening'].includes(oldName)) {
+  if (['Generelt'].includes(oldName)) {
     const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
     if (!hidden.includes(oldName)) { hidden.push(oldName); localStorage.setItem('gm_hidden_defaults', JSON.stringify(hidden)); }
   }
@@ -1200,7 +1200,7 @@ async function deleteList(name) {
   await db.from('todo_lists').delete().eq('name', name);
   localStorage.removeItem('gm_order_' + name);
   // If it's a hardcoded default, mark it hidden so loadLists() doesn't re-add it
-  const defaults = ['Generelt', 'Trening'];
+  const defaults = ['Generelt'];
   if (defaults.includes(name)) {
     const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
     if (!hidden.includes(name)) {
