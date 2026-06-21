@@ -622,6 +622,21 @@
     .he-status.saved   { color: var(--success); }
     .he-status.error   { color: var(--danger); }
 
+    /* Øvelse-picker modal */
+    .he-ex-picker-backdrop { position: fixed; inset: 0; z-index: 1200; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
+    .he-ex-picker { background: var(--card-bg, #1c1c1e); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; width: 360px; max-width: 95vw; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .he-ex-picker-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .he-ex-picker-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .he-ex-picker-close { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+    .he-ex-picker-body { overflow-y: auto; padding: 8px 0; flex: 1; }
+    .he-ex-sec-lbl { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); padding: 8px 16px 4px; }
+    .he-ex-picker-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; transition: background 0.1s; }
+    .he-ex-picker-item:hover { background: rgba(255,255,255,0.05); }
+    .he-ex-picker-item.already-added { opacity: 0.35; cursor: default; pointer-events: none; }
+    .he-ex-picker-item-name { font-size: 13px; color: var(--text-primary); flex: 1; }
+    .he-ex-picker-item-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .he-ex-block-hd-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); margin-left: 4px; }
+
     /* Footer inside detail */
     .gym-history-card .sess-detail-footer {
       padding: 8px 14px 10px;
@@ -3593,7 +3608,7 @@ function _gymDetailHtml(g, knee, kneeId, isOpen, results, rir) {
       </div>
       <button class="sess-detail-close" onclick="event.stopPropagation();toggleGymDetail('${g.id}')" title="${t('close')}">✕</button>
     </div>
-    <div id="knee-edit-${g.id}" data-gid="${g.id}" data-date="${g.date}" data-st="${st}" data-knee-id="${kneeId}" data-rpe="${g.rpe ?? ''}">
+    <div id="knee-edit-${g.id}" data-gid="${g.id}" data-date="${g.date}" data-st="${st}" data-knee-id="${kneeId}" data-rpe="${g.rpe ?? ''}" data-gym-log-id="${g.id}">
       <div class="gsx-grid">
         <div class="gsx-col">
           <div class="gsx-sec-block">
@@ -3758,32 +3773,105 @@ async function loadHistSets(gymId, date) {
     + `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addHistEx('${gymId}')">+ ${t('he.add_ex')}</button>`;
 }
 function histExBlock(gymId, name, rs) {
+  // Vis planlagte reps som hint hvis alle rader har samme verdi
+  const repsVals = rs.filter(r => r && r.reps).map(r => String(r.reps));
+  const hintReps = (repsVals.length && repsVals.every(v => v === repsVals[0])) ? repsVals[0] : '';
+  const metaHint = hintReps ? `<span class="he-ex-block-hd-meta">${rs.length} × ${hintReps}</span>` : (rs.length > 1 ? `<span class="he-ex-block-hd-meta">${rs.length} sett</span>` : '');
   return `<div class="he-ex-block" data-ex="${escHtml(name)}">
-    <div class="he-ex-hd"><span class="he-ex-nm">${escHtml(name)}</span>
+    <div class="he-ex-hd"><span class="he-ex-nm">${escHtml(name)}</span>${metaHint}
       <button class="he-x" title="${t('delete')}" onclick="this.closest('.he-ex-block').remove()">✕</button></div>
-    <div class="he-rows">${rs.map(r => histSetRow(r)).join('')}</div>
+    <div class="he-rows">${_histSetRows(rs)}</div>
     <button class="btn btn-ghost btn-sm he-addset" onclick="addHistSet(this)">+ ${t('he.add_set')}</button>
   </div>`;
 }
-function histSetRow(r) {
+function histSetRow(r, idx) {
   const w    = (r && r.weight_kg != null) ? fromKg(r.weight_kg) : '';
   const reps = r ? (r.reps ?? '') : '';
+  const setNum = (idx != null ? idx : (r?.set_index ?? '')) + 1;
   return `<div class="he-set" data-id="${r?.id || ''}">
+    <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);width:16px;flex-shrink:0;text-align:right">${setNum || ''}</span>
     <input class="input-sm he-w" type="number" step="${weightStep(false)}" value="${w}" placeholder="${weightUnit()}" style="width:64px">
     <input class="input-sm he-r" type="text" value="${escHtml(String(reps))}" placeholder="reps" style="width:52px">
     <button class="he-x" onclick="this.closest('.he-set').remove()">✕</button>
   </div>`;
 }
+function _histSetRows(rs) {
+  return rs.map((r, i) => histSetRow(r, i)).join('');
+}
 function addHistSet(btn) {
+  const rows = btn.closest('.he-ex-block').querySelectorAll('.he-set');
   btn.closest('.he-ex-block').querySelector('.he-rows')
-    .insertAdjacentHTML('beforeend', histSetRow(null));
+    .insertAdjacentHTML('beforeend', histSetRow(null, rows.length));
 }
 function addHistEx(gymId) {
+  const host = document.getElementById(`he-sets-${gymId}`);
+  if (!host) return;
+  const panel = document.getElementById(`knee-edit-${gymId}`);
+  const dayKey = _heDayKey[gymId] ?? panel?.dataset?.st ?? null;
+
+  // Samle øvelser fra øktens dag (alle seksjoner)
+  const dayExMap = (dayKey && allExercises[dayKey]) ? allExercises[dayKey] : {};
+  const sections = Object.keys(dayExMap);
+
+  // Finn allerede-lagt-til øvelser
+  const alreadyAdded = new Set([...host.querySelectorAll('.he-ex-block')].map(b => b.dataset.ex?.toLowerCase()));
+
+  // Bygg picker-modal
+  const backdrop = document.createElement('div');
+  backdrop.className = 'he-ex-picker-backdrop';
+  backdrop.onclick = e => { if (e.target === backdrop) backdrop.remove(); };
+
+  let itemsHtml = '';
+  if (sections.length) {
+    for (const sec of sections) {
+      const exs = dayExMap[sec] || [];
+      if (!exs.length) continue;
+      itemsHtml += `<div class="he-ex-sec-lbl">${escHtml(sec)}</div>`;
+      for (const ex of exs) {
+        const alreadyClass = alreadyAdded.has(ex.exercise_name.toLowerCase()) ? ' already-added' : '';
+        const metaTxt = [ex.sets ? `${ex.sets} sett` : '', ex.reps ? `× ${ex.reps}` : ''].filter(Boolean).join(' ');
+        itemsHtml += `<div class="he-ex-picker-item${alreadyClass}" onclick="event.stopPropagation();_pickHistEx('${gymId}','${ex.exercise_name.replace(/'/g,"\\'")}',${ex.sets||3},'${escHtml(String(ex.reps||''))}')">
+          <span class="he-ex-picker-item-name">${escHtml(ex.exercise_name)}</span>
+          ${metaTxt ? `<span class="he-ex-picker-item-meta">${escHtml(metaTxt)}</span>` : ''}
+        </div>`;
+      }
+    }
+  }
+  // Alltid vis "Skriv inn manuelt" nederst
+  itemsHtml += `<div class="he-ex-picker-item" onclick="event.stopPropagation();_pickHistExManual('${gymId}')">
+    <span class="he-ex-picker-item-name" style="color:var(--text-tertiary)">+ Skriv inn manuelt</span>
+  </div>`;
+
+  backdrop.innerHTML = `<div class="he-ex-picker" onclick="event.stopPropagation()">
+    <div class="he-ex-picker-hd">
+      <span class="he-ex-picker-title">${t('gym.exercises_lc')}</span>
+      <button class="he-ex-picker-close" onclick="this.closest('.he-ex-picker-backdrop').remove()">✕</button>
+    </div>
+    <div class="he-ex-picker-body">${itemsHtml || `<div style="padding:16px;font-size:12px;color:var(--text-tertiary)">Ingen øvelser funnet for denne dagen</div>`}</div>
+  </div>`;
+
+  document.body.appendChild(backdrop);
+}
+function _pickHistEx(gymId, name, sets, reps) {
+  document.querySelector('.he-ex-picker-backdrop')?.remove();
+  const host = document.getElementById(`he-sets-${gymId}`);
+  if (!host) return;
+  const addBtn = host.querySelector(':scope > button');
+  // Lag sett-rader med planlagte reps som default
+  const rows = [...Array(Math.max(1, sets))].map((_, i) => ({ id: null, weight_kg: null, reps, set_index: i }));
+  const html = histExBlock(gymId, name, rows);
+  if (addBtn) addBtn.insertAdjacentHTML('beforebegin', html);
+  else host.insertAdjacentHTML('beforeend', html);
+  scheduleHistSave(gymId);
+}
+function _pickHistExManual(gymId) {
+  document.querySelector('.he-ex-picker-backdrop')?.remove();
   const name = (prompt(t('he.new_ex_name')) || '').trim();
   if (!name) return;
-  const host  = document.getElementById(`he-sets-${gymId}`);
+  const host = document.getElementById(`he-sets-${gymId}`);
   const addBtn = host && host.querySelector(':scope > button');
   if (addBtn) addBtn.insertAdjacentHTML('beforebegin', histExBlock(gymId, name, [null]));
+  scheduleHistSave(gymId);
 }
 
 // Etterregistrering: les økt-RIR-slideren + smertemålerne i drawer-en så
@@ -3851,7 +3939,7 @@ async function autoSaveHistEdit(gymId) {
             present.add(id);
             parallel.push(db.from('set_log').update({ weight_kg: wOk, reps, set_index: idx, exercise_name: name }).eq('id', id));
           } else {
-            inserts.push({ row, payload: { date, day_key: _heDayKey[gymId] ?? st, exercise_name: name, weight_kg: wOk, reps, set_index: idx, rir: heRirVal(gymId), knee_max: heKneeMax(gymId) } });
+            inserts.push({ row, payload: { date, day_key: _heDayKey[gymId] ?? st, exercise_name: name, weight_kg: wOk, reps, set_index: idx, rir: heRirVal(gymId), knee_max: heKneeMax(gymId), gym_log_id: panel.dataset.gymLogId || null } });
           }
         });
       });
