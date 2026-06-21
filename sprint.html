@@ -385,10 +385,11 @@ function selectInjuryPain(injId, phase, score) {
 
 // ── Injuries (last fra DB ved sidelast) ──────────────────────────────────────
 async function loadSevereInjuries() {
-  const { data } = await db.from('injuries')
+  const { data, error } = await db.from('injuries')
     .select('id, body_part, side, status, severity')
     .in('status', ['active', 'improving'])
     .eq('severity', 'severe');
+  if (error) { console.error('loadSevereInjuries', error); toast(t('err.load_data'), 'err'); return; }
   _severeInjuries = data || [];
   _severeInjuries.forEach(inj => {
     if (!_injuryScores[inj.id])
@@ -548,7 +549,8 @@ const DIST_COLORS = ['#5BA4F5','#6BE3A4','#F2C063','#C792EA','#FF8A80','#80DEEA'
 function distRow(dist) { return _distances.find(d => d.distance === dist); }
 
 async function loadDistances() {
-  const { data } = await db.from('sprint_records').select('*').order('sort_order', { ascending: true });
+  const { data, error } = await db.from('sprint_records').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error('loadDistances', error); toast(t('err.load_data'), 'err'); return; }
   let rows = (data || []).map(r => ({
     ...r,
     best_time:     r.best_time     != null ? +r.best_time     : null,
