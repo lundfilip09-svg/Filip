@@ -123,10 +123,37 @@ export default async function handler(req, res) {
       return res.status(200).json({ event: updated });
     }
 
-    // ── Delete event: single instance or whole series (caller picks the id) ──
+    // ── Delete event: single instance, this+following, or whole series ──
     if (req.method === 'DELETE') {
-      const { eventId } = { ...req.query, ...readBody(req) };
+      const { eventId, recurringEventId, instanceDate, scope } = { ...req.query, ...readBody(req) };
       if (!eventId) return res.status(400).json({ error: 'eventId required' });
+
+      if (scope === 'following' && recurringEventId && instanceDate) {
+        // Fetch master recurring event to get its RRULE
+        const masterUrl = `${CAL_BASE}/calendars/${encodeURIComponent(GOOGLE_CALENDAR_ID)}/events/${encodeURIComponent(recurringEventId)}`;
+        const masterRes = await fetch(masterUrl, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        });
+        if (!masterRes.ok) throw new Error(`Failed to fetch master event: ${await masterRes.text()}`);
+        const master = await masterRes.json();
+
+        // UNTIL = day before this instance (exclusive end)
+        const until = new Date(instanceDate + 'T00:00:00');
+        until.setDate(until.getDate() - 1);
+        // Google expects UNTIL in UTC: 20260624T235959Z
+        const untilStr = until.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z').replace('T', 'T').slice(0, 16) + '00Z';
+
+        const recurrence = (master.recurrence || []).map(rule => {
+          if (!rule.startsWith('RRULE:')) return rule;
+          const parts = rule.slice(6).split(';').filter(p => !p.startsWith('UNTIL=') && !p.startsWith('COUNT='));
+          parts.push(`UNTIL=${untilStr}`);
+          return 'RRULE:' + parts.join(';');
+        });
+
+        await googleWrite('PATCH', token, GOOGLE_CALENDAR_ID, recurringEventId, { recurrence });
+        return res.status(200).json({ ok: true });
+      }
+
       await googleWrite('DELETE', token, GOOGLE_CALENDAR_ID, eventId, null);
       return res.status(200).json({ ok: true });
     }

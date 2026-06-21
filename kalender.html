@@ -819,15 +819,27 @@ async function loadGCalRange(anchorDate) {
     if (r.status === 401) { handle401(); return; }
     if (!r.ok) throw new Error('API ' + r.status);
     const { events = [] } = await r.json();
-    gcalEvents = events.map(e => ({
-      id: 'gcal-' + e.id, source: 'gcal',
-      title: e.summary || '(uten tittel)',
-      date: (e.start?.date || e.start?.dateTime || '').slice(0, 10),
-      startTime: e.start?.dateTime ? fmtTime(new Date(e.start.dateTime)) : null,
-      endTime:   e.end?.dateTime   ? fmtTime(new Date(e.end.dateTime))   : null,
-      allDay: !!e.start?.date, gcalId: e.id,
-      recurringEventId: e.recurringEventId || null,
-    }));
+    gcalEvents = events.map(e => {
+      // For all-day events, Google's end.date is exclusive (day after last day)
+      let endDate = null;
+      if (e.start?.date && e.end?.date) {
+        const d = new Date(e.end.date + 'T00:00:00');
+        d.setDate(d.getDate() - 1);
+        const excl = e.end.date.slice(0, 10);
+        const start = e.start.date.slice(0, 10);
+        endDate = excl > start ? toLocalStr(d) : null; // null if single-day
+      }
+      return {
+        id: 'gcal-' + e.id, source: 'gcal',
+        title: e.summary || '(uten tittel)',
+        date: (e.start?.date || e.start?.dateTime || '').slice(0, 10),
+        endDate,
+        startTime: e.start?.dateTime ? fmtTime(new Date(e.start.dateTime)) : null,
+        endTime:   e.end?.dateTime   ? fmtTime(new Date(e.end.dateTime))   : null,
+        allDay: !!e.start?.date, gcalId: e.id,
+        recurringEventId: e.recurringEventId || null,
+      };
+    });
   } catch { gcalEvents = []; }
 }
 
@@ -863,7 +875,12 @@ function allEvents() {
   });
 }
 
-function eventsForDate(dateStr) { return allEvents().filter(e => e.date === dateStr); }
+function eventsForDate(dateStr) {
+  return allEvents().filter(e => {
+    if (e.endDate) return e.date <= dateStr && e.endDate >= dateStr;
+    return e.date === dateStr;
+  });
+}
 
 // ── Week strip ─────────────────────────────────────────────────────────────
 function renderWeekStrip() {
@@ -1059,8 +1076,9 @@ function renderEventDetail() {
       <div class="ev-field">
         <div class="ev-field-label">${t('kal.gcal_recurring')}</div>
         <div class="ev-cat-grid">
-          <button class="ev-cat-btn${gcalScope === 'this'   ? ' active' : ''}" onclick="setGcalScope('this')">${t('kal.scope_this')}</button>
-          <button class="ev-cat-btn${gcalScope === 'series' ? ' active' : ''}" onclick="setGcalScope('series')">${t('kal.scope_series')}</button>
+          <button class="ev-cat-btn${gcalScope === 'this'      ? ' active' : ''}" onclick="setGcalScope('this')">${t('kal.scope_this')}</button>
+          <button class="ev-cat-btn${gcalScope === 'following' ? ' active' : ''}" onclick="setGcalScope('following')">${t('kal.scope_following')}</button>
+          <button class="ev-cat-btn${gcalScope === 'series'    ? ' active' : ''}" onclick="setGcalScope('series')">${t('kal.scope_series')}</button>
         </div>
       </div>` : '';
     el.innerHTML = `
@@ -1455,14 +1473,20 @@ async function saveActiveGcalEvent() {
 async function deleteActiveGcalEvent() {
   const ev = gcalEvents.find(e => e.id === activeEventId);
   if (!ev) return;
-  const series = ev.recurringEventId && gcalScope === 'series';
-  const msg = series ? t('kal.gcal_del_series_confirm') : t('kal.gcal_del_confirm');
+  const isFollowing = ev.recurringEventId && gcalScope === 'following';
+  const isSeries    = ev.recurringEventId && gcalScope === 'series';
+  const msg = isSeries ? t('kal.gcal_del_series_confirm')
+            : isFollowing ? t('kal.gcal_del_following_confirm')
+            : t('kal.gcal_del_confirm');
   if (!confirm(`${msg} "${ev.title}"`)) return;
   const hdrs = { ...await authHeaders(), 'Content-Type': 'application/json' };
+  const body = isFollowing
+    ? { eventId: ev.gcalId, recurringEventId: ev.recurringEventId, instanceDate: ev.date, scope: 'following' }
+    : { eventId: gcalTargetId(ev) };
   const r = await fetch('/api/kalender', {
     method: 'DELETE',
     headers: hdrs,
-    body: JSON.stringify({ eventId: gcalTargetId(ev) }),
+    body: JSON.stringify(body),
   });
   if (r.status === 401) { handle401(); return; }
   if (!r.ok) { toast(r.status === 403 ? t('kal.gcal_err_scope') : t('kal.del_error'), 'err'); return; }
