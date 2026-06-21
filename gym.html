@@ -106,18 +106,19 @@
     .rir-btn:hover { color: var(--text-secondary); border-color: rgba(255,255,255,0.18); }
     .rir-btn.sel { background: rgba(91,164,245,0.16); color: #5BA4F5; border-color: rgba(91,164,245,0.4); font-weight: 700; }
     .day-pill {
-      padding: 4px 12px;
+      padding: 7px 16px;
       border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.10);
       background: transparent;
-      color: var(--text-tertiary);
-      font-size: 11px;
-      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif);
       cursor: pointer;
       transition: all 0.15s;
+      letter-spacing: -0.01em;
     }
-    .day-pill.active { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(255,255,255,0.16); }
-    .day-pill:hover:not(.active) { color: var(--text-secondary); }
+    .day-pill.active { background: rgba(255,255,255,0.09); color: var(--text-primary); border-color: rgba(255,255,255,0.18); }
+    .day-pill:hover:not(.active) { color: var(--text-primary); border-color: rgba(255,255,255,0.15); }
     .wh-cta { display: flex; align-items: center; gap: 8px; }
     .wh-title { font-size: 21px; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); line-height: 1.1; }
     .wh-meta { display: flex; gap: 14px; margin-top: 4px; }
@@ -1191,6 +1192,7 @@ function renderDayPills() {
     return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
       onclick="setDay('${escHtml(d.day_key)}')"
       ondblclick="event.stopPropagation();renameDay('${escHtml(d.day_key)}')"
+      oncontextmenu="event.preventDefault();event.stopPropagation();showPillMenu(event,'${escHtml(d.day_key)}')"
       ontouchstart="pillLongPressStart(event,'${escHtml(d.day_key)}')"
       ontouchend="pillLongPressCancel()" ontouchmove="pillLongPressCancel()"
       title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}${del}</button>`;
@@ -1288,26 +1290,31 @@ function showPillMenu(e, key) {
   // fjern både aktiv (#pillMenu) og en evt. utgående meny (id nullet ved lukking)
   document.getElementById('pillMenu')?.remove();
   document.querySelectorAll('.menu-anim[data-pillmenu]').forEach(m => m.remove());
-  const touch = e.touches?.[0] || e;
+  const pt = e.touches?.[0] || e;
   const menu = document.createElement('div');
   menu.id = 'pillMenu';
   menu.dataset.pillmenu = '1';
   menu.className = 'menu-anim';
-  menu.style.cssText = `position:fixed;z-index:999;top:${touch.clientY+10}px;left:${Math.min(touch.clientX, window.innerWidth-160)}px;
+  menu.style.cssText = `position:fixed;z-index:999;top:${pt.clientY+8}px;left:${Math.min(pt.clientX, window.innerWidth-180)}px;
     background:#1a1a20;border:1px solid rgba(255,255,255,0.12);border-radius:10px;
-    overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5)`;
+    overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:160px`;
   const mkBtn = (label, fn, style='') => {
     const b = document.createElement('button');
     b.innerHTML = label;
     b.style.cssText = `display:block;width:100%;padding:13px 20px;background:none;border:none;font-size:14px;text-align:left;cursor:pointer;${style}`;
-    b.addEventListener('touchend', e => { e.stopPropagation(); closePillMenu(); fn(); });
+    const handler = ev => { ev.stopPropagation(); closePillMenu(); fn(); };
+    b.addEventListener('click', handler);
+    b.addEventListener('touchend', handler);
     return b;
   };
   menu.appendChild(mkBtn('✎ Gi nytt navn', () => renameDay(key), 'color:#fff;border-bottom:1px solid rgba(255,255,255,0.07)'));
   menu.appendChild(mkBtn('🗑 Slett', () => deleteDay(key), 'color:#ff6b6b'));
   document.body.appendChild(menu);
-  requestAnimationFrame(() => menu.classList.add('open'));   // glid + fade inn
-  setTimeout(() => document.addEventListener('touchstart', closePillMenu, { once: true }), 10);
+  requestAnimationFrame(() => menu.classList.add('open'));
+  setTimeout(() => {
+    document.addEventListener('click', closePillMenu, { once: true });
+    document.addEventListener('touchstart', closePillMenu, { once: true });
+  }, 10);
 }
 function closePillMenu() {
   const m = document.getElementById('pillMenu');
