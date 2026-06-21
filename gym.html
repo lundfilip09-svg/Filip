@@ -3602,15 +3602,18 @@ function _gymPainSummary(g, knee) {
       { l: t('knee.dayafter_short'), v: row?.day_after_score },
     ].filter(p => p.v != null);
 
+    const isOldSession = sessionDate < new Date().toISOString().slice(0, 10);
     if (!phases.length) {
       missingNames.push(bodyPartName(inj));
       return;
     }
+    // D.ETTER mangler på gammel økt → flagg skaden
+    const missingDayAfter = isOldSession && row?.day_after_score == null;
     const col = _GYM_INJ_COLORS[idx % _GYM_INJ_COLORS.length];
-    chips.push(`<span class="sess-inj" style="--inj:${col}">
+    chips.push(`<span class="sess-inj${missingDayAfter ? ' sess-inj-warn' : ''}" style="--inj:${col}">
       <span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
         phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
-      }</span>`);
+      }${missingDayAfter ? `<span class="sess-inj-ph" style="opacity:0.5;font-style:italic">${t('knee.dayafter_short')} ?</span>` : ''}</span>`);
   });
 
   const missing = missingNames.length
