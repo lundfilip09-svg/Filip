@@ -912,11 +912,11 @@
                oninput="localStorage.setItem('gm_draft_title', JSON.stringify({t:this.value,ts:Date.now()}))">
       </div>
       <div class="gm-add-bottom">
-        <span class="chip-wrap">
+        <span class="chip-wrap" onclick="if(window.matchMedia('(hover:hover)').matches){event.preventDefault();document.getElementById('todoDue').showPicker();}">
           <button type="button" class="add-chip" id="chipDue" data-i18n="gm.chip_due">+ dato</button>
           <input type="date" id="todoDue" class="chip-input-overlay" aria-label="+ dato" onchange="updateAddChips()">
         </span>
-        <span class="chip-wrap">
+        <span class="chip-wrap" onclick="if(window.matchMedia('(hover:hover)').matches){event.preventDefault();document.getElementById('todoRemind').showPicker();}">
           <button type="button" class="add-chip" id="chipRemind" data-i18n="gm.chip_reminder">⏰ Påminnelse</button>
           <input type="datetime-local" id="todoRemind" class="chip-input-overlay" aria-label="Påminnelse" onchange="updateAddChips()">
         </span>
@@ -1089,7 +1089,7 @@ function onLangChange() {
 // ── Lists ─────────────────────────────────────────────────────────────────
 async function loadLists() {
   const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
-  const defaultLists = ['Generelt', 'Trening', 'Skole'].filter(d => !hidden.includes(d));
+  const defaultLists = ['Generelt', 'Trening'].filter(d => !hidden.includes(d));
 
   // Load from todo_lists (persisted order). Fall back to deriving from todos if table missing.
   const { data: listRows, error: listErr } = await db.from('todo_lists')
@@ -1163,7 +1163,7 @@ async function renameList(oldName) {
   const { error } = await db.from('todos').update({ list_name: newName }).eq('list_name', oldName);
   if (error) { toast(t('gm.save_error'), 'err'); return; }
   // Hvis en default-liste døpes om, skjul den så den ikke re-injiseres ved neste lasting
-  if (['Generelt','Trening','Skole'].includes(oldName)) {
+  if (['Generelt','Trening'].includes(oldName)) {
     const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
     if (!hidden.includes(oldName)) { hidden.push(oldName); localStorage.setItem('gm_hidden_defaults', JSON.stringify(hidden)); }
   }
@@ -1200,7 +1200,7 @@ async function deleteList(name) {
   await db.from('todo_lists').delete().eq('name', name);
   localStorage.removeItem('gm_order_' + name);
   // If it's a hardcoded default, mark it hidden so loadLists() doesn't re-add it
-  const defaults = ['Generelt', 'Trening', 'Skole'];
+  const defaults = ['Generelt', 'Trening'];
   if (defaults.includes(name)) {
     const hidden = JSON.parse(localStorage.getItem('gm_hidden_defaults') || '[]');
     if (!hidden.includes(name)) {
