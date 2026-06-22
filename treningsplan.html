@@ -587,6 +587,7 @@
       background: color-mix(in srgb, var(--inj) 13%, transparent);
       border: 1px solid color-mix(in srgb, var(--inj) 38%, transparent);
     }
+    .sess-inj-warn { border-color: color-mix(in srgb, var(--inj) 60%, rgba(255,200,0,0.5)) !important; }
     .sess-inj-name { font-size: 11px; font-weight: 700; color: var(--inj); letter-spacing: 0.01em; }
     .sess-inj-ph {
       font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums;
@@ -2283,23 +2284,26 @@ function buildPainSummary(knee) {
 // Per-skade smerteoppsummering i sess-card — én linje per alvorlig skade
 function buildPainSummaryForDate(date, legacyKneeRow) {
   if (!_severeInjuries.length) return buildPainSummary(legacyKneeRow);
-  // Fargekode skadenavnet (samme palett som dashboard/graf) så kne vs hamstring er lette å skille.
   const INJ_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
+  const isPast = date < today();
   const lines = [];
   _severeInjuries.forEach((inj, idx) => {
+    const injStart = (inj.start_date || inj.created_at || '').slice(0,10);
+    if (injStart && injStart > date) return;
     const row = _getInjuryPain(inj.id, date, _isKneeInj(inj) ? legacyKneeRow : null);
-    if (!row) return;
-    const phases = [
+    const missingDayAfter = isPast && (!row || row.day_after_score == null);
+    if (!row && !missingDayAfter) return;
+    const phases = row ? [
       { l: t('knee.before_short'),   v: row.before_score },
       { l: t('knee.during_short'),   v: row.during_score },
       { l: t('knee.after_short'),    v: row.after_score },
       { l: t('knee.dayafter_short'), v: row.day_after_score },
-    ].filter(p => p.v != null);
-    if (!phases.length) return;
+    ].filter(p => p.v != null) : [];
+    if (!phases.length && !missingDayAfter) return;
     const col = INJ_COLORS[idx % INJ_COLORS.length];
-    lines.push(`<span class="sess-inj" style="--inj:${col}"><span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
+    lines.push(`<span class="sess-inj${missingDayAfter ? ' sess-inj-warn' : ''}" style="--inj:${col}"><span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
       phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
-    }</span>`);
+    }${missingDayAfter ? `<span class="sess-inj-ph" style="opacity:0.6;font-style:italic">${t('knee.dayafter_short')} ?</span>` : ''}</span>`);
   });
   return lines.join('');
 }
