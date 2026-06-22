@@ -740,6 +740,27 @@
       box-shadow: 0 24px 60px rgba(0,0,0,0.6);
       max-height: 88vh; overflow-y: auto;
     }
+    .dt-quickdue {
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.dt-quickdue-btn {
+  flex:1;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.03);
+  color:var(--text-secondary);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:13px;
+}
+
+.dt-quickdue-btn.active {
+  background:rgba(91,164,245,.15);
+  border-color:rgba(91,164,245,.45);
+  color:var(--accent);
+}
     .dt-hd {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
     }
@@ -1695,7 +1716,21 @@ function renderDetail() {
         <input type="date" value="${todo.due_date||''}" onchange="dtSaveDue(this.value)">
       </div>
     </div>
+    <div class="dt-quickdue">
+  <button
+    type="button"
+    class="dt-quickdue-btn ${todo.due_date === _dayStr(0) ? 'active' : ''}"
+    onclick="quickDue('${todo.id}','today')">
+    ${t('dash.move_today')}
+  </button>
 
+  <button
+    type="button"
+    class="dt-quickdue-btn ${todo.due_date === _dayStr(1) ? 'active' : ''}"
+    onclick="quickDue('${todo.id}','tomorrow')">
+    ${t('dash.move_tomorrow')}
+  </button>
+</div>
     <div class="dt-field">
       <div class="dt-field-hd">
         <label class="dt-field-lbl">⏰ ${t('gm.detail_remind_label')}</label>
