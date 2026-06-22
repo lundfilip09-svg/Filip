@@ -1892,8 +1892,8 @@ function _isKneeInj(inj) {
   const bp = (inj.body_part || '').toLowerCase();
   return bp === 'body.knee' || bp === 'knee' || bp.includes('kne');
 }
-function _getInjuryPain(injId, date, legacyFallback) {
-  return _injuryPainMap[`${injId}|${date}`] || legacyFallback || null;
+function _getInjuryPain(injId, date, sessionType, legacyFallback) {
+  return _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] || legacyFallback || null;
 }
 function _buildInjuryCheckpointHtml(row) {
   const phases = [
@@ -1984,11 +1984,11 @@ async function loadSessionHistory() {
     if ((k.session_type || '').startsWith('Sprint')) _kneeSprint[k.date] = k;
   });
   (ipRaw || []).forEach(row => {
-    const key = `${row.injury_id}|${row.date}`;
-    if (!_injuryPainMap[key] || row.created_at > _injuryPainMap[key].created_at) {
-      _injuryPainMap[key] = row;
-    }
-  });
+  const key = `${row.injury_id}|${row.date}|${row.session_type || ''}`;
+  if (!_injuryPainMap[key] || row.created_at > _injuryPainMap[key].created_at) {
+    _injuryPainMap[key] = row;
+  }
+});
 
   // Trend-badge: bruk første alvorlige skades injury_pain, fallback til kne-data
   const firstInj = _severeInjuries[0];
@@ -2282,7 +2282,7 @@ function buildPainSummary(knee) {
 }
 
 // Per-skade smerteoppsummering i sess-card — én linje per alvorlig skade
-function buildPainSummaryForDate(date, legacyKneeRow) {
+function buildPainSummaryForDate(date, legacyKneeRow, sessionType) {
   if (!_severeInjuries.length) return buildPainSummary(legacyKneeRow);
   const INJ_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const isPast = date < today();
@@ -2290,7 +2290,7 @@ function buildPainSummaryForDate(date, legacyKneeRow) {
   _severeInjuries.forEach((inj, idx) => {
     const injStart = (inj.start_date || inj.created_at || '').slice(0,10);
     if (injStart && injStart > date) return;
-    const row = _getInjuryPain(inj.id, date, _isKneeInj(inj) ? legacyKneeRow : null);
+    const row = _getInjuryPain(inj.id, date, sessionType || '', _isKneeInj(inj) ? legacyKneeRow : null);
     const missingDayAfter = isPast && (!row || row.day_after_score == null);
     if (!row && !missingDayAfter) return;
     const phases = row ? [
@@ -2374,7 +2374,7 @@ function renderSessionGrid() {
           return 'rgba(107,227,164,0.7)';
         })();
         const gymRir = g.rpe != null ? Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2)) : null;
-        const painChips = buildPainSummaryForDate(g.date, knee);
+        const painChips = buildPainSummaryForDate(g.date, knee, g.session_type);
         const painBlock = painChips ? `<div class="gym-hist-injs">${painChips}</div>` : '';
         const durInput = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
           <input class="sess-dur-input" type="number" min="5" max="600" step="5"
@@ -2407,7 +2407,7 @@ function renderSessionGrid() {
         const distSummary = [...new Set(s.runs.map(r => distLabel(r.distance)))].join(' / ');
         const sprintTitle = `Sprint · ${distSummary}`;
         const sprintVolTxt = t('sprint.runs_count', { n: s.runs.length });
-        const sprintPainChips = buildPainSummaryForDate(s.date, knee);
+        const sprintPainChips = buildPainSummaryForDate(s.date, knee, 'Sprint');
         const sprintPainBlock = sprintPainChips ? `<div class="gym-hist-injs">${sprintPainChips}</div>` : '';
         const sprintDur = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
           <input class="sess-dur-input" type="number" min="5" max="600" step="5"
@@ -2440,7 +2440,7 @@ function renderSessionGrid() {
         const isOpen = _openDetail === aid;
         const label  = a.activity_type === 'Annet' && a.activity_label ? a.activity_label : trActType(a.activity_type);
         const kneeAct = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
-        const actPainChips = buildPainSummaryForDate(a.date, kneeAct);
+        const actPainChips = buildPainSummaryForDate(a.date, kneeAct, a.activity_type);
         const actPainBlock = actPainChips ? `<div class="gym-hist-injs">${actPainChips}</div>` : '';
         const rpeExtra  = a.rpe ? `<span class="sess-rir-badge">RPE ${a.rpe}</span>` : '';
         const mpExtra   = a.minutes_played != null ? `<span class="sess-vol-txt">${escHtml(t('tp.min_played_short',{n:a.minutes_played}))}</span>` : '';
@@ -2505,7 +2505,7 @@ function buildDetailHtml(g, knee) {
   const dateStr = d.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   const injSections = _severeInjuries.length === 0 ? '' : _severeInjuries.map(inj => {
-    const row = _getInjuryPain(inj.id, g.date, _isKneeInj(inj) ? knee : null);
+    const row = _getInjuryPain(inj.id, g.date, g.session_type || '', _isKneeInj(inj) ? knee : null);
     return `
     <div style="margin-bottom:10px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
@@ -2577,7 +2577,7 @@ function buildSprintDetailHtml(s, knee) {
     </div>`).join('');
 
   const injSections = _severeInjuries.length === 0 ? '' : _severeInjuries.map(inj => {
-    const row = _getInjuryPain(inj.id, s.date, _isKneeInj(inj) ? knee : null);
+    const row = _getInjuryPain(inj.id, s.date, 'Sprint', _isKneeInj(inj) ? knee : null);
     return `
     <div style="margin-bottom:10px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
@@ -2711,7 +2711,7 @@ function buildActDetailHtml(a) {
   const kneeActRow = { before_score: a.knee_before, during_score: a.knee_during, after_score: a.knee_after, day_after_score: a.knee_day_after };
 
   const injSections = _severeInjuries.length === 0 ? '' : _severeInjuries.map(inj => {
-    const row = _getInjuryPain(inj.id, a.date, _isKneeInj(inj) ? kneeActRow : null);
+    const row = _getInjuryPain(inj.id, a.date, a.activity_type || '', _isKneeInj(inj) ? kneeActRow : null);
     return `
     <div style="margin-bottom:10px">
       <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
@@ -3140,7 +3140,7 @@ async function saveActivity() {
     const { data: ipRow } = await db.from('injury_pain').insert({
       injury_id: inj.id, date, session_type: _actType, source: 'activity', ...scores,
     }).select().single();
-    if (ipRow) { _injuryPainMap[`${inj.id}|${date}`] = ipRow; _injuryPainAll.push(ipRow); }
+    if (ipRow) { _injuryPainMap[`${inj.id}|${date}|${_actType || ''}`] = ipRow; _injuryPainAll.push(ipRow); }
   }
 
   _actData.unshift(data);
@@ -3171,7 +3171,7 @@ async function _cleanupOrphanPain(date) {
   await db.from('knee_pain').delete().eq('date', date); // DEPRECATED (P6): legacy fallback
   _injuryPainAll = _injuryPainAll.filter(r => r.date !== date);
   _allKnee       = _allKnee.filter(k => k.date !== date);
-  Object.keys(_injuryPainMap).forEach(k => { if (k.endsWith('|' + date)) delete _injuryPainMap[k]; });
+  Object.keys(_injuryPainMap).forEach(k => { if (k.split('|')[1] === date) delete _injuryPainMap[k]; });
   Object.keys(_kneeMap).forEach(k => { if (k.startsWith(date + '|')) delete _kneeMap[k]; });
   delete _kneeSprint[date];
 }
@@ -3238,7 +3238,7 @@ async function deleteSprintSession(date) {
 
 async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
   const numVal  = value === '' ? null : Number(value);
-  const key     = `${injId}|${date}`;
+  const key     = `${injId}|${date}|${sessionType || ''}`;
   const existing = _injuryPainMap[key];
   if (existing) {
     const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
