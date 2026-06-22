@@ -18,6 +18,10 @@ git add .
 git commit -m "update"
 git push origin main
 
+cd ~/Dev/Dashboard
+git add treningsplan.html utils.js
+git commit -m "fix: OC modal mobile overflow/panning"
+git push
 
 Prompt for ny dashboard chat:
 Filip Lund sitt personlige helse-/treningsdashboard — fullstack webapp som skal

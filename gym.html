@@ -2648,6 +2648,7 @@ function startWorkout() {
   activeExId    = null;
   _loggedThisSession  = false;
   _sessionDurationMin = null;
+  _lastSaved          = null;   // ← nytt: hindrer auto-persist fra å skrive til forrige økt
   setWS('active');
   clearInterval(elapsedTimer);
   elapsedTimer = setInterval(() => { updateElapsed(); updateRingTimer(); }, 1000);
@@ -3432,10 +3433,11 @@ async function saveLog() {
     }
 
     _loggedThisSession = true;
+    clearLog();          // ← nytt: tøm kneePain + _injuryScores + DOM-knapper
     clearSession();
     clearDraft();
     toast(t('gym.session_saved'));
-    resetWorkout();          // tilbake til idle-tilstand uten "Økt fullført"-banner
+    resetWorkout();  // tilbake til idle-tilstand uten "Økt fullført"-banner
     await loadGymHistory();
     renderOverloadCoach();   // ny set_log-data → oppdater forslagene
   } finally {
