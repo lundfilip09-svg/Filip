@@ -1417,6 +1417,18 @@ async function deleteDay(key) {
   gymDays = gymDays.filter(x => x.day_key !== key);
   delete allExercises[key];
   _buildTplBridge();
+  // Slett malen fra session_templates hvis ingen andre gym-dager bruker samme type_label.
+  // Dette holder treningsplan.html sin økt-dropdown i sync med gym.html.
+  if (d.type_label) {
+    const stillUsed = gymDays.some(x => x.type_label === d.type_label);
+    if (!stillUsed) {
+      const tpl = sessionTemplates.find(x => x.i18n_key === d.type_label);
+      if (tpl) {
+        await db.from('session_templates').delete().eq('id', tpl.id);
+        sessionTemplates = sessionTemplates.filter(x => x.id !== tpl.id);
+      }
+    }
+  }
   // Tøm den faste plan-dagen (hvile) hvis ingen annen gym-dag dekker samme ukedag.
   if (d.weekday != null && !gymDays.some(x => x.weekday === d.weekday && x.day_key !== 'rehab')) {
     await syncDayToPlan(d, { empty: true });
