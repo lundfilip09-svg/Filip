@@ -3242,12 +3242,22 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
   const existing = _injuryPainMap[key];
   if (existing) {
     const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
-    if (!error) _injuryPainMap[key][field] = numVal;
+    if (!error) {
+      _injuryPainMap[key][field] = numVal;
+      // Sync _injuryPainAll (brukes av InjuryDash og Trends)
+      const allRow = _injuryPainAll.find(r => r.id === existing.id);
+      if (allRow) allRow[field] = numVal;
+      renderSessionGrid(); renderInjuryDash(); renderTrends();
+    }
   } else {
     const { data, error } = await db.from('injury_pain').insert({
       injury_id: injId, date, session_type: sessionType, source: 'treningsplan', [field]: numVal,
     }).select().single();
-    if (!error && data) _injuryPainMap[key] = data;
+    if (!error && data) {
+      _injuryPainMap[key] = data;
+      _injuryPainAll.push(data);
+      renderSessionGrid(); renderInjuryDash(); renderTrends();
+    }
   }
 }
 
