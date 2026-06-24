@@ -4513,13 +4513,23 @@ async function saveDayAfterPain() {
   if (!entries.length || !_dayAfterSession) { toast(t('gym.select_pain_score'), 'err'); return; }
   const { date, sessionType, kneeId } = _dayAfterSession;
   if (_dayAfterInjuries.length) {
-    // Per-skade → injury_pain (oppdater eksisterende rad, ellers ny)
+    // Per-skade → injury_pain.
+    // day_after_score er dato-nivå: oppdater ALLE rader for injId+date, ikke bare én.
     for (const [injId, score] of entries) {
-      const ipRow = _dayAfterInjuries.find(x => x.inj.id === injId)?.ipRow;
-      const res = ipRow
-        ? await db.from('injury_pain').update({ day_after_score: score }).eq('id', ipRow.id)
-        : await db.from('injury_pain').insert({ injury_id: injId, date, session_type: sessionType, source: 'gym', day_after_score: score });
-      if (res.error) { toast(t('gym.save_error'), 'err'); return; }
+      const { data: allRows } = await db.from('injury_pain')
+        .select('id').eq('injury_id', injId).eq('date', date);
+      if (allRows && allRows.length) {
+        for (const r of allRows) {
+          const { error } = await db.from('injury_pain').update({ day_after_score: score }).eq('id', r.id);
+          if (error) { toast(t('gym.save_error'), 'err'); return; }
+        }
+      } else {
+        // Ingen rader finnes → opprett én ny
+        const { error } = await db.from('injury_pain').insert({
+          injury_id: injId, date, session_type: sessionType, source: 'gym', day_after_score: score,
+        });
+        if (error) { toast(t('gym.save_error'), 'err'); return; }
+      }
     }
   } else {
     // Legacy knee_pain

@@ -1892,8 +1892,25 @@ function _isKneeInj(inj) {
   const bp = (inj.body_part || '').toLowerCase();
   return bp === 'body.knee' || bp === 'knee' || bp.includes('kne');
 }
+// day_after_score er dato-nivå: les det fra hvilken som helst rad på samme dato+skade
+function _getDayAfterForDate(injId, date) {
+  const prefix = `${injId}|${date}|`;
+  for (const key of Object.keys(_injuryPainMap)) {
+    if (key.startsWith(prefix)) {
+      const v = _injuryPainMap[key].day_after_score;
+      if (v != null) return v;
+    }
+  }
+  return null;
+}
 function _getInjuryPain(injId, date, sessionType, legacyFallback) {
-  return _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] || legacyFallback || null;
+  const row = _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] || legacyFallback || null;
+  // Merge inn day_after_score fra hvilken som helst økt på samme dato (dato-nivå-verdi)
+  const dayAfterVal = _getDayAfterForDate(injId, date);
+  if (dayAfterVal == null) return row;
+  if (!row) return { day_after_score: dayAfterVal };
+  if (row.day_after_score != null) return row; // allerede satt
+  return { ...row, day_after_score: dayAfterVal };
 }
 function _buildInjuryCheckpointHtml(row) {
   const phases = [
@@ -3238,13 +3255,20 @@ async function deleteSprintSession(date) {
 
 async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
   const numVal  = value === '' ? null : Number(value);
-  const key     = `${injId}|${date}|${sessionType || ''}`;
+
+  // day_after_score er dato-nivå → sync til alle rader på samme dato+skade
+  if (field === 'day_after_score') {
+    await _syncDayAfterScore(injId, date, numVal, sessionType);
+    renderSessionGrid(); renderInjuryDash(); renderTrends();
+    return;
+  }
+
+  const key      = `${injId}|${date}|${sessionType || ''}`;
   const existing = _injuryPainMap[key];
   if (existing) {
     const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
     if (!error) {
       _injuryPainMap[key][field] = numVal;
-      // Sync _injuryPainAll (brukes av InjuryDash og Trends)
       const allRow = _injuryPainAll.find(r => r.id === existing.id);
       if (allRow) allRow[field] = numVal;
       renderSessionGrid(); renderInjuryDash(); renderTrends();
@@ -3257,6 +3281,32 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
       _injuryPainMap[key] = data;
       _injuryPainAll.push(data);
       renderSessionGrid(); renderInjuryDash(); renderTrends();
+    }
+  }
+}
+
+// Oppdater day_after_score på ALLE eksisterende rader for injId+date (dato-nivå-verdi).
+// Hvis ingen rader finnes, opprett én ny for triggerSessionType.
+async function _syncDayAfterScore(injId, date, numVal, triggerSessionType) {
+  const prefix      = `${injId}|${date}|`;
+  const matchingKeys = Object.keys(_injuryPainMap).filter(k => k.startsWith(prefix));
+
+  if (!matchingKeys.length) {
+    const key = `${injId}|${date}|${triggerSessionType || ''}`;
+    const { data, error } = await db.from('injury_pain').insert({
+      injury_id: injId, date, session_type: triggerSessionType, source: 'treningsplan', day_after_score: numVal,
+    }).select().single();
+    if (!error && data) { _injuryPainMap[key] = data; _injuryPainAll.push(data); }
+    return;
+  }
+
+  for (const key of matchingKeys) {
+    const row = _injuryPainMap[key];
+    const { error } = await db.from('injury_pain').update({ day_after_score: numVal }).eq('id', row.id);
+    if (!error) {
+      row.day_after_score = numVal;
+      const allRow = _injuryPainAll.find(r => r.id === row.id);
+      if (allRow) allRow.day_after_score = numVal;
     }
   }
 }
