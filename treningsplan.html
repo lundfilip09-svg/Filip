@@ -2427,7 +2427,7 @@ function renderSessionGrid() {
         const sprintPainChips = buildPainSummaryForDate(s.date, knee, 'Sprint');
         const sprintPainBlock = sprintPainChips ? `<div class="gym-hist-injs">${sprintPainChips}</div>` : '';
         const sprintDur = `<span class="sess-dur-wrap" onclick="event.stopPropagation()">
-          <input class="sess-dur-input" type="number" min="5" max="600" step="5"
+          <input class="sess-dur-input" type="number" min="1" max="600"
             value="${s.duration_min ?? ''}" placeholder="—"
             onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
           <span>min</span></span>`;
@@ -2630,7 +2630,7 @@ function buildSprintDetailHtml(s, knee) {
               value="${s.rpe ?? ''}" placeholder="—"
               onblur="autoSaveSprintField('${s.date}','rpe',this.value)">
             <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">RPE</span>
-            <input type="number" min="5" max="600" step="5" class="sess-edit-input" style="max-width:60px"
+            <input type="number" min="1" max="600" class="sess-edit-input" style="max-width:60px"
               value="${s.duration_min ?? ''}" placeholder="—"
               onblur="autoSaveSprintField('${s.date}','duration_min',this.value)">
             <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary)">min</span>
