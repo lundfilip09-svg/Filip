@@ -283,7 +283,7 @@
 
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label" data-i18n="tp.duration">Varighet (min)</label>
-      <input type="number" id="logDuration" class="input-sm" min="5" max="600" step="5"
+      <input type="number" id="logDuration" class="input-sm" min="1" max="600"
         placeholder="—" style="width:110px" title="sRPE: varighet × RPE/10">
     </div>
 
@@ -381,6 +381,7 @@ function saveDraft() {
     type:         document.getElementById('logType').value,
     level:        _sprintLevel,
     rpe:          rpeValue('logRpe'),
+    duration:     document.getElementById('logDuration')?.value ?? '',
     notes:        document.getElementById('logNotes').value,
     runs:         runs,
     injuryScores: _injuryScores,
@@ -407,6 +408,10 @@ function restoreDraft() {
       });
     }
     if (d.rpe != null) renderLogRpe(d.rpe);
+    if (d.duration != null) {
+      const durEl = document.getElementById('logDuration');
+      if (durEl) durEl.value = d.duration;
+    }
     if (d.notes) document.getElementById('logNotes').value = d.notes;
     if (Array.isArray(d.runs)) { runs = d.runs; renderRuns(); }
     if (d.injuryScores && typeof d.injuryScores === 'object') {
@@ -461,7 +466,11 @@ function renderInjuryPainBlocks(containerId) {
 
 function selectInjuryPain(injId, phase, score) {
   if (!_injuryScores[injId]) _injuryScores[injId] = {};
-  _injuryScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
+  // Les faktisk DOM-verdi etter toggle (klikk samme knapp = null, ikke score)
+  const id   = `ipm-${injId}-${phase}`;
+  const wrap = document.getElementById(id);
+  const newV = (wrap && wrap.dataset.touched === '1') ? parseInt(wrap.dataset.v, 10) : null;
+  _injuryScores[injId][phase] = (newV != null && !isNaN(newV)) ? newV : null;
   saveDraft();
 }
 
@@ -534,7 +543,10 @@ function renderManualPainForms() {
 
 function selectManualPain(injId, phase, score) {
   if (!_manualScores[injId]) _manualScores[injId] = {};
-  _manualScores[injId][phase] = score;   // måleren er alt oppdatert visuelt av painMeterSet
+  const id   = `mpm-${injId}-${phase}`;
+  const wrap = document.getElementById(id);
+  const newV = (wrap && wrap.dataset.touched === '1') ? parseInt(wrap.dataset.v, 10) : null;
+  _manualScores[injId][phase] = (newV != null && !isNaN(newV)) ? newV : null;
 }
 
 async function saveManualPain(injId) {
@@ -567,7 +579,7 @@ async function saveManualPain(injId) {
 restoreDraft();
 
 // Lagre draft ved endringer i tekstfelt/select
-['logDate','logDist','logType','logNotes'].forEach(id => {
+['logDate','logDist','logType','logNotes','logDuration'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', saveDraft);
   if (el) el.addEventListener('change', saveDraft);
@@ -916,6 +928,8 @@ async function logSession() {
     renderRuns();
     renderLogRpe();
     document.getElementById('logNotes').value = '';
+    const durEl = document.getElementById('logDuration');
+    if (durEl) durEl.value = '';
     _severeInjuries.forEach(inj => {
       _injuryScores[inj.id] = { before: null, during: null, after: null, dayafter: null };
     });
