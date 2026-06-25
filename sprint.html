@@ -1257,12 +1257,18 @@ async function loadKneeTrend() {
     const knee = _severeInjuries.find(_isKneeInjury);
     _trendInjId = knee ? knee.id : _severeInjuries[0].id;
   }
+  // Dedupliser på dato – behold første (nyeste) forekomst per dato, ta 5 unike datoer.
+  const dedupByDate = (arr) => {
+    const seen = new Set();
+    return arr.filter(r => seen.has(r.date) ? false : seen.add(r.date)).slice(0, 5);
+  };
+
   const _kneeFallback = async () => {
     const { data } = await db.from('knee_pain')
       .select('id,date,before_score,during_score,after_score,day_after_score')
       .ilike('session_type', 'Sprint%')
-      .order('date', { ascending: false }).limit(5);
-    return (data || []).map(r => ({ ...r, _src: 'knee_pain' }));
+      .order('date', { ascending: false }).limit(25);
+    return dedupByDate((data || []).map(r => ({ ...r, _src: 'knee_pain' })));
   };
 
   let rows = [];
@@ -1271,8 +1277,8 @@ async function loadKneeTrend() {
       .select('id,date,before_score,during_score,after_score,day_after_score,session_type')
       .eq('injury_id', _trendInjId)
       .ilike('session_type', 'Sprint%')
-      .order('date', { ascending: false }).limit(5);
-    rows = (data || []).map(r => ({ ...r, _src: 'injury_pain' }));
+      .order('date', { ascending: false }).limit(25);
+    rows = dedupByDate((data || []).map(r => ({ ...r, _src: 'injury_pain' })));
     if (!rows.length && _isKneeInjury(_severeInjuries.find(i => i.id === _trendInjId))) {
       rows = await _kneeFallback();   // gammel kne-data uten injury_pain
     }
