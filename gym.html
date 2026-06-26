@@ -2537,8 +2537,8 @@ function initSetData(exId) {
   const prevDone = completedSets[exId] || new Set();
   setData[exId] = [...Array(ex.sets)].map((_, i) => ({
     done:   prevDone.has(i),
-    weight: weights[exId] ?? weights[ex.exercise_name] ?? '',
-    reps:   ex.reps,
+    weight: weightForEx(exId),
+    reps:   '',
     notes:  '',
   }));
 }
@@ -2630,7 +2630,7 @@ function addSet(exId) {
   const d = setData[exId];
   const last = d.length ? d[d.length - 1] : null;
   const i = d.length;
-  d.push({ done: false, weight: last?.weight ?? (weights[exId] ?? weights[ex.exercise_name] ?? ''), reps: last?.reps ?? ex.reps, notes: '' });
+  d.push({ done: false, weight: last?.weight ?? weightForEx(exId), reps: '', notes: '' });
   document.getElementById(`drawer-body-${exId}`)?.insertAdjacentHTML('beforeend', drawerRow(exId, i, d[i]));
   saveSession();
 }
@@ -2659,6 +2659,25 @@ function removeSet(exId, i) {
 // Representativ vekt for økta: hyppigste vekt blant settene (tie → tyngste).
 // Brukes som øvelsens standardvekt — IKKE bare første sett med vekt, som ville
 // gitt feil ved pyramide-/fallende sett (30/25/20/20 → 20, ikke 30).
+// Returnerer vekten for en øvelse, søker på tvers av alle dager med samme navn
+function weightForEx(exId) {
+  const ex = findExById(exId);
+  if (!ex) return '';
+  if (weights[exId] !== undefined) return weights[exId];
+  // Finn siste lagrede vekt for samme exercise_name uavhengig av ID
+  let best = undefined;
+  for (const [k, v] of Object.entries(weights)) {
+    if (k === ex.exercise_name) { best = v; break; }
+    // k kan være en annen UUID — sjekk om den IDen tilhører samme navn
+    for (const d of Object.values(allExercises))
+      for (const s of Object.values(d))
+        for (const e of s)
+          if (String(e.id) === String(k) && e.exercise_name === ex.exercise_name && (best === undefined || v > best))
+            best = v;
+  }
+  return best !== undefined ? best : '';
+}
+
 function representativeWeight(exId) {
   const rows = (setData[exId] || []).filter(r =>
     r.weight !== '' && r.weight != null && !isNaN(parseFloat(r.weight)));
@@ -3455,6 +3474,14 @@ async function autoSaveExField(id, field, value) {
         const ex = allExercises[d][s].find(e => String(e.id) === String(id));
         if (ex) ex.sets = v;
       }
+    // Sync setData: add or remove rows to match new set count
+    if (setData[id]) {
+      const cur = setData[id];
+      const wt = cur.length ? cur[cur.length - 1].weight : weightForEx(id);
+      while (cur.length < v) cur.push({ done: false, weight: wt, reps: '', notes: '' });
+      if (cur.length > v) cur.splice(v);
+      if (activeDrawer === id) renderDrawer(id);
+    }
   } else {
     const v = value.trim();
     if (!v) return;
