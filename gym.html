@@ -1094,8 +1094,8 @@ function restoreDraft() {
     const d = JSON.parse(raw);
     // Only restore set data if the draft is from today — avoids yesterday's
     // user-added sets bleeding into a new session
-    if (d.setData && d.logDate === today()) setData = d.setData;
-    if (d.exRir && d.logDate === today()) exRir = d.exRir;
+    if (d.setData) setData = d.setData;
+    if (d.exRir) exRir = d.exRir;
     if (d.kneePain)     Object.assign(kneePain, d.kneePain);
     if (d.injuryScores) Object.assign(_injuryScores, d.injuryScores);
     const _ld = document.getElementById('logDate');
@@ -2387,7 +2387,9 @@ function renderExRow(ex, day, num, isWarmup) {
             style="width:48px"
             data-exercise-id="${ex.id}"
             onclick="event.stopPropagation()"
-            onchange="saveWeight(this.dataset.exerciseId, toKg(this.value))">
+            oninput="saveWeight(this.dataset.exerciseId, toKg(this.value))"
+            onchange="saveWeight(this.dataset.exerciseId, toKg(this.value))"
+            onblur="saveWeight(this.dataset.exerciseId, toKg(this.value))">
           <span style="color:var(--text-tertiary);font-family:var(--font-mono)">${weightUnit()}</span>` : ''}
         </div>
       </div>
@@ -2476,12 +2478,15 @@ function drawerRow(exId, i, s) {
   return `<tr id="drow-${exId}-${i}" class="${s.done ? 'set-done' : ''}">
     <td class="set-num-cell">${i + 1}</td>
     <td><input class="set-inp" type="text" value="${escHtml(String(s.reps))}"
+      oninput="setData['${exId}'][${i}].reps=this.value;saveDraft()"
       onchange="setData['${exId}'][${i}].reps=this.value;saveDraft()"></td>
     <td><input class="set-inp" type="number" step="${weightStep(false)}" value="${s.weight !== '' && s.weight !== undefined ? fromKg(s.weight) : ''}"
+      oninput="setData['${exId}'][${i}].weight=this.value===''?'':toKg(this.value);saveDraft()"
       onchange="setData['${exId}'][${i}].weight=this.value===''?'':toKg(this.value);saveDraft()"></td>
     <td><button class="set-check${s.done ? ' done' : ''}" id="sc-${exId}-${i}"
       onclick="toggleSetDone('${exId}',${i})">${s.done ? '✓' : ''}</button></td>
     <td><input class="set-inp set-notes-inp" type="text" value="${escHtml(s.notes)}"
+      oninput="setData['${exId}'][${i}].notes=this.value;saveDraft()"
       onchange="setData['${exId}'][${i}].notes=this.value;saveDraft()" placeholder="—"></td>
     <td><button class="set-remove" onclick="removeSet('${exId}',${i})" title="${t('gym.remove_set')}">−</button></td>
   </tr>`;
