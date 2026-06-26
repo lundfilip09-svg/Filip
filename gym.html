@@ -1071,6 +1071,7 @@ async function fetchCloudSession() {
 }
 
 function saveDraft() {
+  console.log("saveDraft kjørte");
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
       activeDay,
