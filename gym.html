@@ -175,6 +175,18 @@
     .sec-label { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-tertiary); }
     .sec-divider { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
     .sec-count { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 1px 7px; border-radius: 8px; }
+    .sec-drag-handle {
+      cursor: grab; color: var(--text-tertiary); font-size: 13px; opacity: 0.4;
+      padding: 0 4px 0 0; transition: opacity 0.15s; flex-shrink: 0; user-select: none;
+    }
+    .sec-drag-handle:hover { opacity: 0.85; }
+    .sec-del-btn {
+      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
+      font-size: 16px; padding: 0 4px; opacity: 0.3; transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0; line-height: 1;
+    }
+    .sec-del-btn:hover { opacity: 1; color: var(--danger); }
+    .ex-section.sec-drag-over { outline: 1px dashed rgba(91,164,245,0.45); border-radius: 8px; background: rgba(91,164,245,0.04); }
 
     .ex-section { margin-bottom: 14px; }
 
@@ -1662,12 +1674,35 @@ async function loadData() {
   await migrateWarmupData();
 }
 
+// ── Section order localStorage helpers ────────────────────────────
+function _secOrdKey(day) { return `sec_ord__${day}`; }
+function _saveSecOrder(day) {
+  const keys = Object.keys(allExercises[day] || {});
+  try { localStorage.setItem(_secOrdKey(day), JSON.stringify(keys)); } catch {}
+}
+function _applySecOrder(day) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(_secOrdKey(day)));
+    if (!saved?.length) return;
+    const cur = allExercises[day] || {};
+    const reordered = {};
+    for (const k of saved) { if (cur[k] !== undefined) reordered[k] = cur[k]; }
+    // append any keys not in saved (newly added sections)
+    for (const k of Object.keys(cur)) { if (!(k in reordered)) reordered[k] = cur[k]; }
+    allExercises[day] = reordered;
+  } catch {}
+}
+
 // ── Exercise order localStorage helpers ───────────────────────────
 function _exOrdKey(day, section) { return `ex_ord__${day}__${section}`; }
 function _saveLocalExOrder(day, section, ids) {
   try { localStorage.setItem(_exOrdKey(day, section), JSON.stringify(ids.map(String))); } catch {}
 }
 function _applyLocalExOrders() {
+  // Section order first (so Object.entries gives stable order)
+  for (const day of Object.keys(allExercises)) {
+    _applySecOrder(day);
+  }
   // Strength sections
   for (const day of Object.keys(allExercises)) {
     for (const section of Object.keys(allExercises[day])) {
@@ -2222,6 +2257,7 @@ async function addSection(day, formId) {
   // har ingen egen seksjonstabell).
   if (!allExercises[day]) allExercises[day] = {};
   allExercises[day][name] = [];
+  _saveSecOrder(day);
   document.getElementById(formId).classList.remove('open');
   document.getElementById(`${formId}-name`).value = '';
   renderAll();
@@ -2249,8 +2285,86 @@ async function renameSection(day, oldLabel, formId) {
     if (k === oldLabel) renamed[nk].forEach(e => e.section = newName);
   }
   allExercises[day] = renamed;
+  _saveSecOrder(day);
   renderAll();
   toast(t('gm.saved'));
+}
+
+// ── Section drag-and-drop ──────────────────────────────────────────
+let _secDragDay = null, _secDragLabel = null;
+
+function secDragStart(e) {
+  const el = e.currentTarget;
+  _secDragDay   = el.dataset.day;
+  _secDragLabel = el.dataset.section;
+  el.style.opacity = '0.45';
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+function secDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('.ex-section').forEach(s => s.classList.remove('sec-drag-over'));
+  e.stopPropagation();
+}
+function secDragOver(e) {
+  if (!_secDragLabel) return;
+  const el = e.currentTarget;
+  if (el.dataset.section === _secDragLabel) return;
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.ex-section').forEach(s => s.classList.remove('sec-drag-over'));
+  el.classList.add('sec-drag-over');
+}
+function secDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget))
+    e.currentTarget.classList.remove('sec-drag-over');
+  e.stopPropagation();
+}
+function secDrop(e) {
+  if (!_secDragLabel) return;   // not a section drag — let exSecDrop handle it
+  e.preventDefault(); e.stopPropagation();
+  const target = e.currentTarget;
+  target.classList.remove('sec-drag-over');
+  const targetLabel = target.dataset.section;
+  if (targetLabel === _secDragLabel || _secDragDay !== target.dataset.day) return;
+  const day = _secDragDay;
+  const cur = allExercises[day] || {};
+  const keys = Object.keys(cur);
+  const fromIdx = keys.indexOf(_secDragLabel);
+  const toIdx   = keys.indexOf(targetLabel);
+  if (fromIdx < 0 || toIdx < 0) return;
+  keys.splice(fromIdx, 1);
+  keys.splice(toIdx, 0, _secDragLabel);
+  const reordered = {};
+  for (const k of keys) reordered[k] = cur[k];
+  allExercises[day] = reordered;
+  _saveSecOrder(day);
+  renderAll();
+  _secDragLabel = null;
+}
+
+// ── Delete section ─────────────────────────────────────────────────
+async function deleteSection(day, label) {
+  const exs = allExercises[day]?.[label] || [];
+  const msg = exs.length
+    ? t('gym.confirm_delete_section_ex', { name: label, n: exs.length })
+    : t('gym.confirm_delete_section', { name: label });
+  if (!confirm(msg)) return;
+  if (exs.length) {
+    const ids = exs.map(e => e.id).filter(Boolean);
+    if (ids.length) {
+      const { error } = await db.from('workout_program').delete().in('id', ids);
+      if (error) { toast(t('gym.save_error'), 'err'); return; }
+    }
+  }
+  delete allExercises[day][label];
+  // Remove from section order cache
+  try {
+    const saved = JSON.parse(localStorage.getItem(_secOrdKey(day)) || '[]');
+    localStorage.setItem(_secOrdKey(day), JSON.stringify(saved.filter(k => k !== label)));
+  } catch {}
+  renderAll();
+  toast(t('gym.section_deleted'));
 }
 
 // ── Exercise name editing ──────────────────────────────────────────
@@ -2299,11 +2413,16 @@ function renderSectionBlock(label, exs, day) {
   const renId   = `secren-${day}-${label.replace(/\s/g,'_')}`;
   const totSets = exs.reduce((a, e) => a + e.sets, 0);
   return `<div class="ex-section" data-day="${escHtml(day)}" data-section="${escHtml(label)}"
-    ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
+    draggable="true"
+    ondragstart="secDragStart(event)" ondragend="secDragEnd(event)"
+    ondragover="secDragOver(event);exSecDragOver(event)" ondragleave="secDragLeave(event);exSecDragLeave(event)" ondrop="secDrop(event);exSecDrop(event)">
     <div class="sec-hd">
+      <span class="sec-drag-handle" title="${t('gym.drag_section')}" onclick="event.stopPropagation()">⠿</span>
       <span class="sec-label">${escHtml(label)}</span>
       <button class="edit-knee-btn" style="opacity:0.55" title="${t('gym.rename_section')}"
         onclick="document.getElementById('${renId}').classList.toggle('open')">✎</button>
+      <button class="sec-del-btn" title="${t('gym.delete_section')}"
+        onclick="deleteSection('${escHtml(day)}','${escHtml(label)}')">×</button>
       <span class="sec-divider"></span>
       <span class="sec-count">${exs.length} ${t('gym.ex_unit')} · ${totSets} ${t('gym.sets_unit')}</span>
     </div>
@@ -4239,6 +4358,7 @@ function exDragStart(e) {
   _exDragId = el.dataset.exid; _exDragEl = el;
   _exDragDay = el.dataset.day; _exDragSection = el.dataset.section;
   e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();   // prevent section drag from firing
   setTimeout(() => _exDragEl?.classList.add('ex-dragging'), 0);
 }
 function exDragEnd() {
