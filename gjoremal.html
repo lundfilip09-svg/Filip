@@ -1204,9 +1204,10 @@ async function addList(explicitName) {
   if (!name) return;
   if (lists.includes(name)) { toast(t('gm.list_exists'), 'err'); return; }
   const position = lists.length;
+  const { error } = await db.from('todo_lists').insert({ name, position });
+  if (error) { toast(t('gm.save_error'), 'err'); return; }
   lists.push(name);
   if (inp) inp.value = '';
-  db.from('todo_lists').insert({ name, position });
   selectList(name);
 }
 
