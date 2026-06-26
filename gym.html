@@ -1860,26 +1860,6 @@ async function migrateWarmupData() {
     }
   }
 
-  // 4. Seed Friday-specific extras if missing
-  const friNames = Object.values(allExercises['friday_warmup'] || {}).flat()
-    .map(e => e.exercise_name.toLowerCase());
-  const extras = [
-    { name: 'Backwards Treadmill Walk', section: 'Ekstra', sets: 1, reps: '10 min',  sort_order: 10 },
-    { name: 'Sled Pull',               section: 'Ekstra', sets: 2, reps: '2 × 40 m', sort_order: 11 },
-  ];
-  for (const s of extras) {
-    if (friNames.some(n => n.includes(s.name.toLowerCase().split(' ')[0]))) continue;
-    const { data, error } = await db.from('workout_program').insert({
-      day: 'friday_warmup', section: s.section, exercise_name: s.name,
-      sets: s.sets, reps: s.reps, sort_order: s.sort_order,
-    }).select().single();
-    if (data && !error) {
-      if (!allExercises['friday_warmup'][s.section]) allExercises['friday_warmup'][s.section] = [];
-      allExercises['friday_warmup'][s.section].push(data);
-      log.seeded.push(s.name);
-    }
-  }
-
   const total = log.fixed.length + log.moved.length + log.seeded.length;
 }
 
