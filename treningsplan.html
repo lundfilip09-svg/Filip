@@ -1728,7 +1728,11 @@ function _positionDetailDrop() {
   menu.style.left  = r.left + 'px';
   menu.style.width = r.width + 'px';
 }
-function _cselScrollListener() { _closeDetailDrop(); }
+function _cselScrollListener(e) {
+  const menu = document.getElementById('detailPlanDropMenu');
+  if (menu && menu.contains(e.target)) return;
+  _closeDetailDrop();
+}
 function _closeDetailDrop() {
   document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
   document.getElementById('detailPlanDropBtn')?.classList.remove('open');
