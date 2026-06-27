@@ -400,6 +400,26 @@
     .mini-pain-btn.sel-yellow { background: rgba(242,192,99,0.18);  border-color: rgba(242,192,99,0.5);  color: var(--warning); }
     .mini-pain-btn.sel-orange { background: rgba(242,130,60,0.18);  border-color: rgba(242,130,60,0.5);  color: rgba(242,130,60,1); }
     .mini-pain-btn.sel-red    { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.5); color: var(--danger); }
+
+    /* Pain meter buttons (brukt i day-after-banner og treningspanel) */
+    .pain-btn {
+      min-width: 28px; height: 28px; padding: 0 5px; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03);
+      cursor: pointer; font-size: 11px; font-family: var(--font-mono);
+      color: var(--text-secondary);
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.12s;
+    }
+    .pain-btn:hover { background: rgba(255,255,255,0.09); color: var(--text-primary); border-color: rgba(255,255,255,0.22); }
+    .pain-btn.sel-green  { background: rgba(107,227,164,0.22); border-color: rgba(107,227,164,0.6); color: #6BE3A4; font-weight: 700; box-shadow: 0 0 0 2px rgba(107,227,164,0.18); }
+    .pain-btn.sel-yellow { background: rgba(242,192,99,0.22);  border-color: rgba(242,192,99,0.6);  color: #F2C063; font-weight: 700; box-shadow: 0 0 0 2px rgba(242,192,99,0.18); }
+    .pain-btn.sel-orange { background: rgba(242,130,60,0.22);  border-color: rgba(242,130,60,0.6);  color: #F2823C; font-weight: 700; box-shadow: 0 0 0 2px rgba(242,130,60,0.18); }
+    .pain-btn.sel-red    { background: rgba(255,107,107,0.22); border-color: rgba(255,107,107,0.6); color: #FF6B6B; font-weight: 700; box-shadow: 0 0 0 2px rgba(255,107,107,0.18); }
+    /* Pain meter wrapper */
+    .pain-meter { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+    .pain-meter-label { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.08em; width: 100%; margin-bottom: 2px; }
+
     .pain-phase-pills { display: flex; gap: 3px; margin-top: 7px; }
     .pain-phase-pill {
       flex: 1; padding: 4px 0; text-align: center;
