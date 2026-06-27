@@ -69,99 +69,114 @@
     .card-knee    { border-top-color: rgba(255,107,107,0.22) !important; border-top-width: 2px !important; }
     .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
 
-    /* ── Sleep card — sovn.html design system ── */
-    .sc-wrap { display: flex; flex-direction: column; gap: 14px; }
+    /* ══════════════════════════════════════════════════════════════
+       SØVNKORT v2 — Readiness-first
+    ══════════════════════════════════════════════════════════════ */
+    .sc-wrap { display: flex; flex-direction: column; gap: 12px; }
 
-    /* Top row: circular ring (left) + duration block (right) */
-    .sc-top { display: flex; align-items: flex-start; gap: 16px; }
+    /* ── Hero row: big ring + readiness verdict ── */
+    .sc-hero { display: flex; align-items: center; gap: 16px; }
 
-    /* Ring column */
-    .sc-ring-col { display: flex; flex-direction: column; align-items: center; gap: 7px; flex-shrink: 0; }
-    .sc-ring-wrap { position: relative; width: 88px; height: 88px; }
-    .sc-ring-wrap svg { width: 88px; height: 88px; display: block; }
+    /* Ring */
+    .sc-ring-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+    .sc-ring-wrap { position: relative; width: 92px; height: 92px; }
+    .sc-ring-wrap svg { width: 92px; height: 92px; display: block; }
     .sc-ring-center {
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 0;
     }
     .sc-score {
-      font-size: 30px; font-weight: 800; font-family: var(--font-mono);
+      font-size: 32px; font-weight: 800; font-family: var(--font-mono);
       letter-spacing: -0.04em; line-height: 1;
     }
     .sc-score-sub {
-      font-size: 7.5px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px;
+      font-size: 7px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;
     }
-    /* Badge below ring — matches sovn hero-score-box status badge style */
-    .sc-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 9px; font-weight: 700; font-family: var(--font-mono);
-      letter-spacing: 0.06em; text-transform: uppercase;
-      padding: 2px 8px; border-radius: 20px; white-space: nowrap;
-      border: 1px solid currentColor;
-    }
-    .sc-badge.excellent { color: #6BE3A4; background: rgba(107,227,164,0.09); }
-    .sc-badge.good      { color: #6BE3A4; background: rgba(107,227,164,0.07); }
-    .sc-badge.ok        { color: #F2C063; background: rgba(242,192,99,0.09); }
-    .sc-badge.bad       { color: #FF8A8A; background: rgba(255,107,107,0.09); }
 
-    /* Right column: duration */
-    .sc-right { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; padding-top: 3px; }
-    .sc-dur-lbl {
-      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 4px;
+    /* Verdict block — right of ring */
+    .sc-verdict { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+    .sc-verdict-label {
+      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text-tertiary);
     }
-    .sc-duration {
-      font-size: 28px; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text-primary); letter-spacing: -0.03em; line-height: 1;
+    .sc-verdict-status {
+      font-size: 15px; font-weight: 700; line-height: 1.2; color: var(--text-primary);
     }
-    .sc-dur-row { display: flex; align-items: baseline; gap: 8px; }
-    /* Awake time inline — subtle secondary next to duration */
-    .sc-awake-inline {
-      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.02em; white-space: nowrap;
+    .sc-verdict-status.v-green { color: #6BE3A4; }
+    .sc-verdict-status.v-yellow { color: #F2C063; }
+    .sc-verdict-status.v-red { color: #FF8A8A; }
+
+    /* Training recommendation pills */
+    .sc-rec-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+    .sc-rec-pill {
+      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.07em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+      display: flex; align-items: center; gap: 4px;
     }
+    .sc-rec-pill .rp-label { color: var(--text-tertiary); }
+    .sc-rec-pill .rp-val { font-weight: 700; }
+    .sc-rec-pill.rp-green { background: rgba(107,227,164,0.07); border: 1px solid rgba(107,227,164,0.18); }
+    .sc-rec-pill.rp-green .rp-val { color: #6BE3A4; }
+    .sc-rec-pill.rp-yellow { background: rgba(242,192,99,0.07); border: 1px solid rgba(242,192,99,0.18); }
+    .sc-rec-pill.rp-yellow .rp-val { color: #F2C063; }
+    .sc-rec-pill.rp-red { background: rgba(255,107,107,0.07); border: 1px solid rgba(255,107,107,0.18); }
+    .sc-rec-pill.rp-red .rp-val { color: #FF8A8A; }
+    .sc-rec-pill.rp-blue { background: rgba(91,164,245,0.07); border: 1px solid rgba(91,164,245,0.18); }
+    .sc-rec-pill.rp-blue .rp-val { color: #5BA4F5; }
+
+    /* Age badge */
     .sc-age {
       font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.04em; margin-top: 5px;
+      letter-spacing: 0.04em;
     }
 
-    /* Metric cards grid — identical to sovn.html .metric-card style */
-    .sc-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
-    .sc-mc {
+    /* ── Score factors — HRV/RHR/Søvn vs baseline ── */
+    .sc-factors { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; }
+    .sc-factor {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 10px; padding: 11px 11px 9px; position: relative;
-      display: flex; flex-direction: column; gap: 0;
+      border-radius: 8px; padding: 9px 8px 8px;
+      display: flex; flex-direction: column; gap: 1px;
     }
-    .sc-mc-lbl {
-      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 7px;
+    .sc-factor-lbl {
+      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 4px;
     }
-    .sc-mc-val {
-      font-size: 22px; font-weight: 700; font-family: var(--font-mono);
-      line-height: 1; letter-spacing: -0.02em; color: var(--text-primary);
+    .sc-factor-val {
+      font-size: 19px; font-weight: 700; font-family: var(--font-mono);
+      line-height: 1; letter-spacing: -0.02em;
     }
-    .sc-mc-unit {
-      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 3px;
+    .sc-factor-unit { font-size: 8px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+    .sc-factor-delta {
+      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.03em;
+      margin-top: 4px; font-weight: 600;
     }
-    .sc-mc-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 7px; padding: 2px 6px; border-radius: 20px;
-      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.05em;
-      text-transform: uppercase; border: 1px solid currentColor;
-    }
-    .sc-mc.rhr .sc-mc-val { color: #FF8A8A; }
-    .sc-mc.rhr .sc-mc-badge { color: rgba(255,138,138,0.8); background: rgba(255,107,107,0.07); }
-    .sc-mc.hrv .sc-mc-val { color: #4A9EE8; }
-    .sc-mc.hrv .sc-mc-badge { color: rgba(74,158,232,0.8); background: rgba(74,158,232,0.07); }
-    .sc-mc.dyp .sc-mc-val { color: #9D93E8; }
-    .sc-mc.dyp .sc-mc-badge { color: rgba(157,147,232,0.8); background: rgba(124,111,212,0.07); }
-    .sc-mc.rem .sc-mc-val { color: #6BE3A4; }
-    .sc-mc.rem .sc-mc-badge { color: rgba(107,227,164,0.8); background: rgba(107,227,164,0.07); }
+    .delta-pos { color: #6BE3A4; }
+    .delta-neg { color: #FF8A8A; }
+    .delta-neu { color: var(--text-tertiary); }
 
-    /* Sparkline — same visual weight as sovn.html chart */
+    .sc-factor.f-hrv .sc-factor-val { color: #4A9EE8; }
+    .sc-factor.f-rhr .sc-factor-val { color: #FF8A8A; }
+    .sc-factor.f-deep .sc-factor-val { color: #9D93E8; }
+    .sc-factor.f-dur .sc-factor-val { color: #6BE3A4; }
+
+    /* ── Insights ── */
+    .sc-insights { display: flex; flex-direction: column; gap: 4px; }
+    .sc-insight-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 7px 10px; border-radius: 8px;
+    }
+    .sc-insight-row.ins-pos { background: rgba(107,227,164,0.04); border: 1px solid rgba(107,227,164,0.12); }
+    .sc-insight-row.ins-warn { background: rgba(242,192,99,0.04); border: 1px solid rgba(242,192,99,0.15); }
+    .sc-insight-row.ins-bad  { background: rgba(255,107,107,0.04); border: 1px solid rgba(255,107,107,0.15); }
+    .sc-insight-icon { font-size: 11px; line-height: 1.4; flex-shrink: 0; }
+    .sc-insight-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.4; }
+    .sc-insight-text strong { color: var(--text-primary); font-weight: 600; }
+
+    /* ── Sparkline ── */
     .sc-spark-wrap { display: flex; flex-direction: column; gap: 5px; }
     .sc-spark-header {
-      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em;
+      font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.14em;
       text-transform: uppercase; color: var(--text-tertiary);
       display: flex; align-items: center; gap: 6px;
     }
@@ -170,7 +185,7 @@
       background: linear-gradient(to right, rgba(255,255,255,0.07), transparent);
     }
     .sc-spark-body { display: flex; align-items: stretch; gap: 6px; }
-    .sc-spark { position: relative; flex: 1; height: 58px; }
+    .sc-spark { position: relative; flex: 1; height: 54px; }
     .sc-spark canvas { display: block; }
     .sc-spark-yaxis {
       display: flex; flex-direction: column; justify-content: space-between;
@@ -181,22 +196,11 @@
       letter-spacing: 0.02em; line-height: 1;
     }
 
-    /* Insight row — same as sovn.html warn-bar.warn-ok tone */
-    .sc-insight {
-      display: flex; align-items: center; gap: 9px;
-      padding: 9px 12px; border-radius: 10px;
-      background: rgba(107,227,164,0.04); border: 1px solid rgba(107,227,164,0.12);
-    }
-    .sc-insight.insight-warn {
-      background: rgba(242,192,99,0.05); border-color: rgba(242,192,99,0.18);
-    }
-    .sc-insight.insight-bad {
-      background: rgba(255,107,107,0.05); border-color: rgba(255,107,107,0.18);
-    }
-    .sc-insight-icon { font-size: 13px; line-height: 1; flex-shrink: 0; }
-    .sc-insight-title {
-      font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1;
-    }
+    /* legacy — keep for old insight row (not used in v2 but avoid breakage) */
+    .sc-insight { display:none; }
+    .sc-badge { display:none; }
+    .sc-metrics { display:none; }
+    .sc-mc { display:none; }
 
     /* ── Knee ── */
     .knee-phases { display: flex; gap: 7px; }
@@ -212,10 +216,14 @@
       text-transform: uppercase; color: var(--text-tertiary); text-align: center;
     }
 
-    /* ── Session card ── */
+    /* ══════════════════════════════════════════════════════════════
+       SESSION CARD v2 — Decision-first
+    ══════════════════════════════════════════════════════════════ */
+
+    /* Badge — same shapes, kept for type identity */
     .session-badge {
-      display: inline-block; font-size: 10px; font-weight: 700; font-family: var(--font-mono);
-      padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
+      display: inline-block; font-size: 9.5px; font-weight: 700; font-family: var(--font-mono);
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;
       letter-spacing: 0.08em; text-transform: uppercase;
     }
     .session-badge.styrke    { background: rgba(242,192,99,0.12);  color: #F2C063; border: 1px solid rgba(242,192,99,0.2); }
@@ -224,15 +232,81 @@
     .session-badge.hvile     { background: rgba(255,255,255,0.04); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
     .session-badge.soccer    { background: rgba(124,111,212,0.12); color: #9D93E8; border: 1px solid rgba(124,111,212,0.2); }
     .session-badge.rehab     { background: rgba(242,130,60,0.12);  color: #F2823C; border: 1px solid rgba(242,130,60,0.2); }
-    .session-name-big { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; line-height: 1.35; }
-    .session-meta-sm  { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 16px; letter-spacing: 0.04em; }
+
+    /* Session name */
+    .session-name-big { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; line-height: 1.25; }
+    .session-meta-sm  { font-size: 9.5px; color: var(--text-tertiary); font-family: var(--font-mono); letter-spacing: 0.04em; }
+
+    /* ── Readiness + risk row ── */
+    .sc2-status-row {
+      display: flex; align-items: center; gap: 8px; margin: 10px 0 6px;
+      flex-wrap: wrap;
+    }
+    .sc2-readiness-pill {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px;
+      font-size: 10px; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em;
+    }
+    .sc2-readiness-pill.rp-green  { background: rgba(107,227,164,0.1);  border: 1px solid rgba(107,227,164,0.22); color: #6BE3A4; }
+    .sc2-readiness-pill.rp-yellow { background: rgba(242,192,99,0.1);   border: 1px solid rgba(242,192,99,0.22);  color: #F2C063; }
+    .sc2-readiness-pill.rp-red    { background: rgba(255,107,107,0.1);  border: 1px solid rgba(255,107,107,0.22); color: #FF8A8A; }
+    .sc2-risk-pill {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 9px; border-radius: 6px;
+      font-size: 9.5px; font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.04em;
+    }
+    .sc2-risk-pill.risk-low  { background: rgba(107,227,164,0.06); border: 1px solid rgba(107,227,164,0.14); color: rgba(107,227,164,0.8); }
+    .sc2-risk-pill.risk-mod  { background: rgba(242,192,99,0.06);  border: 1px solid rgba(242,192,99,0.14);  color: rgba(242,192,99,0.9); }
+    .sc2-risk-pill.risk-high { background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.18); color: rgba(255,138,138,0.9); }
+
+    /* ── Session meta row (focus / duration / load / start) ── */
+    .sc2-meta-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;
+      margin: 8px 0;
+    }
+    .sc2-meta-item { display: flex; flex-direction: column; gap: 1px; }
+    .sc2-meta-lbl  { font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary); }
+    .sc2-meta-val  { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.01em; }
+
+    /* ── Injury/AI alert ── */
+    .sc2-alert {
+      display: flex; align-items: flex-start; gap: 7px;
+      padding: 7px 10px; border-radius: 8px; margin-bottom: 4px;
+    }
+    .sc2-alert.al-warn { background: rgba(242,130,60,0.06);  border: 1px solid rgba(242,130,60,0.2); }
+    .sc2-alert.al-info { background: rgba(91,164,245,0.05);  border: 1px solid rgba(91,164,245,0.15); }
+    .sc2-alert.al-ok   { background: rgba(107,227,164,0.04); border: 1px solid rgba(107,227,164,0.12); }
+    .sc2-alert-icon { font-size: 11px; line-height: 1.5; flex-shrink: 0; }
+    .sc2-alert-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.45; }
+    .sc2-alert-text strong { color: var(--text-primary); font-weight: 600; }
+
+    /* ── Rest day block ── */
+    .sc2-rest-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .sc2-rest-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 7px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .sc2-rest-icon { font-size: 13px; line-height: 1.4; flex-shrink: 0; }
+    .sc2-rest-body { flex: 1; }
+    .sc2-rest-title { font-size: 11.5px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
+    .sc2-rest-sub   { font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.03em; }
+    .sc2-next-focus {
+      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-tertiary);
+      display: flex; align-items: center; gap: 5px; margin-top: 4px;
+    }
+    .sc2-next-focus::before { content: '→'; color: #5BA4F5; }
+
+    /* ── CTA ── */
     .session-cta {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(91,164,245,0.1); border: 1px solid rgba(91,164,245,0.22);
-      color: #5BA4F5; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-      letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 16px;
-      border-radius: 6px; cursor: pointer; text-decoration: none;
+      color: #5BA4F5; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 14px;
+      border-radius: 6px; cursor: pointer; text-decoration: none; margin-top: 6px;
       transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      display: inline-flex;
     }
     .session-cta:hover { background: rgba(91,164,245,0.18); border-color: rgba(91,164,245,0.38); transform: translateY(-1px); }
     .session-cta:active { transform: scale(0.97); opacity: 0.85; }
@@ -769,134 +843,206 @@ function renderSleepCard(d) {
   const hrv  = d.hrv > 0                ? d.hrv                : null;
   const deep = d.deep_sleep_minutes > 0  ? d.deep_sleep_minutes : null;
   const rem  = d.rem_sleep_minutes  > 0  ? d.rem_sleep_minutes  : null;
-  const awake = d.awake_minutes > 0      ? d.awake_minutes      : null;
 
-  // Colour ramp
-  const ringClr = !sc ? '#555' : sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B';
-  const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
-  const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
-  const ageColor = daysAgo != null && daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
+  // ── Readiness score (0-100): weighted composite ──
+  // HRV 40%, RHR 25%, SleepScore 25%, Duration 10%
+  let readiness = null;
+  let components = 0;
+  let wsum = 0;
+  if (hrv)  { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.40; components++; }
+  if (rhr)  { const s = rhr <= 42 ? 100 : rhr <= 48 ? 88 : rhr <= 54 ? 72 : rhr <= 60 ? 50 : 22; wsum += s * 0.25; components++; }
+  if (sc)   { wsum += sc * 0.25; components++; }
+  if (hrs)  { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.10; components++; }
+  if (components >= 2) {
+    // normalize: if fewer than 4 components, scale by sum of used weights
+    const usedW = (hrv ? 0.40 : 0) + (rhr ? 0.25 : 0) + (sc ? 0.25 : 0) + (hrs ? 0.10 : 0);
+    readiness = Math.round(wsum / usedW);
+  } else if (sc) {
+    readiness = sc;
+  }
 
-  // Quality badge
-  const badgeCls = !sc ? 'bad' : sc >= 80 ? 'excellent' : sc >= 65 ? 'good' : sc >= 50 ? 'ok' : 'bad';
-  const badgeTxt = !sc ? '–' : sc >= 80 ? t('sovn.score_excellent') : sc >= 65 ? t('sovn.score_good') : sc >= 50 ? t('sovn.score_ok') : t('sovn.score_bad');
+  // ── Verdict ──
+  const ringClr = !readiness ? '#555' : readiness >= 80 ? '#6BE3A4' : readiness >= 60 ? '#F2C063' : '#FF8A8A';
+  const verdictCls = !readiness ? '' : readiness >= 80 ? 'v-green' : readiness >= 60 ? 'v-yellow' : 'v-red';
+  let verdictText;
+  if (!readiness)        verdictText = t('no_data');
+  else if (readiness >= 80) verdictText = t('sovn.ready_high');
+  else if (readiness >= 60) verdictText = t('sovn.ready_moderate');
+  else                      verdictText = t('sovn.ready_rest');
 
-  // Format helpers
+  // ── Training recommendations ──
+  const R = readiness || 0;
   const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
   const fmtHours = h => { if (!h) return '–'; const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m/60)}${hu} ${m%60}${mu}` : `${m}${mu}`; };
   const fmtMin   = m => { if (!m) return '–'; return m >= 60 ? `${Math.floor(m/60)}${hu}${m%60>0?' '+m%60+mu:''}` : `${m}${mu}`; };
 
-  // SVG arc ring — 88px viewBox, r=37, circumference≈232.5
-  const R = 37, CX = 44, CY = 44, CIRC = 2 * Math.PI * R;
+  // Sprint rec
+  let sprintCls = 'rp-red', sprintVal;
+  if (R >= 80)      { sprintCls = 'rp-green'; sprintVal = '95–100%'; }
+  else if (R >= 65) { sprintCls = 'rp-yellow'; sprintVal = '80–90%'; }
+  else              { sprintCls = 'rp-red';    sprintVal = t('dash.focus_active_rest').split(' ')[0]; }
+
+  // Strength rec
+  let styrkeVal;
+  if (R >= 80)      styrkeVal = t('dash.rec_heavy');
+  else if (R >= 65) styrkeVal = t('dash.rec_moderate');
+  else              styrkeVal = t('dash.rec_light');
+
+  // Volume/intensity
+  const volCls   = R >= 80 ? 'rp-green' : R >= 65 ? 'rp-yellow' : 'rp-red';
+  const intensCls = R >= 80 ? 'rp-green' : R >= 65 ? 'rp-yellow' : 'rp-red';
+
+  // ── Baseline deltas (rough estimate vs typical; Filip: HRV~60, RHR~51) ──
+  // These are personal baselines; ideally from DB 30d avg but we approximate
+  const HRV_BASE = 60, RHR_BASE = 51, HRS_BASE = 8.0;
+  const delta = (val, base) => val != null ? Math.round(val - base) : null;
+  const dHrv  = delta(hrv, HRV_BASE);
+  const dRhr  = delta(rhr, RHR_BASE);
+  const dHrs  = hrs != null ? Math.round((hrs - HRS_BASE) * 10) / 10 : null;
+
+  const fmtDelta = (d, invert = false) => {
+    if (d == null) return '<span class="delta-neu">–</span>';
+    const good = invert ? d <= 0 : d >= 0;
+    const sign = d >= 0 ? '+' : '';
+    return `<span class="${good ? 'delta-pos' : 'delta-neg'}">${sign}${d}</span>`;
+  };
+  const fmtDeltaH = (d) => {
+    if (d == null) return '<span class="delta-neu">–</span>';
+    const sign = d >= 0 ? '+' : '';
+    return `<span class="${d >= -0.5 ? 'delta-pos' : 'delta-neg'}">${sign}${d}${hu}</span>`;
+  };
+
+  // ── Insights (2-3 lines) ──
+  const insights = [];
+  if (hrv) {
+    if (hrv >= 65)     insights.push({ cls: 'ins-pos',  icon: '⚡', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_optimal').split('.')[0]}` });
+    else if (hrv >= 45) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_good').split('.')[0]}` });
+    else if (hrv >= 30) insights.push({ cls: 'ins-warn', icon: '⚠', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_low').split('.')[0]}` });
+    else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_critical').split('.')[0]}` });
+  }
+  if (rhr) {
+    if (rhr <= 48)      insights.push({ cls: 'ins-pos',  icon: '💚', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_excellent').split('.')[0]}` });
+    else if (rhr <= 54) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_normal').split('.')[0]}` });
+    else if (rhr <= 62) insights.push({ cls: 'ins-warn', icon: '⚠', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_elevated').split('.')[0]}` });
+    else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_high').split('.')[0]}` });
+  }
+  if (hrs) {
+    if (hrs >= 8)       insights.push({ cls: 'ins-pos',  icon: '🌙', html: `<strong>${fmtHours(hrs)}</strong> — ${t('sovn.sleep_advice_optimal').split('.')[0]}` });
+    else if (hrs >= 7)  insights.push({ cls: 'ins-warn', icon: '🌙', html: `<strong>${fmtHours(hrs)}</strong> — ${t('sovn.sleep_advice_good').split('.')[0].split(',')[0]}` });
+    else                insights.push({ cls: 'ins-bad',  icon: '⚠', html: `<strong>${fmtHours(hrs)}</strong> — ${t('sovn.sleep_advice_little').split('.')[0]}` });
+  }
+
+  // Age
+  const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
+  const ageColor = daysAgo != null && daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
+
+  // ── SVG ring ──
+  const RR = 39, CX = 46, CY = 46, CIRC = 2 * Math.PI * RR;
   const gradId = 'scRingGrad_' + Math.random().toString(36).slice(2, 7);
-  const gradStart = sc != null && sc >= 80 ? '#6BE3A4' : sc != null && sc >= 65 ? '#F2C063' : sc != null && sc >= 50 ? '#F2A04A' : '#FF6B6B';
-  const pct = sc != null ? Math.min(sc / 100, 1) : 0;
+  const gradStart = readiness != null && readiness >= 80 ? '#6BE3A4' : readiness != null && readiness >= 65 ? '#F2C063' : readiness != null && readiness >= 50 ? '#F2A04A' : '#FF6B6B';
+  const pct = readiness != null ? Math.min(readiness / 100, 1) : 0;
   const dash = pct * CIRC, gap = CIRC - dash;
   const ringHtml = `
-    <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 92 92" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="${gradId}" x1="1" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${gradStart}"/>
           <stop offset="100%" stop-color="${ringClr}"/>
         </linearGradient>
       </defs>
-      <circle cx="${CX}" cy="${CY}" r="${R}" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
-      <circle cx="${CX}" cy="${CY}" r="${R}"
+      <circle cx="${CX}" cy="${CY}" r="${RR}" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+      <circle cx="${CX}" cy="${CY}" r="${RR}"
         stroke="url(#${gradId})" stroke-width="8" stroke-linecap="round"
         stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
         transform="rotate(-90 ${CX} ${CY})"
-        style="filter:drop-shadow(0 0 7px ${ringClr}55);transition:stroke-dasharray 0.9s cubic-bezier(.4,0,.2,1)"/>
+        style="filter:drop-shadow(0 0 8px ${ringClr}55);transition:stroke-dasharray 0.9s cubic-bezier(.4,0,.2,1)"/>
     </svg>`;
-
-  // Metric card sub-badges — matches sovn.html mc-status-badge style
-  const rhrSub = !rhr ? '' : rhr <= 42 ? t('sovn.rhr_peak') : rhr <= 48 ? t('sovn.rhr_excellent') : rhr <= 54 ? t('sovn.rhr_normal') : rhr <= 60 ? t('sovn.rhr_elevated') : t('sovn.rhr_high');
-  const hrvSub = !hrv ? '' : hrv >= 70 ? t('sovn.hrv_optimal') : hrv >= 55 ? t('sovn.hrv_good') : hrv >= 35 ? t('sovn.hrv_low') : t('sovn.hrv_critical');
-  const deepPct = (deep && hrs) ? Math.round((deep / (hrs * 60)) * 100) : null;
-  const remPct  = (rem  && hrs) ? Math.round((rem  / (hrs * 60)) * 100) : null;
-
-  // Awake inline — subtle context text next to duration (sovn hero tagline pattern)
-  const awakeStr = awake ? `· ${awake}${mu} ${_lang === 'en' ? 'awake' : 'våken'}` : '';
-
-  // Insight — single line, sovn readiness tone
-  let insightCls = '', insightIcon = '🌙', insightTitle = '';
-  if (hrv && hrv >= 55) {
-    insightCls = ''; insightIcon = '⚡'; insightTitle = t('sovn.ready_high');
-  } else if (hrv && hrv >= 40) {
-    insightCls = ''; insightIcon = '✅'; insightTitle = t('sovn.ready_good');
-  } else if (sc && sc >= 65) {
-    insightCls = 'insight-warn'; insightIcon = '🟡'; insightTitle = t('sovn.ready_moderate');
-  } else {
-    insightCls = 'insight-bad'; insightIcon = '🔴'; insightTitle = t('sovn.ready_rest');
-  }
 
   el.innerHTML = `
     <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
       <div class="sc-wrap">
 
-        <!-- Top: arc ring + right col (duration + awake inline + age) -->
-        <div class="sc-top">
+        <!-- HERO: ring + verdict -->
+        <div class="sc-hero">
           <div class="sc-ring-col">
             <div class="sc-ring-wrap">
               ${ringHtml}
               <div class="sc-ring-center">
-                <div class="sc-score" style="color:${ringClr}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
+                <div class="sc-score" style="color:${ringClr}">${readiness != null ? `<span data-countup="${readiness}">0</span>` : '–'}</div>
                 <div class="sc-score-sub">/100</div>
               </div>
             </div>
-            <span class="sc-badge ${badgeCls}">${badgeTxt}</span>
           </div>
-          <div class="sc-right">
-            <div class="sc-dur-lbl" data-i18n="dash.sleep_dur_lbl">Søvnlengde</div>
-            <div class="sc-dur-row">
-              <div class="sc-duration">${fmtHours(hrs)}</div>
-              ${awakeStr ? `<span class="sc-awake-inline">${awakeStr}</span>` : ''}
+          <div class="sc-verdict">
+            <div class="sc-verdict-label" data-i18n="dash.readiness_lbl">${t('dash.readiness_lbl')}</div>
+            <div class="sc-verdict-status ${verdictCls}">${verdictText}</div>
+            ${dataAge ? `<div class="sc-age" style="color:${ageColor};margin-top:4px">${dataAge}</div>` : ''}
+            <!-- Training recs -->
+            <div class="sc-rec-row">
+              <div class="sc-rec-pill ${sprintCls}">
+                <span class="rp-label">Sprint</span>
+                <span class="rp-val">${sprintVal}</span>
+              </div>
+              <div class="sc-rec-pill ${volCls}">
+                <span class="rp-label">${t('dash.rec_vol_lbl')}</span>
+                <span class="rp-val">${R >= 80 ? '100%' : R >= 65 ? '80%' : '60%'}</span>
+              </div>
+              <div class="sc-rec-pill ${intensCls}">
+                <span class="rp-label">${t('dash.rec_int_lbl')}</span>
+                <span class="rp-val">${R >= 80 ? t('dash.rec_high') : R >= 65 ? t('dash.rec_mod') : t('dash.rec_low')}</span>
+              </div>
             </div>
-            ${dataAge ? `<div class="sc-age" style="color:${ageColor}">${dataAge}</div>` : ''}
           </div>
         </div>
 
-        <!-- 4 metric cards — same style as sovn.html metric-card -->
-        <div class="sc-metrics">
-          <div class="sc-mc rhr">
-            <div class="sc-mc-lbl">RHR</div>
-            <div class="sc-mc-val">${rhr != null ? rhr : '–'}</div>
-            <div class="sc-mc-unit">bpm</div>
-            ${rhrSub ? `<div class="sc-mc-badge">${rhrSub}</div>` : ''}
+        <!-- FACTORS: HRV / RHR / Dyp / Søvn vs baseline -->
+        <div class="sc-factors">
+          <div class="sc-factor f-hrv">
+            <div class="sc-factor-lbl">HRV</div>
+            <div class="sc-factor-val">${hrv != null ? hrv : '–'}</div>
+            <div class="sc-factor-unit">ms</div>
+            <div class="sc-factor-delta">${fmtDelta(dHrv)}</div>
           </div>
-          <div class="sc-mc hrv">
-            <div class="sc-mc-lbl">HRV</div>
-            <div class="sc-mc-val">${hrv != null ? hrv : '–'}</div>
-            <div class="sc-mc-unit">ms</div>
-            ${hrvSub ? `<div class="sc-mc-badge">${hrvSub}</div>` : ''}
+          <div class="sc-factor f-rhr">
+            <div class="sc-factor-lbl">RHR</div>
+            <div class="sc-factor-val">${rhr != null ? rhr : '–'}</div>
+            <div class="sc-factor-unit">bpm</div>
+            <div class="sc-factor-delta">${fmtDelta(dRhr, true)}</div>
           </div>
-          <div class="sc-mc dyp">
-            <div class="sc-mc-lbl">${t('dash.deep')}</div>
-            <div class="sc-mc-val">${fmtMin(deep)}</div>
-            ${deepPct != null ? `<div class="sc-mc-unit">${deepPct} %</div>` : ''}
+          <div class="sc-factor f-deep">
+            <div class="sc-factor-lbl">${t('dash.deep')}</div>
+            <div class="sc-factor-val" style="font-size:14px">${fmtMin(deep)}</div>
+            <div class="sc-factor-unit">REM ${fmtMin(rem)}</div>
+            <div class="sc-factor-delta">&nbsp;</div>
           </div>
-          <div class="sc-mc rem">
-            <div class="sc-mc-lbl">REM</div>
-            <div class="sc-mc-val">${fmtMin(rem)}</div>
-            ${remPct != null ? `<div class="sc-mc-unit">${remPct} %</div>` : ''}
+          <div class="sc-factor f-dur">
+            <div class="sc-factor-lbl">${t('dash.sleep_dur_lbl')}</div>
+            <div class="sc-factor-val" style="font-size:14px">${fmtHours(hrs)}</div>
+            <div class="sc-factor-unit">${t('sovn.hours')}</div>
+            <div class="sc-factor-delta">${fmtDeltaH(dHrs)}</div>
           </div>
         </div>
 
-        <!-- 7-day sparkline — same visual weight as sovn.html charts -->
+        <!-- INSIGHTS -->
+        <div class="sc-insights">
+          ${insights.slice(0, 2).map(i => `
+            <div class="sc-insight-row ${i.cls}">
+              <div class="sc-insight-icon">${i.icon}</div>
+              <div class="sc-insight-text">${i.html}</div>
+            </div>`).join('')}
+        </div>
+
+        <!-- 7d sparkline -->
         <div class="sc-spark-wrap">
-          <div class="sc-spark-header" data-i18n="dash.trend_7d">Trend (7 dager)</div>
+          <div class="sc-spark-header" data-i18n="dash.trend_7d">${t('dash.trend_7d')}</div>
           <div class="sc-spark-body">
             <div class="sc-spark"><canvas id="sleepSparkCanvas"></canvas></div>
             <div class="sc-spark-yaxis">
-              <div class="sc-spark-ytick">80</div>
+              <div class="sc-spark-ytick">100</div>
               <div class="sc-spark-ytick">40</div>
             </div>
           </div>
-        </div>
-
-        <!-- Single insight line — sovn readiness tone, no sub-text -->
-        <div class="sc-insight ${insightCls}">
-          <div class="sc-insight-icon">${insightIcon}</div>
-          <div class="sc-insight-title">${insightTitle}</div>
         </div>
 
       </div>
@@ -1406,14 +1552,73 @@ function loadSession() {
   const planText = (weekPlan[planIndex] || '').trim();
   const isRest = !planText || /^hvile/i.test(planText) || /^fri$/i.test(planText);
 
+  // Pull readiness from cached sleep for cross-card context
+  const sleep = _sleepRowCache;
+  const hrv = sleep?.hrv > 0 ? sleep.hrv : null;
+  const rhr = sleep?.rhr > 0 ? sleep.rhr : null;
+  const sc  = sleep?.sleep_score > 0 ? sleep.sleep_score : null;
+  let readiness = null;
+  if (hrv || rhr || sc) {
+    let wsum = 0, usedW = 0;
+    if (hrv) { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.40; usedW += 0.40; }
+    if (rhr) { const s = rhr <= 42 ? 100 : rhr <= 48 ? 88 : rhr <= 54 ? 72 : rhr <= 60 ? 50 : 22; wsum += s * 0.25; usedW += 0.25; }
+    if (sc)  { wsum += sc * 0.25; usedW += 0.25; }
+    if (usedW > 0) readiness = Math.round(wsum / usedW);
+  }
+
+  // Last knee pain
+  const kneeCache = _injuryCardDataCache;
+  const lastPain = kneeCache?.kneeRow?.after_score ?? kneeCache?.kneeRow?.during_score ?? null;
+
+  // Risk level
+  let riskCls, riskLabel;
+  const highPain = lastPain != null && lastPain >= 3;
+  const lowReady = readiness != null && readiness < 60;
+  if (highPain || lowReady) { riskCls = 'risk-high'; riskLabel = t('dash.risk_high'); }
+  else if ((readiness != null && readiness < 75) || (lastPain != null && lastPain >= 1)) { riskCls = 'risk-mod'; riskLabel = t('dash.risk_mod'); }
+  else { riskCls = 'risk-low'; riskLabel = t('dash.risk_low'); }
+
+  const readinessCls = !readiness ? '' : readiness >= 80 ? 'rp-green' : readiness >= 60 ? 'rp-yellow' : 'rp-red';
+
   if (isRest) {
+    // ── REST DAY ──
+    const tmrwIdx = (planIndex + 1) % 7;
+    const tmrwTxt = (weekPlan[tmrwIdx] || '').trim();
+    const tmrwIsRest = !tmrwTxt || /^hvile/i.test(tmrwTxt);
+
     el.innerHTML = `
       <span class="session-badge hvile">${t('session.rest_day')}</span>
       <div class="session-name-big" style="color:var(--text-secondary)">${t('dash.recovery_day')}</div>
-      <div class="session-meta-sm">${t('dash.no_session')}</div>`;
+      <div class="session-meta-sm" style="margin-bottom:10px">${t('dash.no_session')}</div>
+
+      <div class="sc2-rest-wrap">
+        <div class="sc2-rest-row">
+          <div class="sc2-rest-icon">🦵</div>
+          <div class="sc2-rest-body">
+            <div class="sc2-rest-title">${t('dash.rest_mobility')}</div>
+            <div class="sc2-rest-sub">${t('dash.rest_mobility_sub')}</div>
+          </div>
+        </div>
+        <div class="sc2-rest-row">
+          <div class="sc2-rest-icon">🚶</div>
+          <div class="sc2-rest-body">
+            <div class="sc2-rest-title">${t('dash.rest_walk')}</div>
+            <div class="sc2-rest-sub">${t('dash.rest_walk_sub')}</div>
+          </div>
+        </div>
+        <div class="sc2-rest-row">
+          <div class="sc2-rest-icon">🌙</div>
+          <div class="sc2-rest-body">
+            <div class="sc2-rest-title">${t('dash.rest_sleep_goal')}</div>
+            <div class="sc2-rest-sub">${t('dash.rest_sleep_sub')}</div>
+          </div>
+        </div>
+        ${!tmrwIsRest ? `<div class="sc2-next-focus">${tmrwTxt || t('dash.training_day')}</div>` : ''}
+      </div>`;
     return { isRest: true };
   }
 
+  // ── TRAINING DAY ──
   let cls = 'styrke';
   if (/sprint/i.test(planText)) cls = 'power';
   else if (/fotball|soccer|basket/i.test(planText)) cls = 'soccer';
@@ -1424,18 +1629,60 @@ function loadSession() {
     styrke: t('dash.badge_styrke'), kondisjon: t('dash.badge_kondisjon'), power: 'Sprint',
     soccer: t('dash.badge_soccer'), rehab: t('dash.cat_rehab'),
   };
-  const dayNow = new Date().toLocaleDateString(fmtLocale(), { weekday: 'long' });
-  // Soccer/basket har ingen egen logg-side → send til treningsoversikt; rehab/kondisjon/styrke → gym
+
+  // Focus area
+  const focusMap = {
+    power:    t('dash.focus_area_sprint'),
+    styrke:   t('dash.focus_area_styrke'),
+    kondisjon:t('dash.focus_area_kondi'),
+    soccer:   t('dash.focus_area_soccer'),
+    rehab:    t('dash.focus_area_rehab'),
+  };
+
+  // AI alert — injury-aware recommendation
+  let alerts = [];
+  if (highPain && cls === 'power') {
+    alerts.push({ cls: 'al-warn', icon: '⚠', html: `<strong>${t('dash.ai_avoid_sprint')}</strong> — ${t('dash.ai_avoid_sprint_sub', {n: lastPain})}` });
+  } else if (highPain) {
+    alerts.push({ cls: 'al-warn', icon: '⚠', html: `<strong>${t('dash.focus_no_push')}</strong> — ${t('dash.focus_pain_after', {n: lastPain})}` });
+  }
+  if (readiness != null && readiness < 60) {
+    alerts.push({ cls: 'al-warn', icon: '🔴', html: `<strong>${t('dash.low_readiness')}</strong> — ${t('dash.low_readiness_sub')}` });
+  } else if (readiness != null && readiness >= 80 && !highPain) {
+    alerts.push({ cls: 'al-ok', icon: '⚡', html: `<strong>${t('dash.high_readiness')}</strong> — ${t('dash.high_readiness_sub')}` });
+  }
+  if (!alerts.length) {
+    alerts.push({ cls: 'al-info', icon: '🎯', html: `<strong>${t('dash.focus_warmup')}</strong> — ${t('dash.ai_default_tip')}` });
+  }
+
   const ctaHref  = cls === 'power' ? 'sprint.html' : cls === 'soccer' ? 'treningsplan.html' : 'gym.html?day=today';
-  const ctaLabel = cls === 'power' ? t('dash.open_sprint')
-                 : cls === 'soccer' ? t('dash.full_overview')
-                 : t('dash.open_gym');
+  const ctaLabel = cls === 'power' ? t('dash.open_sprint') : cls === 'soccer' ? t('dash.full_overview') : t('dash.open_gym');
 
   el.innerHTML = `
     <span class="session-badge ${cls}">${badgeLabels[cls] || planText}</span>
     <div class="session-name-big">${escHtml(planText)}</div>
-    <div class="session-meta-sm">${t('dash.from_plan')} · ${dayNow}</div>
+    <div class="session-meta-sm">${focusMap[cls] || ''}</div>
+
+    <!-- Readiness + risk -->
+    <div class="sc2-status-row">
+      ${readiness != null ? `
+      <div class="sc2-readiness-pill ${readinessCls}">
+        ${readiness}% ${t('dash.readiness_lbl')}
+      </div>` : ''}
+      <div class="sc2-risk-pill ${riskCls}">
+        ${riskLabel}
+      </div>
+    </div>
+
+    <!-- Alerts / AI rec -->
+    ${alerts.slice(0, 2).map(a => `
+      <div class="sc2-alert ${a.cls}">
+        <div class="sc2-alert-icon">${a.icon}</div>
+        <div class="sc2-alert-text">${a.html}</div>
+      </div>`).join('')}
+
     <a href="${ctaHref}" class="session-cta">${ctaLabel} <span class="cta-arrow">→</span></a>`;
+
   return { isRest: false, planText, cls };
 }
 
