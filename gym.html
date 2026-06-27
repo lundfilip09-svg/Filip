@@ -507,6 +507,23 @@
       align-items: center;
     }
     .he-set > span { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); text-align: right; }
+    .he-col-hd {
+      display: grid;
+      grid-template-columns: 14px 1fr 1fr 18px;
+      gap: 3px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 2px;
+    }
+    .he-col-hd > span {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .he-col-hd > span:nth-child(2),
+    .he-col-hd > span:nth-child(3) { text-align: center; }
     .he-x { background: none; border: none; color: rgba(255,255,255,0.2); cursor: pointer; font-size: 11px; padding: 1px 2px; transition: color 0.12s; line-height: 1; }
     .he-x:hover { color: var(--danger); }
     .he-addset { font-size: 9px; padding: 2px 7px; opacity: 0.7; }
@@ -4032,14 +4049,22 @@ async function loadHistSets(gymId, date) {
     + `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addHistEx('${gymId}')">+ ${t('he.add_ex')}</button>`;
 }
 function histExBlock(gymId, name, rs) {
-  // Vis planlagte reps som hint hvis alle rader har samme verdi
   const repsVals = rs.filter(r => r && r.reps).map(r => String(r.reps));
   const hintReps = (repsVals.length && repsVals.every(v => v === repsVals[0])) ? repsVals[0] : '';
-  const metaHint = hintReps ? `<span class="he-ex-block-hd-meta">${rs.length} × ${hintReps}</span>` : (rs.length > 1 ? `<span class="he-ex-block-hd-meta">${rs.length} sett</span>` : '');
+  const wVals = rs.filter(r => r && r.weight_kg != null).map(r => fromKg(r.weight_kg));
+  const hintW = wVals.length && wVals.every(v => v === wVals[0]) ? `${wVals[0]} ${weightUnit()}` : (wVals.length ? `${Math.min(...wVals)}–${Math.max(...wVals)} ${weightUnit()}` : '');
+  let metaText = '';
+  if (hintReps) metaText = `${rs.length} × ${hintReps}`;
+  else if (rs.length > 1) metaText = `${rs.length} sett`;
+  if (hintW && metaText) metaText += ` · ${hintW}`;
+  else if (hintW) metaText = hintW;
+  const metaHint = metaText ? `<span class="he-ex-block-hd-meta">${metaText}</span>` : '';
   return `<div class="he-ex-block" data-ex="${escHtml(name)}">
     <div class="he-ex-hd"><span class="he-ex-nm">${escHtml(name)}</span>${metaHint}
       <button class="he-x" title="${t('delete')}" onclick="this.closest('.he-ex-block').remove()">✕</button></div>
-    <div class="he-rows">${_histSetRows(rs)}</div>
+    <div class="he-rows">
+      <div class="he-col-hd"><span></span><span>Kg</span><span>Reps</span><span></span></div>
+      ${_histSetRows(rs)}</div>
     <button class="btn btn-ghost btn-sm he-addset" onclick="addHistSet(this)">+ ${t('he.add_set')}</button>
   </div>`;
 }
@@ -4048,9 +4073,9 @@ function histSetRow(r, idx) {
   const reps = r ? (r.reps ?? '') : '';
   const setNum = (idx != null ? idx : (r?.set_index ?? '')) + 1;
   return `<div class="he-set" data-id="${r?.id || ''}">
-    <span>${setNum || ''}</span>
-    <input class="input-sm he-w" type="number" step="${weightStep(false)}" value="${w}" placeholder="${weightUnit()}" style="width:100%;min-width:0">
-    <input class="input-sm he-r" type="text" value="${escHtml(String(reps))}" placeholder="reps" style="width:100%;min-width:0">
+    <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);text-align:right">${setNum || ''}</span>
+    <input class="input-sm he-w" type="number" step="${weightStep(false)}" value="${w}" placeholder="—" style="width:100%;min-width:0;text-align:center">
+    <input class="input-sm he-r" type="text" value="${escHtml(String(reps))}" placeholder="—" style="width:100%;min-width:0;text-align:center">
     <button class="he-x" onclick="this.closest('.he-set').remove()">✕</button>
   </div>`;
 }
