@@ -1441,23 +1441,29 @@ async function executeGymCopy() {
     });
     if (!Object.keys(grouped).length) { toast(t('ai.copy_gym_empty')); btn.disabled = false; return; }
     const lines = [];
+    const sep = '─'.repeat(40);
     for (const dayKey of selectedKeys) {
       if (!grouped[dayKey]) continue;
       const dayMeta = _gymCopyDays.find(d => d.day_key === dayKey);
-      lines.push('== ' + (dayMeta ? dayMeta.label.toUpperCase() : dayKey.toUpperCase()) + ' ==');
+      const dayLabel = dayMeta ? dayMeta.label.toUpperCase() : dayKey.toUpperCase();
+      lines.push(sep);
+      lines.push(dayLabel);
+      lines.push(sep);
       for (const [sec, exs] of Object.entries(grouped[dayKey])) {
-        lines.push('  ' + sec);
+        lines.push('');
+        lines.push('[' + sec.toUpperCase() + ']');
         const sorted = [...exs].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
-        sorted.forEach(ex => {
+        sorted.forEach((ex, i) => {
           const sets = ex.sets || 1;
           const reps = ex.reps || '\u2014';
           const wkg  = wMap[ex.exercise_name];
-          const wDisp = (wkg != null && wkg > 0) ? ' \u00d7 ' + wkg + 'kg' : '';
-          lines.push('    ' + ex.exercise_name + ' \u2014 ' + sets + '\u00d7' + reps + wDisp);
+          const wDisp = (wkg != null && wkg > 0) ? ' @ ' + wkg + 'kg' : '';
+          lines.push('  ' + (i + 1) + '. ' + ex.exercise_name + ' — ' + sets + '\u00d7' + reps + wDisp);
         });
       }
       lines.push('');
     }
+    lines.push(sep);
     const text = lines.join('\n').trim();
     const ok = await writeClip(text);
     toast(ok ? t('ai.copy_gym_copied') : t('ai.report_copy_fail'));

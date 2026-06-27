@@ -1751,6 +1751,11 @@ async function loadData() {
   _buildTplBridge();   // 051/F2-bolk1: day_key -> template_id
   allExercises = {};
   (prog.data || []).forEach(ex => {
+    const secName = (ex.section || '').toUpperCase() || 'ØVELSER';
+    if (ex.section !== secName) {
+      db.from('workout_program').update({ section: secName }).eq('id', ex.id).then(() => {});
+      ex.section = secName;
+    }
     if (!allExercises[ex.day]) allExercises[ex.day] = {};
     if (!allExercises[ex.day][ex.section]) allExercises[ex.day][ex.section] = [];
     allExercises[ex.day][ex.section].push(ex);
@@ -1853,7 +1858,7 @@ function renderAll() {
   if (warmupWrap) warmupWrap.style.display = (activeDay === 'wednesday' || isRehab) ? 'none' : '';
   if (isRehab) {
     renderRehab();
-    document.getElementById('whExCount').textContent = `${(allExercises['rehab']?.['Rehab'] || []).length} ${t('gym.exercises_lc')}`;
+    document.getElementById('whExCount').textContent = `${(allExercises['rehab']?.['REHAB'] || []).length} ${t('gym.exercises_lc')}`;
   } else {
     if (activeDay !== 'wednesday') renderWarmup();
     renderWorkout();
@@ -1884,7 +1889,7 @@ function oppdaterTidsestimat() {
 
 // ── Rehab ──────────────────────────────────────────────────────────
 async function seedRehabIfEmpty() {
-  if ((allExercises['rehab']?.['Rehab'] || []).length > 0) return;
+  if ((allExercises['rehab']?.['REHAB'] || []).length > 0) return;
   // Dobbeltsjekk mot DB før insert: in-memory kan være tom selv om rader
   // finnes (race/feilet last). Seed kun øvelser som faktisk mangler i DB.
   const { data: existing, error: exErr } = await db.from('workout_program')
@@ -1898,14 +1903,14 @@ async function seedRehabIfEmpty() {
     { name: 'Face pulls med strikk',               sets: 2, reps: '15 reps',   sort_order: 3 },
   ];
   if (!allExercises['rehab']) allExercises['rehab'] = {};
-  if (!allExercises['rehab']['Rehab']) allExercises['rehab']['Rehab'] = [];
+  if (!allExercises['rehab']['REHAB']) allExercises['rehab']['REHAB'] = [];
   for (const d of defaults) {
     if (existingNames.has(d.name.toLowerCase())) continue;
     const { data, error } = await db.from('workout_program').insert({
-      day: 'rehab', template_id: _tplIdByDayKey['rehab'] || null, section: 'Rehab', exercise_name: d.name,
+      day: 'rehab', template_id: _tplIdByDayKey['rehab'] || null, section: 'REHAB', exercise_name: d.name,
       sets: d.sets, reps: d.reps, sort_order: d.sort_order,
     }).select().single();
-    if (data && !error) allExercises['rehab']['Rehab'].push(data);
+    if (data && !error) allExercises['rehab']['REHAB'].push(data);
   }
 }
 
@@ -1933,7 +1938,7 @@ async function migrateWarmupData() {
   );
   if (!hasMondaySykkel) {
     const { data, error } = await db.from('workout_program').insert({
-      day: 'monday_warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
+      day: 'monday_warmup', section: 'SIRKULASJON', exercise_name: 'Sykkel',
       sets: 1, reps: '8–10 min', sort_order: 0,
     }).select().single();
     if (data && !error) {
@@ -1977,7 +1982,7 @@ async function migrateWarmupData() {
   );
   if (!hasFriSykkel) {
     const { data, error } = await db.from('workout_program').insert({
-      day: 'friday_warmup', section: 'Sirkulasjon', exercise_name: 'Sykkel',
+      day: 'friday_warmup', section: 'SIRKULASJON', exercise_name: 'Sykkel',
       sets: 1, reps: '5–8 min', sort_order: 0,
     }).select().single();
     if (data && !error) {
@@ -1993,7 +1998,7 @@ async function migrateWarmupData() {
 
 function renderRehab() {
   const el  = document.getElementById('workoutBlocks');
-  const exs = allExercises['rehab']?.['Rehab'] || [];
+  const exs = allExercises['rehab']?.['REHAB'] || [];
   const addId = 'add-rehab-Rehab';
   el.innerHTML = `<div class="ex-section" data-day="rehab" data-section="Rehab"
     ondragover="exSecDragOver(event)" ondragleave="exSecDragLeave(event)" ondrop="exSecDrop(event)">
@@ -2342,7 +2347,7 @@ function renderAddSection(day) {
 }
 
 async function addSection(day, formId) {
-  const name = document.getElementById(`${formId}-name`).value.trim();
+  const name = document.getElementById(`${formId}-name`).value.trim().toUpperCase();
   if (!name) return;
   if (allExercises[day]?.[name]) { toast(t('gym.section_exists'), 'err'); return; }
   // Seksjoner finnes som "kolonner" via øvelser. Vi oppretter en tom seksjon i
@@ -2360,7 +2365,7 @@ async function addSection(day, formId) {
 // Endre seksjonsnavn: oppdaterer alle øvelser i seksjonen (workout_program
 // har ingen egen seksjonstabell — seksjoner finnes via øvelsenes section-felt)
 async function renameSection(day, oldLabel, formId) {
-  const newName = document.getElementById(`${formId}-name`)?.value?.trim();
+  const newName = document.getElementById(`${formId}-name`)?.value?.trim().toUpperCase();
   if (!newName || newName === oldLabel) {
     document.getElementById(formId)?.classList.remove('open');
     return;
@@ -3530,7 +3535,7 @@ async function saveCardio(id) {
 }
 
 async function addCardioMachine(wmDay) {
-  const row = { day: wmDay, section: 'Sirkulasjon', exercise_name: 'Sykkel', sets: 1, reps: '8–10 min', sort_order: 0 };
+  const row = { day: wmDay, section: 'SIRKULASJON', exercise_name: 'Sykkel', sets: 1, reps: '8–10 min', sort_order: 0 };
   const { data, error } = await db.from('workout_program').insert(row).select().single();
   if (error) { toast(error.message, 'err'); return; }
   if (!allExercises[wmDay]) allExercises[wmDay] = {};
