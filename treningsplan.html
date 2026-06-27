@@ -1612,6 +1612,25 @@ function _syncDetailDropLabel() {
   const opt = sel.options[sel.selectedIndex];
   lbl.textContent = opt ? opt.text : '—';
 }
+let _cselScrollRAF = null;
+function _positionDetailDrop() {
+  const menu = document.getElementById('detailPlanDropMenu');
+  const btn  = document.getElementById('detailPlanDropBtn');
+  if (!menu || !btn || menu.classList.contains('hidden')) return;
+  const r = btn.getBoundingClientRect();
+  menu.style.top   = (r.bottom + 5) + 'px';
+  menu.style.left  = r.left + 'px';
+  menu.style.width = r.width + 'px';
+}
+function _cselScrollListener() {
+  if (_cselScrollRAF) cancelAnimationFrame(_cselScrollRAF);
+  _cselScrollRAF = requestAnimationFrame(_positionDetailDrop);
+}
+function _closeDetailDrop() {
+  document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
+  document.getElementById('detailPlanDropBtn')?.classList.remove('open');
+  window.removeEventListener('scroll', _cselScrollListener, true);
+}
 function toggleDetailDrop() {
   const menu = document.getElementById('detailPlanDropMenu');
   const btn  = document.getElementById('detailPlanDropBtn');
@@ -1620,34 +1639,28 @@ function toggleDetailDrop() {
   if (menu.parentElement !== document.body) document.body.appendChild(menu);
   const isOpen = !menu.classList.contains('hidden');
   if (isOpen) {
-    menu.classList.add('hidden');
-    btn.classList.remove('open');
+    _closeDetailDrop();
   } else {
     _buildDetailDrop();
-    const r = btn.getBoundingClientRect();
-    menu.style.top   = (r.bottom + 5) + 'px';
-    menu.style.left  = r.left + 'px';
-    menu.style.width = r.width + 'px';
+    _positionDetailDrop();
     menu.classList.remove('hidden');
     btn.classList.add('open');
+    window.addEventListener('scroll', _cselScrollListener, { capture: true, passive: true });
     setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
   }
 }
 function _closeDetailDropOutside(e) {
   const wrap = document.getElementById('detailPlanDropWrap');
   if (wrap && wrap.contains(e.target)) {
-    // click was inside — re-register listener
     setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
     return;
   }
-  document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
-  document.getElementById('detailPlanDropBtn')?.classList.remove('open');
+  _closeDetailDrop();
 }
 function _selectDetailOpt(value) {
   const sel = document.getElementById('detailPlanSel');
   if (sel) sel.value = value;
-  document.getElementById('detailPlanDropMenu')?.classList.add('hidden');
-  document.getElementById('detailPlanDropBtn')?.classList.remove('open');
+  _closeDetailDrop();
   onDetailPlanSelChange();
   _buildDetailDrop();
 }
