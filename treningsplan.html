@@ -1685,9 +1685,9 @@ function toggleDetailDrop() {
     _closeDetailDrop();
   } else {
     _buildDetailDrop();
-    _positionDetailDrop();
     menu.classList.remove('hidden');
     btn.classList.add('open');
+    _positionDetailDrop();
     window.addEventListener('scroll', _cselScrollListener, { capture: true, passive: true });
     setTimeout(() => document.addEventListener('click', _closeDetailDropOutside, { once: true }), 0);
   }
