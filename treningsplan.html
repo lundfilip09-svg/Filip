@@ -1104,7 +1104,7 @@
   <div class="act-modal-overlay hidden" id="manageActsModal" onclick="if(event.target===this)closeManageActsModal()">
     <div class="act-modal" style="max-width:400px">
       <div class="act-modal-hd">
-        <span class="act-modal-title" data-i18n="tp.manage_acts_title">Egendefinerte aktiviteter</span>
+        <span class="act-modal-title" data-i18n="tp.manage_acts_title">Aktiviteter</span>
         <button class="act-modal-close" onclick="closeManageActsModal()">✕</button>
       </div>
       <div id="manageActsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:260px;overflow-y:auto"></div>
@@ -1314,19 +1314,79 @@ async function renderManageActsList() {
   const el = document.getElementById('manageActsList');
   if (!el) return;
   await loadCustomActivities();
-  if (!_customActivities.length) {
-    el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">${t('tp.manage_acts_empty')}</div>`;
-    return;
-  }
-  el.innerHTML = _customActivities.map(c => `
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.04);border-radius:8px">
+
+  // Builtin rows
+  const builtinHtml = _BUILTIN_ACTIVITY_TYPES.map(type => {
+    const label = _actTypeLabel(type);
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.03);border-radius:8px;opacity:0.7">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(label)}</div>
+        <div style="font-size:10px;color:var(--text-tertiary);margin-top:1px" data-i18n="tp.act_builtin_label">${t('tp.act_builtin_label')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Custom rows with rename + delete
+  const customHtml = _customActivities.map(c => `
+    <div id="manage-act-row-${c.id}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.06);border-radius:8px">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(c.name)}</div>
         <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-top:1px">${t('tp.act_load_mult')}: ${parseFloat(c.load_multiplier).toFixed(2)}</div>
+        <div id="rename-form-${c.id}" style="display:none;margin-top:8px;display:none">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="rename-input-${c.id}" type="text" value="${escHtml(c.name)}" data-i18n-placeholder="tp.act_rename_ph"
+              placeholder="${t('tp.act_rename_ph')}"
+              style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:12px;outline:none">
+            <button onclick="confirmRenameActivity('${c.id}','${escHtml(c.name)}')"
+              style="background:var(--accent-blue);border:none;border-radius:6px;color:#fff;font-size:11px;padding:5px 10px;cursor:pointer" data-i18n="tp.act_rename_save">${t('tp.act_rename_save')}</button>
+            <button onclick="cancelRenameActivity('${c.id}')"
+              style="background:none;border:none;color:var(--text-tertiary);font-size:18px;cursor:pointer;line-height:1">✕</button>
+          </div>
+        </div>
       </div>
-      <button onclick="deleteCustomActivity('${c.id}')" style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0" data-i18n="delete">Slett</button>
+      <button onclick="startRenameActivity('${c.id}')"
+        style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:11px;padding:2px 6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);border-radius:5px"
+        data-i18n="tp.act_rename">${t('tp.act_rename')}</button>
+      <button onclick="deleteCustomActivity('${c.id}')"
+        style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0" data-i18n="delete">Slett</button>
     </div>`).join('');
+
+  el.innerHTML = builtinHtml + customHtml;
   applyLang();
+}
+
+function startRenameActivity(id) {
+  const form = document.getElementById(`rename-form-${id}`);
+  if (form) form.style.display = 'block';
+}
+function cancelRenameActivity(id) {
+  const form = document.getElementById(`rename-form-${id}`);
+  if (form) form.style.display = 'none';
+}
+async function confirmRenameActivity(id, oldName) {
+  const input = document.getElementById(`rename-input-${id}`);
+  if (!input) return;
+  const newName = input.value.trim();
+  if (!newName || newName === oldName) { cancelRenameActivity(id); return; }
+  const lc = newName.toLowerCase();
+  if (_customActivities.some(c => c.id !== id && c.name.toLowerCase() === lc) ||
+      _BUILTIN_ACTIVITY_TYPES.some(b => b.toLowerCase() === lc || _actTypeLabel(b).toLowerCase() === lc)) {
+    toast(t('tp.act_name_exists'), 'err'); return;
+  }
+  // Update custom_activities
+  const { error: e1 } = await db.from('custom_activities').update({ name: newName }).eq('id', id);
+  if (e1) { toast(`${t('tp.act_rename_error')}: ${e1.message}`, 'err'); return; }
+  // Cascade: activity_log.activity_type
+  await db.from('activity_log').update({ activity_type: newName }).eq('user_id', userId).eq('activity_type', oldName);
+  // Cascade: training_plan_weekly.session_text
+  await db.from('training_plan_weekly').update({ session_text: newName }).eq('user_id', userId).eq('session_text', oldName);
+  // Cascade: weekly_plan.session_type
+  await db.from('weekly_plan').update({ session_type: newName }).eq('user_id', userId).eq('session_type', oldName);
+  toast(t('tp.act_renamed'));
+  await renderManageActsList();
+  renderActTypeGrid();
+  if (!document.getElementById('weeklyPlanModal')?.classList.contains('hidden')) openEditWeeklyPlan();
 }
 
 async function saveCustomActivity() {
