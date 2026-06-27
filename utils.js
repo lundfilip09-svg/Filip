@@ -610,6 +610,9 @@ const TRANSLATIONS = {
     // Diagnose-melding (kort skadestatus til trener/fysio, deterministisk)
     'ai.copy_diag': 'Kopier diagnose', 'ai.diag_copied': 'Diagnose kopiert til utklippstavlen',
     'ai.copy_sleep': 'Kopier søvnanalyse', 'ai.sleep_copied': 'Søvnanalyse kopiert til utklippstavlen',
+    'ai.copy_gym': 'Kopier øvelser', 'ai.copy_gym_title': 'Velg dager å kopiere',
+    'ai.copy_gym_btn': 'Kopier valgte', 'ai.copy_gym_copied': 'Øvelser kopiert til utklippstavlen',
+    'ai.copy_gym_none': 'Velg minst én dag', 'ai.copy_gym_empty': 'Ingen øvelser funnet for valgte dager',
     'diag.header': 'Skadestatus', 'diag.none': 'Ingen aktive plager.',
     'diag.last7': 'Siste 7 dager: {n} økter, snitt RPE {rpe}/100.',
     'diag.pain_line': 'Smerte 7d (maks før/under/etter/d.etter): {b}/{d}/{a}/{da} av 10.',
@@ -1272,6 +1275,9 @@ const TRANSLATIONS = {
     // Diagnosis message (short injury status for coach/physio, deterministic)
     'ai.copy_diag': 'Copy diagnosis', 'ai.diag_copied': 'Diagnosis copied to clipboard',
     'ai.copy_sleep': 'Copy sleep analysis', 'ai.sleep_copied': 'Sleep analysis copied to clipboard',
+    'ai.copy_gym': 'Copy exercises', 'ai.copy_gym_title': 'Select days to copy',
+    'ai.copy_gym_btn': 'Copy selected', 'ai.copy_gym_copied': 'Exercises copied to clipboard',
+    'ai.copy_gym_none': 'Select at least one day', 'ai.copy_gym_empty': 'No exercises found for selected days',
     'diag.header': 'Injury status', 'diag.none': 'No active issues.',
     'diag.last7': 'Last 7 days: {n} sessions, avg RPE {rpe}/100.',
     'diag.pain_line': 'Pain 7d (max pre/during/post/next-day): {b}/{d}/{a}/{da} of 10.',

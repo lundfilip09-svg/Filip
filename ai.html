@@ -334,6 +334,51 @@
     .ws-modal-body { padding: 16px 18px; overflow-y: auto; font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
     .ws-modal-body strong { color: var(--text-primary); }
 
+    /* ── Gym copy modal ── */
+    .gym-copy-modal { max-width: 480px; }
+    .gym-copy-body { padding: 20px 18px 8px; }
+    .gym-day-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .gym-day-chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--line-2); background: rgba(255,255,255,0.03);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+      user-select: none;
+    }
+    .gym-day-chip:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .gym-day-chip.selected {
+      background: rgba(177,151,252,0.12); border-color: rgba(177,151,252,0.45);
+      box-shadow: 0 0 0 1px rgba(177,151,252,0.2);
+    }
+    .gym-day-chip-check {
+      width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0;
+      border: 1.5px solid var(--line-2); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .gym-day-chip.selected .gym-day-chip-check {
+      background: rgba(177,151,252,0.9); border-color: transparent;
+    }
+    .gym-day-chip-check svg { opacity: 0; transition: opacity 0.12s; }
+    .gym-day-chip.selected .gym-day-chip-check svg { opacity: 1; }
+    .gym-day-chip-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); transition: color 0.15s; }
+    .gym-day-chip.selected .gym-day-chip-label { color: var(--text-primary); }
+    .gym-day-chip-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
+      background: rgba(255,255,255,0.05); border-radius: 5px; padding: 1px 5px; }
+    .gym-day-chip.selected .gym-day-chip-count { color: rgba(177,151,252,0.8); background: rgba(177,151,252,0.1); }
+    .gym-copy-footer {
+      padding: 14px 18px 18px; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; justify-content: flex-end;
+    }
+    .gym-copy-submit {
+      font-size: 12px; font-weight: 600; padding: 8px 18px; border-radius: 9px;
+      background: rgba(177,151,252,0.18); border: 1px solid rgba(177,151,252,0.4);
+      color: var(--text-primary); cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .gym-copy-submit:hover { background: rgba(177,151,252,0.28); box-shadow: 0 0 0 2px rgba(177,151,252,0.15); }
+    .gym-copy-submit:disabled { opacity: 0.4; cursor: default; }
+
     @media (max-width: 900px) {
       .ai-layout { flex-direction: column; }
       .ws-panel { width: auto; max-height: 220px; }
@@ -374,6 +419,7 @@
         <button class="ai-act-btn" id="copyReportBtn" onclick="copyHealthReport()" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
         <button class="ai-act-btn" id="copyDiagBtn" onclick="copyInjuryStatus()" data-i18n="ai.copy_diag">Kopier diagnose</button>
         <button class="ai-act-btn" id="copySleepBtn" onclick="copySleepAnalysis()" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
+        <button class="ai-act-btn" id="copyGymBtn" onclick="openGymCopyModal()" data-i18n="ai.copy_gym">Kopier øvelser</button>
       </div>
       <button class="ai-act-btn ai-act-clear" onclick="clearChat()" data-i18n="ai.clear">Tøm samtale</button>
     </div>
@@ -435,6 +481,22 @@
       <button class="btn btn-ghost btn-sm" onclick="closeWsModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
     </div>
     <div class="ws-modal-body" id="wsModalBody"></div>
+  </div>
+</div>
+
+<!-- Gym øvelse-kopiering modal -->
+<div class="ws-modal-backdrop" id="gymCopyBackdrop" onclick="if(event.target===this)closeGymCopyModal()">
+  <div class="ws-modal gym-copy-modal">
+    <div class="ws-modal-hd">
+      <span class="ws-modal-title" data-i18n="ai.copy_gym_title">Velg dager å kopiere</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeGymCopyModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
+    </div>
+    <div class="gym-copy-body">
+      <div class="gym-day-chips" id="gymDayChips"></div>
+    </div>
+    <div class="gym-copy-footer">
+      <button class="gym-copy-submit" id="gymCopySubmitBtn" onclick="executeGymCopy()" data-i18n="ai.copy_gym_btn">Kopier valgte</button>
+    </div>
   </div>
 </div>
 
@@ -830,7 +892,7 @@ function closeWsModal() {
   wsOpenWeek = null;
   document.getElementById('wsModalBackdrop').classList.remove('open');
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWsModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeWsModal(); closeGymCopyModal(); } });
 
 async function loadWsSummaries() {
   try {
@@ -1286,6 +1348,125 @@ async function copySleepAnalysis() {
     toast(t('ai.report_copy_fail'));
   } finally {
     if (btn) btn.disabled = false;
+  }
+}
+
+
+// ── Kopier øvelser: hent øvelsesplan fra Supabase og la bruker velge dager ───
+let _gymCopyDays = [];
+let _gymCopySelected = new Set();
+
+async function openGymCopyModal() {
+  const backdrop = document.getElementById('gymCopyBackdrop');
+  const chips    = document.getElementById('gymDayChips');
+  chips.innerHTML = '<div style="color:var(--text-tertiary);font-size:12px;padding:4px 0">Laster\u2026</div>';
+  backdrop.classList.add('open');
+  try {
+    const [daysRes, progRes] = await Promise.all([
+      db.from('gym_days').select('day_key,weekday,type_label,custom_name,sort_order').order('sort_order'),
+      db.from('workout_program').select('day,section,exercise_name,sets,reps,sort_order').order('sort_order'),
+    ]);
+    const days = (daysRes.data || []).filter(d => d.day_key !== 'rehab');
+    const prog = progRes.data || [];
+    const countByDay = {};
+    prog.forEach(ex => {
+      const base = ex.day.replace(/_warmup$/, '').replace(/_activation$/, '');
+      countByDay[base] = (countByDay[base] || 0) + 1;
+    });
+    _gymCopyDays = days.map(d => ({
+      day_key: d.day_key,
+      label: d.custom_name || (d.type_label ? (t(d.type_label) || d.type_label) : d.day_key),
+      exCount: countByDay[d.day_key] || 0,
+    }));
+    _gymCopySelected = new Set(_gymCopyDays.filter(d => d.exCount > 0).map(d => d.day_key));
+    renderGymDayChips();
+  } catch (e) {
+    chips.innerHTML = '<div style="color:var(--danger);font-size:12px">Feil ved lasting</div>';
+  }
+}
+
+function renderGymDayChips() {
+  const chips = document.getElementById('gymDayChips');
+  if (!_gymCopyDays.length) {
+    chips.innerHTML = '<div style="color:var(--text-tertiary);font-size:12px">Ingen dager funnet</div>';
+    return;
+  }
+  chips.innerHTML = _gymCopyDays.map(d => {
+    const sel = _gymCopySelected.has(d.day_key);
+    return `<div class="gym-day-chip${sel ? ' selected' : ''}" onclick="toggleGymDay('${d.day_key}')">
+      <div class="gym-day-chip-check">
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="gym-day-chip-label">${escHtml(d.label)}</span>
+      <span class="gym-day-chip-count">${d.exCount}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleGymDay(dayKey) {
+  if (_gymCopySelected.has(dayKey)) _gymCopySelected.delete(dayKey);
+  else _gymCopySelected.add(dayKey);
+  renderGymDayChips();
+}
+
+function closeGymCopyModal() {
+  document.getElementById('gymCopyBackdrop').classList.remove('open');
+}
+
+async function executeGymCopy() {
+  if (_gymCopySelected.size === 0) { toast(t('ai.copy_gym_none')); return; }
+  const btn = document.getElementById('gymCopySubmitBtn');
+  btn.disabled = true;
+  try {
+    const selectedKeys = [..._gymCopySelected];
+    const dayVariants = selectedKeys.flatMap(k => [k, k + '_warmup', k + '_activation']);
+    const [progRes, wtsRes] = await Promise.all([
+      db.from('workout_program').select('day,section,exercise_name,sets,reps,sort_order').in('day', dayVariants).order('sort_order'),
+      db.from('exercise_weights').select('exercise_name,exercise_id,weight_kg'),
+    ]);
+    const prog = progRes.data || [];
+    const wts  = wtsRes.data || [];
+    const wMap = {};
+    wts.forEach(w => { if (w.exercise_name) wMap[w.exercise_name] = w.weight_kg; });
+    const grouped = {};
+    prog.forEach(ex => {
+      const base = ex.day.replace(/_warmup$/, '').replace(/_activation$/, '');
+      if (!selectedKeys.includes(base)) return;
+      if (!grouped[base]) grouped[base] = {};
+      const sec = ex.section || 'Øvelser';
+      if (!grouped[base][sec]) grouped[base][sec] = [];
+      grouped[base][sec].push(ex);
+    });
+    if (!Object.keys(grouped).length) { toast(t('ai.copy_gym_empty')); btn.disabled = false; return; }
+    const lines = [];
+    for (const dayKey of selectedKeys) {
+      if (!grouped[dayKey]) continue;
+      const dayMeta = _gymCopyDays.find(d => d.day_key === dayKey);
+      lines.push('== ' + (dayMeta ? dayMeta.label.toUpperCase() : dayKey.toUpperCase()) + ' ==');
+      for (const [sec, exs] of Object.entries(grouped[dayKey])) {
+        lines.push('  ' + sec);
+        const sorted = [...exs].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+        sorted.forEach(ex => {
+          const sets = ex.sets || 1;
+          const reps = ex.reps || '\u2014';
+          const wkg  = wMap[ex.exercise_name];
+          const wDisp = (wkg != null && wkg > 0) ? ' \u00d7 ' + wkg + 'kg' : '';
+          lines.push('    ' + ex.exercise_name + ' \u2014 ' + sets + '\u00d7' + reps + wDisp);
+        });
+      }
+      lines.push('');
+    }
+    const text = lines.join('\n').trim();
+    const ok = await writeClip(text);
+    toast(ok ? t('ai.copy_gym_copied') : t('ai.report_copy_fail'));
+    if (ok) closeGymCopyModal();
+  } catch (e) {
+    console.error(e);
+    toast(t('ai.report_copy_fail'));
+  } finally {
+    btn.disabled = false;
   }
 }
 
