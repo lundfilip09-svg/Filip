@@ -2160,7 +2160,7 @@ async function renderOverloadCoach() {
     // MID = på mål (verken LOW eller HIGH)
 
     const repsInts = sets.map(s => parseInt(s.reps, 10)).filter(n => !isNaN(n));
-    const hitTop   = top != null && repsInts.length === sets.length
+    const hitTop   = top != null && uniform && repsInts.length === sets.length
                      && repsInts.length > 0 && repsInts.every(n => n >= top);
 
     // RIR-aware double progression. Smerte > alt; RIR varierer anbefalingen
