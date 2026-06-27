@@ -579,17 +579,14 @@ let chatHistory = []; // {role:'user'|'assistant', content:string}[]
 
 async function saveHistory() {
   localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
-  // Persist last user+assistant pair to Supabase (fire-and-forget)
+  // Persist last user+assistant pair to Supabase sequentially to guarantee order
   try {
     const { data: { session } } = await db.auth.getSession();
     if (!session) return;
     const lastTwo = chatHistory.slice(-2);
     if (lastTwo.length === 2 && lastTwo[0].role === 'user' && lastTwo[1].role === 'assistant') {
-      await db.from('ai_chat_history').insert(lastTwo.map(m => ({
-        user_id: session.user.id,
-        role: m.role,
-        content: m.content,
-      })));
+      await db.from('ai_chat_history').insert({ user_id: session.user.id, role: lastTwo[0].role, content: lastTwo[0].content });
+      await db.from('ai_chat_history').insert({ user_id: session.user.id, role: lastTwo[1].role, content: lastTwo[1].content });
     }
   } catch { /* silent — localStorage still valid */ }
 }
@@ -774,7 +771,7 @@ function autoResize(el) {
       const { data: sbData, error } = await db.from('ai_chat_history')
         .select('role, content')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(20);
       if (!error && sbData?.length) {
         // Hentet nyeste 20 i synkende rekkefølge — snu til kronologisk for visning
