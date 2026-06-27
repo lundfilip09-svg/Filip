@@ -3651,10 +3651,10 @@ async function deleteCoach(id) {
     renderDetail();
     renderSidebar();
     loadSessionHistory();
-    if (!document.getElementById('actModal').classList.contains('hidden')) renderActInjuryBlocks();
-    if (!document.getElementById('ocModal').classList.contains('hidden')) renderOCModal();
-    if (!document.getElementById('weeklyPlanModal').classList.contains('hidden')) openEditWeeklyPlan();
-    if (!document.getElementById('profileModal').classList.contains('hidden')) loadProfileData();
+    if (!document.getElementById('actModal')?.classList.contains('hidden')) renderActInjuryBlocks();
+    if (!document.getElementById('ocModal')?.classList.contains('hidden')) renderOCModal();
+    if (!document.getElementById('weeklyPlanModal')?.classList.contains('hidden')) openEditWeeklyPlan();
+    if (!document.getElementById('profileModal')?.classList.contains('hidden')) loadProfileData();
   };
   // Vis settings-tannhjul i nav — kun på denne siden
   const _sb = document.getElementById('settingsNavBtn');
