@@ -1149,6 +1149,7 @@ let weeklyPlan           = {};   // weekly_plan global defaults { 0: 'Sprint', .
 let planWeekly           = {};   // training_plan_weekly for displayed week (when weekOffset !== 0)
 let weeklyPlanTpl        = {};   // day -> template_id (parallelt med weeklyPlan-tekst)
 let sessionTemplates     = [];   // session_templates-biblioteket (051)
+let gymDays              = [];   // gym_days (dine faktiske treningsdager)
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
 let selectedIdx          = todayIdx();
@@ -1196,6 +1197,36 @@ async function loadPlanFromDb() {
 async function loadSessionTemplates() {
   const { data } = await db.from('session_templates').select('*').order('sort_order').order('name');
   sessionTemplates = data || [];
+}
+
+// ── gym_days (brukerens faktiske treningsdager) ────────────────────────────
+async function loadGymDays() {
+  const { data } = await db.from('gym_days').select('*').order('sort_order');
+  gymDays = (data || []).filter(d => d.day_key !== 'rehab');
+}
+// Returner display-navn for en gym-dag (speiler gym.html dayLabel).
+function gymDayLabel(d) {
+  if (!d) return '';
+  if (d.custom_name) return d.custom_name;
+  const typeName = d.type_label ? t(d.type_label) : '';
+  return typeName || d.day_key;
+}
+// Bygg <option>-liste: Hvile + alle gym-dager.
+function gymDayOptions(selectedVal) {
+  const restOpt = `<option value=""${!selectedVal ? ' selected' : ''}>${escHtml(t('daytype.rest'))}</option>`;
+  const dayOpts = gymDays.map(d => {
+    const lbl = gymDayLabel(d);
+    const sel = lbl === selectedVal ? ' selected' : '';
+    return `<option value="${escHtml(lbl)}"${sel}>${escHtml(lbl)}</option>`;
+  }).join('');
+  return restOpt + dayOpts;
+}
+// Sjekk om en tekst matcher en gym-dag.
+function resolveGymDay(text) {
+  if (!text) return null;
+  const lc = text.trim().toLowerCase();
+  if (!lc || lc === 'hvile' || lc === 'rest') return null;
+  return gymDays.find(d => gymDayLabel(d).toLowerCase() === lc) || null;
 }
 // Innebygde maler vises via i18n_key; egendefinerte via name som-er.
 function tplLabel(tpl) { return tpl ? (tpl.i18n_key ? t(tpl.i18n_key) : tpl.name) : ''; }
@@ -1255,11 +1286,12 @@ function openEditWeeklyPlan() {
   const el = document.getElementById('weeklyPlanRows');
   if (!el) return;
   el.innerHTML = [0,1,2,3,4,5,6].map(d => {
-    const selId = (weeklyPlanTpl[d] != null) ? weeklyPlanTpl[d] : (resolveTpl(weeklyPlan[d])?.id || '');
+    // Hent lagret tekst for denne ukedagen
+    const savedText = weeklyPlan[d] || '';
     return `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${t('wd.'+((d+1)%7))}</div>
-      <select class="input-sm" id="wp-day-${d}" style="flex:1">${tplOptions(selId)}</select>
+      <select class="input-sm" id="wp-day-${d}" style="flex:1">${gymDayOptions(savedText)}</select>
     </div>`;
   }).join('');
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
@@ -1299,7 +1331,16 @@ function applyWeekPreset() {
   if (!p) { toast(t('tp.preset_pick'), 'err'); return; }
   [0, 1, 2, 3, 4, 5, 6].forEach(d => {
     const inp = document.getElementById(`wp-day-${d}`);
-    if (inp) inp.value = resolveTpl(p.plan?.[d])?.id || '';   // preset lagrer tekst -> resolve til mal
+    if (!inp) return;
+    const txt = (p.plan?.[d] || '').trim();
+    const lc = txt.toLowerCase();
+    // Match mot gym-dag eller sett '' for hvile
+    if (!txt || lc === 'hvile' || lc === 'rest') {
+      inp.value = '';
+    } else {
+      const gd = resolveGymDay(txt);
+      inp.value = gd ? gymDayLabel(gd) : '';
+    }
   });
   toast(t('tp.preset_applied_hint'));
 }
@@ -1309,8 +1350,8 @@ async function saveWeekPreset() {
   if (!name) return;
   const plan = {};
   [0, 1, 2, 3, 4, 5, 6].forEach(d => {
-    // select gir nå template_id; lagre malens stabile name som tekst-snapshot i preset.
-    plan[d] = tplById(document.getElementById(`wp-day-${d}`)?.value)?.name || '';
+    // select.value er nå display-tekst (gym-dag-navn eller '')
+    plan[d] = document.getElementById(`wp-day-${d}`)?.value || '';
   });
   const existing = _wpPresets.find(p => p.name.toLowerCase() === name.toLowerCase());
   let error;
@@ -1338,8 +1379,9 @@ async function deleteWeekPreset() {
 async function saveWeeklyPlan() {
   // Determine new values from form before saving
   const newRows = [0,1,2,3,4,5,6].map(d => {
-    const tpl = tplById(document.getElementById(`wp-day-${d}`)?.value);
-    return { user_id: userId, day: d, template_id: tpl ? tpl.id : null, session_type: tplLabel(tpl) };
+    const selVal = document.getElementById(`wp-day-${d}`)?.value || '';
+    // selVal er display-tekst fra gymDayOptions ('', 'Styrke Kapasitet', osv.)
+    return { user_id: userId, day: d, template_id: null, session_type: selVal };
   });
 
   // Freeze current week + past 52 weeks: for any day whose value is changing,
@@ -1548,27 +1590,28 @@ function renderDetail() {
   document.getElementById('detailNotes').value = notesText(i);
 }
 
-// ── Per-uke øktvelger (select fra eksisterende maler + Hvile + Egendefinert) ──
-function _detailPlanOptions(selId, custom) {
-  return tplOptions(selId) +
-    `<option value="__custom__"${custom ? ' selected' : ''}>${escHtml(t('tp.custom'))}</option>`;
+// ── Per-uke øktvelger (select fra gym-dager + Hvile) ──
+function _detailPlanOptions(selectedVal) {
+  return gymDayOptions(selectedVal) +
+    `<option value="__custom__">${escHtml(t('tp.custom'))}</option>`;
 }
-// Sett velgeren ut fra lagret session_text: '' / hvile = Hvile, kjent mal = mal,
-// ellers = Egendefinert (vis fritekst).
+// Sett velgeren ut fra lagret session_text.
 function _setDetailPlanField(txt) {
   const sel  = document.getElementById('detailPlanSel');
   const cust = document.getElementById('detailPlanCustom');
   if (!sel || !cust) return;
   const lc  = (txt || '').toLowerCase();
-  const tpl = resolveTpl(txt);
+  const gd  = resolveGymDay(txt);
   if (!txt || lc === 'hvile' || lc === 'rest') {
-    sel.innerHTML = _detailPlanOptions('', false); sel.value = '';
+    sel.innerHTML = _detailPlanOptions(''); sel.value = '';
     cust.style.display = 'none'; cust.value = '';
-  } else if (tpl) {
-    sel.innerHTML = _detailPlanOptions(String(tpl.id), false); sel.value = String(tpl.id);
+  } else if (gd) {
+    const lbl = gymDayLabel(gd);
+    sel.innerHTML = _detailPlanOptions(lbl); sel.value = lbl;
     cust.style.display = 'none'; cust.value = '';
   } else {
-    sel.innerHTML = _detailPlanOptions('', true); sel.value = '__custom__';
+    sel.innerHTML = _detailPlanOptions('');
+    sel.value = '__custom__';
     cust.style.display = ''; cust.value = txt;
   }
   _buildDetailDrop();
@@ -1671,8 +1714,8 @@ function _detailPlanValue() {
   if (!sel) return '';
   if (sel.value === '__custom__') return (cust?.value || '').trim();
   if (sel.value === '') return '';
-  const tpl = tplById(sel.value);
-  return tpl ? tplLabel(tpl) : '';
+  // sel.value is now the display label of the gym day (not a template id)
+  return sel.value;
 }
 
 function selectDay(i) {
@@ -3587,6 +3630,7 @@ async function deleteCoach(id) {
   }
 
   await loadSessionTemplates();
+  await loadGymDays();
   await loadPlanFromDb();
   await loadWeeklyPlan();
 

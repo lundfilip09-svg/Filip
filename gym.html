@@ -984,12 +984,8 @@
   <div class="day-dialog">
     <h3 data-i18n="gym.new_day">Ny økt</h3>
     <div>
-      <label data-i18n="gym.session_name_lbl">Navn (valgfritt)</label>
-      <input id="ddName" type="text" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);font-size:13px;box-sizing:border-box" data-i18n-placeholder="gym.session_name_ph" placeholder="La stå tomt for å bruke type">
-    </div>
-    <div>
-      <label data-i18n="gym.day_type">Økttype</label>
-      <select id="ddType"></select>
+      <label data-i18n="gym.session_name_lbl">Navn</label>
+      <input id="ddName" type="text" style="width:100%;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);font-size:13px;box-sizing:border-box" data-i18n-placeholder="gym.session_name_ph" placeholder="Navn på økt">
     </div>
     <div>
       <label data-i18n="gym.copy_from">Kopier øvelser fra</label>
@@ -1320,9 +1316,6 @@ const DAY_TYPES = [
 
 function openDayDialog() {
   if (workoutState === 'active') { toast(t('gym.finish_first') || '⏸', 'err'); return; }
-  const tySel = document.getElementById('ddType');
-  tySel.innerHTML = `<option value="">${escHtml(t('gym.day_type_none'))}</option>` +
-    DAY_TYPES.map(k => `<option value="${k}">${escHtml(t(k))}</option>`).join('');
   const cpSel = document.getElementById('ddCopyFrom');
   const copyable = gymDays.filter(d => d.day_key !== 'rehab');
   cpSel.innerHTML = `<option value="">${escHtml(t('gym.copy_empty'))}</option>` +
@@ -1335,30 +1328,22 @@ function closeDayDialog() {
 }
 
 async function createDay() {
-  const typeRaw = document.getElementById('ddType').value;
-  const type_label = typeRaw || null;
   const customName = (document.getElementById('ddName')?.value || '').trim();
-  // Unik nøkkel basert på navn eller type (ingen ukedag). Legg til suffix om nøkkelen allerede finnes.
-  const base = customName
-    ? customName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-    : (type_label ? type_label.replace('daytype.', '') : 'custom');
-  let day_key = base || 'custom';
+  if (!customName) { toast(t('gym.session_name_required') || 'Navn er påkrevd', 'err'); return; }
+  // Blokker duplikate visningsnavn (case-insensitive).
+  const nameLower = customName.toLowerCase();
+  if (gymDays.some(d => (d.custom_name || dayLabel(d)).toLowerCase() === nameLower)) {
+    toast(t('gym.day_exists'), 'err'); return;
+  }
+  const base = customName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') || 'custom';
+  let day_key = base;
   let n = 2;
   while (gymDays.some(d => d.day_key === day_key)) { day_key = `${base}_${n++}`; }
   const sort_order = Math.max(0, ...gymDays.filter(d => !d.is_protected).map(d => d.sort_order ?? 0)) + 1;
-  const row = { day_key, weekday: null, type_label, custom_name: customName || null, is_protected: false, sort_order };
-  // 051/F2-bolk1: unikt-navn-vakt (krav #2) FØR vi oppretter dagen — avbryt ved konflikt.
-  if (type_label && !sessionTemplates.some(x => x.i18n_key === type_label)) {
-    const candidate = type_label.replace('daytype.', '');
-    if (sessionTemplates.some(x => x.name.toLowerCase() === candidate.toLowerCase())) {
-      toast(t('gym.day_exists'), 'err'); return;
-    }
-  }
+  const row = { day_key, weekday: null, type_label: null, custom_name: customName, is_protected: false, sort_order };
   const { data, error } = await db.from('gym_days').insert(row).select().single();
   if (error) { toast(t('gym.save_error'), 'err'); return; }
   gymDays.push(data || row);
-  // 051/F2-bolk1: sørg for at en mal finnes for dagtypen (gjenbruk/opprett) + bygg bro.
-  await _ensureTemplateFor(type_label);
   _buildTplBridge();
   await syncDayToPlan(data || row);   // speil ny gym-dag inn i fast ukeplan
   const copyFrom = document.getElementById('ddCopyFrom')?.value || '';
