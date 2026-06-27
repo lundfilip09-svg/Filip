@@ -99,8 +99,15 @@ onLangChange = () => applyLang();
 (async () => {
   try {
     const cfg = await getConfig();
-    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-    const { data: { session } } = await db.auth.getSession();
+    // tempDb: no session persistence — used only to validate password in step 1
+    // This prevents Supabase from writing to localStorage and triggering redirects
+    window._supabaseCfg = cfg;
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    // Check for existing real session (from a previous full login)
+    const realDb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await realDb.auth.getSession();
     if (session) window.location.href = 'dashboard.html';
   } catch (err) {
     document.getElementById('loginError').textContent = err.message;
@@ -169,12 +176,10 @@ async function signIn() {
     return;
   }
 
-  // Password OK — sign out immediately before session-detection can fire,
-  // then store credentials in memory and show security questions
-  await db.auth.signOut();
+  // Password OK — store credentials, show security questions
+  // No signOut needed: db uses persistSession:false so nothing was written to localStorage
   _pendingEmail    = email;
   _pendingPassword = password;
-
   document.getElementById('passwordStep').style.display = 'none';
   document.getElementById('securityStep').style.display = 'block';
   document.getElementById('ans1').focus();
@@ -219,9 +224,10 @@ async function verifySecrets() {
     return;
   }
 
-  // Both correct — sign in for real using stored credentials
+  // Both correct — sign in for real with a session-persisting client
   clearAttempts();
-  const { error: signInErr } = await db.auth.signInWithPassword({ email: _pendingEmail, password: _pendingPassword });
+  const realDb = supabase.createClient(window._supabaseCfg.supabaseUrl, window._supabaseCfg.supabaseAnonKey);
+  const { error: signInErr } = await realDb.auth.signInWithPassword({ email: _pendingEmail, password: _pendingPassword });
   if (signInErr) {
     errEl.textContent = signInErr.message;
     btn.disabled = false;
