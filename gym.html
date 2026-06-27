@@ -4847,7 +4847,8 @@ async function saveDayAfterPain() {
       : await db.from('knee_pain').insert({ date, session_type: sessionType, day_after_score: score });
     if (res.error) { toast(t('gym.save_error'), 'err'); return; }
   }
-  toast(t('gym.day_after_saved'));
+  const _sessionLabel = _dayAfterSession?.sessionType ? displaySessionType(_dayAfterSession.sessionType) : 'økt';
+  toast(`Smerte etter ${_sessionLabel} lagret`);
   dismissDayAfterBanner();
   await loadGymHistory();
 }
