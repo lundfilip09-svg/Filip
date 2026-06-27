@@ -70,16 +70,16 @@
     .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
 
     /* ── Sleep card redesign ── */
-    .sc-wrap { display: flex; flex-direction: column; gap: 14px; }
+    .sc-wrap { display: flex; flex-direction: column; gap: 12px; }
     .sc-top { display: flex; align-items: center; gap: 14px; }
-    .sc-ring-wrap { position: relative; flex-shrink: 0; width: 92px; height: 92px; }
-    .sc-ring-wrap svg { width: 92px; height: 92px; }
+    .sc-ring-wrap { position: relative; flex-shrink: 0; width: 96px; height: 96px; }
+    .sc-ring-wrap svg { width: 96px; height: 96px; display: block; }
     .sc-ring-center {
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 0;
     }
     .sc-score {
-      font-size: 28px; font-weight: 800; font-family: var(--font-mono);
+      font-size: 30px; font-weight: 800; font-family: var(--font-mono);
       letter-spacing: -0.04em; line-height: 1;
     }
     .sc-score-sub {
@@ -88,7 +88,7 @@
     }
     .sc-right { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
     .sc-duration {
-      font-size: 22px; font-weight: 700; font-family: var(--font-mono);
+      font-size: 24px; font-weight: 700; font-family: var(--font-mono);
       color: var(--text-primary); letter-spacing: -0.03em; line-height: 1;
     }
     .sc-badge {
@@ -104,17 +104,17 @@
       font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
       letter-spacing: 0.04em; margin-top: 2px;
     }
-    .sc-pills { display: flex; gap: 8px; }
+    .sc-pills { display: flex; gap: 6px; }
     .sc-pill {
       flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px;
+      border-radius: 8px; padding: 6px 7px; display: flex; flex-direction: column; gap: 3px;
     }
     .sc-pill-lbl {
-      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.1em;
+      font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.08em;
       text-transform: uppercase;
     }
     .sc-pill-val {
-      font-size: 14px; font-weight: 700; font-family: var(--font-mono); line-height: 1;
+      font-size: 13px; font-weight: 700; font-family: var(--font-mono); line-height: 1;
     }
     .sc-pill.rhr  { border-color: rgba(255,107,107,0.18); background: rgba(255,107,107,0.05); }
     .sc-pill.rhr  .sc-pill-lbl { color: rgba(255,107,107,0.7); }
@@ -128,14 +128,15 @@
     .sc-pill.rem  { border-color: rgba(107,227,164,0.18); background: rgba(107,227,164,0.05); }
     .sc-pill.rem  .sc-pill-lbl { color: rgba(107,227,164,0.7); }
     .sc-pill.rem  .sc-pill-val { color: #6BE3A4; }
-    .sc-spark { position: relative; height: 52px; }
-    .sc-spark canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+    /* Sparkline: block-level container, Chart.js gets explicit px via JS */
+    .sc-spark { position: relative; width: 100%; height: 56px; }
+    .sc-spark canvas { display: block; }
     .sc-insight {
       display: flex; align-items: flex-start; gap: 8px;
       padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);
     }
     .sc-insight-icon {
-      font-size: 15px; line-height: 1; flex-shrink: 0; margin-top: 1px;
+      font-size: 14px; line-height: 1; flex-shrink: 0; margin-top: 1px;
     }
     .sc-insight-body { display: flex; flex-direction: column; gap: 1px; }
     .sc-insight-title {
@@ -733,19 +734,19 @@ function renderSleepCard(d) {
   const fmtHours = h => { if (!h) return '–'; const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m/60)}${hu} ${m%60}${mu}` : `${m}${mu}`; };
   const fmtMin   = m => { if (!m) return '–'; return `${m>=60?Math.floor(m/60)+hu:''}${m%60>0?m%60+mu:m<60?m+mu:''}`; };
 
-  // SVG arc ring — 84px viewBox, r=38, circumference≈238.76
-  const R = 38, CX = 46, CY = 46, CIRC = 2 * Math.PI * R;
+  // SVG arc ring — 96px viewBox, r=40, circumference≈251.33
+  const R = 40, CX = 48, CY = 48, CIRC = 2 * Math.PI * R;
   const pct = sc != null ? Math.min(sc / 100, 1) : 0;
   const dash = pct * CIRC;
   const gap  = CIRC - dash;
   const ringHtml = `
-    <svg viewBox="0 0 92 92" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="${CX}" cy="${CY}" r="${R}" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+    <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${CX}" cy="${CY}" r="${R}" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
       <circle cx="${CX}" cy="${CY}" r="${R}"
-        stroke="${ringClr}" stroke-width="7" stroke-linecap="round"
+        stroke="${ringClr}" stroke-width="8" stroke-linecap="round"
         stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
         transform="rotate(-90 ${CX} ${CY})"
-        style="filter:drop-shadow(0 0 6px ${ringClr}44);transition:stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)"/>
+        style="filter:drop-shadow(0 0 7px ${ringClr}55);transition:stroke-dasharray 0.9s cubic-bezier(.4,0,.2,1)"/>
     </svg>`;
 
   // Insight row logic
@@ -829,28 +830,73 @@ function renderSleepCard(d) {
 }
 
 function _renderSleepSparkline() {
+  const wrap = document.querySelector('.sc-spark');
   const canvas = document.getElementById('sleepSparkCanvas');
-  if (!canvas) return;
+  if (!canvas || !wrap) return;
   if (_sleepSparkChart) { _sleepSparkChart.destroy(); _sleepSparkChart = null; }
   const hist = _sleepHistoryCache;
-  if (!hist || hist.length < 2) { canvas.style.display = 'none'; return; }
-  canvas.style.display = '';
+  if (!hist || hist.length < 2) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  // Set explicit pixel dimensions so Chart.js renders correctly
+  const W = wrap.offsetWidth || 280, H = 56;
+  canvas.width  = W;
+  canvas.height = H;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
   const scores = hist.map(r => r.sleep_score > 0 ? r.sleep_score : null);
+  const lastIdx = scores.length - 1;
+  const lastScore = scores[lastIdx];
+  const ringClrFn = s => !s ? '#555' : s >= 80 ? '#6BE3A4' : s >= 60 ? '#F2C063' : '#FF6B6B';
+
+  // Custom plugin: draw score label above the last point
+  const scoreLabelPlugin = {
+    id: 'scoreLabel',
+    afterDatasetsDraw(chart) {
+      if (lastScore == null) return;
+      const meta = chart.getDatasetMeta(0);
+      const pt   = meta.data[lastIdx];
+      if (!pt) return;
+      const { ctx } = chart;
+      const clr = ringClrFn(lastScore);
+      const x = pt.x, y = pt.y - 9;
+      // pill background
+      const lbl = String(lastScore);
+      ctx.save();
+      ctx.font = '600 9px monospace';
+      const tw = ctx.measureText(lbl).width;
+      const pw = tw + 10, ph = 13;
+      ctx.fillStyle = clr + '22';
+      ctx.strokeStyle = clr + '66';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x - pw/2, y - ph + 2, pw, ph, 4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = clr;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(lbl, x, y + 2);
+      ctx.restore();
+    },
+  };
+
   _sleepSparkChart = new Chart(canvas, {
     type: 'line',
+    plugins: [scoreLabelPlugin],
     data: {
       labels: hist.map((_, i) => i),
       datasets: [{
         data: scores,
         borderColor: '#6BE3A4',
         borderWidth: 1.5,
-        pointRadius: scores.map((s, i) => i === scores.length - 1 ? 3 : 0),
-        pointBackgroundColor: '#6BE3A4',
+        pointRadius: scores.map((_, i) => i === lastIdx ? 3 : 0),
+        pointBackgroundColor: scores.map(s => ringClrFn(s)),
         tension: 0.4,
         fill: true,
         backgroundColor: ctx => {
-          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-          g.addColorStop(0, 'rgba(107,227,164,0.18)');
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, 'rgba(107,227,164,0.16)');
           g.addColorStop(1, 'rgba(107,227,164,0)');
           return g;
         },
@@ -866,7 +912,7 @@ function _renderSleepSparkline() {
         x: { display: false },
         y: { display: false, min: 30, max: 100 },
       },
-      layout: { padding: { top: 4, bottom: 4, left: 2, right: 4 } },
+      layout: { padding: { top: 16, bottom: 2, left: 2, right: 6 } },
     },
   });
   fadeInChart(canvas);
