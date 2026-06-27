@@ -825,17 +825,7 @@
       </div>
       <div class="act-field-label" style="margin-bottom:7px" data-i18n="tp.activity">Aktivitet</div>
       <div class="act-type-grid" id="actTypeGrid">
-        <button class="act-type-btn" data-type="Fotball" onclick="selectActType(this)" data-i18n="tp.act_soccer">Fotball</button>
-        <button class="act-type-btn" data-type="Padel" onclick="selectActType(this)" data-i18n="tp.act_padel">Padel</button>
-        <button class="act-type-btn" data-type="Svømming" onclick="selectActType(this)" data-i18n="tp.act_swim">Svømming</button>
-        <button class="act-type-btn" data-type="Sykling" onclick="selectActType(this)" data-i18n="tp.act_cycle">Sykling</button>
-        <button class="act-type-btn" data-type="Basketball" onclick="selectActType(this)" data-i18n="tp.act_basketball">Basketball</button>
-        <button class="act-type-btn" data-type="Amerikansk fotball" onclick="selectActType(this)" data-i18n="tp.act_amfootball">Amerikansk fotball</button>
-        <button class="act-type-btn" data-type="Turgåing" onclick="selectActType(this)" data-i18n="tp.act_walk">Turgåing</button>
-        <button class="act-type-btn" data-type="Frisbeegolf" onclick="selectActType(this)" data-i18n="tp.act_frisbee">Frisbeegolf</button>
-        <button class="act-type-btn" data-type="Bading" onclick="selectActType(this)" data-i18n="tp.act_swim_rec">Bading</button>
-        <button class="act-type-btn" data-type="Rolig dag" onclick="selectActType(this)" data-i18n="tp.act_easy">Rolig dag</button>
-        <button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>
+        <!-- Populated dynamically by renderActTypeGrid() -->
       </div>
       <div id="actCustomWrap" style="display:none;margin-bottom:12px">
         <div class="act-field-label" data-i18n="tp.describe_activity">Beskriv aktivitet</div>
@@ -1004,6 +994,7 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">
         <button class="physio-trigger" onclick="closeSettingsModal();openEditWeeklyPlan()" data-i18n="tp.edit_plan">✎ Rediger ukeplan</button>
+        <button class="physio-trigger" onclick="closeSettingsModal();openManageActsModal()" data-i18n="tp.manage_acts_btn">🏃 Administrer aktiviteter</button>
         <button class="physio-trigger" onclick="closeSettingsModal();openInjuryModal()" data-i18n="tp.inj_btn">🩹 Plager</button>
         <button class="physio-trigger" onclick="closeSettingsModal();openPhysioModal()" data-i18n="tp.physio_btn">🩺 Fysio-notat</button>
         <button class="physio-trigger" onclick="closeSettingsModal();openOCModal()" data-i18n="tp.overload_config">⚙ Overload-coach</button>
@@ -1109,6 +1100,36 @@
     </div>
   </div>
 
+  <!-- Administrer egendefinerte aktiviteter modal -->
+  <div class="act-modal-overlay hidden" id="manageActsModal" onclick="if(event.target===this)closeManageActsModal()">
+    <div class="act-modal" style="max-width:400px">
+      <div class="act-modal-hd">
+        <span class="act-modal-title" data-i18n="tp.manage_acts_title">Egendefinerte aktiviteter</span>
+        <button class="act-modal-close" onclick="closeManageActsModal()">✕</button>
+      </div>
+      <div id="manageActsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:260px;overflow-y:auto"></div>
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
+        <div class="act-field-label" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px" data-i18n="tp.act_add">+ Legg til aktivitet</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+          <div style="flex:2;min-width:120px">
+            <div class="act-field-label" data-i18n="tp.act_name">Navn</div>
+            <input class="input-sm" id="newActName" type="text" data-i18n-placeholder="tp.act_name_ph" placeholder="F.eks. Tennis" style="width:100%;box-sizing:border-box">
+          </div>
+          <div style="flex:1;min-width:90px">
+            <div class="act-field-label" data-i18n="tp.act_load_mult">Belastningsvekt</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input id="newActMult" type="range" min="0" max="4" step="0.25" value="1.5"
+                style="flex:1;accent-color:var(--accent-blue)"
+                oninput="document.getElementById('newActMultVal').textContent=parseFloat(this.value).toFixed(2)">
+              <span id="newActMultVal" style="font-family:var(--font-mono);font-size:12px;min-width:30px;color:var(--text-primary)">1.50</span>
+            </div>
+          </div>
+        </div>
+        <button class="act-save-btn" onclick="saveCustomActivity()" data-i18n="tp.act_add" style="width:100%">+ Legg til aktivitet</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -1150,6 +1171,7 @@ let planWeekly           = {};   // training_plan_weekly for displayed week (whe
 let weeklyPlanTpl        = {};   // day -> template_id (parallelt med weeklyPlan-tekst)
 let sessionTemplates     = [];   // session_templates-biblioteket (051)
 let gymDays              = [];   // gym_days (dine faktiske treningsdager)
+let _customActivities    = [];   // custom_activities fra Supabase
 let loggedDates          = new Set();
 let currentWeekLoggedDates = new Set(); // always current week (for hero KPIs)
 let selectedIdx          = todayIdx();
@@ -1229,12 +1251,16 @@ function resolveGymDay(text) {
   return gymDays.find(d => gymDayLabel(d).toLowerCase() === lc) || null;
 }
 
-// Aktivitetstyper som kan legges i ukeplanen (speiler act-type-btns i modal)
-const _PLAN_ACTIVITY_TYPES = [
+// Hardkodede aktivitetstyper (fast kjerne)
+const _BUILTIN_ACTIVITY_TYPES = [
   'Fotball', 'Padel', 'Svømming', 'Sykling', 'Basketball',
   'Amerikansk fotball', 'Turgåing', 'Frisbeegolf', 'Bading', 'Rolig dag',
 ];
-// i18n-nøkkel for aktivitetstype (speiler trActType)
+// Dynamisk liste: innebygde + egendefinerte
+function _planActivityTypes() {
+  return [..._BUILTIN_ACTIVITY_TYPES, ..._customActivities.map(c => c.name)];
+}
+// i18n-nøkkel for innebygd aktivitetstype
 function _actTypeKey(type) {
   const m = {
     'Fotball':'tp.act_soccer','Padel':'tp.act_padel','Svømming':'tp.act_swim',
@@ -1245,6 +1271,94 @@ function _actTypeKey(type) {
   return m[type] || null;
 }
 function _actTypeLabel(type) { const k = _actTypeKey(type); return k ? t(k) : type; }
+
+// Last egendefinerte aktiviteter fra Supabase
+async function loadCustomActivities() {
+  try {
+    const { data } = await db.from('custom_activities').select('*').order('name');
+    _customActivities = data || [];
+  } catch (e) { _customActivities = []; }
+}
+
+// Render actTypeGrid dynamisk (kjerne + egendefinerte + Annet-knapp)
+function renderActTypeGrid() {
+  const grid = document.getElementById('actTypeGrid');
+  if (!grid) return;
+  const builtinBtns = _BUILTIN_ACTIVITY_TYPES.map(type => {
+    const key = _actTypeKey(type);
+    return `<button class="act-type-btn" data-type="${escHtml(type)}" onclick="selectActType(this)"${key ? ` data-i18n="tp.act_${type==='Fotball'?'soccer':type==='Padel'?'padel':type==='Svømming'?'swim':type==='Sykling'?'cycle':type==='Basketball'?'basketball':type==='Amerikansk fotball'?'amfootball':type==='Turgåing'?'walk':type==='Frisbeegolf'?'frisbee':type==='Bading'?'swim_rec':'easy'}"` : ''}>${escHtml(_actTypeLabel(type))}</button>`;
+  });
+  const customBtns = _customActivities.map(c =>
+    `<button class="act-type-btn" data-type="${escHtml(c.name)}" data-custom="1" onclick="selectActType(this)">${escHtml(c.name)}</button>`
+  );
+  const otherBtn = `<button class="act-type-btn" data-type="Annet" onclick="selectActType(this)" data-i18n="tp.act_other">Annet</button>`;
+  grid.innerHTML = [...builtinBtns, ...customBtns, otherBtn].join('');
+  // Re-apply i18n on new buttons
+  applyLang();
+}
+
+// ── Egendefinerte aktiviteter CRUD ─────────────────────────────────────────
+async function openManageActsModal() {
+  document.getElementById('manageActsModal').classList.remove('hidden');
+  document.getElementById('newActName').value = '';
+  document.getElementById('newActMult').value = 1.5;
+  document.getElementById('newActMultVal').textContent = '1.50';
+  await renderManageActsList();
+  applyLang();
+}
+function closeManageActsModal() {
+  document.getElementById('manageActsModal').classList.add('hidden');
+}
+
+async function renderManageActsList() {
+  const el = document.getElementById('manageActsList');
+  if (!el) return;
+  await loadCustomActivities();
+  if (!_customActivities.length) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">${t('tp.manage_acts_empty')}</div>`;
+    return;
+  }
+  el.innerHTML = _customActivities.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.04);border-radius:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(c.name)}</div>
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-tertiary);margin-top:1px">${t('tp.act_load_mult')}: ${parseFloat(c.load_multiplier).toFixed(2)}</div>
+      </div>
+      <button onclick="deleteCustomActivity('${c.id}')" style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0" data-i18n="delete">Slett</button>
+    </div>`).join('');
+  applyLang();
+}
+
+async function saveCustomActivity() {
+  const name = document.getElementById('newActName').value.trim();
+  if (!name) { toast(t('tp.act_need_name'), 'err'); return; }
+  const lc = name.toLowerCase();
+  if (_customActivities.some(c => c.name.toLowerCase() === lc) ||
+      _BUILTIN_ACTIVITY_TYPES.some(b => b.toLowerCase() === lc || _actTypeLabel(b).toLowerCase() === lc)) {
+    toast(t('tp.act_name_exists'), 'err'); return;
+  }
+  const mult = parseFloat(document.getElementById('newActMult').value) || 1.5;
+  const { error } = await db.from('custom_activities').insert({ user_id: userId, name, load_multiplier: mult });
+  if (error) { toast(`${t('tp.save_error')}: ${error.message}`, 'err'); return; }
+  toast(t('tp.act_saved'));
+  document.getElementById('newActName').value = '';
+  document.getElementById('newActMult').value = 1.5;
+  document.getElementById('newActMultVal').textContent = '1.50';
+  await renderManageActsList();
+  renderActTypeGrid();
+  // Rebuild dropdown in weekly plan editor if open
+  if (!document.getElementById('weeklyPlanModal')?.classList.contains('hidden')) openEditWeeklyPlan();
+}
+
+async function deleteCustomActivity(id) {
+  if (!confirm(t('confirm.delete_activity'))) return;
+  const { error } = await db.from('custom_activities').delete().eq('id', id);
+  if (error) { toast(t('tp.delete_error'), 'err'); return; }
+  toast(t('tp.act_deleted'));
+  await renderManageActsList();
+  renderActTypeGrid();
+  if (!document.getElementById('weeklyPlanModal')?.classList.contains('hidden')) openEditWeeklyPlan();
+}
 
 // Utvidet option-liste: Hvile | Gym-dager | Aktiviteter | Sprint
 // Bruker optgroup for lesbarhet. selectedVal = lagret session_text.
@@ -1265,16 +1379,24 @@ function allPlanOptions(selectedVal) {
     html += '</optgroup>';
   }
 
-  // Aktiviteter
+  // Innebygde aktiviteter
   html += `<optgroup label="${escHtml(t('tp.group_activity'))}">`;
-  _PLAN_ACTIVITY_TYPES.forEach(type => {
-    // Lagrer norsk nøkkelord (type-streng) — displaynavnet er bare til visning
+  _BUILTIN_ACTIVITY_TYPES.forEach(type => {
     const lbl = _actTypeLabel(type);
-    // Lagret verdi kan være norsk type-streng ELLER i18n-label — match begge
     const isSelected = sv === type || sv.toLowerCase() === lbl.toLowerCase();
     html += `<option value="${escHtml(type)}"${isSelected ? ' selected' : ''}>${escHtml(lbl)}</option>`;
   });
   html += '</optgroup>';
+
+  // Egendefinerte aktiviteter
+  if (_customActivities.length) {
+    html += `<optgroup label="${escHtml(t('tp.group_custom'))}">`;
+    _customActivities.forEach(c => {
+      const isSelected = sv === c.name || sv.toLowerCase() === c.name.toLowerCase();
+      html += `<option value="${escHtml(c.name)}"${isSelected ? ' selected' : ''}>${escHtml(c.name)}</option>`;
+    });
+    html += '</optgroup>';
+  }
 
   // Sprint
   html += `<optgroup label="${escHtml(t('tp.group_sprint'))}">`;
@@ -1294,10 +1416,12 @@ function resolvePlanValue(text) {
   const gd = resolveGymDay(raw);
   if (gd) return { kind: 'gym', value: gymDayLabel(gd) };
   if (raw === 'Sprint' || lc === 'sprint') return { kind: 'sprint', value: 'Sprint' };
-  const actMatch = _PLAN_ACTIVITY_TYPES.find(
+  const actMatch = _BUILTIN_ACTIVITY_TYPES.find(
     a => a.toLowerCase() === lc || _actTypeLabel(a).toLowerCase() === lc
   );
   if (actMatch) return { kind: 'activity', value: actMatch };
+  const customMatch = _customActivities.find(c => c.name.toLowerCase() === lc);
+  if (customMatch) return { kind: 'activity', value: customMatch.name };
   return { kind: 'custom', value: raw };
 }
 // Innebygde maler vises via i18n_key; egendefinerte via name som-er.
@@ -3178,7 +3302,7 @@ function openActModal() {
   if (ad) ad.value = '';
   document.getElementById('actNotes').value = '';
   renderActInjuryBlocks();
-  document.querySelectorAll('.act-type-btn').forEach(b => b.classList.remove('selected'));
+  renderActTypeGrid(); // dynamisk — innebygde + egendefinerte + Annet
   document.getElementById('actCustomWrap').style.display = 'none';
   document.getElementById('actSoccerLevel').style.display = 'none';
   const mpw = document.getElementById('actMinPlayedWrap');
@@ -3221,7 +3345,9 @@ function selectActType(btn) {
   document.getElementById('actSoccerLevel').style.display = (_actType === 'Fotball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
   document.getElementById('actMinPlayedWrap').style.display =
     (_actType === 'Fotball' || _actType === 'Basketball' || _actType === 'Amerikansk fotball') ? 'block' : 'none';
-  _setMultSlider(loadMultiplier('activity', _actType, _soccerLevel));
+  // Egendefinert aktivitet: bruk lagret multiplikator direkte
+  const custom = btn.dataset.custom && _customActivities.find(c => c.name === _actType);
+  _setMultSlider(custom ? custom.load_multiplier : loadMultiplier('activity', _actType, _soccerLevel));
 
   // "Rolig dag" → vis felt for hvilken planlagt økt det erstattet, og forhåndsfyll
   const replacedWrap = document.getElementById('actReplacedWrap');
@@ -3695,6 +3821,7 @@ async function deleteCoach(id) {
 
   await loadSessionTemplates();
   await loadGymDays();
+  await loadCustomActivities();
   await loadPlanFromDb();
   await loadWeeklyPlan();
 
@@ -3715,10 +3842,11 @@ async function deleteCoach(id) {
     renderDetail();
     renderSidebar();
     loadSessionHistory();
-    if (!document.getElementById('actModal')?.classList.contains('hidden')) renderActInjuryBlocks();
+    if (!document.getElementById('actModal')?.classList.contains('hidden')) { renderActTypeGrid(); renderActInjuryBlocks(); }
     if (!document.getElementById('ocModal')?.classList.contains('hidden')) renderOCModal();
     if (!document.getElementById('weeklyPlanModal')?.classList.contains('hidden')) openEditWeeklyPlan();
     if (!document.getElementById('profileModal')?.classList.contains('hidden')) loadProfileData();
+    if (!document.getElementById('manageActsModal')?.classList.contains('hidden')) renderManageActsList();
   };
   // Vis settings-tannhjul i nav — kun på denne siden
   const _sb = document.getElementById('settingsNavBtn');
