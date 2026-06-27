@@ -160,30 +160,18 @@
     .sc-factor.f-deep .sc-factor-val { color: #9D93E8; }
     .sc-factor.f-dur .sc-factor-val { color: #6BE3A4; }
 
-    /* ── Score box (replaces ring) ── */
-    .sc-score-box {
-      width: 88px; height: 88px; border-radius: 14px; flex-shrink: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
-    }
-    .sc-score-box.score-good { background: rgba(107,227,164,0.09); border-color: rgba(107,227,164,0.28); box-shadow: 0 0 28px rgba(107,227,164,0.10); }
-    .sc-score-box.score-ok   { background: rgba(242,192,99,0.09);  border-color: rgba(242,192,99,0.28);  box-shadow: 0 0 28px rgba(242,192,99,0.10); }
-    .sc-score-box.score-bad  { background: rgba(255,107,107,0.09); border-color: rgba(255,107,107,0.28); box-shadow: 0 0 28px rgba(255,107,107,0.10); }
-
     /* ── Insights ── */
     .sc-insights { display: flex; flex-direction: column; gap: 4px; }
     .sc-insight-row {
       display: flex; align-items: flex-start; gap: 8px;
       padding: 7px 10px; border-radius: 8px;
     }
-    .sc-insight-row.ins-pos  { background: rgba(107,227,164,0.04); border: 1px solid rgba(107,227,164,0.12); border-left: 2px solid rgba(107,227,164,0.5); }
-    .sc-insight-row.ins-warn { background: rgba(242,192,99,0.04);  border: 1px solid rgba(242,192,99,0.15);  border-left: 2px solid rgba(242,192,99,0.55); }
-    .sc-insight-row.ins-bad  { background: rgba(255,107,107,0.04); border: 1px solid rgba(255,107,107,0.15); border-left: 2px solid rgba(255,107,107,0.55); }
+    .sc-insight-row.ins-pos { background: rgba(107,227,164,0.04); border: 1px solid rgba(107,227,164,0.12); }
+    .sc-insight-row.ins-warn { background: rgba(242,192,99,0.04); border: 1px solid rgba(242,192,99,0.15); }
+    .sc-insight-row.ins-bad  { background: rgba(255,107,107,0.04); border: 1px solid rgba(255,107,107,0.15); }
+    .sc-insight-icon { font-size: 11px; line-height: 1.4; flex-shrink: 0; }
     .sc-insight-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.4; }
     .sc-insight-text strong { color: var(--text-primary); font-weight: 600; }
-
-    /* ── Rest day stripe (replaces emoji icons) ── */
-    .sc2-rest-stripe { width: 3px; align-self: stretch; min-height: 22px; border-radius: 2px; flex-shrink: 0; }
 
     /* ── Sparkline ── */
     .sc-spark-wrap { display: flex; flex-direction: column; gap: 5px; }
@@ -876,8 +864,6 @@ function renderSleepCard(d) {
   // ── Verdict ──
   const ringClr = !readiness ? '#555' : readiness >= 80 ? '#6BE3A4' : readiness >= 60 ? '#F2C063' : '#FF8A8A';
   const verdictCls = !readiness ? '' : readiness >= 80 ? 'v-green' : readiness >= 60 ? 'v-yellow' : 'v-red';
-  const scoreClr   = !sc ? '#555' : sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF8A8A';
-  const scoreBoxCls = !sc ? '' : sc >= 80 ? 'score-good' : sc >= 60 ? 'score-ok' : 'score-bad';
   let verdictText;
   if (!readiness)        verdictText = t('no_data');
   else if (readiness >= 80) verdictText = t('sovn.ready_high');
@@ -950,17 +936,46 @@ function renderSleepCard(d) {
   const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
   const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
   const ageColor = daysAgo != null && daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
+
+  // ── SVG ring ──
+  const RR = 39, CX = 46, CY = 46, CIRC = 2 * Math.PI * RR;
+  const gradId = 'scRingGrad_' + Math.random().toString(36).slice(2, 7);
+  const gradStart = readiness != null && readiness >= 80 ? '#6BE3A4' : readiness != null && readiness >= 65 ? '#F2C063' : readiness != null && readiness >= 50 ? '#F2A04A' : '#FF6B6B';
+  const pct = readiness != null ? Math.min(readiness / 100, 1) : 0;
+  const dash = pct * CIRC, gap = CIRC - dash;
+  const ringHtml = `
+    <svg viewBox="0 0 92 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${gradId}" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${gradStart}"/>
+          <stop offset="100%" stop-color="${ringClr}"/>
+        </linearGradient>
+      </defs>
+      <circle cx="${CX}" cy="${CY}" r="${RR}" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+      <circle cx="${CX}" cy="${CY}" r="${RR}"
+        stroke="url(#${gradId})" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
+        transform="rotate(-90 ${CX} ${CY})"
+        style="filter:drop-shadow(0 0 8px ${ringClr}55);transition:stroke-dasharray 0.9s cubic-bezier(.4,0,.2,1)"/>
+    </svg>`;
+
+  el.innerHTML = `
     <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
       <div class="sc-wrap">
 
-        <!-- HERO: score box + verdict -->
+        <!-- HERO: ring + verdict -->
         <div class="sc-hero">
-          <div class="sc-score-box ${scoreBoxCls}">
-            <div class="sc-score" style="color:${scoreClr}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
-            <div class="sc-score-sub">/100</div>
+          <div class="sc-ring-col">
+            <div class="sc-ring-wrap">
+              ${ringHtml}
+              <div class="sc-ring-center">
+                <div class="sc-score" style="color:${ringClr}">${readiness != null ? `<span data-countup="${readiness}">0</span>` : '–'}</div>
+                <div class="sc-score-sub">/100</div>
+              </div>
+            </div>
           </div>
           <div class="sc-verdict">
-            <div class="sc-verdict-label" data-i18n="dash.sleep_score">${t('dash.sleep_score')}</div>
+            <div class="sc-verdict-label" data-i18n="dash.readiness_lbl">${t('dash.readiness_lbl')}</div>
             <div class="sc-verdict-status ${verdictCls}">${verdictText}</div>
             ${dataAge ? `<div class="sc-age" style="color:${ageColor};margin-top:4px">${dataAge}</div>` : ''}
             <!-- Training recs -->
@@ -987,21 +1002,25 @@ function renderSleepCard(d) {
             <div class="sc-factor-lbl">HRV</div>
             <div class="sc-factor-val">${hrv != null ? hrv : '–'}</div>
             <div class="sc-factor-unit">ms</div>
+            <div class="sc-factor-delta">${fmtDelta(dHrv)}</div>
           </div>
           <div class="sc-factor f-rhr">
             <div class="sc-factor-lbl">RHR</div>
             <div class="sc-factor-val">${rhr != null ? rhr : '–'}</div>
             <div class="sc-factor-unit">bpm</div>
+            <div class="sc-factor-delta">${fmtDelta(dRhr, true)}</div>
           </div>
           <div class="sc-factor f-deep">
             <div class="sc-factor-lbl">${t('dash.deep')}</div>
             <div class="sc-factor-val" style="font-size:14px">${fmtMin(deep)}</div>
             <div class="sc-factor-unit">REM ${fmtMin(rem)}</div>
+            <div class="sc-factor-delta">&nbsp;</div>
           </div>
           <div class="sc-factor f-dur">
             <div class="sc-factor-lbl">${t('dash.sleep_dur_lbl')}</div>
             <div class="sc-factor-val" style="font-size:14px">${fmtHours(hrs)}</div>
             <div class="sc-factor-unit">${t('sovn.hours')}</div>
+            <div class="sc-factor-delta">${fmtDeltaH(dHrs)}</div>
           </div>
         </div>
 
@@ -1009,6 +1028,7 @@ function renderSleepCard(d) {
         <div class="sc-insights">
           ${insights.slice(0, 2).map(i => `
             <div class="sc-insight-row ${i.cls}">
+              <div class="sc-insight-icon">${i.icon}</div>
               <div class="sc-insight-text">${i.html}</div>
             </div>`).join('')}
         </div>
@@ -1573,21 +1593,21 @@ function loadSession() {
 
       <div class="sc2-rest-wrap">
         <div class="sc2-rest-row">
-          <div class="sc2-rest-stripe" style="background:#9D93E8"></div>
+          <div class="sc2-rest-icon">🦵</div>
           <div class="sc2-rest-body">
             <div class="sc2-rest-title">${t('dash.rest_mobility')}</div>
             <div class="sc2-rest-sub">${t('dash.rest_mobility_sub')}</div>
           </div>
         </div>
         <div class="sc2-rest-row">
-          <div class="sc2-rest-stripe" style="background:#6BE3A4"></div>
+          <div class="sc2-rest-icon">🚶</div>
           <div class="sc2-rest-body">
             <div class="sc2-rest-title">${t('dash.rest_walk')}</div>
             <div class="sc2-rest-sub">${t('dash.rest_walk_sub')}</div>
           </div>
         </div>
         <div class="sc2-rest-row">
-          <div class="sc2-rest-stripe" style="background:#4A9EE8"></div>
+          <div class="sc2-rest-icon">🌙</div>
           <div class="sc2-rest-body">
             <div class="sc2-rest-title">${t('dash.rest_sleep_goal')}</div>
             <div class="sc2-rest-sub">${t('dash.rest_sleep_sub')}</div>
