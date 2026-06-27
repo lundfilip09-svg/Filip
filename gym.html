@@ -79,6 +79,11 @@
     }
     .day-pill-del:hover { opacity: 1; color: #FF6B6B; }
     .day-pill-del:active { opacity: 1; color: #FF6B6B; transform: scale(0.85); }
+    /* Drag-and-drop reordering of day pills */
+    .day-pill[draggable="true"] { cursor: grab; }
+    .day-pill[draggable="true"]:active { cursor: grabbing; }
+    .day-pill.pill-drag-over { outline: 2px solid rgba(91,164,245,0.6); outline-offset: 2px; background: rgba(91,164,245,0.08); }
+    .day-pill.pill-dragging { opacity: 0.35; }
     .add-section-wrap { margin-top: 10px; }
     /* B1 — progressive overload-coach */
     .po-card {
@@ -1271,6 +1276,11 @@ function renderDayPills() {
     const del = `<span class="day-pill-del" title="${t('gym.delete_day')}"
          onclick="event.stopPropagation();deleteDay('${escHtml(d.day_key)}')">×</span>`;
     return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
+      draggable="true"
+      ondragstart="pillDragStart(event,'${escHtml(d.day_key)}')"
+      ondragover="pillDragOver(event)"
+      ondrop="pillDrop(event,'${escHtml(d.day_key)}')"
+      ondragend="pillDragEnd()"
       onclick="setDay('${escHtml(d.day_key)}')"
       ondblclick="event.stopPropagation();renameDay('${escHtml(d.day_key)}')"
       oncontextmenu="event.preventDefault();event.stopPropagation();showPillMenu(event,'${escHtml(d.day_key)}')"
@@ -1367,6 +1377,46 @@ function pillLongPressStart(e, key) {
 }
 function pillLongPressCancel() { clearTimeout(_pillLongPressTimer); }
 
+let _pillDragKey = null;
+function pillDragStart(e, key) {
+  _pillDragKey = key;
+  e.dataTransfer.effectAllowed = 'move';
+  requestAnimationFrame(() => {
+    document.querySelector(`.day-pill[data-day="${key}"]`)?.classList.add('pill-dragging');
+  });
+}
+function pillDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('pill-drag-over'));
+  e.currentTarget.classList.add('pill-drag-over');
+}
+async function pillDrop(e, targetKey) {
+  e.preventDefault();
+  document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('pill-drag-over'));
+  if (!_pillDragKey || _pillDragKey === targetKey) return;
+  const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+  const fromIdx = sorted.findIndex(d => d.day_key === _pillDragKey);
+  const toIdx   = sorted.findIndex(d => d.day_key === targetKey);
+  if (fromIdx < 0 || toIdx < 0) return;
+  // Reassign sort_order values for all days in new order
+  const reordered = [...sorted];
+  const [moved] = reordered.splice(fromIdx, 1);
+  reordered.splice(toIdx, 0, moved);
+  const updates = reordered.map((d, i) => {
+    d.sort_order = i + 1;
+    return db.from('gym_days').update({ sort_order: d.sort_order }).eq('day_key', d.day_key);
+  });
+  await Promise.all(updates);
+  renderDayPills();
+}
+function pillDragEnd() {
+  document.querySelectorAll('.day-pill').forEach(p => {
+    p.classList.remove('pill-dragging', 'pill-drag-over');
+  });
+  _pillDragKey = null;
+}
+
 function showPillMenu(e, key) {
   // fjern både aktiv (#pillMenu) og en evt. utgående meny (id nullet ved lukking)
   document.getElementById('pillMenu')?.remove();
@@ -1388,6 +1438,12 @@ function showPillMenu(e, key) {
     b.addEventListener('touchend', handler);
     return b;
   };
+  const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+  const idx = sorted.findIndex(d => d.day_key === key);
+  if (idx > 0)
+    menu.appendChild(mkBtn('← Flytt venstre', () => reorderDay(key, -1), 'color:#aaa;border-bottom:1px solid rgba(255,255,255,0.07)'));
+  if (idx < sorted.length - 1)
+    menu.appendChild(mkBtn('→ Flytt høyre', () => reorderDay(key, 1), 'color:#aaa;border-bottom:1px solid rgba(255,255,255,0.07)'));
   menu.appendChild(mkBtn('✎ Gi nytt navn', () => renameDay(key), 'color:#fff;border-bottom:1px solid rgba(255,255,255,0.07)'));
   menu.appendChild(mkBtn('🗑 Slett', () => deleteDay(key), 'color:#ff6b6b'));
   document.body.appendChild(menu);
@@ -1468,6 +1524,21 @@ async function deleteDay(key) {
   setDay(activeDay);
   toast(t('gym.day_deleted'));
 }
+async function reorderDay(key, dir) {
+  const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+  const idx = sorted.findIndex(d => d.day_key === key);
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= sorted.length) return;
+  const a = sorted[idx], b = sorted[swapIdx];
+  const ao = a.sort_order ?? idx, bo = b.sort_order ?? swapIdx;
+  a.sort_order = bo; b.sort_order = ao;
+  await Promise.all([
+    db.from('gym_days').update({ sort_order: a.sort_order }).eq('day_key', a.day_key),
+    db.from('gym_days').update({ sort_order: b.sort_order }).eq('day_key', b.day_key),
+  ]);
+  renderDayPills();
+}
+
 function setWS(s) { workoutState = s; document.body.dataset.ws = s; try { renderGymManualPainForms(); } catch(e) {} }
 
 // ── Session persistence ────────────────────────────────────────────
