@@ -69,27 +69,81 @@
     .card-knee    { border-top-color: rgba(255,107,107,0.22) !important; border-top-width: 2px !important; }
     .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
 
-    /* ── Sleep ── */
-    .stat-big {
-      font-size: 44px; font-weight: 700; font-family: var(--font-mono);
-      letter-spacing: -0.05em; line-height: 1; margin-bottom: 3px;
+    /* ── Sleep card redesign ── */
+    .sc-wrap { display: flex; flex-direction: column; gap: 14px; }
+    .sc-top { display: flex; align-items: center; gap: 14px; }
+    .sc-ring-wrap { position: relative; flex-shrink: 0; width: 92px; height: 92px; }
+    .sc-ring-wrap svg { width: 92px; height: 92px; }
+    .sc-ring-center {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0;
     }
-    .stat-sublabel {
-      font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 14px;
+    .sc-score {
+      font-size: 28px; font-weight: 800; font-family: var(--font-mono);
+      letter-spacing: -0.04em; line-height: 1;
     }
-    .stat-secondaries {
-      display: flex; gap: 16px; padding-top: 11px;
-      border-top: 1px solid rgba(255,255,255,0.05);
+    .sc-score-sub {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.05em; margin-top: 1px;
     }
-    .stat-sec { display: flex; flex-direction: column; gap: 2px; }
-    .stat-sec-val {
-      font-size: 16px; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text-secondary); line-height: 1;
+    .sc-right { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+    .sc-duration {
+      font-size: 22px; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text-primary); letter-spacing: -0.03em; line-height: 1;
     }
-    .stat-sec-lbl {
+    .sc-badge {
+      display: inline-block; font-size: 9px; font-weight: 700; font-family: var(--font-mono);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .sc-badge.excellent { background: rgba(107,227,164,0.15); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.25); }
+    .sc-badge.good      { background: rgba(107,227,164,0.10); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.18); }
+    .sc-badge.ok        { background: rgba(242,192,99,0.12);  color: #F2C063; border: 1px solid rgba(242,192,99,0.22); }
+    .sc-badge.bad       { background: rgba(255,107,107,0.10); color: #FF8A8A; border: 1px solid rgba(255,107,107,0.20); }
+    .sc-age {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.04em; margin-top: 2px;
+    }
+    .sc-pills { display: flex; gap: 8px; }
+    .sc-pill {
+      flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .sc-pill-lbl {
       font-size: 8px; font-family: var(--font-mono); letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+    .sc-pill-val {
+      font-size: 14px; font-weight: 700; font-family: var(--font-mono); line-height: 1;
+    }
+    .sc-pill.rhr  { border-color: rgba(255,107,107,0.18); background: rgba(255,107,107,0.05); }
+    .sc-pill.rhr  .sc-pill-lbl { color: rgba(255,107,107,0.7); }
+    .sc-pill.rhr  .sc-pill-val { color: #FF8A8A; }
+    .sc-pill.hrv  { border-color: rgba(74,158,232,0.18); background: rgba(74,158,232,0.05); }
+    .sc-pill.hrv  .sc-pill-lbl { color: rgba(74,158,232,0.7); }
+    .sc-pill.hrv  .sc-pill-val { color: #4A9EE8; }
+    .sc-pill.dyp  { border-color: rgba(124,111,212,0.18); background: rgba(124,111,212,0.05); }
+    .sc-pill.dyp  .sc-pill-lbl { color: rgba(124,111,212,0.7); }
+    .sc-pill.dyp  .sc-pill-val { color: #9D93E8; }
+    .sc-pill.rem  { border-color: rgba(107,227,164,0.18); background: rgba(107,227,164,0.05); }
+    .sc-pill.rem  .sc-pill-lbl { color: rgba(107,227,164,0.7); }
+    .sc-pill.rem  .sc-pill-val { color: #6BE3A4; }
+    .sc-spark { position: relative; height: 52px; }
+    .sc-spark canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+    .sc-insight {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .sc-insight-icon {
+      font-size: 15px; line-height: 1; flex-shrink: 0; margin-top: 1px;
+    }
+    .sc-insight-body { display: flex; flex-direction: column; gap: 1px; }
+    .sc-insight-title {
+      font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.3;
+    }
+    .sc-insight-sub {
+      font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary);
+      letter-spacing: 0.02em;
     }
 
     /* ── Knee ── */
@@ -630,28 +684,25 @@ async function autoCleanTodos() {
 }
 
 // ── Sleep card ─────────────────────────────────────────────────────────────
+let _sleepSparkChart = null;
+let _sleepHistoryCache = [];
+
 async function loadSleep() {
-  // Hent nyeste rad sortert på timestamp (ikke bare dato) for å unngå duplikat-problemet
-  const { data, error } = await db.from('health_data')
-    .select('*').order('date', { ascending: false }).order('timestamp', { ascending: false }).limit(1);
   const el = document.getElementById('sleepCard');
-  if (error) {
-    console.error('loadSleep', error);
-    el.innerHTML = `<div class="empty">${t('err.load_data')}</div>`;
-    return null;
-  }
-  if (!data?.length) {
-    el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null;
-  }
+  // Hent nyeste + 6 dagers historikk parallelt
+  const [{ data, error }, { data: hist }] = await Promise.all([
+    db.from('health_data').select('*').order('date', { ascending: false }).order('timestamp', { ascending: false }).limit(1),
+    db.from('health_data').select('date,sleep_score').order('date', { ascending: false }).limit(7),
+  ]);
+  if (error) { console.error('loadSleep', error); el.innerHTML = `<div class="empty">${t('err.load_data')}</div>`; return null; }
+  if (!data?.length) { el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null; }
   const row = data[0];
-  // Hvis raden er fra i går og mangler søvndata (Garmin ikke synkronisert ennå), vis tom
-  const today = new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
   const rowDate = (row.date || '').slice(0, 10);
   const hasSleep = (row.sleep_score > 0) || (row.sleep_hours > 0);
-  if (rowDate < today && !hasSleep) {
-    el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null;
-  }
+  if (rowDate < todayStr && !hasSleep) { el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null; }
   _sleepRowCache = row;
+  _sleepHistoryCache = (hist || []).reverse(); // oldest → newest
   return renderSleepCard(_sleepRowCache);
 }
 
@@ -659,58 +710,166 @@ async function loadSleep() {
 function renderSleepCard(d) {
   const el = document.getElementById('sleepCard');
   if (!d) { el.innerHTML = `<div class="empty">${t('no_data')}</div>`; return null; }
-  const sc   = d.sleep_score > 0  ? d.sleep_score  : null;
-  const hrs  = d.sleep_hours > 0  ? d.sleep_hours  : null;
-  const rhr  = d.rhr > 0          ? d.rhr          : null;
-  const hrv  = d.hrv > 0          ? d.hrv          : null;
+
+  const sc   = d.sleep_score > 0       ? d.sleep_score        : null;
+  const hrs  = d.sleep_hours > 0       ? d.sleep_hours        : null;
+  const rhr  = d.rhr > 0               ? d.rhr                : null;
+  const hrv  = d.hrv > 0               ? d.hrv                : null;
   const deep = d.deep_sleep_minutes > 0 ? d.deep_sleep_minutes : null;
   const rem  = d.rem_sleep_minutes  > 0 ? d.rem_sleep_minutes  : null;
-  const clr  = !sc ? 'var(--text-tertiary)' : sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+
+  // Colour ramp
+  const ringClr = !sc ? '#555' : sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#F2C063' : '#FF6B6B';
   const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
   const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
-  const ageColor = daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
+  const ageColor = daysAgo != null && daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
 
-  // Formater timer som "7t 50m"
-  function fmtHours(h) {
-    if (!h) return '–';
-    const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
-    const mins = Math.round(h * 60);
-    return mins >= 60 ? `${Math.floor(mins/60)}${hu} ${mins%60}${mu}` : `${mins}${mu}`;
+  // Quality badge
+  const badgeCls  = !sc ? 'bad' : sc >= 80 ? 'excellent' : sc >= 65 ? 'good' : sc >= 50 ? 'ok' : 'bad';
+  const badgeTxt  = !sc ? '–' : sc >= 80 ? t('sovn.score_excellent') : sc >= 65 ? t('sovn.score_good') : sc >= 50 ? t('sovn.score_ok') : t('sovn.score_bad');
+
+  // Format helpers
+  const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
+  const fmtHours = h => { if (!h) return '–'; const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m/60)}${hu} ${m%60}${mu}` : `${m}${mu}`; };
+  const fmtMin   = m => { if (!m) return '–'; return `${m>=60?Math.floor(m/60)+hu:''}${m%60>0?m%60+mu:m<60?m+mu:''}`; };
+
+  // SVG arc ring — 84px viewBox, r=38, circumference≈238.76
+  const R = 38, CX = 46, CY = 46, CIRC = 2 * Math.PI * R;
+  const pct = sc != null ? Math.min(sc / 100, 1) : 0;
+  const dash = pct * CIRC;
+  const gap  = CIRC - dash;
+  const ringHtml = `
+    <svg viewBox="0 0 92 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${CX}" cy="${CY}" r="${R}" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+      <circle cx="${CX}" cy="${CY}" r="${R}"
+        stroke="${ringClr}" stroke-width="7" stroke-linecap="round"
+        stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
+        transform="rotate(-90 ${CX} ${CY})"
+        style="filter:drop-shadow(0 0 6px ${ringClr}44);transition:stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)"/>
+    </svg>`;
+
+  // Insight row logic
+  let insightIcon = '🌙', insightTitle = '', insightSub = '';
+  if (hrv && hrv >= 55) {
+    insightIcon  = '⚡';
+    insightTitle = t('sovn.ready_high');
+    insightSub   = t('sovn.ready_high_desc');
+  } else if (hrv && hrv >= 40) {
+    insightIcon  = '✅';
+    insightTitle = t('sovn.ready_good');
+    insightSub   = t('sovn.ready_good_desc');
+  } else if (sc && sc >= 65) {
+    insightIcon  = '🟡';
+    insightTitle = t('sovn.ready_moderate');
+    insightSub   = t('sovn.ready_moderate_desc');
+  } else {
+    insightIcon  = '🔴';
+    insightTitle = t('sovn.ready_rest');
+    insightSub   = t('sovn.ready_rest_desc');
   }
-  const _hu = t('dash.hr_unit'), _mu = t('dash.min_unit');
-  const fmtMin = m => `${m>=60?Math.floor(m/60)+_hu:''}${m%60>0?m%60+_mu:m<60?m+_mu:''}`;
 
   el.innerHTML = `
     <a href="sovn.html" style="text-decoration:none;color:inherit;display:block">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-        <div style="font-size:32px;font-weight:800;font-family:var(--font-mono);letter-spacing:-0.03em;color:${clr};line-height:1">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
-        <div>
-          <div style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--text-tertiary)">${t('dash.sleep_score')}</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:1px">${fmtHours(hrs)}</div>
-          ${dataAge ? `<div style="font-size:9px;font-family:var(--font-mono);color:${ageColor};margin-top:3px">${dataAge}</div>` : ''}
+      <div class="sc-wrap">
+
+        <!-- Top: ring + right info -->
+        <div class="sc-top">
+          <div class="sc-ring-wrap">
+            ${ringHtml}
+            <div class="sc-ring-center">
+              <div class="sc-score" style="color:${ringClr}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
+              <div class="sc-score-sub">${t('sovn.score_100')}</div>
+            </div>
+          </div>
+          <div class="sc-right">
+            <div class="sc-duration">${fmtHours(hrs)}</div>
+            <span class="sc-badge ${badgeCls}">${badgeTxt}</span>
+            ${dataAge ? `<div class="sc-age" style="color:${ageColor}">${dataAge}</div>` : ''}
+          </div>
         </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${rhr ? `<div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.18);border-radius:7px;padding:5px 9px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(255,107,107,0.7);letter-spacing:0.08em;text-transform:uppercase">RHR</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#FF8A8A">${rhr}</div>
-        </div>` : ''}
-        ${hrv ? `<div style="background:rgba(74,158,232,0.08);border:1px solid rgba(74,158,232,0.18);border-radius:7px;padding:5px 9px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(74,158,232,0.7);letter-spacing:0.08em;text-transform:uppercase">HRV</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#4A9EE8">${hrv}ms</div>
-        </div>` : ''}
-        ${deep ? `<div style="background:rgba(124,111,212,0.08);border:1px solid rgba(124,111,212,0.18);border-radius:7px;padding:5px 9px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(124,111,212,0.7);letter-spacing:0.08em;text-transform:uppercase">${t('dash.deep')}</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#9D93E8">${fmtMin(deep)}</div>
-        </div>` : ''}
-        ${rem ? `<div style="background:rgba(107,227,164,0.08);border:1px solid rgba(107,227,164,0.18);border-radius:7px;padding:5px 9px">
-          <div style="font-size:9px;font-family:var(--font-mono);color:rgba(107,227,164,0.7);letter-spacing:0.08em;text-transform:uppercase">REM</div>
-          <div style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#6BE3A4">${fmtMin(rem)}</div>
-        </div>` : ''}
+
+        <!-- Stat pills -->
+        <div class="sc-pills">
+          <div class="sc-pill rhr">
+            <div class="sc-pill-lbl">RHR</div>
+            <div class="sc-pill-val">${rhr != null ? rhr : '–'}</div>
+          </div>
+          <div class="sc-pill hrv">
+            <div class="sc-pill-lbl">HRV</div>
+            <div class="sc-pill-val">${hrv != null ? hrv+'ms' : '–'}</div>
+          </div>
+          <div class="sc-pill dyp">
+            <div class="sc-pill-lbl">${t('dash.deep')}</div>
+            <div class="sc-pill-val">${fmtMin(deep)}</div>
+          </div>
+          <div class="sc-pill rem">
+            <div class="sc-pill-lbl">REM</div>
+            <div class="sc-pill-val">${fmtMin(rem)}</div>
+          </div>
+        </div>
+
+        <!-- 7-day sparkline -->
+        <div class="sc-spark"><canvas id="sleepSparkCanvas"></canvas></div>
+
+        <!-- Insight row -->
+        <div class="sc-insight">
+          <div class="sc-insight-icon">${insightIcon}</div>
+          <div class="sc-insight-body">
+            <div class="sc-insight-title">${insightTitle}</div>
+            <div class="sc-insight-sub">${insightSub}</div>
+          </div>
+        </div>
+
       </div>
     </a>`;
+
   countUpAll(el);
+  _renderSleepSparkline();
   return d;
+}
+
+function _renderSleepSparkline() {
+  const canvas = document.getElementById('sleepSparkCanvas');
+  if (!canvas) return;
+  if (_sleepSparkChart) { _sleepSparkChart.destroy(); _sleepSparkChart = null; }
+  const hist = _sleepHistoryCache;
+  if (!hist || hist.length < 2) { canvas.style.display = 'none'; return; }
+  canvas.style.display = '';
+  const scores = hist.map(r => r.sleep_score > 0 ? r.sleep_score : null);
+  _sleepSparkChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: hist.map((_, i) => i),
+      datasets: [{
+        data: scores,
+        borderColor: '#6BE3A4',
+        borderWidth: 1.5,
+        pointRadius: scores.map((s, i) => i === scores.length - 1 ? 3 : 0),
+        pointBackgroundColor: '#6BE3A4',
+        tension: 0.4,
+        fill: true,
+        backgroundColor: ctx => {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+          g.addColorStop(0, 'rgba(107,227,164,0.18)');
+          g.addColorStop(1, 'rgba(107,227,164,0)');
+          return g;
+        },
+        spanGaps: true,
+      }],
+    },
+    options: {
+      animation: false,
+      responsive: false,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false, min: 30, max: 100 },
+      },
+      layout: { padding: { top: 4, bottom: 4, left: 2, right: 4 } },
+    },
+  });
+  fadeInChart(canvas);
 }
 
 // ── Rehab data ─────────────────────────────────────────────────────────────
