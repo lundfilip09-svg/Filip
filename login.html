@@ -86,6 +86,8 @@
 <script src="utils.js"></script>
 <script>
 let db;
+let _pendingEmail    = '';
+let _pendingPassword = '';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 15 * 60 * 1000;
@@ -167,8 +169,12 @@ async function signIn() {
     return;
   }
 
-  // Password OK → show security questions (sign out temporarily so session isn't active yet)
+  // Password OK — sign out immediately before session-detection can fire,
+  // then store credentials in memory and show security questions
   await db.auth.signOut();
+  _pendingEmail    = email;
+  _pendingPassword = password;
+
   document.getElementById('passwordStep').style.display = 'none';
   document.getElementById('securityStep').style.display = 'block';
   document.getElementById('ans1').focus();
@@ -213,11 +219,9 @@ async function verifySecrets() {
     return;
   }
 
-  // Both correct — sign in for real
+  // Both correct — sign in for real using stored credentials
   clearAttempts();
-  const email    = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const { error: signInErr } = await db.auth.signInWithPassword({ email, password });
+  const { error: signInErr } = await db.auth.signInWithPassword({ email: _pendingEmail, password: _pendingPassword });
   if (signInErr) {
     errEl.textContent = signInErr.message;
     btn.disabled = false;
