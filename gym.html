@@ -210,6 +210,31 @@
     .ex-row.is-done { opacity: 0.42; background: transparent; }
     .ex-row.is-done .ex-r-name { text-decoration: line-through; color: var(--text-tertiary); }
 
+    /* Skipped exercise — grayed out, diagonal stripe, excluded from progress */
+    .ex-row-wrap.is-skipped .ex-row {
+      opacity: 0.32;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgba(255,255,255,0.03) 6px,
+        rgba(255,255,255,0.03) 12px
+      );
+      border-color: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+    .ex-row-wrap.is-skipped .ex-skip-btn { opacity: 1 !important; color: var(--warning) !important; }
+    .ex-row-wrap.is-skipped .set-drawer { display: none !important; }
+    .ex-skip-btn {
+      background: none; border: none; color: var(--text-tertiary);
+      cursor: pointer; font-size: 14px; padding: 5px 7px; opacity: 0.3;
+      transition: opacity 0.15s, color 0.15s; flex-shrink: 0; line-height: 1;
+      pointer-events: all;
+    }
+    .ex-row:hover .ex-skip-btn { opacity: 0.7; }
+    .ex-skip-btn:hover { opacity: 1 !important; color: var(--warning); }
+    @media (hover: none) { .ex-skip-btn { opacity: 0.45; } }
+
     .ex-chk {
       width: 18px; height: 18px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.14); background: transparent;
@@ -1069,7 +1094,8 @@ let _dayAfterInjuries = [];    // [{ inj, ipRow }] — alvorlige skader som mang
 let workoutState  = 'idle';
 let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
-let completedSets = {};     // exId -> Set of done set indices
+let completedSets    = {};     // exId -> Set of done set indices
+let skippedExercises = new Set(); // exId -> skippa under denne økta (ekskluderes fra progress)
 let setData       = {};     // exId -> [{ done, weight, reps, notes }]
 let exRir         = {};     // exId -> logget innsats (RIR 0–5) for øvelsen denne økta
 let activeDrawer  = null;
@@ -1557,6 +1583,7 @@ function saveSession() {
     ),
     setData,
     exRir: { ...exRir },
+    skippedExercises: [...skippedExercises],
     kneePain: { ...kneePain },
     injuryScores: _injuryScores,
     restStartedAt,
@@ -1604,6 +1631,7 @@ function tryRestoreSession(data) {
     workoutStart  = data.workoutStartedAt;
     completedSets = {};
     Object.entries(data.completedSets || {}).forEach(([k, v]) => { completedSets[k] = new Set(v); });
+    skippedExercises = new Set(data.skippedExercises || []);
     setData = data.setData || {};
     exRir = data.exRir || {};
     Object.assign(kneePain, data.kneePain || {});
@@ -2544,6 +2572,7 @@ function renderSectionBlock(label, exs, day) {
 function renderExRow(ex, day, num, isWarmup) {
   const done   = completedSets[ex.id] || new Set();
   const isDone = !isWarmup && done.size >= ex.sets && ex.sets > 0;
+  const isSkipped = !isWarmup && skippedExercises.has(String(ex.id));
   const isAct  = ex.id === activeExId;
   let progTxt  = '', progCls = '';
   if (!isWarmup) {
@@ -2554,7 +2583,7 @@ function renderExRow(ex, day, num, isWarmup) {
   const exSec = ex.section || '';
   const dragAttrs = ` draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(exSec)}"` +
     ` ondragstart="exDragStart(event)" ondragend="exDragEnd(event)"`;
-  return `<div class="ex-row-wrap" id="ex-row-wrap-${ex.id}"${dragAttrs}>
+  return `<div class="ex-row-wrap${isSkipped ? ' is-skipped' : ''}" id="ex-row-wrap-${ex.id}"${dragAttrs}>
     <div class="ex-row${isDone ? ' is-done' : ''}${isAct ? ' is-active' : ''}" id="ex-row-${ex.id}"
       onclick="${isWarmup ? '' : `handleExClick('${ex.id}')`}">
       ${!isWarmup ? `<div class="ex-chk${isDone ? ' done' : ''}" id="ex-chk-${ex.id}"
@@ -2592,6 +2621,9 @@ function renderExRow(ex, day, num, isWarmup) {
         </div>
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
+      ${!isWarmup ? `<button class="ex-skip-btn" id="ex-skip-${ex.id}"
+        onclick="event.stopPropagation();toggleSkipExercise('${ex.id}')"
+        title="${isSkipped ? t('gym.unskip_exercise') : t('gym.skip_exercise')}">${isSkipped ? '↩' : '🚫'}</button>` : ''}
       <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
     </div>
     <div class="set-drawer" id="drawer-${ex.id}"></div>
@@ -2803,7 +2835,7 @@ async function completeExercise(exId) {
   updateExRowStatus(exId);
   updateProgress();
   saveSession();
-  const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
+  const next = getActiveMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
   if (next) setTimeout(() => openDrawer(next.id), 160);
   else updateNextEx();
 }
@@ -2822,6 +2854,27 @@ function toggleExDone(exId) {
   });
   if (activeDrawer === exId) renderDrawer(exId);
   updateExRowStatus(exId);
+  updateProgress();
+  updateNextEx();
+  saveSession();
+}
+
+function toggleSkipExercise(exId) {
+  const key = String(exId);
+  const wrap = document.getElementById(`ex-row-wrap-${exId}`);
+  if (skippedExercises.has(key)) {
+    skippedExercises.delete(key);
+    if (wrap) wrap.classList.remove('is-skipped');
+    const btn = document.getElementById(`ex-skip-${exId}`);
+    if (btn) { btn.textContent = '🚫'; btn.title = t('gym.skip_exercise'); }
+  } else {
+    skippedExercises.add(key);
+    if (wrap) wrap.classList.add('is-skipped');
+    const btn = document.getElementById(`ex-skip-${exId}`);
+    if (btn) { btn.textContent = '↩'; btn.title = t('gym.unskip_exercise'); }
+    // Close drawer if this exercise is active
+    if (activeDrawer === exId) closeDrawer();
+  }
   updateProgress();
   updateNextEx();
   saveSession();
@@ -2863,7 +2916,7 @@ function updateSbActiveEx(exId) {
 function updateNextEx() {
   const el   = document.getElementById('sbNextCard');
   if (!el) return;
-  const next = getSortedMainExercises().find(e =>
+  const next = getActiveMainExercises().find(e =>
     e.id !== activeExId && (completedSets[e.id]?.size || 0) < e.sets
   );
   if (!next) { el.innerHTML = `<div class="sb-ex-empty">${t('gym.all_done')}</div>`; return; }
@@ -2878,6 +2931,7 @@ function startWorkout() {
   workoutStart  = Date.now();
   completedSets = {};
   setData       = {};
+  skippedExercises = new Set();
   activeDrawer  = null;
   activeExId    = null;
   _loggedThisSession  = false;
@@ -2925,7 +2979,7 @@ function resetWorkout() {
       !confirm(t('gym.reset_unsaved_confirm'))) return;
   clearInterval(elapsedTimer);
   stopRest();
-  workoutStart = null; completedSets = {}; setData = {}; exRir = {}; activeDrawer = null; activeExId = null;
+  workoutStart = null; completedSets = {}; skippedExercises = new Set(); setData = {}; exRir = {}; activeDrawer = null; activeExId = null;
   document.getElementById('elapsedDisplay').textContent = '0:00';
   clearSession();
   setWS('idle');
@@ -2955,8 +3009,9 @@ function updateRingTimer() {
 
 // ── Progress ───────────────────────────────────────────────────────
 function getSortedMainExercises() { return Object.values(allExercises[activeDay] || {}).flat(); }
-function getTotalSets() { return getSortedMainExercises().reduce((a, e) => a + e.sets, 0); }
-function getDoneSets()  { return getSortedMainExercises().reduce((a, e) => a + (completedSets[e.id]?.size || 0), 0); }
+function getActiveMainExercises() { return getSortedMainExercises().filter(e => !skippedExercises.has(String(e.id))); }
+function getTotalSets() { return getActiveMainExercises().reduce((a, e) => a + e.sets, 0); }
+function getDoneSets()  { return getActiveMainExercises().reduce((a, e) => a + (completedSets[e.id]?.size || 0), 0); }
 
 function updateProgress() {
   const total = getTotalSets(), done = getDoneSets();
@@ -2978,7 +3033,7 @@ function addSetToActive() {
 }
 
 function jumpToNext() {
-  const next = getSortedMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
+  const next = getActiveMainExercises().find(e => (completedSets[e.id]?.size || 0) < e.sets);
   if (next) openDrawer(next.id);
   else toast(t('gym.session_saved'));
 }
