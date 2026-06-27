@@ -815,7 +815,7 @@
       <div style="flex:1;min-width:180px">
         <div class="done-title" data-i18n="gym.day_after_title">Registrer smerte dagen etter</div>
         <div class="done-sub" id="dayAfterBannerSub"></div>
-        <div id="dayAfterPainBtns" class="mini-pain-row" style="margin-top:8px;gap:3px"></div>
+        <div id="dayAfterPainBtns" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;flex-shrink:0">
         <button class="btn btn-success btn-sm" onclick="saveDayAfterPain()" style="min-width:58px" data-i18n="save">Lagre</button>
@@ -4769,8 +4769,8 @@ function renderDayAfterBanner() {
 
   if (_dayAfterInjuries.length) {
     btnsEl.innerHTML = _dayAfterInjuries.map(({ inj }) => `
-      <div style="margin-bottom:10px">
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em">${escHtml(bodyPartName(inj))}</div>
+      <div style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">${escHtml(bodyPartName(inj))}</div>
         ${buildDamMeter(inj.id)}
       </div>`).join('');
   } else {
