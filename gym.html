@@ -4738,23 +4738,82 @@ async function checkDayAfterRehab() {
 function renderDayAfterBanner() {
   const btnsEl = document.getElementById('dayAfterPainBtns');
   if (!btnsEl) return;
-  const meter = (injId) => {
-    const cur = _dayAfterScores[injId];
-    return painMeterHTML(`dam-${injId}`, (cur != null ? cur : null), { onset: `selectDayAfterPain('${injId}',$v)` });
-  };
+
+  function dayAfterPainColor(score) {
+    if (score === 0)    return { bg: 'rgba(107,227,164,0.18)', border: 'rgba(107,227,164,0.6)', color: '#6BE3A4' };
+    if (score <= 3)     return { bg: 'rgba(107,227,164,0.14)', border: 'rgba(107,227,164,0.45)', color: '#6BE3A4' };
+    if (score <= 5)     return { bg: 'rgba(242,192,99,0.18)',  border: 'rgba(242,192,99,0.55)',  color: '#F2C063' };
+    if (score <= 7)     return { bg: 'rgba(242,130,60,0.18)',  border: 'rgba(242,130,60,0.55)',  color: '#F2823C' };
+    return               { bg: 'rgba(255,107,107,0.18)', border: 'rgba(255,107,107,0.55)', color: '#FF6B6B' };
+  }
+
+  function buildDamMeter(injId) {
+    const cur = _dayAfterScores[injId] ?? null;
+    const btns = Array.from({ length: 11 }, (_, i) => {
+      const sel = cur === i;
+      const c = dayAfterPainColor(i);
+      const selStyle = sel
+        ? `background:${c.bg};border-color:${c.border};color:${c.color};font-weight:700;box-shadow:0 0 0 2px ${c.border.replace('0.6','0.25').replace('0.55','0.25').replace('0.45','0.2')};`
+        : '';
+      return `<button type="button"
+        onclick="selectDayAfterPainBtn('${injId}',${i},this)"
+        style="min-width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,0.13);
+          background:rgba(255,255,255,0.04);cursor:pointer;font-size:12px;
+          font-family:var(--font-mono);color:var(--text-secondary);
+          display:inline-flex;align-items:center;justify-content:center;
+          transition:all 0.12s;${selStyle}"
+        data-dam-inj="${injId}" data-dam-score="${i}">${i}</button>`;
+    }).join('');
+    return `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${btns}</div>`;
+  }
+
   if (_dayAfterInjuries.length) {
     btnsEl.innerHTML = _dayAfterInjuries.map(({ inj }) => `
-      <div style="margin-bottom:8px">
-        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:4px">${escHtml(bodyPartName(inj))}</div>
-        ${meter(inj.id)}
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em">${escHtml(bodyPartName(inj))}</div>
+        ${buildDamMeter(inj.id)}
       </div>`).join('');
   } else {
-    btnsEl.innerHTML = meter('_legacy');
+    btnsEl.innerHTML = buildDamMeter('_legacy');
   }
 }
 
+function selectDayAfterPainBtn(injId, score, btn) {
+  // Toggle av hvis man klikker samme knapp igjen
+  const cur = _dayAfterScores[injId] ?? null;
+  const newScore = cur === score ? null : score;
+  _dayAfterScores[injId] = newScore;
+
+  function dayAfterPainColor(s) {
+    if (s === 0)    return { bg: 'rgba(107,227,164,0.18)', border: 'rgba(107,227,164,0.6)', color: '#6BE3A4' };
+    if (s <= 3)     return { bg: 'rgba(107,227,164,0.14)', border: 'rgba(107,227,164,0.45)', color: '#6BE3A4' };
+    if (s <= 5)     return { bg: 'rgba(242,192,99,0.18)',  border: 'rgba(242,192,99,0.55)',  color: '#F2C063' };
+    if (s <= 7)     return { bg: 'rgba(242,130,60,0.18)',  border: 'rgba(242,130,60,0.55)',  color: '#F2823C' };
+    return           { bg: 'rgba(255,107,107,0.18)', border: 'rgba(255,107,107,0.55)', color: '#FF6B6B' };
+  }
+
+  document.querySelectorAll(`[data-dam-inj="${injId}"]`).forEach(b => {
+    const s = parseInt(b.dataset.damScore);
+    const sel = newScore === s;
+    const c = dayAfterPainColor(s);
+    if (sel) {
+      b.style.background    = c.bg;
+      b.style.borderColor   = c.border;
+      b.style.color         = c.color;
+      b.style.fontWeight    = '700';
+      b.style.boxShadow     = `0 0 0 2px ${c.bg}`;
+    } else {
+      b.style.background    = 'rgba(255,255,255,0.04)';
+      b.style.borderColor   = 'rgba(255,255,255,0.13)';
+      b.style.color         = 'var(--text-secondary)';
+      b.style.fontWeight    = '';
+      b.style.boxShadow     = '';
+    }
+  });
+}
+
 function selectDayAfterPain(injId, score) {
-  _dayAfterScores[injId] = score;   // måleren er alt oppdatert visuelt av painMeterSet
+  _dayAfterScores[injId] = score;
 }
 
 async function saveDayAfterPain() {
