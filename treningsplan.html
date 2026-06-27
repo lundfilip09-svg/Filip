@@ -1228,6 +1228,78 @@ function resolveGymDay(text) {
   if (!lc || lc === 'hvile' || lc === 'rest') return null;
   return gymDays.find(d => gymDayLabel(d).toLowerCase() === lc) || null;
 }
+
+// Aktivitetstyper som kan legges i ukeplanen (speiler act-type-btns i modal)
+const _PLAN_ACTIVITY_TYPES = [
+  'Fotball', 'Padel', 'Svømming', 'Sykling', 'Basketball',
+  'Amerikansk fotball', 'Turgåing', 'Frisbeegolf', 'Bading', 'Rolig dag',
+];
+// i18n-nøkkel for aktivitetstype (speiler trActType)
+function _actTypeKey(type) {
+  const m = {
+    'Fotball':'tp.act_soccer','Padel':'tp.act_padel','Svømming':'tp.act_swim',
+    'Sykling':'tp.act_cycle','Basketball':'tp.act_basketball',
+    'Amerikansk fotball':'tp.act_amfootball','Turgåing':'tp.act_walk',
+    'Frisbeegolf':'tp.act_frisbee','Bading':'tp.act_swim_rec','Rolig dag':'tp.act_easy',
+  };
+  return m[type] || null;
+}
+function _actTypeLabel(type) { const k = _actTypeKey(type); return k ? t(k) : type; }
+
+// Utvidet option-liste: Hvile | Gym-dager | Aktiviteter | Sprint
+// Bruker optgroup for lesbarhet. selectedVal = lagret session_text.
+function allPlanOptions(selectedVal) {
+  const sv = (selectedVal || '').trim();
+  const sel = v => v === sv ? ' selected' : '';
+
+  // Hvile
+  let html = `<option value=""${!sv ? ' selected' : ''}>${escHtml(t('daytype.rest'))}</option>`;
+
+  // Gym-dager
+  if (gymDays.length) {
+    html += `<optgroup label="${escHtml(t('tp.group_gym'))}">`;
+    gymDays.forEach(d => {
+      const lbl = gymDayLabel(d);
+      html += `<option value="${escHtml(lbl)}"${sel(lbl)}>${escHtml(lbl)}</option>`;
+    });
+    html += '</optgroup>';
+  }
+
+  // Aktiviteter
+  html += `<optgroup label="${escHtml(t('tp.group_activity'))}">`;
+  _PLAN_ACTIVITY_TYPES.forEach(type => {
+    // Lagrer norsk nøkkelord (type-streng) — displaynavnet er bare til visning
+    const lbl = _actTypeLabel(type);
+    // Lagret verdi kan være norsk type-streng ELLER i18n-label — match begge
+    const isSelected = sv === type || sv.toLowerCase() === lbl.toLowerCase();
+    html += `<option value="${escHtml(type)}"${isSelected ? ' selected' : ''}>${escHtml(lbl)}</option>`;
+  });
+  html += '</optgroup>';
+
+  // Sprint
+  html += `<optgroup label="${escHtml(t('tp.group_sprint'))}">`;
+  html += `<option value="Sprint"${sel('Sprint')}>${escHtml(t('daytype.sprint'))}</option>`;
+  html += '</optgroup>';
+
+  return html;
+}
+
+// Resolver lagret plan-tekst → om det er en kjent verdi (gym/aktivitet/sprint).
+// Returnerer { kind: 'gym'|'activity'|'sprint'|'rest'|'custom', value } der value = lagret streng.
+function resolvePlanValue(text) {
+  const raw = (text || '').trim();
+  if (!raw) return { kind: 'rest', value: '' };
+  const lc = raw.toLowerCase();
+  if (lc === 'hvile' || lc === 'rest') return { kind: 'rest', value: '' };
+  const gd = resolveGymDay(raw);
+  if (gd) return { kind: 'gym', value: gymDayLabel(gd) };
+  if (raw === 'Sprint' || lc === 'sprint') return { kind: 'sprint', value: 'Sprint' };
+  const actMatch = _PLAN_ACTIVITY_TYPES.find(
+    a => a.toLowerCase() === lc || _actTypeLabel(a).toLowerCase() === lc
+  );
+  if (actMatch) return { kind: 'activity', value: actMatch };
+  return { kind: 'custom', value: raw };
+}
 // Innebygde maler vises via i18n_key; egendefinerte via name som-er.
 function tplLabel(tpl) { return tpl ? (tpl.i18n_key ? t(tpl.i18n_key) : tpl.name) : ''; }
 function tplById(id)   { return id == null ? null : (sessionTemplates.find(x => String(x.id) === String(id)) || null); }
@@ -1291,7 +1363,7 @@ function openEditWeeklyPlan() {
     return `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);width:64px;flex-shrink:0">${t('wd.'+((d+1)%7))}</div>
-      <select class="input-sm" id="wp-day-${d}" style="flex:1">${gymDayOptions(savedText)}</select>
+      <select class="input-sm" id="wp-day-${d}" style="flex:1">${allPlanOptions(savedText)}</select>
     </div>`;
   }).join('');
   document.getElementById('weeklyPlanModal').classList.remove('hidden');
@@ -1333,14 +1405,8 @@ function applyWeekPreset() {
     const inp = document.getElementById(`wp-day-${d}`);
     if (!inp) return;
     const txt = (p.plan?.[d] || '').trim();
-    const lc = txt.toLowerCase();
-    // Match mot gym-dag eller sett '' for hvile
-    if (!txt || lc === 'hvile' || lc === 'rest') {
-      inp.value = '';
-    } else {
-      const gd = resolveGymDay(txt);
-      inp.value = gd ? gymDayLabel(gd) : '';
-    }
+    const resolved = resolvePlanValue(txt);
+    inp.value = resolved.kind === 'rest' ? '' : resolved.value;
   });
   toast(t('tp.preset_applied_hint'));
 }
@@ -1380,7 +1446,7 @@ async function saveWeeklyPlan() {
   // Determine new values from form before saving
   const newRows = [0,1,2,3,4,5,6].map(d => {
     const selVal = document.getElementById(`wp-day-${d}`)?.value || '';
-    // selVal er display-tekst fra gymDayOptions ('', 'Styrke Kapasitet', osv.)
+    // selVal er lagret verdi fra allPlanOptions ('', 'Styrke Kapasitet', 'Fotball', 'Sprint', osv.)
     return { user_id: userId, day: d, template_id: null, session_type: selVal };
   });
 
@@ -1590,9 +1656,9 @@ function renderDetail() {
   document.getElementById('detailNotes').value = notesText(i);
 }
 
-// ── Per-uke øktvelger (select fra gym-dager + Hvile) ──
+// ── Per-uke øktvelger (select fra alle plantyper + Egendefinert) ──
 function _detailPlanOptions(selectedVal) {
-  return gymDayOptions(selectedVal) +
+  return allPlanOptions(selectedVal) +
     `<option value="__custom__">${escHtml(t('tp.custom'))}</option>`;
 }
 // Sett velgeren ut fra lagret session_text.
@@ -1600,14 +1666,12 @@ function _setDetailPlanField(txt) {
   const sel  = document.getElementById('detailPlanSel');
   const cust = document.getElementById('detailPlanCustom');
   if (!sel || !cust) return;
-  const lc  = (txt || '').toLowerCase();
-  const gd  = resolveGymDay(txt);
-  if (!txt || lc === 'hvile' || lc === 'rest') {
+  const resolved = resolvePlanValue(txt);
+  if (resolved.kind === 'rest') {
     sel.innerHTML = _detailPlanOptions(''); sel.value = '';
     cust.style.display = 'none'; cust.value = '';
-  } else if (gd) {
-    const lbl = gymDayLabel(gd);
-    sel.innerHTML = _detailPlanOptions(lbl); sel.value = lbl;
+  } else if (resolved.kind !== 'custom') {
+    sel.innerHTML = _detailPlanOptions(resolved.value); sel.value = resolved.value;
     cust.style.display = 'none'; cust.value = '';
   } else {
     sel.innerHTML = _detailPlanOptions('');
