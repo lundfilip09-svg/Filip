@@ -667,6 +667,11 @@ async function sendMessage() {
   input.style.height = '';
   localStorage.removeItem('ai_draft');
 
+  // Push user til chatHistory FØR API-kall — garanterer riktig rekkefølge
+  // ved realtime-dedupe og ved refresh. Rollback ved feil.
+  chatHistory.push({ role: 'user', content: msg });
+  const userHistorySnapshot = chatHistory.length; // brukes til rollback
+
   appendMessage('user', msg);
   showLoading();
 
@@ -700,12 +705,11 @@ async function sendMessage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      // Rollback user-melding fra chatHistory ved feil (ikke lagre feilede kall)
+      chatHistory = chatHistory.slice(0, userHistorySnapshot - 1);
       appendMessage('ai', err.error || t('ai.err_generic', { status: res.status }), true);
     } else {
       const { reply } = await res.json();
-      appendMessage('ai', reply);
-      bumpDailyCount();   // mykt dagstak (kun en vennlig påminnelse)
-      chatHistory.push({ role: 'user', content: msg });
       chatHistory.push({ role: 'assistant', content: reply });
       if (chatHistory.length > 10) {
         const toRemove = chatHistory.length - 10;
@@ -715,10 +719,14 @@ async function sendMessage() {
         const msgs = history.querySelectorAll('.msg:not(.msg-loading)');
         for (let i = 0; i < toRemove && msgs[i]; i++) msgs[i].remove();
       }
+      appendMessage('ai', reply);
+      bumpDailyCount();   // mykt dagstak (kun en vennlig påminnelse)
       saveHistory();
     }
   } catch (e) {
     hideLoading();
+    // Rollback user-melding ved nettverksfeil
+    chatHistory = chatHistory.slice(0, userHistorySnapshot - 1);
     const msg = e.name === 'AbortError'
       ? t('ai.err_timeout')
       : t('ai.err_network');
