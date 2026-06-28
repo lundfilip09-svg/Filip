@@ -793,6 +793,7 @@
               <span style="font-size:14px;line-height:1">+</span>
               <span data-i18n="tp.add_activity">Aktivitet</span>
             </button>
+            <button id="tpManualBtn" class="tp-history-toggle" onclick="openTpManualModal()" style="display:none" data-i18n="pain.manual_btn">+ Manuell</button>
             <button class="tp-history-toggle" id="histToggleBtn" onclick="toggleHistory()">∨</button>
           </div>
         </div>
@@ -1176,6 +1177,16 @@
   </div>
 
 </main>
+
+<div class="day-dialog-backdrop" id="tpManualModal" onclick="if(event.target===this)closeTpManualModal()">
+  <div class="day-dialog" style="max-height:80vh;overflow-y:auto">
+    <h3 data-i18n="pain.manual_entry">Manuell registrering</h3>
+    <div id="tpManualPainForms"></div>
+    <div class="day-dialog-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeTpManualModal()" data-i18n="close">Lukk</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -2357,6 +2368,7 @@ async function loadSessionHistory() {
   _severeInjuries = injData  || [];
   _injuryPainMap  = {};
   _injuryPainAll  = ipAll   || [];
+  renderTpManualPainForms();
   (kneeData || []).forEach(k => {
     _kneeMap[k.date + '|' + (k.session_type || '')] = k;
     if ((k.session_type || '').startsWith('Sprint')) _kneeSprint[k.date] = k;
@@ -3965,6 +3977,90 @@ async function deleteCoach(id) {
   await db.from('coaches').delete().eq('id', id);
   const { data } = await db.from('coaches').select('id,name,role').order('created_at',{ascending:true});
   renderCoachesList(data || []);
+}
+
+// ── Manuell smerteregistrering (treningsplan økthistorikk) ────────────────────
+let _tpManualScores = {};
+
+function openTpManualModal() {
+  renderTpManualPainForms();
+  document.getElementById('tpManualModal')?.classList.add('open');
+}
+function closeTpManualModal() {
+  document.getElementById('tpManualModal')?.classList.remove('open');
+}
+function renderTpManualPainForms() {
+  const btn   = document.getElementById('tpManualBtn');
+  const forms = document.getElementById('tpManualPainForms');
+  const show  = _severeInjuries.length > 0;
+  if (btn) btn.style.display = show ? '' : 'none';
+  if (!show) { closeTpManualModal(); return; }
+  if (!forms) return;
+  const phases = [
+    { id: 'before',   label: 'knee.before_session' },
+    { id: 'during',   label: 'knee.during_session' },
+    { id: 'after',    label: 'knee.after_session' },
+    { id: 'dayafter', label: 'knee.dayafter' },
+  ];
+  forms.innerHTML = _severeInjuries.map(inj => `
+<div style="margin-bottom:14px">
+  <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-secondary);
+    margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em">${escHtml(bodyPartName(inj))}</div>
+  <div class="form-group" style="margin-bottom:6px">
+    <label style="font-size:10px;color:var(--text-tertiary)" data-i18n="date">${t('date')}</label>
+    <input type="date" id="tpm-date-${inj.id}" class="input-sm" style="width:100%;box-sizing:border-box">
+  </div>
+  ${phases.map(ph => {
+    const cur = (_tpManualScores[inj.id] || {})[ph.id];
+    return `
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+    <span style="font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);width:70px;flex-shrink:0"
+      data-i18n="${ph.label}">${t(ph.label)}</span>
+    ${painMeterHTML(`tpm-${inj.id}-${ph.id}`, (cur != null ? cur : null), { onset: `selectTpManualPain('${inj.id}','${ph.id}',$v)` })}
+  </div>`;
+  }).join('')}
+  <textarea class="input-sm" id="tpm-notes-${inj.id}" rows="1"
+    placeholder="${escHtml(t('pain.manual_notes_ph'))}"
+    style="width:100%;resize:none;box-sizing:border-box;margin-top:4px;margin-bottom:4px"></textarea>
+  <button class="btn btn-success btn-sm" style="width:100%" onclick="saveTpManualPain('${inj.id}')"
+    data-i18n="save">${t('save')}</button>
+</div>`).join('<hr style="border-color:rgba(255,255,255,0.07);margin:8px 0">');
+
+  _severeInjuries.forEach(inj => {
+    const dateEl = document.getElementById(`tpm-date-${inj.id}`);
+    if (dateEl) dateEl.value = today();
+  });
+}
+
+function selectTpManualPain(injId, phase, score) {
+  if (!_tpManualScores[injId]) _tpManualScores[injId] = {};
+  const cur = _tpManualScores[injId][phase];
+  _tpManualScores[injId][phase] = (cur === score) ? null : score;
+}
+
+async function saveTpManualPain(injId) {
+  const scores = _tpManualScores[injId] || {};
+  if (Object.values(scores).every(v => v == null)) {
+    toast(t('gym.select_pain_score'), 'err'); return;
+  }
+  const dateEl  = document.getElementById(`tpm-date-${injId}`);
+  const notesEl = document.getElementById(`tpm-notes-${injId}`);
+  const date  = dateEl?.value || today();
+  const notes = notesEl?.value.trim() || null;
+
+  const { error } = await db.from('injury_pain').insert({
+    injury_id: injId, date, source: 'manual',
+    before_score:    scores.before   ?? null,
+    during_score:    scores.during   ?? null,
+    after_score:     scores.after    ?? null,
+    day_after_score: scores.dayafter ?? null,
+    notes,
+  });
+  if (error) { toast(t('pain.save_err', { msg: error.message }), 'err'); return; }
+
+  toast(t('pain.manual_saved'));
+  _tpManualScores[injId] = {};
+  closeTpManualModal();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

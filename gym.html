@@ -995,8 +995,6 @@
 <section class="card gym-history-card">
   <div class="gym-history-hd">
     <div class="section-title" data-i18n="gym.history" style="margin:0;flex:1">Økthistorikk</div>
-    <button id="gymManualBtn" class="btn btn-ghost btn-sm" style="display:none;font-size:11px;padding:4px 10px"
-      onclick="openGymManualModal()" data-i18n="pain.manual_btn">+ Manuell</button>
     <button class="tp-history-toggle" id="gymHistToggleBtn" onclick="toggleGymHistory()" style="display:none">∨</button>
   </div>
   <div id="gymHistory">
@@ -3424,12 +3422,8 @@ function closeGymManualModal() {
   document.getElementById('gymManualModal')?.classList.remove('open');
 }
 function renderGymManualPainForms() {
-  const btn   = document.getElementById('gymManualBtn');
   const forms = document.getElementById('gymManualPainForms');
-  // Skjul «+ Manuell»-knappen under aktiv økt (da logges smerte gjennom økta)
-  // og når ingen alvorlige skader finnes.
-  const show = workoutState !== 'active' && _severeInjuries.length > 0;
-  if (btn) btn.style.display = show ? '' : 'none';
+  const show = _severeInjuries.length > 0;
   if (!show) { closeGymManualModal(); return; }
   if (!forms) return;
   const phases = [
