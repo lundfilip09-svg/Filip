@@ -318,6 +318,51 @@ ${physioArr.map(p => `- (${p.date}${p.therapist ? ', ' + p.therapist : ''}) ${p.
     painLogBlock  = JSON.stringify(stripMeta(kneePainData));
   }
 
+  // ── Smerte-dekning: hvilke gym-økter HAR smerte logget vs mangler ──
+  // Forhindrer at AI feilaktig tror smerte ikke er logget for en økt — selv om
+  // injury_pain-raden finnes, men bare knee_pain-fallback ikke treffer riktig.
+  const _gymRows = Array.isArray(gymData) ? gymData : [];
+  const _painCoverageLines = [];
+  if (_severeInj.length && _gymRows.length) {
+    _gymRows.forEach(g => {
+      if (!g.date) return;
+      _severeInj.forEach(inj => {
+        const name = _fmtName(inj);
+        const hasEntry = injPainRows.some(r => r.injury_id === inj.id && r.date === g.date);
+        const entry = injPainRows.find(r => r.injury_id === inj.id && r.date === g.date);
+        if (hasEntry) {
+          const scores = [
+            entry.before_score != null ? `Før:${entry.before_score}` : null,
+            entry.during_score != null ? `Under:${entry.during_score}` : null,
+            entry.after_score  != null ? `Etter:${entry.after_score}` : null,
+            entry.day_after_score != null ? `Dagen-etter:${entry.day_after_score}` : null,
+          ].filter(Boolean);
+          _painCoverageLines.push(`${g.date} (${g.session_type || 'gym'}) — ${name}: LOGGET (${scores.length ? scores.join(', ') : 'alle null/0'})`);
+        } else {
+          // Fallback: sjekk knee_pain for kne-skader
+          const kpEntry = _isKneeBodyPart(inj)
+            ? (Array.isArray(kneePainData) ? kneePainData : []).find(k => k.date === g.date)
+            : null;
+          if (kpEntry) {
+            const scores = [
+              kpEntry.before_score != null ? `Før:${kpEntry.before_score}` : null,
+              kpEntry.during_score != null ? `Under:${kpEntry.during_score}` : null,
+              kpEntry.after_score  != null ? `Etter:${kpEntry.after_score}` : null,
+              kpEntry.day_after_score != null ? `Dagen-etter:${kpEntry.day_after_score}` : null,
+            ].filter(Boolean);
+            _painCoverageLines.push(`${g.date} (${g.session_type || 'gym'}) — ${name}: LOGGET via knee_pain (${scores.length ? scores.join(', ') : 'alle null/0'})`);
+          } else {
+            _painCoverageLines.push(`${g.date} (${g.session_type || 'gym'}) — ${name}: IKKE LOGGET`);
+          }
+        }
+      });
+    });
+  }
+  const painCoverageBlock = _painCoverageLines.length
+    ? `[SMERTE-DEKNING PER GYMØKT — SISTE 7 (bruk dette for å avgjøre om smerte er logget eller ikke)]
+${_painCoverageLines.join('\n')}`
+    : '';
+
   // ── Profil-blokk (navn, alder, dominant ben, treningsfase, vekt/høyde, trenere) ──
   const _prof = Array.isArray(userProfileData) ? userProfileData[0] : userProfileData;
   const _latestW = Array.isArray(latestWeightData) ? latestWeightData[0] : null;
@@ -415,7 +460,7 @@ ${JSON.stringify(stripMeta(gymData))}
 ${painLogHeader}
 ${painLogBlock}
 
-[ANDRE AKTIVITETER — SISTE 7 (fotball, basket, padel, svømming, rolig dag osv)]
+${painCoverageBlock ? painCoverageBlock + '\n\n' : ''}[ANDRE AKTIVITETER — SISTE 7 (fotball, basket, padel, svømming, rolig dag osv)]
 ${JSON.stringify(stripMeta(activityData))}`;
 
   return { context, osloDateISO };
