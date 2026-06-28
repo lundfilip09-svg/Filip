@@ -849,13 +849,12 @@ function renderSleepCard(d) {
   let readiness = null;
   let components = 0;
   let wsum = 0;
-  if (hrv)  { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.40; components++; }
-  if (rhr)  { const s = rhr <= 42 ? 100 : rhr <= 48 ? 88 : rhr <= 54 ? 72 : rhr <= 60 ? 50 : 22; wsum += s * 0.25; components++; }
-  if (sc)   { wsum += sc * 0.25; components++; }
-  if (hrs)  { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.10; components++; }
-  if (components >= 2) {
-    // normalize: if fewer than 4 components, scale by sum of used weights
-    const usedW = (hrv ? 0.40 : 0) + (rhr ? 0.25 : 0) + (sc ? 0.25 : 0) + (hrs ? 0.10 : 0);
+  if (hrv)  { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.45; components++; }
+  if (sc)   { wsum += sc * 0.40; components++; }
+  if (hrs)  { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.15; components++; }
+  if (components >= 1) {
+    // normalize: scale by sum of used weights
+    const usedW = (hrv ? 0.45 : 0) + (sc ? 0.40 : 0) + (hrs ? 0.15 : 0);
     readiness = Math.round(wsum / usedW);
   } else if (sc) {
     readiness = sc;
@@ -919,12 +918,6 @@ function renderSleepCard(d) {
     else if (hrv >= 45) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_good').split('.')[0]}` });
     else if (hrv >= 30) insights.push({ cls: 'ins-warn', icon: '⚠', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_low').split('.')[0]}` });
     else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_critical').split('.')[0]}` });
-  }
-  if (rhr) {
-    if (rhr <= 48)      insights.push({ cls: 'ins-pos',  icon: '💚', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_excellent').split('.')[0]}` });
-    else if (rhr <= 54) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_normal').split('.')[0]}` });
-    else if (rhr <= 62) insights.push({ cls: 'ins-warn', icon: '⚠', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_elevated').split('.')[0]}` });
-    else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>RHR ${rhr}bpm</strong> — ${t('sovn.rhr_advice_high').split('.')[0]}` });
   }
   if (hrs) {
     if (hrs >= 8)       insights.push({ cls: 'ins-pos',  icon: '🌙', html: `<strong>${fmtHours(hrs)}</strong> — ${t('sovn.sleep_advice_optimal').split('.')[0]}` });
@@ -996,31 +989,27 @@ function renderSleepCard(d) {
           </div>
         </div>
 
-        <!-- FACTORS: HRV / RHR / Dyp / Søvn vs baseline -->
+        <!-- FACTORS: HRV / Dyp / Søvn / Våken -->
         <div class="sc-factors">
           <div class="sc-factor f-hrv">
             <div class="sc-factor-lbl">HRV</div>
             <div class="sc-factor-val">${hrv != null ? hrv : '–'}</div>
             <div class="sc-factor-unit">ms</div>
-            <div class="sc-factor-delta">${fmtDelta(dHrv)}</div>
-          </div>
-          <div class="sc-factor f-rhr">
-            <div class="sc-factor-lbl">RHR</div>
-            <div class="sc-factor-val">${rhr != null ? rhr : '–'}</div>
-            <div class="sc-factor-unit">bpm</div>
-            <div class="sc-factor-delta">${fmtDelta(dRhr, true)}</div>
           </div>
           <div class="sc-factor f-deep">
             <div class="sc-factor-lbl">${t('dash.deep')}</div>
             <div class="sc-factor-val" style="font-size:14px">${fmtMin(deep)}</div>
             <div class="sc-factor-unit">REM ${fmtMin(rem)}</div>
-            <div class="sc-factor-delta">&nbsp;</div>
           </div>
           <div class="sc-factor f-dur">
             <div class="sc-factor-lbl">${t('dash.sleep_dur_lbl')}</div>
             <div class="sc-factor-val" style="font-size:14px">${fmtHours(hrs)}</div>
             <div class="sc-factor-unit">${t('sovn.hours')}</div>
-            <div class="sc-factor-delta">${fmtDeltaH(dHrs)}</div>
+          </div>
+          <div class="sc-factor f-awake">
+            <div class="sc-factor-lbl">${t('sovn.awake')}</div>
+            <div class="sc-factor-val" style="font-size:19px;color:${d.awake_minutes > 30 ? '#F2C063' : d.awake_minutes > 50 ? '#FF8A8A' : 'var(--text-secondary)'}">${d.awake_minutes != null ? d.awake_minutes : '–'}</div>
+            <div class="sc-factor-unit">min</div>
           </div>
         </div>
 
@@ -1555,14 +1544,14 @@ function loadSession() {
   // Pull readiness from cached sleep for cross-card context
   const sleep = _sleepRowCache;
   const hrv = sleep?.hrv > 0 ? sleep.hrv : null;
-  const rhr = sleep?.rhr > 0 ? sleep.rhr : null;
   const sc  = sleep?.sleep_score > 0 ? sleep.sleep_score : null;
+  const hrs = sleep?.sleep_hours > 0 ? sleep.sleep_hours : null;
   let readiness = null;
-  if (hrv || rhr || sc) {
+  if (hrv || sc) {
     let wsum = 0, usedW = 0;
-    if (hrv) { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.40; usedW += 0.40; }
-    if (rhr) { const s = rhr <= 42 ? 100 : rhr <= 48 ? 88 : rhr <= 54 ? 72 : rhr <= 60 ? 50 : 22; wsum += s * 0.25; usedW += 0.25; }
-    if (sc)  { wsum += sc * 0.25; usedW += 0.25; }
+    if (hrv) { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.45; usedW += 0.45; }
+    if (sc)  { wsum += sc * 0.40; usedW += 0.40; }
+    if (hrs) { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.15; usedW += 0.15; }
     if (usedW > 0) readiness = Math.round(wsum / usedW);
   }
 

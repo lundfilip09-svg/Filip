@@ -81,7 +81,7 @@
     .warn-advice { color: var(--text-secondary); margin-top: 1px; font-size: 11px; }
 
     /* ── Metrics ── */
-    .metrics-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
     .metric-card {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
       border-radius: 12px; padding: 14px 14px 12px; transition: all 0.14s;
@@ -205,7 +205,7 @@
 
     /* ── Responsive ── */
     @media (max-width: 820px) { .mid-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 640px) {
       .metrics-grid { grid-template-columns: repeat(2,1fr); }
       .hero-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
@@ -262,7 +262,6 @@
         <div class="chart-pills">
           <button class="cm-btn active" data-metric="sleep"  onclick="setChartMetric('sleep')" data-i18n="nav.sovn">Søvn</button>
           <button class="cm-btn"        data-metric="hrv"    onclick="setChartMetric('hrv')">HRV</button>
-          <button class="cm-btn"        data-metric="rhr"    onclick="setChartMetric('rhr')" data-i18n="sovn.rhr">Puls</button>
           <button class="cm-btn"        data-metric="score"  onclick="setChartMetric('score')" data-i18n="sovn.score_sub">Score</button>
         </div>
       </div>
@@ -368,7 +367,6 @@ function getReadinessBaselines(excludeDate) {
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   return {
     hrv: avg(hist.map(r => r.hrv).filter(v => v != null)),
-    rhr: avg(hist.map(r => r.rhr).filter(v => v != null)),
   };
 }
 
@@ -377,17 +375,13 @@ function getReadinessInsight(d) {
   const base = getReadinessBaselines(d.date);
 
   // Komponenter 0–100; 70 = «som din normal»
-  const parts = [[d.sleep_score, 0.4]];
+  const parts = [[d.sleep_score, 0.40]];
   if (d.hrv != null && base.hrv) {
     const ratio = d.hrv / base.hrv;                                   // 1.0 = normal
-    parts.push([Math.max(0, Math.min(100, 70 + (ratio - 1) * 250)), 0.25]); // ±12 % HRV ≈ ±30 poeng
+    parts.push([Math.max(0, Math.min(100, 70 + (ratio - 1) * 250)), 0.35]); // ±12 % HRV ≈ ±30 poeng
   }
   if (d.body_battery != null) {
-    parts.push([d.body_battery, 0.2]);                                // morgenlading, allerede 0–100
-  }
-  if (d.rhr != null && base.rhr) {
-    const diff = d.rhr - base.rhr;                                    // + = forhøyet puls
-    parts.push([Math.max(0, Math.min(100, 70 - diff * 10)), 0.15]);   // +3 bpm ≈ −30 poeng
+    parts.push([d.body_battery, 0.25]);                               // morgenlading, allerede 0–100
   }
   const wSum  = parts.reduce((a, [, w]) => a + w, 0);
   const level = Math.round(parts.reduce((a, [v, w]) => a + v * w, 0) / wSum);
@@ -413,7 +407,6 @@ function renderHero(d) {
 
   const chips = [];
   if (d?.sleep_hours)    chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
-  if (d?.rhr)            chips.push(`❤️ ${d.rhr} bpm`);
   if (d?.hrv != null)    chips.push(`⚡ HRV ${d.hrv}ms`);
   if (d?.awake_minutes)  chips.push(`👁 ${t('sovn.awake')} ${d.awake_minutes}min`);
   if (d?.sleep_start)    chips.push(`🛌 ${d.sleep_start}`);
@@ -504,18 +497,6 @@ function analyzeMetrics(d) {
     else              results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_alarm'),    color:'#FF6B6B', glow:'rgba(255,107,107,0.18)', advice: t('sovn.hrv_advice_alarm') });
   }
 
-  // RHR
-  if (d?.rhr) {
-    const v = d.rhr;
-    // Grenser tilpasset ung sprinter — lav RHR er positivt, ikke alarm
-    if (v <= 42)      results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'ok',     badge: t('sovn.rhr_peak'),      color:'#6BE3A4', glow:'rgba(107,227,164,0.14)', advice: t('sovn.rhr_advice_peak') });
-    else if (v <= 52) results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'ok',     badge: t('sovn.rhr_excellent'),  color:'#6BE3A4', glow:'rgba(107,227,164,0.1)',  advice: t('sovn.rhr_advice_excellent') });
-    else if (v <= 60) results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'ok',     badge: t('sovn.rhr_normal'),     color:'#6BE3A4', glow:'rgba(107,227,164,0.08)', advice: t('sovn.rhr_advice_normal') });
-    else if (v <= 68) results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'warn',   badge: t('sovn.rhr_elevated'),   color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice: t('sovn.rhr_advice_elevated') });
-    else if (v <= 78) results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'danger', badge: t('sovn.rhr_high'),       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice: t('sovn.rhr_advice_high') });
-    else              results.push({ key:'rhr', val:`${v}`, label: t('sovn.rhr'), unit:'bpm', level:'danger', badge: t('sovn.rhr_alarm'),      color:'#FF6B6B', glow:'rgba(255,107,107,0.18)', advice: t('sovn.rhr_advice_alarm') });
-  }
-
   // Sleep hours
   if (d?.sleep_hours) {
     const v = d.sleep_hours;
@@ -585,13 +566,12 @@ function renderMetrics(d) {
   const byKey = {};
   metrics.forEach(m => byKey[m.key] = m);
 
-  // Alltid vis alle 5 kort i fast rekkefølge
+  // Alltid vis alle 4 kort i fast rekkefølge
   const cards = [
     byKey['score'] || { key:'score', val:'–', label: t('sovn.score_lbl'), unit:'/100', level:'none', badge:'', color:'', glow:'', advice:'' },
     byKey['sleep'] || { key:'sleep', val:'–', label: t('sovn.total'),     level:'none', badge:'', color:'#5BA4F5', glow:'', advice:'' },
-    byKey['rhr']   || { key:'rhr',   val:'–', label: t('sovn.rhr'),       unit:'bpm',  level:'none', badge:'', color:'', glow:'', advice:'' },
     byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV',                unit:'ms',   level:'none', badge:'', color:'', glow:'', advice:'' },
-    byKey['awake'] || { key:'awake', val:'–', label:t('sovn.awake'),       unit:'min',  level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['awake'] ? { ...byKey['awake'], badge:'', advice:'' } : { key:'awake', val:'–', label:t('sovn.awake'), unit:'min', level:'none', badge:'', color:'', glow:'', advice:'' },
   ];
 
   el.innerHTML = cards.map((m, i) => {
@@ -675,12 +655,6 @@ function renderReadiness(d) {
     const good  = ratio != null ? ratio >= 0.95 : d.hrv >= 50;
     const low   = ratio != null ? ratio >= 0.85 : d.hrv >= 35;
     indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? '#6BE3A4' : low ? '#F2C063' : '#FF6B6B' });
-  }
-  if (d?.rhr) {
-    const diff = base.rhr != null ? d.rhr - base.rhr : null;
-    const good = diff != null ? diff <= 1 : d.rhr < 61;
-    const mid  = diff != null ? diff <= 4 : d.rhr < 69;
-    indicators.push({ label: t('sovn.rhr'), val:`${d.rhr} bpm`, status: good ? t('sovn.rhr_normal') : mid ? t('sovn.rhr_elevated') : t('sovn.rhr_high'), color: good ? '#6BE3A4' : mid ? '#F2C063' : '#FF6B6B' });
   }
   if (d?.body_battery != null) {
     const bb = d.body_battery;
