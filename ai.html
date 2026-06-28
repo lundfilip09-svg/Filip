@@ -1778,37 +1778,82 @@ async function executeGymCopy() {
     const wts  = wtsRes.data || [];
     const wMap = {};
     wts.forEach(w => { if (w.exercise_name) wMap[w.exercise_name] = w.weight_kg; });
+    // grouped[dayKey] = { sec: [ex, …] }  — main exercises only
+    // warmup[dayKey]  = { sec: [ex, …] }  — warmup/activation exercises
     const grouped = {};
+    const warmup  = {};
     prog.forEach(ex => {
+      const isWarmup = /_warmup$/.test(ex.day) || /_activation$/.test(ex.day);
       const base = ex.day.replace(/_warmup$/, '').replace(/_activation$/, '');
       if (!selectedKeys.includes(base)) return;
-      if (!grouped[base]) grouped[base] = {};
+      const bucket = isWarmup ? warmup : grouped;
+      if (!bucket[base]) bucket[base] = {};
       const sec = ex.section || 'Øvelser';
-      if (!grouped[base][sec]) grouped[base][sec] = [];
-      grouped[base][sec].push(ex);
+      if (!bucket[base][sec]) bucket[base][sec] = [];
+      bucket[base][sec].push(ex);
     });
-    if (!Object.keys(grouped).length) { toast(t('ai.copy_gym_empty')); btn.disabled = false; return; }
+    if (!Object.keys(grouped).length && !Object.keys(warmup).length) { toast(t('ai.copy_gym_empty')); btn.disabled = false; return; }
+
+    // Helper: get section order from localStorage (same key as gym.html)
+    function _secOrder(dayKey) {
+      try { return JSON.parse(localStorage.getItem('sec_ord__' + dayKey) || '[]'); } catch { return []; }
+    }
+    function _orderedSections(map, dayKey) {
+      const saved = _secOrder(dayKey);
+      const all   = Object.keys(map);
+      const ordered = saved.filter(k => all.includes(k));
+      all.forEach(k => { if (!ordered.includes(k)) ordered.push(k); });
+      return ordered;
+    }
+
     const lines = [];
     const sep = '─'.repeat(40);
     for (const dayKey of selectedKeys) {
-      if (!grouped[dayKey]) continue;
+      const hasMain   = grouped[dayKey] && Object.keys(grouped[dayKey]).length;
+      const hasWarmup = warmup[dayKey]  && Object.keys(warmup[dayKey]).length;
+      if (!hasMain && !hasWarmup) continue;
       const dayMeta = _gymCopyDays.find(d => d.day_key === dayKey);
       const dayLabel = dayMeta ? dayMeta.label.toUpperCase() : dayKey.toUpperCase();
       lines.push(sep);
       lines.push(dayLabel);
       lines.push(sep);
-      for (const [sec, exs] of Object.entries(grouped[dayKey])) {
-        lines.push('');
-        lines.push('[' + sec.toUpperCase() + ']');
-        const sorted = [...exs].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
-        sorted.forEach((ex, i) => {
-          const sets = ex.sets || 1;
-          const reps = ex.reps || '\u2014';
-          const wkg  = wMap[ex.exercise_name];
-          const wDisp = (wkg != null && wkg > 0) ? ' @ ' + wkg + 'kg' : '';
-          lines.push('  ' + (i + 1) + '. ' + ex.exercise_name + ' — ' + sets + '\u00d7' + reps + wDisp);
-        });
+
+      // 1. Warmup sections first (as gym.html renders them above the workout blocks)
+      if (hasWarmup) {
+        for (const sec of _orderedSections(warmup[dayKey], dayKey + '_warmup')) {
+          const exs = warmup[dayKey][sec];
+          if (!exs?.length) continue;
+          lines.push('');
+          lines.push('[' + sec.toUpperCase() + ']');
+          const sorted = [...exs].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+          sorted.forEach((ex, i) => {
+            const sets = ex.sets || 1;
+            const reps = ex.reps || '\u2014';
+            const wkg  = wMap[ex.exercise_name];
+            const wDisp = (wkg != null && wkg > 0) ? ' @ ' + wkg + 'kg' : '';
+            lines.push('  ' + (i + 1) + '. ' + ex.exercise_name + ' \u2014 ' + sets + '\u00d7' + reps + wDisp);
+          });
+        }
       }
+
+      // 2. Main sections in localStorage-saved order
+      if (hasMain) {
+        for (const sec of _orderedSections(grouped[dayKey], dayKey)) {
+          const exs = grouped[dayKey][sec];
+          if (!exs?.length) continue;
+          lines.push('');
+          lines.push('[' + sec.toUpperCase() + ']');
+          const sorted = [...exs].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+          sorted.forEach((ex, i) => {
+            const sets = ex.sets || 1;
+            const reps = ex.reps || '\u2014';
+            const wkg  = wMap[ex.exercise_name];
+            const wDisp = (wkg != null && wkg > 0) ? ' @ ' + wkg + 'kg' : '';
+            lines.push('  ' + (i + 1) + '. ' + ex.exercise_name + ' \u2014 ' + sets + '\u00d7' + reps + wDisp);
+          });
+        }
+      }
+
       lines.push('');
     }
     lines.push(sep);
