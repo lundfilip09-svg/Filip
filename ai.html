@@ -379,6 +379,118 @@
     .gym-copy-submit:hover { background: rgba(177,151,252,0.28); box-shadow: 0 0 0 2px rgba(177,151,252,0.15); }
     .gym-copy-submit:disabled { opacity: 0.4; cursor: default; }
 
+    /* ── Delte stiler for rapport/diagnose/søvn-modaler ── */
+    .copy-modal-desc {
+      font-size: 12px; color: var(--text-tertiary); line-height: 1.6;
+      padding: 0 18px 14px;
+    }
+    .copy-preview-section {
+      margin: 0 18px 16px; border-radius: 10px;
+      border: 1px solid var(--line-2);
+      overflow: hidden;
+    }
+    .copy-preview-hd {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--line-2);
+      font-size: 10px; font-family: var(--font-mono); font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary);
+    }
+    .copy-preview-hd-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .copy-preview-rows { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+    .copy-preview-row {
+      display: flex; align-items: flex-start; gap: 10px; font-size: 12.5px; line-height: 1.5;
+    }
+    .copy-preview-row-icon { flex-shrink: 0; font-size: 13px; margin-top: 1px; }
+    .copy-preview-row-label { color: var(--text-secondary); }
+    .copy-preview-row-label strong { color: var(--text-primary); font-weight: 600; }
+    .copy-preview-row-label em {
+      font-style: normal; font-size: 11px; font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+    /* Søvn-periodevelger */
+    .sleep-period-chips { display: flex; gap: 8px; padding: 0 18px 16px; }
+    .sleep-period-chip {
+      flex: 1; padding: 9px 12px; border-radius: 10px; text-align: center; cursor: pointer;
+      border: 1px solid var(--line-2); background: rgba(255,255,255,0.03);
+      font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
+      transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .sleep-period-chip:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .sleep-period-chip.selected {
+      background: rgba(91,164,245,0.13); border-color: rgba(91,164,245,0.4);
+      color: var(--text-primary); box-shadow: 0 0 0 1px rgba(91,164,245,0.18);
+    }
+    .sleep-period-chip-sub {
+      display: block; font-size: 10px; font-family: var(--font-mono);
+      color: var(--text-tertiary); font-weight: 400; margin-top: 2px;
+    }
+    .sleep-period-chip.selected .sleep-period-chip-sub { color: rgba(91,164,245,0.7); }
+    /* Diagnose-skade-chips */
+    .diag-inj-chips { display: flex; flex-direction: column; gap: 6px; padding: 0 18px 16px; }
+    .diag-inj-chip {
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--line-2); background: rgba(255,255,255,0.03);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .diag-inj-chip-hd {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+    }
+    .diag-inj-chip-badge {
+      font-size: 9.5px; font-family: var(--font-mono); letter-spacing: 0.06em;
+      padding: 1px 7px; border-radius: 5px; font-weight: 700;
+    }
+    .diag-inj-chip-badge.active { background: rgba(255,107,107,0.15); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+    .diag-inj-chip-badge.improving { background: rgba(91,164,245,0.13); color: var(--accent-blue); border: 1px solid rgba(91,164,245,0.28); }
+    .diag-inj-chip-sub { font-size: 11.5px; color: var(--text-tertiary); line-height: 1.5; }
+    .diag-empty { padding: 20px 18px; text-align: center; font-size: 12px; color: var(--text-tertiary); }
+    /* Modal-footer (gjenbrukt) */
+    .copy-modal-footer {
+      padding: 14px 18px 18px; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .copy-modal-hint {
+      font-size: 10.5px; font-family: var(--font-mono); color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .copy-modal-submit {
+      font-size: 12px; font-weight: 600; padding: 9px 20px; border-radius: 9px;
+      border: 1px solid; cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .copy-modal-submit.blue {
+      background: rgba(91,164,245,0.18); border-color: rgba(91,164,245,0.4);
+      color: var(--text-primary);
+    }
+    .copy-modal-submit.blue:hover { background: rgba(91,164,245,0.28); box-shadow: 0 0 0 2px rgba(91,164,245,0.15); }
+    .copy-modal-submit:disabled { opacity: 0.4; cursor: default; }
+
+    /* Ukesoppsummering kopi-modal — ukeliste */
+    .ws-copy-week-list {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 0 18px 14px; max-height: 160px; overflow-y: auto;
+    }
+    .ws-copy-week-list::-webkit-scrollbar { width: 5px; }
+    .ws-copy-week-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    .ws-copy-week-btn {
+      text-align: left; padding: 9px 13px; border-radius: 9px; cursor: pointer;
+      border: 1px solid var(--line-2); background: rgba(255,255,255,0.03);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .ws-copy-week-btn:hover { background: rgba(177,151,252,0.07); border-color: rgba(177,151,252,0.2); }
+    .ws-copy-week-btn.selected {
+      background: rgba(177,151,252,0.13); border-color: rgba(177,151,252,0.4);
+      box-shadow: 0 0 0 1px rgba(177,151,252,0.18);
+    }
+    .ws-copy-week-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+    .ws-copy-week-btn.selected .ws-copy-week-label { color: var(--text-primary); }
+    .ws-copy-week-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); white-space: nowrap; }
+    .ws-copy-preview-body { }
+
     @media (max-width: 900px) {
       .ai-layout { flex-direction: column; }
       .ws-panel { width: auto; max-height: 220px; }
@@ -416,9 +528,10 @@
     </div>
     <div class="ai-actions">
       <div class="ai-act-group">
-        <button class="ai-act-btn" id="copyReportBtn" onclick="copyHealthReport()" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
-        <button class="ai-act-btn" id="copyDiagBtn" onclick="copyInjuryStatus()" data-i18n="ai.copy_diag">Kopier diagnose</button>
-        <button class="ai-act-btn" id="copySleepBtn" onclick="copySleepAnalysis()" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
+        <button class="ai-act-btn" id="copyReportBtn" onclick="openReportModal()" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
+        <button class="ai-act-btn" id="copyDiagBtn" onclick="openDiagModal()" data-i18n="ai.copy_diag">Kopier diagnose</button>
+        <button class="ai-act-btn" id="copySleepBtn" onclick="openSleepModal()" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
+        <button class="ai-act-btn" id="copyWsBtn" onclick="openWsCopyModal()" data-i18n="ai.copy_ws">Kopier ukesoppsummering</button>
         <button class="ai-act-btn" id="copyGymBtn" onclick="openGymCopyModal()" data-i18n="ai.copy_gym">Kopier øvelser</button>
       </div>
       <button class="ai-act-btn ai-act-clear" onclick="clearChat()" data-i18n="ai.clear">Tøm samtale</button>
@@ -484,7 +597,30 @@
   </div>
 </div>
 
-<!-- Gym øvelse-kopiering modal -->
+<!-- Ukesoppsummering kopi-modal -->
+<div class="ws-modal-backdrop" id="wsCopyModalBackdrop" onclick="if(event.target===this)closeWsCopyModal()">
+  <div class="ws-modal gym-copy-modal">
+    <div class="ws-modal-hd">
+      <span class="ws-modal-title" data-i18n="ai.modal_ws_title">Kopier ukesoppsummering</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeWsCopyModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
+    </div>
+    <p class="copy-modal-desc" data-i18n="ai.modal_ws_desc">Velg hvilken uke du vil kopiere. Nyttig til å gi en ekstern AI historisk kontekst.</p>
+    <div class="ws-copy-week-list" id="wsCopyWeekList">
+      <div style="color:var(--text-tertiary);font-size:12px;padding:4px 18px" data-i18n="loading">Laster…</div>
+    </div>
+    <div class="copy-preview-section" style="margin-top:0">
+      <div class="copy-preview-hd">
+        <div class="copy-preview-hd-dot" style="background:rgba(177,151,252,0.8)"></div>
+        <span data-i18n="ai.modal_ws_preview">Forhåndsvisning</span>
+      </div>
+      <div id="wsCopyPreview" class="ws-copy-preview-body" style="padding:12px 14px;font-size:12.5px;line-height:1.65;color:var(--text-secondary);max-height:160px;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-mono)"></div>
+    </div>
+    <div class="copy-modal-footer">
+      <span class="copy-modal-hint" id="wsCopyHint" data-i18n="ai.modal_ws_hint">Velg en uke</span>
+      <button class="copy-modal-submit blue" id="wsCopySubmitBtn" onclick="executeWsCopy()" disabled data-i18n="ai.modal_copy_btn">Kopier til utklippstavle</button>
+    </div>
+  </div>
+</div>
 <div class="ws-modal-backdrop" id="gymCopyBackdrop" onclick="if(event.target===this)closeGymCopyModal()">
   <div class="ws-modal gym-copy-modal">
     <div class="ws-modal-hd">
@@ -501,6 +637,103 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- AI-helserapport modal -->
+<div class="ws-modal-backdrop" id="reportModalBackdrop" onclick="if(event.target===this)closeReportModal()">
+  <div class="ws-modal gym-copy-modal">
+    <div class="ws-modal-hd">
+      <span class="ws-modal-title" data-i18n="ai.modal_report_title">AI-helserapport</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeReportModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
+    </div>
+    <p class="copy-modal-desc" data-i18n="ai.modal_report_desc">Bygger en fullstendig kontekstpakke til en ekstern AI (f.eks. ChatGPT). Kopier og lim inn direkte i en ny samtale.</p>
+    <div class="copy-preview-section">
+      <div class="copy-preview-hd">
+        <div class="copy-preview-hd-dot" style="background:rgba(91,164,245,0.8)"></div>
+        <span data-i18n="ai.modal_report_includes">Innhold</span>
+      </div>
+      <div class="copy-preview-rows">
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">🏃</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_report_r1">Utøverprofil</strong> — <em data-i18n="ai.modal_report_r1s">navn, høyde, vekt, dominantben, treningsfase, trenere</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">🩹</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_report_r2">Aktive plager</strong> — <em data-i18n="ai.modal_report_r2s">alle aktive/bedring-skader med alvorlighet og notat</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">🩺</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_report_r3">Fysio-notater</strong> — <em data-i18n="ai.modal_report_r3s">de nyeste notatene fra fysio/naprapat</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">📅</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_report_r4">Siste 7 dager</strong> — <em data-i18n="ai.modal_report_r4s">søvn, HRV, RHR, kne- og skadesmerte, RPE per dag</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">🌍</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_report_r5">Miljø & spørsmål</strong> — <em data-i18n="ai.modal_report_r5s">nåværende sted, aktiviteter og tre konkrete spørsmål til AI</em></span></div>
+      </div>
+    </div>
+    <div class="copy-modal-footer">
+      <span class="copy-modal-hint" data-i18n="ai.modal_report_hint">~800 tokens · kun strukturert tekst</span>
+      <button class="copy-modal-submit blue" id="reportModalSubmitBtn" onclick="copyHealthReport()" data-i18n="ai.modal_copy_btn">Kopier til utklippstavle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diagnose modal -->
+<div class="ws-modal-backdrop" id="diagModalBackdrop" onclick="if(event.target===this)closeDiagModal()">
+  <div class="ws-modal gym-copy-modal">
+    <div class="ws-modal-hd">
+      <span class="ws-modal-title" data-i18n="ai.modal_diag_title">Diagnosestatus</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeDiagModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
+    </div>
+    <p class="copy-modal-desc" data-i18n="ai.modal_diag_desc">Kort skadestatus til trener eller fysio. Inkluderer aktive plager, smertenivå siste 7 dager og treningsbelastning.</p>
+    <div class="diag-inj-chips" id="diagInjChips">
+      <div style="color:var(--text-tertiary);font-size:12px;padding:4px 0" data-i18n="loading">Laster…</div>
+    </div>
+    <div class="copy-preview-section">
+      <div class="copy-preview-hd">
+        <div class="copy-preview-hd-dot" style="background:rgba(255,107,107,0.8)"></div>
+        <span data-i18n="ai.modal_diag_also">Inkludert automatisk</span>
+      </div>
+      <div class="copy-preview-rows">
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">📊</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_diag_r1">Smerte per skade</strong> — <em data-i18n="ai.modal_diag_r1s">maks før/under/etter/dagen etter, siste 7 dager</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">⚡</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_diag_r2">Treningsbelastning</strong> — <em data-i18n="ai.modal_diag_r2s">antall økter og snitt-RPE siste 7 dager</em></span></div>
+      </div>
+    </div>
+    <div class="copy-modal-footer">
+      <span class="copy-modal-hint" data-i18n="ai.modal_diag_hint">~200 tokens · deterministisk, ingen AI</span>
+      <button class="copy-modal-submit blue" id="diagModalSubmitBtn" onclick="copyInjuryStatus()" data-i18n="ai.modal_copy_btn">Kopier til utklippstavle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Søvnanalyse modal -->
+<div class="ws-modal-backdrop" id="sleepModalBackdrop" onclick="if(event.target===this)closeSleepModal()">
+  <div class="ws-modal gym-copy-modal">
+    <div class="ws-modal-hd">
+      <span class="ws-modal-title" data-i18n="ai.modal_sleep_title">Søvnanalyse</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeSleepModal()" style="font-size:11px" data-i18n="ws.close">Lukk</button>
+    </div>
+    <p class="copy-modal-desc" data-i18n="ai.modal_sleep_desc">Eksporterer søvndata for analyse i ekstern AI. Velg ønsket periode.</p>
+    <div class="sleep-period-chips">
+      <div class="sleep-period-chip selected" id="sleepChip7" onclick="selectSleepPeriod(7)">
+        <span data-i18n="ai.modal_sleep_7n">7 netter</span>
+        <span class="sleep-period-chip-sub" data-i18n="ai.modal_sleep_7s">1 uke</span>
+      </div>
+      <div class="sleep-period-chip" id="sleepChip14" onclick="selectSleepPeriod(14)">
+        <span data-i18n="ai.modal_sleep_14n">14 netter</span>
+        <span class="sleep-period-chip-sub" data-i18n="ai.modal_sleep_14s">2 uker</span>
+      </div>
+      <div class="sleep-period-chip" id="sleepChip30" onclick="selectSleepPeriod(30)">
+        <span data-i18n="ai.modal_sleep_30n">30 netter</span>
+        <span class="sleep-period-chip-sub" data-i18n="ai.modal_sleep_30s">1 måned</span>
+      </div>
+    </div>
+    <div class="copy-preview-section">
+      <div class="copy-preview-hd">
+        <div class="copy-preview-hd-dot" style="background:rgba(177,151,252,0.8)"></div>
+        <span data-i18n="ai.modal_sleep_includes">Per natt</span>
+      </div>
+      <div class="copy-preview-rows">
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">😴</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_sleep_r1">Søvntid</strong> — <em data-i18n="ai.modal_sleep_r1s">timer og minutter, legging- og oppvåkningstidspunkt</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">💜</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_sleep_r2">HRV & RHR</strong> — <em data-i18n="ai.modal_sleep_r2s">hjertefrekvensvariabilitet og hvilepuls</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">📈</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_sleep_r3">Score & arkitektur</strong> — <em data-i18n="ai.modal_sleep_r3s">søvnscore, dyp søvn %, REM % · snitt over perioden</em></span></div>
+        <div class="copy-preview-row"><span class="copy-preview-row-icon">🔁</span><span class="copy-preview-row-label"><strong data-i18n="ai.modal_sleep_r4">Døgnrytme</strong> — <em data-i18n="ai.modal_sleep_r4s">variasjon i leggetid — mål på søvnregularitet</em></span></div>
+      </div>
+    </div>
+    <div class="copy-modal-footer">
+      <span class="copy-modal-hint" id="sleepModalHint" data-i18n="ai.modal_sleep_hint7">~400 tokens · 7 netter</span>
+      <button class="copy-modal-submit blue" id="sleepModalSubmitBtn" onclick="copySleepAnalysis()" data-i18n="ai.modal_copy_btn">Kopier til utklippstavle</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="utils.js"></script>
@@ -897,7 +1130,7 @@ function closeWsModal() {
   wsOpenWeek = null;
   document.getElementById('wsModalBackdrop').classList.remove('open');
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeWsModal(); closeGymCopyModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeWsModal(); closeGymCopyModal(); closeReportModal(); closeDiagModal(); closeSleepModal(); closeWsCopyModal(); } });
 
 async function loadWsSummaries() {
   try {
@@ -1008,8 +1241,118 @@ function _isoDaysAgo(n) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+let _wsCopySelected = null;
+
+function openWsCopyModal() {
+  _wsCopySelected = null;
+  document.getElementById('wsCopySubmitBtn').disabled = true;
+  document.getElementById('wsCopyHint').textContent = t('ai.modal_ws_hint');
+  document.getElementById('wsCopyPreview').textContent = '';
+  document.getElementById('wsCopyModalBackdrop').classList.add('open');
+  renderWsCopyList();
+}
+function closeWsCopyModal() {
+  document.getElementById('wsCopyModalBackdrop').classList.remove('open');
+}
+function renderWsCopyList() {
+  const list = document.getElementById('wsCopyWeekList');
+  if (!wsSummaries.length) {
+    list.innerHTML = `<div style="color:var(--text-tertiary);font-size:12px;padding:4px 0">${t('ws.none')}</div>`;
+    return;
+  }
+  const cur = wsCurrentWeekStart();
+  list.innerHTML = wsSummaries.map(s => {
+    const isCur = s.week_start === cur;
+    const words = (((_lang === 'en' ? s.content_en : s.content_no) || s.content_no || '').match(/\S+/g) || []).length;
+    return `<button class="ws-copy-week-btn${_wsCopySelected === s.week_start ? ' selected' : ''}" onclick="selectWsCopyWeek('${s.week_start}')">
+      <span class="ws-copy-week-label">${wsLabel(s.week_start)}${isCur ? ' <span style="font-size:9px;color:rgba(177,151,252,0.8);font-weight:800;letter-spacing:0.06em">'+t('ws.current')+'</span>' : ''}</span>
+      <span class="ws-copy-week-meta">${words} ord</span>
+    </button>`;
+  }).join('');
+}
+function selectWsCopyWeek(weekStart) {
+  _wsCopySelected = weekStart;
+  renderWsCopyList();
+  const s = wsSummaries.find(x => x.week_start === weekStart);
+  if (!s) return;
+  const content = (_lang === 'en' ? (s.content_en || s.content_no) : (s.content_no || s.content_en)) || '';
+  // Forhåndsvisning: første 400 tegn
+  const preview = content.length > 400 ? content.slice(0, 397) + '…' : content;
+  document.getElementById('wsCopyPreview').textContent = preview;
+  const words = (content.match(/\S+/g) || []).length;
+  document.getElementById('wsCopyHint').textContent = `${wsLabel(weekStart)} · ${words} ord`;
+  document.getElementById('wsCopySubmitBtn').disabled = false;
+}
+async function executeWsCopy() {
+  if (!_wsCopySelected) return;
+  const btn = document.getElementById('wsCopySubmitBtn');
+  btn.disabled = true;
+  const s = wsSummaries.find(x => x.week_start === _wsCopySelected);
+  if (!s) { btn.disabled = false; return; }
+  const content = (_lang === 'en' ? (s.content_en || s.content_no) : (s.content_no || s.content_en)) || '';
+  const header = _lang === 'en'
+    ? `Weekly Summary — ${wsLabel(_wsCopySelected)}\n${'─'.repeat(40)}\n`
+    : `Ukesoppsummering — ${wsLabel(_wsCopySelected)}\n${'─'.repeat(40)}\n`;
+  const ok = await writeClip(header + content);
+  toast(ok ? t('ai.ws_copied') : t('ai.report_copy_fail'));
+  if (ok) closeWsCopyModal();
+  btn.disabled = false;
+}
+
+// ── Modal open/close ─────────────────────────────────────────────────────────
+function openReportModal() {
+  document.getElementById('reportModalBackdrop').classList.add('open');
+}
+function closeReportModal() {
+  document.getElementById('reportModalBackdrop').classList.remove('open');
+}
+
+async function openDiagModal() {
+  document.getElementById('diagModalBackdrop').classList.add('open');
+  const chips = document.getElementById('diagInjChips');
+  chips.innerHTML = `<div style="color:var(--text-tertiary);font-size:12px;padding:4px 0">${t('loading')}</div>`;
+  try {
+    const { data } = await db.from('injuries').select('id,body_part,side,status,severity,start_date').neq('status','archived').order('updated_at',{ascending:false});
+    const I = data || [];
+    if (!I.length) { chips.innerHTML = `<div class="diag-empty">${t('diag.none')}</div>`; return; }
+    const loc = _lang === 'en' ? 'en-US' : 'nb-NO';
+    const fmtDM = ds => ds ? new Date(ds+'T12:00:00').toLocaleDateString(loc,{day:'2-digit',month:'short'}) : '–';
+    chips.innerHTML = I.map(i => {
+      const part = t(i.body_part) || i.body_part;
+      const side = i.side ? ` (${t('inj.side_'+i.side)})` : '';
+      const sev  = i.severity ? t('inj.sev_'+i.severity) : '';
+      const badgeCls = i.status === 'improving' ? 'improving' : 'active';
+      return `<div class="diag-inj-chip">
+        <div class="diag-inj-chip-hd">${part}${side}<span class="diag-inj-chip-badge ${badgeCls}">${t('inj.st_'+i.status)}</span></div>
+        <div class="diag-inj-chip-sub">${sev ? sev+' · ' : ''}${t('inj.since')} ${fmtDM(i.start_date)}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    chips.innerHTML = `<div class="diag-empty" style="color:var(--danger)">Feil ved lasting</div>`;
+  }
+}
+function closeDiagModal() {
+  document.getElementById('diagModalBackdrop').classList.remove('open');
+}
+
+let _sleepPeriodNights = 14;
+function openSleepModal() {
+  document.getElementById('sleepModalBackdrop').classList.add('open');
+}
+function closeSleepModal() {
+  document.getElementById('sleepModalBackdrop').classList.remove('open');
+}
+function selectSleepPeriod(n) {
+  _sleepPeriodNights = n;
+  document.querySelectorAll('.sleep-period-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('sleepChip'+n).classList.add('selected');
+  const hintKey = n === 7 ? 'ai.modal_sleep_hint7' : n === 14 ? 'ai.modal_sleep_hint14' : 'ai.modal_sleep_hint30';
+  const hint = document.getElementById('sleepModalHint');
+  hint.removeAttribute('data-i18n'); hint.textContent = t(hintKey);
+}
+
 async function copyHealthReport() {
-  const btn = document.getElementById('copyReportBtn');
+  const btn = document.getElementById('reportModalSubmitBtn');
   if (btn) btn.disabled = true;
   toast(t('ai.report_building'));
   try {
@@ -1153,6 +1496,7 @@ Based strictly on sports science, tendon adaptation timelines, and my tracking d
 
     const ok = await writeClip(report);
     toast(ok ? t('ai.report_copied') : t('ai.report_copy_fail'));
+    if (ok) closeReportModal();
   } catch (e) {
     toast(t('ai.report_copy_fail'));
   } finally {
@@ -1161,14 +1505,11 @@ Based strictly on sports science, tendon adaptation timelines, and my tracking d
 }
 
 // ── Kopier diagnose: kort skadestatus til trener/fysio ──────────────────────
-// Deterministisk (ingen AI/tokens) — bygges fra injuries + siste 7 dagers
-// logger, på aktivt språk. NB: injuries.note er fritekst og kopieres som den
-// er (kun første setning) — logg notater på engelsk hvis mottakeren er engelsk.
 async function copyInjuryStatus() {
-  const btn = document.getElementById('copyDiagBtn');
+  const btn = document.getElementById('diagModalSubmitBtn');
   if (btn) btn.disabled = true;
   try {
-    const cutoff = _isoDaysAgo(6); // siste 7 dager inkl. i dag
+    const cutoff = _isoDaysAgo(6);
     const [inj, knee, gym, sprint, act, injPain] = await Promise.all([
       db.from('injuries').select('id,body_part,side,status,severity,start_date,note').neq('status', 'archived').order('updated_at', { ascending: false }),
       db.from('knee_pain').select('before_score,during_score,after_score,day_after_score').gte('date', cutoff),
@@ -1245,6 +1586,7 @@ ${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? 
 
     const ok = await writeClip(msg);
     toast(ok ? t('ai.diag_copied') : t('ai.report_copy_fail'));
+    if (ok) closeDiagModal();
   } catch (e) {
     toast(t('ai.report_copy_fail'));
   } finally {
@@ -1252,13 +1594,13 @@ ${t('diag.last7', { n: G.length + sprintDates.length + A.length, rpe: avgRpe ?? 
   }
 }
 
-// ── Kopier søvnanalyse: siste 14 netter med søvntid, legging, HRV, RHR, score ─
+// ── Kopier søvnanalyse ────────────────────────────────────────────────────────
 async function copySleepAnalysis() {
-  const btn = document.getElementById('copySleepBtn');
+  const btn = document.getElementById('sleepModalSubmitBtn');
   if (btn) btn.disabled = true;
   try {
-    // middags-anker (lokal) så slice(0,10) gir riktig kalenderdag uansett tidssone (USA)
-    const cutoff = new Date(); cutoff.setHours(12, 0, 0, 0); cutoff.setDate(cutoff.getDate() - 13);
+    const nights = _sleepPeriodNights;
+    const cutoff = new Date(); cutoff.setHours(12, 0, 0, 0); cutoff.setDate(cutoff.getDate() - (nights - 1));
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     const { data } = await db.from('health_data')
       .select('date,sleep_hours,sleep_start,sleep_end,deep_sleep_minutes,rem_sleep_minutes,light_sleep_minutes,awake_minutes,hrv,rhr,sleep_score')
@@ -1348,6 +1690,7 @@ async function copySleepAnalysis() {
 
     const ok = await writeClip(msg);
     toast(ok ? t('ai.sleep_copied') : t('ai.report_copy_fail'));
+    if (ok) closeSleepModal();
   } catch (e) {
     console.error(e);
     toast(t('ai.report_copy_fail'));
