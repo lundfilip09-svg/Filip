@@ -14,10 +14,24 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Page — full-viewport desktop app ──────────────────── */
-    .page {
-      max-width: none;
-      padding-left: 28px;
-      padding-right: 28px;
+    /* Override styles.css max-width:1100px + margin:auto */
+    body .page {
+      max-width: none !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 28px !important;
+      padding-right: 28px !important;
+    }
+    /* Stretch nav inner to match page width */
+    .nav-inner {
+      max-width: none !important;
+      padding-left: 28px !important;
+      padding-right: 28px !important;
+    }
+    .page-banner-wrap {
+      max-width: none !important;
+      padding-left: 28px !important;
+      padding-right: 28px !important;
     }
 
     /* ── 2-kolonne grid ─────────────────────────────────────── */
