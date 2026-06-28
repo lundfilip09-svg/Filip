@@ -997,6 +997,7 @@
     <div class="section-title" data-i18n="gym.history" style="margin:0;flex:1">Økthistorikk</div>
     <button id="gymManualBtn" class="btn btn-ghost btn-sm" style="display:none;font-size:11px;padding:4px 10px"
       onclick="openGymManualModal()" data-i18n="pain.manual_btn">+ Manuell</button>
+    <button class="tp-history-toggle" id="gymHistToggleBtn" onclick="toggleGymHistory()" style="display:none">∨</button>
   </div>
   <div id="gymHistory">
     <div class="loading" data-i18n="loading">Laster…</div>
@@ -4039,6 +4040,8 @@ function _gymDetailHtml(g, knee, kneeId, isOpen, results, rir) {
     </div>
   </div>`;
 }
+let _gymHistoryCollapsed = true;
+
 function renderGymHistory() {
   const el = document.getElementById('gymHistory');
   if (!el) return;
@@ -4052,7 +4055,7 @@ function renderGymHistory() {
     groups.get(g.date).push(g);
   }
 
-  const html = [...groups.entries()].map(([date, gs]) => {
+  const grpHtmls = [...groups.entries()].map(([date, gs]) => {
     const dLabel = new Date(date + 'T12:00:00').toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long' });
     const cards = gs.map(g => {
       const knee    = g._knee || _gymKneeMap[g.date + '|' + (g.session_type || '')] || null;
@@ -4081,14 +4084,29 @@ function renderGymHistory() {
       <div class="hist-date-label">${dLabel}</div>
       <div class="hist-sessions">${cards}</div>
     </div>`;
-  }).join('');
+  });
 
-  el.innerHTML = html +
+  const olderHtml = grpHtmls.length > 1
+    ? `<div id="gymHistOlderSessions" style="${_gymHistoryCollapsed ? 'display:none' : ''}">${grpHtmls.slice(1).join('')}</div>`
+    : '';
+
+  el.innerHTML = (grpHtmls[0] || '') + olderHtml +
     `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:11px;
       font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
       text-align:center">${t('gym.full_log')}</a>`;
 
+  const btn = document.getElementById('gymHistToggleBtn');
+  if (btn) btn.style.display = grpHtmls.length > 1 ? '' : 'none';
+
   if (_openGymDetail != null) _populateGymDetail(_openGymDetail);
+}
+
+function toggleGymHistory() {
+  _gymHistoryCollapsed = !_gymHistoryCollapsed;
+  const older = document.getElementById('gymHistOlderSessions');
+  const btn   = document.getElementById('gymHistToggleBtn');
+  if (older) older.style.display = _gymHistoryCollapsed ? 'none' : '';
+  if (btn)   btn.textContent = _gymHistoryCollapsed ? '∨' : '∧';
 }
 async function toggleGymDetail(gymId) {
   // Tøm eventuelle ventende auto-lagringer før vi bytter visning (så siste endring ikke tapes).
