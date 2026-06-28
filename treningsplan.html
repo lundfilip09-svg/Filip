@@ -2253,7 +2253,17 @@ function _getDayAfterForDate(injId, date) {
   return null;
 }
 function _getInjuryPain(injId, date, sessionType, legacyFallback) {
-  const row = _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] || legacyFallback || null;
+  // Eksakt nøkkel-treff
+  let row = _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] || null;
+  // Fallback: finn første rad med samme injId+date uavhengig av session_type
+  // (sprint.html lagrer dynamisk session_type f.eks. "Sprint 200m/60m (celler) Trening")
+  if (!row) {
+    const prefix = `${injId}|${date}|`;
+    for (const key of Object.keys(_injuryPainMap)) {
+      if (key.startsWith(prefix)) { row = _injuryPainMap[key]; break; }
+    }
+  }
+  row = row || legacyFallback || null;
   // Merge inn day_after_score fra hvilken som helst økt på samme dato (dato-nivå-verdi)
   const dayAfterVal = _getDayAfterForDate(injId, date);
   if (dayAfterVal == null) return row;
@@ -2278,13 +2288,15 @@ function _buildInjuryCheckpointHtml(row) {
   }</div>`;
 }
 function _buildInjuryEditHtml(inj, row, date, sessionType) {
+  // Bruk faktisk session_type fra eksisterende rad (sprint lagrer f.eks. "Sprint 200m/60m Trening")
+  const actualST = row?.session_type ?? sessionType;
   return [
       { label: t('knee.before'),   field: 'before_score',    val: row?.before_score },
       { label: t('knee.during'),   field: 'during_score',    val: row?.during_score },
       { label: t('knee.after'),    field: 'after_score',     val: row?.after_score },
       { label: t('knee.dayafter'), field: 'day_after_score', val: row?.day_after_score },
     ].map(p => painMeterHTML(`tpim-${inj.id}-${p.field}`, (p.val != null ? p.val : null),
-      { label: p.label, onset: `autoSaveInjuryPainField('${inj.id}','${date}','${escHtml(sessionType)}','${p.field}',$v)` })
+      { label: p.label, onset: `autoSaveInjuryPainField('${inj.id}','${date}','${escHtml(actualST)}','${p.field}',$v)` })
     ).join('');
 }
 
@@ -3614,12 +3626,22 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
     return;
   }
 
-  const key      = `${injId}|${date}|${sessionType || ''}`;
-  const existing = _injuryPainMap[key];
+  const exactKey = `${injId}|${date}|${sessionType || ''}`;
+  let existing = _injuryPainMap[exactKey] || null;
+
+  // Fallback: finn eksisterende rad via prefix (sprint lagrer dynamisk session_type)
+  if (!existing) {
+    const prefix = `${injId}|${date}|`;
+    for (const key of Object.keys(_injuryPainMap)) {
+      if (key.startsWith(prefix)) { existing = _injuryPainMap[key]; break; }
+    }
+  }
+
   if (existing) {
     const { error } = await db.from('injury_pain').update({ [field]: numVal }).eq('id', existing.id);
     if (!error) {
-      _injuryPainMap[key][field] = numVal;
+      existing[field] = numVal;
+      // Sørg for at in-memory map er synkronisert med begge mulige nøkler
       const allRow = _injuryPainAll.find(r => r.id === existing.id);
       if (allRow) allRow[field] = numVal;
       renderSessionGrid(); renderInjuryDash(); renderTrends();
@@ -3629,7 +3651,7 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
       injury_id: injId, date, session_type: sessionType, source: 'treningsplan', [field]: numVal,
     }).select().single();
     if (!error && data) {
-      _injuryPainMap[key] = data;
+      _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] = data;
       _injuryPainAll.push(data);
       renderSessionGrid(); renderInjuryDash(); renderTrends();
     }
