@@ -2052,11 +2052,12 @@ function renderWarmup() {
   const el      = document.getElementById('warmupContent');
   const wmDay   = activeDay + '_warmup';
   const dayExs  = allExercises[wmDay] || {};
-  const cirKey  = dayExs['Sirkulasjon'] ? 'Sirkulasjon' : 'Sykkel';
+  const CARDIO_SEC_RE = /sirkulasjon|sykkel|kondisjon|cardio/i;
+  const cirKey = Object.keys(dayExs).find(k => CARDIO_SEC_RE.test(k)) || 'Sirkulasjon';
 
   const allWmExs = [];
   for (const [sec, exs] of Object.entries(dayExs)) {
-    for (const ex of exs) allWmExs.push({ ex, isSyk: sec === cirKey });
+    for (const ex of exs) allWmExs.push({ ex, isSyk: CARDIO_SEC_RE.test(sec) });
   }
   allWmExs.sort((a, b) => (a.ex.sort_order ?? Infinity) - (b.ex.sort_order ?? Infinity));
 
