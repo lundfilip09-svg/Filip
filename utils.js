@@ -102,6 +102,7 @@ const TRANSLATIONS = {
     'dash.cal_nothing_planned': 'Ingenting planlagt', 'dash.cal_not_connected': 'Kalender ikke tilkoblet',
     // v2 readiness / session card
     'dash.readiness_lbl': 'Readiness',
+    'dash.sleep_score_lbl': 'Søvnscore',
     'dash.rec_vol_lbl': 'Volum', 'dash.rec_int_lbl': 'Intensitet',
     'dash.rec_high': 'Høy', 'dash.rec_mod': 'Moderat', 'dash.rec_low': 'Lav',
     'dash.rec_heavy': 'Tung', 'dash.rec_moderate': 'Moderat', 'dash.rec_light': 'Lett',
@@ -769,6 +770,7 @@ const TRANSLATIONS = {
     'dash.cal_nothing_planned': 'Nothing planned', 'dash.cal_not_connected': 'Calendar not connected',
     // v2 readiness / session card
     'dash.readiness_lbl': 'Readiness',
+    'dash.sleep_score_lbl': 'Sleep Score',
     'dash.rec_vol_lbl': 'Volume', 'dash.rec_int_lbl': 'Intensity',
     'dash.rec_high': 'High', 'dash.rec_mod': 'Moderate', 'dash.rec_low': 'Low',
     'dash.rec_heavy': 'Heavy', 'dash.rec_moderate': 'Moderate', 'dash.rec_light': 'Light',

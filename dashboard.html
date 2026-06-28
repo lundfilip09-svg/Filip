@@ -860,17 +860,18 @@ function renderSleepCard(d) {
     readiness = sc;
   }
 
-  // ── Verdict ──
-  const ringClr = !readiness ? '#555' : readiness >= 80 ? '#6BE3A4' : readiness >= 60 ? '#F2C063' : '#FF8A8A';
-  const verdictCls = !readiness ? '' : readiness >= 80 ? 'v-green' : readiness >= 60 ? 'v-yellow' : 'v-red';
+  // ── Verdict (based on sleep_score directly) ──
+  const ringScore = sc; // sleep_score from Garmin, not composite readiness
+  const ringClr = !ringScore ? '#555' : ringScore >= 80 ? '#6BE3A4' : ringScore >= 60 ? '#F2C063' : '#FF8A8A';
+  const verdictCls = !ringScore ? '' : ringScore >= 80 ? 'v-green' : ringScore >= 60 ? 'v-yellow' : 'v-red';
   let verdictText;
-  if (!readiness)        verdictText = t('no_data');
-  else if (readiness >= 80) verdictText = t('sovn.ready_high');
-  else if (readiness >= 60) verdictText = t('sovn.ready_moderate');
+  if (!ringScore)          verdictText = t('no_data');
+  else if (ringScore >= 80) verdictText = t('sovn.ready_high');
+  else if (ringScore >= 60) verdictText = t('sovn.ready_moderate');
   else                      verdictText = t('sovn.ready_rest');
 
   // ── Training recommendations ──
-  const R = readiness || 0;
+  const R = readiness || 0; // still use composite readiness for training recs
   const hu = t('dash.hr_unit'), mu = t('dash.min_unit');
   const fmtHours = h => { if (!h) return '–'; const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m/60)}${hu} ${m%60}${mu}` : `${m}${mu}`; };
   const fmtMin   = m => { if (!m) return '–'; return m >= 60 ? `${Math.floor(m/60)}${hu}${m%60>0?' '+m%60+mu:''}` : `${m}${mu}`; };
@@ -933,8 +934,8 @@ function renderSleepCard(d) {
   // ── SVG ring ──
   const RR = 39, CX = 46, CY = 46, CIRC = 2 * Math.PI * RR;
   const gradId = 'scRingGrad_' + Math.random().toString(36).slice(2, 7);
-  const gradStart = readiness != null && readiness >= 80 ? '#6BE3A4' : readiness != null && readiness >= 65 ? '#F2C063' : readiness != null && readiness >= 50 ? '#F2A04A' : '#FF6B6B';
-  const pct = readiness != null ? Math.min(readiness / 100, 1) : 0;
+  const gradStart = ringScore != null && ringScore >= 80 ? '#6BE3A4' : ringScore != null && ringScore >= 65 ? '#F2C063' : ringScore != null && ringScore >= 50 ? '#F2A04A' : '#FF6B6B';
+  const pct = ringScore != null ? Math.min(ringScore / 100, 1) : 0;
   const dash = pct * CIRC, gap = CIRC - dash;
   const ringHtml = `
     <svg viewBox="0 0 92 92" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -962,13 +963,13 @@ function renderSleepCard(d) {
             <div class="sc-ring-wrap">
               ${ringHtml}
               <div class="sc-ring-center">
-                <div class="sc-score" style="color:${ringClr}">${readiness != null ? `<span data-countup="${readiness}">0</span>` : '–'}</div>
+                <div class="sc-score" style="color:${ringClr}">${ringScore != null ? `<span data-countup="${ringScore}">0</span>` : '–'}</div>
                 <div class="sc-score-sub">/100</div>
               </div>
             </div>
           </div>
           <div class="sc-verdict">
-            <div class="sc-verdict-label" data-i18n="dash.readiness_lbl">${t('dash.readiness_lbl')}</div>
+            <div class="sc-verdict-label" data-i18n="dash.sleep_score_lbl">${t('dash.sleep_score_lbl')}</div>
             <div class="sc-verdict-status ${verdictCls}">${verdictText}</div>
             ${dataAge ? `<div class="sc-age" style="color:${ageColor};margin-top:4px">${dataAge}</div>` : ''}
             <!-- Training recs -->
