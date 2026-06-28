@@ -849,7 +849,7 @@ function renderSleepCard(d) {
   let readiness = null;
   let components = 0;
   let wsum = 0;
-  if (hrv)  { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.45; components++; }
+  if (hrv)  { const s = hrv >= 60 ? 100 : hrv >= 50 ? 82 : hrv >= 40 ? 58 : hrv >= 30 ? 32 : 10; wsum += s * 0.45; components++; }
   if (sc)   { wsum += sc * 0.40; components++; }
   if (hrs)  { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.15; components++; }
   if (components >= 1) {
@@ -865,9 +865,10 @@ function renderSleepCard(d) {
   const ringClr = !ringScore ? '#555' : ringScore >= 80 ? '#6BE3A4' : ringScore >= 60 ? '#F2C063' : '#FF8A8A';
   const verdictCls = !ringScore ? '' : ringScore >= 80 ? 'v-green' : ringScore >= 60 ? 'v-yellow' : 'v-red';
   let verdictText;
-  if (!ringScore)          verdictText = t('no_data');
+  if (!ringScore)           verdictText = t('no_data');
   else if (ringScore >= 80) verdictText = t('sovn.ready_high');
-  else if (ringScore >= 60) verdictText = t('sovn.ready_moderate');
+  else if (ringScore >= 65) verdictText = t('sovn.ready_good');
+  else if (ringScore >= 45) verdictText = t('sovn.ready_moderate');
   else                      verdictText = t('sovn.ready_rest');
 
   // ── Training recommendations ──
@@ -915,10 +916,11 @@ function renderSleepCard(d) {
   // ── Insights (2-3 lines) ──
   const insights = [];
   if (hrv) {
-    if (hrv >= 65)     insights.push({ cls: 'ins-pos',  icon: '⚡', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_optimal').split('.')[0]}` });
-    else if (hrv >= 45) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_good').split('.')[0]}` });
-    else if (hrv >= 30) insights.push({ cls: 'ins-warn', icon: '⚠', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_low').split('.')[0]}` });
-    else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_critical').split('.')[0]}` });
+    if (hrv >= 60)      insights.push({ cls: 'ins-pos',  icon: '⚡', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_optimal').split('.')[0]}` });
+    else if (hrv >= 50) insights.push({ cls: 'ins-pos',  icon: '✅', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_good').split('.')[0]}` });
+    else if (hrv >= 40) insights.push({ cls: 'ins-warn', icon: '⚠️', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_low').split('.')[0]}` });
+    else if (hrv >= 30) insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_critical').split('.')[0]}` });
+    else                insights.push({ cls: 'ins-bad',  icon: '🔴', html: `<strong>HRV ${hrv}ms</strong> — ${t('sovn.hrv_advice_alarm').split('.')[0]}` });
   }
   if (hrs) {
     if (hrs >= 8)       insights.push({ cls: 'ins-pos',  icon: '🌙', html: `<strong>${fmtHours(hrs)}</strong> — ${t('sovn.sleep_advice_optimal').split('.')[0]}` });
@@ -994,8 +996,8 @@ function renderSleepCard(d) {
         <div class="sc-factors">
           <div class="sc-factor f-hrv">
             <div class="sc-factor-lbl">HRV</div>
-            <div class="sc-factor-val">${hrv != null ? hrv : '–'}</div>
-            <div class="sc-factor-unit">ms</div>
+            <div class="sc-factor-val" style="color:${hrv == null ? 'var(--text-secondary)' : hrv >= 60 ? '#6BE3A4' : hrv >= 50 ? '#6BE3A4' : hrv >= 40 ? '#F2C063' : '#FF6B6B'}">${hrv != null ? hrv : '–'}</div>
+            <div class="sc-factor-unit">ms · ${hrv == null ? '–' : hrv >= 60 ? t('sovn.hrv_optimal') : hrv >= 50 ? t('sovn.hrv_good') : hrv >= 40 ? t('sovn.hrv_low') : t('sovn.hrv_critical')}</div>
           </div>
           <div class="sc-factor f-deep">
             <div class="sc-factor-lbl">${t('dash.deep')}</div>
@@ -1550,7 +1552,7 @@ function loadSession() {
   let readiness = null;
   if (hrv || sc) {
     let wsum = 0, usedW = 0;
-    if (hrv) { const s = hrv >= 70 ? 100 : hrv >= 55 ? 82 : hrv >= 40 ? 58 : hrv >= 28 ? 32 : 10; wsum += s * 0.45; usedW += 0.45; }
+    if (hrv) { const s = hrv >= 60 ? 100 : hrv >= 50 ? 82 : hrv >= 40 ? 58 : hrv >= 30 ? 32 : 10; wsum += s * 0.45; usedW += 0.45; }
     if (sc)  { wsum += sc * 0.40; usedW += 0.40; }
     if (hrs) { const s = hrs >= 8.5 ? 100 : hrs >= 7.5 ? 88 : hrs >= 7 ? 72 : hrs >= 6 ? 50 : 22; wsum += s * 0.15; usedW += 0.15; }
     if (usedW > 0) readiness = Math.round(wsum / usedW);
