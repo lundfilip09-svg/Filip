@@ -3616,13 +3616,50 @@ async function deleteSprintSession(date) {
   toast(t('gym.deleted'));
 }
 
+// Oppdaterer kun .gym-hist-injs i det åpne sess-card — unngår full grid-re-render
+// som ellers resetter scroll og visuell tilstand under smerte-redigering.
+function _patchPainChipsInCard(date, sessionType) {
+  if (!_openDetail) return;
+  const card = document.getElementById('sess-card-' + _openDetail);
+  if (!card) return;
+
+  // Hent riktig knee-objekt for gjeldende korttype
+  let knee = null;
+  if (_openDetail.startsWith('sprint-')) {
+    knee = _kneeSprint[date] || null;
+  } else if (!_openDetail.startsWith('act-')) {
+    const g = _sessData.find(s => String(s.id) === _openDetail);
+    if (g) knee = _kneeMap[g.date + '|' + (g.session_type || '')] || null;
+  }
+
+  const chips = buildPainSummaryForDate(date, knee, sessionType);
+  let injs = card.querySelector('.gym-hist-injs');
+  if (chips) {
+    if (injs) {
+      injs.innerHTML = chips;
+    } else {
+      // Legg til etter .sess-info-row
+      const infoRow = card.querySelector('.sess-info-row');
+      if (infoRow) {
+        const div = document.createElement('div');
+        div.className = 'gym-hist-injs';
+        div.innerHTML = chips;
+        infoRow.insertAdjacentElement('afterend', div);
+      }
+    }
+  } else if (injs) {
+    injs.remove();
+  }
+
+}
+
 async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
   const numVal  = value === '' ? null : Number(value);
 
   // day_after_score er dato-nivå → sync til alle rader på samme dato+skade
   if (field === 'day_after_score') {
     await _syncDayAfterScore(injId, date, numVal, sessionType);
-    renderSessionGrid(); renderInjuryDash(); renderTrends();
+    _patchPainChipsInCard(date, sessionType); renderInjuryDash(); renderTrends();
     return;
   }
 
@@ -3644,7 +3681,7 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
       // Sørg for at in-memory map er synkronisert med begge mulige nøkler
       const allRow = _injuryPainAll.find(r => r.id === existing.id);
       if (allRow) allRow[field] = numVal;
-      renderSessionGrid(); renderInjuryDash(); renderTrends();
+      _patchPainChipsInCard(date, sessionType); renderInjuryDash(); renderTrends();
     }
   } else {
     const { data, error } = await db.from('injury_pain').insert({
@@ -3653,7 +3690,7 @@ async function autoSaveInjuryPainField(injId, date, sessionType, field, value) {
     if (!error && data) {
       _injuryPainMap[`${injId}|${date}|${sessionType || ''}`] = data;
       _injuryPainAll.push(data);
-      renderSessionGrid(); renderInjuryDash(); renderTrends();
+      _patchPainChipsInCard(date, sessionType); renderInjuryDash(); renderTrends();
     }
   }
 }
