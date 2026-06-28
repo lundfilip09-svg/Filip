@@ -1772,12 +1772,12 @@ async function executeGymCopy() {
     const dayVariants = selectedKeys.flatMap(k => [k, k + '_warmup', k + '_activation']);
     const [progRes, wtsRes] = await Promise.all([
       db.from('workout_program').select('day,section,exercise_name,sets,reps,sort_order').in('day', dayVariants).order('sort_order'),
-      db.from('exercise_weights').select('exercise_name,exercise_id,weight_kg'),
+      db.from('exercise_weights').select('exercise_name,exercise_id,weight_kg,updated_at').order('updated_at', { ascending: true }),
     ]);
     const prog = progRes.data || [];
     const wts  = wtsRes.data || [];
     const wMap = {};
-    wts.forEach(w => { if (w.exercise_name) wMap[w.exercise_name] = w.weight_kg; });
+    wts.forEach(w => { if (w.exercise_name) wMap[w.exercise_name] = w.weight_kg; }); // ascending → newest overwrites dupes
     // grouped[dayKey] = { sec: [ex, …] }  — main exercises only
     // warmup[dayKey]  = { sec: [ex, …] }  — warmup/activation exercises
     const grouped = {};
