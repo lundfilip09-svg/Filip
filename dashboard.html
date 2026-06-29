@@ -46,8 +46,8 @@
     }
     .os-label-dot {
       width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
-      background: rgba(224,118,88,0.65);
-      box-shadow: 0 0 7px rgba(224,118,88,0.45);
+      background: rgba(91,164,245,0.65);
+      box-shadow: 0 0 7px rgba(91,164,245,0.45);
     }
     .os-label-text {
       font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.22em;
@@ -65,7 +65,7 @@
     /* Card borders & accents */
     .card { border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.2s, box-shadow 0.2s; }
     .card:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.28); }
-    .card-sleep   { border-top-color: rgba(107,227,164,0.28) !important; border-top-width: 2px !important; }
+    .card-sleep   { border-top-color: rgba(91,164,245,0.28) !important; border-top-width: 2px !important; }
     .card-knee    { border-top-color: rgba(255,107,107,0.22) !important; border-top-width: 2px !important; }
     .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
 
@@ -104,7 +104,7 @@
       font-size: 15px; font-weight: 700; line-height: 1.2; color: var(--text-primary);
     }
     .sc-verdict-status.v-green { color: #6BE3A4; }
-    .sc-verdict-status.v-yellow { color: #F2C063; }
+    .sc-verdict-status.v-yellow { color: #5BA4F5; }
     .sc-verdict-status.v-red { color: #FF8A8A; }
 
     /* Training recommendation pills */
@@ -118,8 +118,8 @@
     .sc-rec-pill .rp-val { font-weight: 700; }
     .sc-rec-pill.rp-green { background: rgba(107,227,164,0.07); border: 1px solid rgba(107,227,164,0.18); }
     .sc-rec-pill.rp-green .rp-val { color: #6BE3A4; }
-    .sc-rec-pill.rp-yellow { background: rgba(242,192,99,0.07); border: 1px solid rgba(242,192,99,0.18); }
-    .sc-rec-pill.rp-yellow .rp-val { color: #F2C063; }
+    .sc-rec-pill.rp-yellow { background: rgba(91,164,245,0.07); border: 1px solid rgba(91,164,245,0.18); }
+    .sc-rec-pill.rp-yellow .rp-val { color: #5BA4F5; }
     .sc-rec-pill.rp-red { background: rgba(255,107,107,0.07); border: 1px solid rgba(255,107,107,0.18); }
     .sc-rec-pill.rp-red .rp-val { color: #FF8A8A; }
     .sc-rec-pill.rp-blue { background: rgba(91,164,245,0.07); border: 1px solid rgba(91,164,245,0.18); }
@@ -226,7 +226,7 @@
       padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;
       letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .session-badge.styrke    { background: rgba(242,192,99,0.12);  color: #F2C063; border: 1px solid rgba(242,192,99,0.2); }
+    .session-badge.styrke    { background: rgba(91,164,245,0.15);  color: #5BA4F5; border: 1px solid rgba(91,164,245,0.30); }
     .session-badge.kondisjon { background: rgba(107,227,164,0.12); color: #6BE3A4; border: 1px solid rgba(107,227,164,0.2); }
     .session-badge.power     { background: rgba(91,164,245,0.12);  color: #5BA4F5; border: 1px solid rgba(91,164,245,0.2); }
     .session-badge.hvile     { background: rgba(255,255,255,0.04); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
@@ -248,7 +248,7 @@
       font-size: 10px; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em;
     }
     .sc2-readiness-pill.rp-green  { background: rgba(107,227,164,0.1);  border: 1px solid rgba(107,227,164,0.22); color: #6BE3A4; }
-    .sc2-readiness-pill.rp-yellow { background: rgba(242,192,99,0.1);   border: 1px solid rgba(242,192,99,0.22);  color: #F2C063; }
+    .sc2-readiness-pill.rp-yellow { background: rgba(91,164,245,0.1);   border: 1px solid rgba(91,164,245,0.22);  color: #5BA4F5; }
     .sc2-readiness-pill.rp-red    { background: rgba(255,107,107,0.1);  border: 1px solid rgba(255,107,107,0.22); color: #FF8A8A; }
     .sc2-risk-pill {
       display: flex; align-items: center; gap: 4px;
@@ -334,13 +334,13 @@
     .fokus-item.is-checkable:active { background: rgba(255,255,255,0.06); transform: scale(0.98); }
     .fokus-item.is-done { opacity: 0.38; }
     .fokus-item.is-done .fokus-text { text-decoration: line-through; color: var(--text-tertiary); }
-    .fokus-item.cat-styrke   { border-left-color: rgba(255,184,77,0.55); }
+    .fokus-item.cat-styrke   { border-left-color: rgba(91,164,245,0.55); }
     .fokus-item.cat-sprint   { border-left-color: rgba(91,164,245,0.55); }
     .fokus-item.cat-rehab    { border-left-color: rgba(107,227,164,0.5); }
     .fokus-item.cat-recovery { border-left-color: rgba(177,151,252,0.45); }
     .fokus-item.cat-sovn     { border-left-color: rgba(91,164,245,0.35); }
     .fokus-item.cat-warning  { border-left-color: rgba(242,130,60,0.6); background: rgba(242,130,60,0.04); }
-    .fokus-item.cat-kalender { border-left-color: rgba(126,200,227,0.45); }
+    .fokus-item.cat-kalender { border-left-color: rgba(91,164,245,0.55); }
     .fokus-body  { flex: 1; min-width: 0; }
     .fokus-text  { font-size: 12px; color: var(--text-secondary); line-height: 1.3; }
     .fokus-subtext {
@@ -352,13 +352,13 @@
       text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
       flex-shrink: 0; white-space: nowrap;
     }
-    .fokus-badge--styrke   { background: rgba(255,184,77,0.1);  color: rgba(255,184,77,0.8); }
+    .fokus-badge--styrke   { background: rgba(91,164,245,0.1);  color: rgba(91,164,245,0.8); }
     .fokus-badge--sprint   { background: rgba(91,164,245,0.1);  color: rgba(91,164,245,0.8); }
     .fokus-badge--rehab    { background: rgba(107,227,164,0.1); color: rgba(107,227,164,0.8); }
     .fokus-badge--recovery { background: rgba(177,151,252,0.1); color: rgba(177,151,252,0.8); }
     .fokus-badge--sovn     { background: rgba(91,164,245,0.07); color: rgba(91,164,245,0.65); }
     .fokus-badge--warning  { background: rgba(242,130,60,0.12); color: rgba(242,130,60,0.9); }
-    .fokus-badge--kalender { background: rgba(126,200,227,0.1); color: rgba(126,200,227,0.8); }
+    .fokus-badge--kalender { background: rgba(91,164,245,0.1);  color: rgba(91,164,245,0.8); }
     .fokus-check {
       width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
       border: 1.5px solid rgba(255,255,255,0.14); margin-left: 6px;
@@ -469,7 +469,7 @@
     .week-day.today .week-day-num { color: var(--text-primary); }
     .week-day-indicator { width: 5px; height: 5px; border-radius: 50%; margin-top: 2px; }
     .ind-rest     { background: rgba(255,255,255,0.0); }
-    .ind-styrke   { background: #FFB84D; box-shadow: 0 0 5px rgba(255,184,77,0.5); }
+    .ind-styrke   { background: #5BA4F5; box-shadow: 0 0 5px rgba(91,164,245,0.5); }
     .ind-sprint   { background: #5BA4F5; box-shadow: 0 0 5px rgba(91,164,245,0.5); }
     .ind-kondisjon { background: #6BE3A4; box-shadow: 0 0 5px rgba(107,227,164,0.4); }
     .ind-rehab    { background: #B19FFE; box-shadow: 0 0 5px rgba(177,159,254,0.5); }
@@ -478,7 +478,7 @@
       font-size: 8.5px; font-family: var(--font-mono); letter-spacing: 0.04em;
       padding: 3px 7px; border-radius: 3px; white-space: nowrap; line-height: 1.2;
     }
-    .week-session-chip.ind-styrke   { background: rgba(255,184,77,0.15);  color: #FFB84D; }
+    .week-session-chip.ind-styrke   { background: rgba(91,164,245,0.15);  color: #5BA4F5; }
     .week-session-chip.ind-sprint   { background: rgba(91,164,245,0.15);  color: #5BA4F5; }
     .week-session-chip.ind-kondisjon { background: rgba(107,227,164,0.15); color: #6BE3A4; }
     .week-session-chip.ind-rehab    { background: rgba(177,159,254,0.15); color: #B19FFE; }
@@ -513,7 +513,6 @@
   <!-- ══════════════════  STATUS  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot"></div>
-    <div class="os-label-text" data-i18n="dash.status">Status</div>
     <div class="os-label-line"></div>
   </div>
   <div class="status-row">
@@ -588,7 +587,7 @@
 
   <!-- ══════════════════  OVERSIKT  ══════════════════ -->
   <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(107,227,164,0.55);box-shadow:0 0 7px rgba(107,227,164,0.3)"></div>
+    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
     <div class="os-label-text" data-i18n="dash.overview">Oversikt</div>
     <div class="os-label-line"></div>
   </div>
@@ -675,7 +674,7 @@
 
   <!-- ══════════════════  KALENDER  ══════════════════ -->
   <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(126,200,227,0.5);box-shadow:0 0 7px rgba(126,200,227,0.3)"></div>
+    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
     <div class="os-label-text" data-i18n="dash.calendar">Kalender</div>
     <div class="os-label-line"></div>
   </div>
@@ -862,7 +861,7 @@ function renderSleepCard(d) {
 
   // ── Verdict (based on sleep_score directly) ──
   const ringScore = sc; // sleep_score from Garmin, not composite readiness
-  const ringClr = !ringScore ? '#555' : ringScore >= 80 ? '#6BE3A4' : ringScore >= 60 ? '#F2C063' : '#FF8A8A';
+  const ringClr = !ringScore ? '#555' : ringScore >= 80 ? '#6BE3A4' : ringScore >= 60 ? '#5BA4F5' : '#FF8A8A';
   const verdictCls = !ringScore ? '' : ringScore >= 80 ? 'v-green' : ringScore >= 60 ? 'v-yellow' : 'v-red';
   let verdictText;
   if (!ringScore)           verdictText = t('no_data');
@@ -936,7 +935,7 @@ function renderSleepCard(d) {
   // ── SVG ring ──
   const RR = 39, CX = 46, CY = 46, CIRC = 2 * Math.PI * RR;
   const gradId = 'scRingGrad_' + Math.random().toString(36).slice(2, 7);
-  const gradStart = ringScore != null && ringScore >= 80 ? '#6BE3A4' : ringScore != null && ringScore >= 65 ? '#F2C063' : ringScore != null && ringScore >= 50 ? '#F2A04A' : '#FF6B6B';
+  const gradStart = ringScore != null && ringScore >= 80 ? '#6BE3A4' : ringScore != null && ringScore >= 65 ? '#5BA4F5' : ringScore != null && ringScore >= 50 ? '#4A87D9' : '#FF6B6B';
   const pct = ringScore != null ? Math.min(ringScore / 100, 1) : 0;
   const dash = pct * CIRC, gap = CIRC - dash;
   const ringHtml = `
@@ -1068,7 +1067,7 @@ function _renderSleepSparkline() {
   });
   const lastIdx = scores.length - 1;
   const lastScore = scores[lastIdx];
-  const ringClrFn = s => !s ? '#555' : s >= 80 ? '#6BE3A4' : s >= 60 ? '#F2C063' : '#FF6B6B';
+  const ringClrFn = s => !s ? '#555' : s >= 80 ? '#6BE3A4' : s >= 60 ? '#5BA4F5' : '#FF6B6B';
 
   // Custom plugin: draw score pill above the last (today's) point
   const scoreLabelPlugin = {
@@ -1107,7 +1106,7 @@ function _renderSleepSparkline() {
       labels,
       datasets: [{
         data: scores,
-        borderColor: '#6BE3A4',
+        borderColor: '#5BA4F5',
         borderWidth: 1.5,
         pointRadius: scores.map((_, i) => i === lastIdx ? 3.5 : 2),
         pointHoverRadius: 5,
@@ -1117,8 +1116,8 @@ function _renderSleepSparkline() {
         fill: true,
         backgroundColor: ctx => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, H);
-          g.addColorStop(0, 'rgba(107,227,164,0.18)');
-          g.addColorStop(1, 'rgba(107,227,164,0)');
+          g.addColorStop(0, 'rgba(91,164,245,0.18)');
+          g.addColorStop(1, 'rgba(91,164,245,0)');
           return g;
         },
         spanGaps: true,
@@ -1134,7 +1133,7 @@ function _renderSleepSparkline() {
         tooltip: {
           enabled: true,
           backgroundColor: 'rgba(18,18,22,0.92)',
-          borderColor: 'rgba(107,227,164,0.25)',
+          borderColor: 'rgba(91,164,245,0.25)',
           borderWidth: 1,
           titleColor: 'rgba(255,255,255,0.5)',
           titleFont: { family: 'monospace', size: 9 },
@@ -1463,7 +1462,7 @@ function renderLoadPain() {
           label: t('dash.acwr_label'),
           data: series.map((p, i) => ({ x: i, y: p.acwr })),
           parsing: false,
-          yAxisID: 'yA', borderColor: '#6BE3A4', backgroundColor: 'rgba(107,227,164,0.08)',
+          yAxisID: 'yA', borderColor: '#5BA4F5', backgroundColor: 'rgba(91,164,245,0.08)',
           borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true, fill: true,
         },
         {
@@ -1522,8 +1521,8 @@ function renderLoadPain() {
         yA: {
           position: 'left', min: 0, suggestedMax: 2,
           grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-          ticks: { color: '#6BE3A4', font: { family: 'ui-monospace', size: 11 } },
-          title: { display: true, text: t('dash.acwr_label'), color: 'rgba(107,227,164,0.7)', font: { size: 11, weight: '600' } },
+          ticks: { color: '#5BA4F5', font: { family: 'ui-monospace', size: 11 } },
+          title: { display: true, text: t('dash.acwr_label'), color: 'rgba(91,164,245,0.7)', font: { size: 11, weight: '600' } },
         },
         yP: {
           position: 'right', min: 0, max: 10,
@@ -2119,8 +2118,8 @@ function _calIsToday(start) {
 }
 function kalenderFarge(tittel) {
   const s = tittel || '';
-  if (/styrke|friidrett|strength|track/i.test(s)) return '#FFB84D';
-  if (/stevne|konkurranse|competition|meet|race/i.test(s)) return '#F6C453';
+  if (/styrke|friidrett|strength|track/i.test(s)) return '#5BA4F5';
+  if (/stevne|konkurranse|competition|meet|race/i.test(s)) return '#5BA4F5';
   if (/gudstjeneste|salhus|salt|church|service|worship/i.test(s)) return '#7EC8E3';
   if (/helligdag|holiday/i.test(s)) return '#66C7A3';
   return '#B197FC';
