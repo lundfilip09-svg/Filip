@@ -223,9 +223,8 @@
     .wm-toggle {
       display: flex; align-items: center; gap: 10px;
       width: 100%; padding: 11px 16px;
-      background: transparent; border: none; border-bottom: 1px solid var(--gym-b1); cursor: pointer; text-align: left;
+      background: transparent; border: none; cursor: pointer; text-align: left;
     }
-    .wm-wrap:not(.open) .wm-toggle { border-bottom-color: transparent; }
     .wm-label { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); flex: 1; }
     .wm-badge { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 5px; }
     .wm-chevron { color: var(--text-tertiary); font-size: 9px; transition: transform 0.2s; }
@@ -1225,7 +1224,7 @@ let workoutState  = 'idle';
 let workoutStart  = null;   // timestamp (ms)
 let elapsedTimer  = null;
 let completedSets    = {};     // exId -> Set of done set indices
-let skippedExercises = new Set(); // exId -> skippa under denne økta (ekskluderes fra progress)
+let blockedExercises = new Set(); // exId -> permanent blokkert (pga skade), lagres i DB
 let setData       = {};     // exId -> [{ done, weight, reps, notes }]
 let exRir         = {};     // exId -> logget innsats (RIR 0–5) for øvelsen denne økta
 let activeDrawer  = null;
@@ -1713,7 +1712,6 @@ function saveSession() {
     ),
     setData,
     exRir: { ...exRir },
-    skippedExercises: [...skippedExercises],
     kneePain: { ...kneePain },
     injuryScores: _injuryScores,
     restStartedAt,
@@ -1761,7 +1759,6 @@ function tryRestoreSession(data) {
     workoutStart  = data.workoutStartedAt;
     completedSets = {};
     Object.entries(data.completedSets || {}).forEach(([k, v]) => { completedSets[k] = new Set(v); });
-    skippedExercises = new Set(data.skippedExercises || []);
     setData = data.setData || {};
     exRir = data.exRir || {};
     Object.assign(kneePain, data.kneePain || {});
@@ -1908,6 +1905,7 @@ async function loadData() {
   ];
   _buildTplBridge();   // 051/F2-bolk1: day_key -> template_id
   allExercises = {};
+  blockedExercises = new Set();
   (prog.data || []).forEach(ex => {
     const secName = (ex.section || '').toUpperCase() || 'ØVELSER';
     if (ex.section !== secName) {
@@ -1917,6 +1915,7 @@ async function loadData() {
     if (!allExercises[ex.day]) allExercises[ex.day] = {};
     if (!allExercises[ex.day][ex.section]) allExercises[ex.day][ex.section] = [];
     allExercises[ex.day][ex.section].push(ex);
+    if (ex.is_blocked) blockedExercises.add(String(ex.id));
   });
   weights = {};
   (wts.data || []).forEach(w => {
@@ -2703,7 +2702,7 @@ function renderSectionBlock(label, exs, day) {
 function renderExRow(ex, day, num, isWarmup) {
   const done   = completedSets[ex.id] || new Set();
   const isDone = !isWarmup && done.size >= ex.sets && ex.sets > 0;
-  const isSkipped = !isWarmup && skippedExercises.has(String(ex.id));
+  const isBlocked = !isWarmup && blockedExercises.has(String(ex.id));
   const isAct  = ex.id === activeExId;
   let progTxt  = '', progCls = '';
   if (!isWarmup) {
@@ -2714,7 +2713,7 @@ function renderExRow(ex, day, num, isWarmup) {
   const exSec = ex.section || '';
   const dragAttrs = ` draggable="true" data-exid="${ex.id}" data-day="${escHtml(exDay)}" data-section="${escHtml(exSec)}"` +
     ` ondragstart="exDragStart(event)" ondragend="exDragEnd(event)"`;
-  return `<div class="ex-row-wrap${isSkipped ? ' is-skipped' : ''}" id="ex-row-wrap-${ex.id}"${dragAttrs}>
+  return `<div class="ex-row-wrap${isBlocked ? ' is-skipped' : ''}" id="ex-row-wrap-${ex.id}"${dragAttrs}>
     <div class="ex-row${isDone ? ' is-done' : ''}${isAct ? ' is-active' : ''}" id="ex-row-${ex.id}"
       onclick="${isWarmup ? '' : `handleExClick('${ex.id}')`}">
       ${!isWarmup ? `<div class="ex-chk${isDone ? ' done' : ''}" id="ex-chk-${ex.id}"
@@ -2753,8 +2752,8 @@ function renderExRow(ex, day, num, isWarmup) {
       </div>
       ${progTxt ? `<div class="ex-r-prog ${progCls}">${progTxt}</div>` : ''}
       ${!isWarmup ? `<button class="ex-skip-btn" id="ex-skip-${ex.id}"
-        onclick="event.stopPropagation();toggleSkipExercise('${ex.id}')"
-        title="${isSkipped ? t('gym.unskip_exercise') : t('gym.skip_exercise')}">${isSkipped ? '↩' : '🚫'}</button>` : ''}
+        onclick="event.stopPropagation();toggleBlockExercise('${ex.id}')"
+        title="${isBlocked ? t('gym.unblock_exercise') : t('gym.block_exercise')}">${isBlocked ? '↩' : '🚫'}</button>` : ''}
       <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
     </div>
     <div class="set-drawer" id="drawer-${ex.id}"></div>
@@ -2990,25 +2989,30 @@ function toggleExDone(exId) {
   saveSession();
 }
 
-function toggleSkipExercise(exId) {
+async function toggleBlockExercise(exId) {
   const key = String(exId);
-  const wrap = document.getElementById(`ex-row-wrap-${exId}`);
-  if (skippedExercises.has(key)) {
-    skippedExercises.delete(key);
-    if (wrap) wrap.classList.remove('is-skipped');
-    const btn = document.getElementById(`ex-skip-${exId}`);
-    if (btn) { btn.textContent = '🚫'; btn.title = t('gym.skip_exercise'); }
+  const isBlocked = blockedExercises.has(key);
+  const newBlocked = !isBlocked;
+  const { error } = await db.from('workout_program').update({ is_blocked: newBlocked }).eq('id', exId);
+  if (error) { toast(t('gym.save_error'), 'err'); return; }
+  // Oppdater lokal state og ex-objekt
+  if (newBlocked) {
+    blockedExercises.add(key);
   } else {
-    skippedExercises.add(key);
-    if (wrap) wrap.classList.add('is-skipped');
-    const btn = document.getElementById(`ex-skip-${exId}`);
-    if (btn) { btn.textContent = '↩'; btn.title = t('gym.unskip_exercise'); }
-    // Close drawer if this exercise is active
-    if (activeDrawer === exId) closeDrawer();
+    blockedExercises.delete(key);
   }
+  const ex = findExById(exId);
+  if (ex) ex.is_blocked = newBlocked;
+  const wrap = document.getElementById(`ex-row-wrap-${exId}`);
+  if (wrap) wrap.classList.toggle('is-skipped', newBlocked);
+  const btn = document.getElementById(`ex-skip-${exId}`);
+  if (btn) {
+    btn.textContent = newBlocked ? '↩' : '🚫';
+    btn.title = newBlocked ? t('gym.unblock_exercise') : t('gym.block_exercise');
+  }
+  if (newBlocked && activeDrawer === exId) closeDrawer();
   updateProgress();
   updateNextEx();
-  saveSession();
 }
 
 function updateExRowStatus(exId) {
@@ -3062,7 +3066,6 @@ function startWorkout() {
   workoutStart  = Date.now();
   completedSets = {};
   setData       = {};
-  skippedExercises = new Set();
   activeDrawer  = null;
   activeExId    = null;
   _loggedThisSession  = false;
@@ -3110,7 +3113,7 @@ function resetWorkout() {
       !confirm(t('gym.reset_unsaved_confirm'))) return;
   clearInterval(elapsedTimer);
   stopRest();
-  workoutStart = null; completedSets = {}; skippedExercises = new Set(); setData = {}; exRir = {}; activeDrawer = null; activeExId = null;
+  workoutStart = null; completedSets = {}; setData = {}; exRir = {}; activeDrawer = null; activeExId = null;
   document.getElementById('elapsedDisplay').textContent = '0:00';
   clearSession();
   setWS('idle');
@@ -3140,7 +3143,7 @@ function updateRingTimer() {
 
 // ── Progress ───────────────────────────────────────────────────────
 function getSortedMainExercises() { return Object.values(allExercises[activeDay] || {}).flat(); }
-function getActiveMainExercises() { return getSortedMainExercises().filter(e => !skippedExercises.has(String(e.id))); }
+function getActiveMainExercises() { return getSortedMainExercises().filter(e => !blockedExercises.has(String(e.id))); }
 function getTotalSets() { return getActiveMainExercises().reduce((a, e) => a + e.sets, 0); }
 function getDoneSets()  { return getActiveMainExercises().reduce((a, e) => a + (completedSets[e.id]?.size || 0), 0); }
 
@@ -3432,7 +3435,7 @@ function renderInjuryBeforeBlocks() {
     if (sec) sec.style.display = 'none'; return;
   }
   if (sec) sec.style.display = '';
-  hd.textContent = _severeInjuries.map(i => bodyPartName(i)).join(' / ');
+  hd.textContent = _severeInjuries.map(i => bodyPartName(i)).join(' / ') + ` — ${t('knee.before_session')}`;
   blk.innerHTML = _severeInjuries.map(inj => {
     const cur = (_injuryScores[inj.id] || {}).before;
     return `
@@ -4216,11 +4219,9 @@ function renderGymHistory() {
     : '';
 
   el.innerHTML = (grpHtmls[0] || '') + olderHtml +
-    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:10px;
-      font-family:var(--font-mono);color:var(--text-tertiary);text-decoration:none;
-      text-align:center;letter-spacing:0.04em;opacity:0.6;transition:opacity 0.15s"
-      onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"
-      >${t('gym.full_log')} →</a>`;
+    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:11px;
+      font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
+      text-align:center">${t('gym.full_log')}</a>`;
 
   const btn = document.getElementById('gymHistToggleBtn');
   if (btn) btn.style.display = grpHtmls.length > 1 ? '' : 'none';
