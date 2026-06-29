@@ -223,8 +223,9 @@
     .wm-toggle {
       display: flex; align-items: center; gap: 10px;
       width: 100%; padding: 11px 16px;
-      background: transparent; border: none; cursor: pointer; text-align: left;
+      background: transparent; border: none; border-bottom: 1px solid var(--gym-b1); cursor: pointer; text-align: left;
     }
+    .wm-wrap:not(.open) .wm-toggle { border-bottom-color: transparent; }
     .wm-label { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); flex: 1; }
     .wm-badge { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); background: rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 5px; }
     .wm-chevron { color: var(--text-tertiary); font-size: 9px; transition: transform 0.2s; }
@@ -3431,7 +3432,7 @@ function renderInjuryBeforeBlocks() {
     if (sec) sec.style.display = 'none'; return;
   }
   if (sec) sec.style.display = '';
-  hd.textContent = _severeInjuries.map(i => bodyPartName(i)).join(' / ') + ` — ${t('knee.before_session')}`;
+  hd.textContent = _severeInjuries.map(i => bodyPartName(i)).join(' / ');
   blk.innerHTML = _severeInjuries.map(inj => {
     const cur = (_injuryScores[inj.id] || {}).before;
     return `
@@ -4215,9 +4216,11 @@ function renderGymHistory() {
     : '';
 
   el.innerHTML = (grpHtmls[0] || '') + olderHtml +
-    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:11px;
-      font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
-      text-align:center">${t('gym.full_log')}</a>`;
+    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:10px;
+      font-family:var(--font-mono);color:var(--text-tertiary);text-decoration:none;
+      text-align:center;letter-spacing:0.04em;opacity:0.6;transition:opacity 0.15s"
+      onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'"
+      >${t('gym.full_log')} →</a>`;
 
   const btn = document.getElementById('gymHistToggleBtn');
   if (btn) btn.style.display = grpHtmls.length > 1 ? '' : 'none';
