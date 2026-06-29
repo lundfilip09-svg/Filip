@@ -114,13 +114,13 @@
       border-color: rgba(91,164,245,0.6);
       box-shadow: 0 0 0 1px rgba(91,164,245,0.15);
     }
-    .day-card.is-logged   { border-color: rgba(107,227,164,0.35); }
+    .day-card.is-logged   { border-color: rgba(91,164,245,0.35); }
     .day-card.is-logged.is-today { border-color: rgba(91,164,245,0.5); }
     .day-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .day-card-name { font-size: 9.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; font-weight: 600; }
     .day-card-date { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--text-secondary); line-height: 1; }
     .day-card.is-today .day-card-date { color: #5BA4F5; }
-    .day-logged-dot { width: 6px; height: 6px; border-radius: 50%; background: #6BE3A4; flex-shrink: 0; margin-top: 5px; box-shadow: 0 0 6px rgba(107,227,164,0.6); }
+    .day-logged-dot { width: 6px; height: 6px; border-radius: 50%; background: #5BA4F5; flex-shrink: 0; margin-top: 5px; box-shadow: 0 0 6px rgba(91,164,245,0.6); }
     .day-card-plan { font-size: 10.5px; color: var(--text-secondary); line-height: 1.4; margin-top: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal; }
     .day-card-rest { font-size: 9.5px; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.06em; margin-top: auto; font-weight: 500; }
 
@@ -150,8 +150,8 @@
     .detail-logged-badge {
       font-size: 10px; text-transform: uppercase; font-weight: 600;
       letter-spacing: 0.05em; padding: 4px 11px; border-radius: 20px;
-      background: rgba(107,227,164,0.1); color: #6BE3A4;
-      border: 1px solid rgba(107,227,164,0.22); white-space: nowrap;
+      background: rgba(91,164,245,0.1); color: #5BA4F5;
+      border: 1px solid rgba(91,164,245,0.22); white-space: nowrap;
       margin-top: 2px;
     }
     .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -403,14 +403,14 @@
     /* B3 — kne-dashboard */
     .kd-spark { display: flex; align-items: flex-end; gap: 3px; height: 38px; margin-bottom: 12px; }
     .kd-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; transition: height 0.2s; }
-    .kd-bar.lo  { background: #6BE3A4; }
+    .kd-bar.lo  { background: var(--accent-blue); }
     .kd-bar.mid { background: var(--warning); }
     .kd-bar.hi  { background: #FF6B6B; }
     .kd-bar.none { background: rgba(255,255,255,0.06); }
     .kd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .kd-stat { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px 13px; }
     .kd-stat-val { font-size: 21px; font-weight: 750; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-    .kd-stat-val.good { color: #6BE3A4; }
+    .kd-stat-val.good { color: var(--accent-blue); }
     .kd-stat-lbl { font-size: 10.5px; color: var(--text-tertiary); margin-top: 6px; font-weight: 500; }
     .kd-streak-fire { font-size: 13px; }
     /* #5 Trender */
@@ -512,8 +512,8 @@
     }
     .act-type-btn:hover { background: rgba(255,255,255,0.08); }
     .act-type-btn.selected {
-      background: rgba(242,192,99,0.12); border-color: rgba(242,192,99,0.5);
-      color: #F2C063;
+      background: rgba(91,164,245,0.12); border-color: rgba(91,164,245,0.5);
+      color: #5BA4F5;
     }
     .act-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
     .act-field-label {
@@ -523,40 +523,40 @@
     .act-pain-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-bottom: 12px; }
     .act-save-btn {
       width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer;
-      background: rgba(242,192,99,0.15); color: #F2C063;
+      background: rgba(91,164,245,0.15); color: #5BA4F5;
       font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-      border: 1px solid rgba(242,192,99,0.3);
+      border: 1px solid rgba(91,164,245,0.3);
       transition: background 0.15s;
     }
-    .act-save-btn:hover { background: rgba(242,192,99,0.25); }
+    .act-save-btn:hover { background: rgba(91,164,245,0.25); }
 
     /* ── Aktivitet kort i øktlogg ───────────────────────────────── */
     .act-tag {
       font-size: 9px; font-family: var(--font-mono);
       padding: 2px 7px; border-radius: 10px;
-      background: rgba(242,192,99,0.1); color: #F2C063;
-      border: 1px solid rgba(242,192,99,0.25);
+      background: rgba(91,164,245,0.1); color: #5BA4F5;
+      border: 1px solid rgba(91,164,245,0.25);
     }
     .add-activity-card {
-      background: rgba(107,227,164,0.03);
-      border: 1px dashed rgba(107,227,164,0.2);
+      background: rgba(91,164,245,0.03);
+      border: 1px dashed rgba(91,164,245,0.2);
       border-radius: 10px; padding: 13px 16px;
       cursor: pointer; display: flex; align-items: center; gap: 10px;
       transition: background 0.15s, border-color 0.15s;
       margin-top: 6px;
     }
     .add-activity-card:hover {
-      background: rgba(107,227,164,0.07);
-      border-color: rgba(107,227,164,0.4);
+      background: rgba(91,164,245,0.07);
+      border-color: rgba(91,164,245,0.4);
     }
     .add-activity-plus {
       width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(107,227,164,0.15); color: #6BE3A4;
+      background: rgba(91,164,245,0.15); color: #5BA4F5;
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; line-height: 1; flex-shrink: 0;
     }
     .add-activity-label {
-      font-size: 11px; font-family: var(--font-mono); color: #6BE3A4;
+      font-size: 11px; font-family: var(--font-mono); color: #5BA4F5;
     }
 
     /* ── Level selector (fotball + sprint) ──────────────────────── */
@@ -569,7 +569,7 @@
     }
     .act-lvl-btn:hover { background: rgba(255,255,255,0.08); }
     .act-lvl-btn.selected {
-      background: rgba(107,227,164,0.12); border-color: rgba(107,227,164,0.4); color: #6BE3A4;
+      background: rgba(91,164,245,0.12); border-color: rgba(91,164,245,0.4); color: #5BA4F5;
     }
 
     /* ── Redesign-overstyringer ────────────────────────────── */
@@ -780,12 +780,12 @@
           <span class="tp-history-title" data-i18n="tp.history">Øktlogg</span>
           <div style="display:flex;align-items:center;gap:8px">
             <button onclick="openActModal()"
-              style="display:flex;align-items:center;gap:5px;background:rgba(107,227,164,0.08);
-                     border:1px solid rgba(107,227,164,0.2);border-radius:7px;padding:4px 10px;
-                     cursor:pointer;color:#6BE3A4;font-family:var(--font-mono);font-size:10px;
+              style="display:flex;align-items:center;gap:5px;background:rgba(91,164,245,0.08);
+                     border:1px solid rgba(91,164,245,0.2);border-radius:7px;padding:4px 10px;
+                     cursor:pointer;color:#5BA4F5;font-family:var(--font-mono);font-size:10px;
                      transition:background 0.15s"
-              onmouseover="this.style.background='rgba(107,227,164,0.16)'"
-              onmouseout="this.style.background='rgba(107,227,164,0.08)'">
+              onmouseover="this.style.background='rgba(91,164,245,0.16)'"
+              onmouseout="this.style.background='rgba(91,164,245,0.08)'">
               <span style="font-size:14px;line-height:1">+</span>
               <span data-i18n="tp.add_activity">Aktivitet</span>
             </button>
@@ -2067,7 +2067,7 @@ function renderSidebar() {
       h = 4; bg = 'rgba(255,255,255,0.06)';
     } else if (done) {
       h = level === 'high' ? 44 : level === 'medium' ? 34 : 24;
-      bg = '#6BE3A4';
+      bg = '#5BA4F5';
     } else {
       h = level === 'high' ? 28 : level === 'medium' ? 20 : 14;
       bg = level === 'high' ? 'rgba(255,107,107,0.35)' : level === 'medium' ? 'rgba(91,164,245,0.35)' : 'rgba(107,227,164,0.2)';
@@ -2765,7 +2765,7 @@ function renderSessionGrid() {
           if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
           if (k === 'session.mobility') return 'var(--success)';
           if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
-          return 'rgba(107,227,164,0.7)';
+          return 'rgba(91,164,245,0.7)';
         })();
         const gymRir = g.rpe != null ? Math.max(0, Math.min(5, Math.round((100 - g.rpe) / 10 * 2) / 2)) : null;
         const painChips = buildPainSummaryForDate(g.date, knee, g.session_type);
@@ -2844,7 +2844,7 @@ function renderSessionGrid() {
             onblur="autoSaveActField('${a.id}','duration_min',this.value)">
           <span>min</span></span>`;
         return `<div class="sess-card${isOpen ? ' expanded' : ''}" id="sess-card-${aid}"
-            style="--cat:rgba(242,192,99,0.8)"
+            style="--cat:rgba(91,164,245,0.8)"
             onclick="toggleSessionDetail('${aid}')">
             <div class="sess-hdr">
               <div class="sess-hdr-body">
@@ -2916,7 +2916,7 @@ function buildDetailHtml(g, knee) {
     if (k === 'session.strength_capacity' || k === 'session.strength_power') return 'var(--accent-blue)';
     if (k === 'session.mobility') return 'var(--success)';
     if (k === 'session.daily_rehab' || k === 'daytype.rehab') return 'var(--warning)';
-    return 'rgba(107,227,164,0.7)';
+    return 'rgba(91,164,245,0.7)';
   })();
   return `<div class="sess-detail open" id="sess-detail-${g.id}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
@@ -3120,7 +3120,7 @@ function buildActDetailHtml(a) {
   return `<div class="sess-detail open" id="sess-detail-${aid}" onclick="event.stopPropagation()">
     <div class="sess-detail-hd">
       <div class="sdh-left">
-        <span class="sdh-dot" style="background:rgba(242,192,99,0.9)"></span>
+        <span class="sdh-dot" style="background:rgba(91,164,245,0.9)"></span>
         <div>
           <div class="sdh-title">${escHtml(label)}</div>
           <div class="sdh-meta">${dateStr}</div>
@@ -3192,8 +3192,8 @@ async function loadInjuries() {
   document.getElementById('injCopyAll').style.display = (data && data.length) ? '' : 'none';
   if (!data || !data.length) { el.innerHTML = `<div class="empty" style="font-size:11px;padding:4px">${t('tp.inj_empty')}</div>`; return; }
   _injuryData = data;
-  const sevColor = { mild:'#6BE3A4', moderate:'var(--warning)', severe:'#FF6B6B' };
-  const statColor = { active:'#FF6B6B', improving:'var(--warning)', archived:'var(--text-tertiary)' };
+  const sevColor  = { mild: 'var(--accent-blue)', moderate: 'var(--accent-blue)', severe: 'var(--accent-blue)' };
+  const statColor = { active: 'var(--accent-blue)', improving: 'var(--accent-blue)', archived: 'var(--text-tertiary)' };
   el.innerHTML = data.map(i => {
     const part = t(i.body_part);
     const side = i.side ? ' ' + t('side.' + i.side).toLowerCase() : '';
