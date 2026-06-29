@@ -522,6 +522,72 @@
     .tool-val { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
     .tool-arr { font-size: 10px; color: var(--text-tertiary); transition: transform 0.2s; }
     .tool-item.open .tool-arr { transform: rotate(90deg); }
+
+    /* ── History link + collapse button ── */
+    .history-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: all 0.18s ease;
+    }
+    .history-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.05);
+      transform: translateX(2px);
+    }
+
+    .tp-history-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.18s ease;
+    }
+    .tp-history-toggle:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    /* Sidebar chevrons — subtle, not white-button looking */
+    .tool-arr {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.18s ease;
+    }
+    .tool-item:hover .tool-arr {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text-primary);
+    }
     .tool-body { display: none; padding: 8px 0 4px; }
     .tool-body.open { display: block; animation: modalPanelIn 0.18s cubic-bezier(0.2,0.7,0.2,1) both; }
 
@@ -1087,7 +1153,7 @@
 
       <div class="tool-item" id="ti-knee" onclick="toggleTool('knee')">
         <div class="tool-icon">🦵</div>
-        <div class="tool-name" data-i18n="gym.live_pain">Smerte</div>
+        <div class="tool-name">Status før økt</div>
         <div class="tool-val" id="kneeVal" data-i18n="gym.register_pain">Registrer smerte</div>
         <div class="tool-arr">›</div>
       </div>
@@ -1125,7 +1191,7 @@
 <section class="card gym-history-card">
   <div class="gym-history-hd">
     <div class="section-title" data-i18n="gym.history" style="margin:0;flex:1">Økthistorikk</div>
-    <button class="tp-history-toggle" id="gymHistToggleBtn" onclick="toggleGymHistory()" style="display:none">∨</button>
+    <button class="tp-history-toggle" id="gymHistToggleBtn" onclick="toggleGymHistory()" style="display:none">⌄</button>
   </div>
   <div id="gymHistory">
     <div class="loading" data-i18n="loading">Laster…</div>
@@ -4219,9 +4285,7 @@ function renderGymHistory() {
     : '';
 
   el.innerHTML = (grpHtmls[0] || '') + olderHtml +
-    `<a href="treningsplan.html" style="display:block;margin-top:14px;font-size:11px;
-      font-family:var(--font-mono);color:var(--accent-blue);text-decoration:none;
-      text-align:center">${t('gym.full_log')}</a>`;
+    `<a href="treningsplan.html" class="history-link">${t('gym.full_log')} <span>→</span></a>`;
 
   const btn = document.getElementById('gymHistToggleBtn');
   if (btn) btn.style.display = grpHtmls.length > 1 ? '' : 'none';
@@ -4234,7 +4298,7 @@ function toggleGymHistory() {
   const older = document.getElementById('gymHistOlderSessions');
   const btn   = document.getElementById('gymHistToggleBtn');
   if (older) older.style.display = _gymHistoryCollapsed ? 'none' : '';
-  if (btn)   btn.textContent = _gymHistoryCollapsed ? '∨' : '∧';
+  if (btn)   btn.textContent = _gymHistoryCollapsed ? '⌄' : '⌃';
 }
 async function toggleGymDetail(gymId) {
   // Tøm eventuelle ventende auto-lagringer før vi bytter visning (så siste endring ikke tapes).
