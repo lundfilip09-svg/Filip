@@ -276,12 +276,6 @@
       padding: 0 4px 0 0; transition: opacity 0.15s; flex-shrink: 0; user-select: none;
     }
     .sec-drag-handle:hover { opacity: 0.8; }
-    .sec-del-btn {
-      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
-      font-size: 15px; padding: 0 4px; opacity: 0.25; transition: opacity 0.15s, color 0.15s;
-      flex-shrink: 0; line-height: 1;
-    }
-    .sec-del-btn:hover { opacity: 1; color: var(--danger); }
 
     /* Exercise rows inside section card — no outer border, padding instead */
     .ex-row-wrap { padding: 0 10px; }
@@ -366,14 +360,6 @@
     }
     .ex-inline-input:focus { outline: none; border-color: rgba(91,164,245,0.4); }
 
-    /* Delete / menu controls */
-    .ex-r-del {
-      background: none; border: none; color: var(--text-tertiary); cursor: pointer;
-      font-size: 15px; padding: 4px 8px; opacity: 0.3;
-      transition: opacity 0.15s, color 0.15s; flex-shrink: 0;
-    }
-    .ex-row:hover .ex-r-del { opacity: 0.6; }
-    .ex-r-del:hover { opacity: 1 !important; color: var(--danger); }
 
     /* Progress indicator — dot + text */
     .ex-r-prog { font-size: 9px; font-family: var(--font-mono); color: var(--text-tertiary); flex-shrink: 0; }
@@ -750,7 +736,7 @@
     .gym-history-item:hover .edit-knee-btn { opacity: 1; }
     .edit-knee-btn:hover { color: var(--accent-blue); }
     @media (hover: none) {
-      .ex-r-del, .ex-r-menu, .edit-knee-btn { opacity: 0.5; }
+      .ex-r-menu, .edit-knee-btn { opacity: 0.5; }
     }
     .gym-del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 11px; opacity: 0.4; transition: opacity 0.15s, color 0.15s; padding: 2px 4px; flex-shrink: 0; }
     .gym-history-item:hover .gym-del-btn { opacity: 1; }
@@ -2279,7 +2265,6 @@ function renderWarmup() {
           </div>
           <button class="edit-knee-btn" style="opacity:0.6" title="${t('gym.cardio_edit')}"
             onclick="event.stopPropagation();toggleCardioEdit('${ex.id}')">✎</button>
-          <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
         </div>
         <div class="ex-edit-form" id="cardio-edit-${ex.id}">
           <select class="input-sm" id="cardio-name-${ex.id}">${opts}</select>
@@ -2743,8 +2728,6 @@ function renderSectionBlock(label, exs, day) {
       <span class="sec-label">${escHtml(label)}</span>
       <button class="edit-knee-btn" style="opacity:0.55" title="${t('gym.rename_section')}"
         onclick="document.getElementById('${renId}').classList.toggle('open')">✎</button>
-      <button class="sec-del-btn" title="${t('gym.delete_section')}"
-        onclick="deleteSection('${escHtml(day)}','${escHtml(label)}')">×</button>
       <span class="sec-divider"></span>
       <span class="sec-count">${exs.length} ${t('gym.ex_unit')} · ${totSets} ${t('gym.sets_unit')}</span>
     </div>
@@ -2820,7 +2803,6 @@ function renderExRow(ex, day, num, isWarmup) {
       ${!isWarmup ? `<button class="ex-skip-btn" id="ex-skip-${ex.id}"
         onclick="event.stopPropagation();toggleBlockExercise('${ex.id}')"
         title="${isBlocked ? t('gym.unblock_exercise') : t('gym.block_exercise')}">${isBlocked ? '↩' : '🚫'}</button>` : ''}
-      <button class="ex-r-del" onclick="event.stopPropagation();deleteExercise('${ex.id}')" title="${t('delete')}">×</button>
     </div>
     <div class="set-drawer" id="drawer-${ex.id}"></div>
   </div>`;
