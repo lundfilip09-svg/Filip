@@ -885,8 +885,8 @@ function renderChart(metric, days) {
     const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
     datasets = [{
       label:t('sovn.score_lbl'), data:vals,
-      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 80 ? 'rgba(91,164,245,0.75)' : v >= 60 ? 'rgba(91,164,245,0.55)' : 'rgba(255,107,107,0.75)'),
-      borderColor:      vals.map(v => !v ? 'transparent' : v >= 60 ? '#5BA4F5' : '#FF6B6B'),
+      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 85 ? 'rgba(91,164,245,0.85)' : v >= 70 ? 'rgba(91,164,245,0.6)' : v >= 55 ? 'rgba(91,164,245,0.35)' : 'rgba(255,107,107,0.65)'),
+      borderColor:      vals.map(v => !v ? 'transparent' : v >= 55 ? '#5BA4F5' : '#FF6B6B'),
       borderWidth:1, borderRadius:4,
     }];
     yMax = 100; yLabel = t('sovn.score_sub');
