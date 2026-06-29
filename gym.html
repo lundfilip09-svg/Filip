@@ -136,9 +136,7 @@
       font-family: var(--font-mono); cursor: pointer; transition: all 0.15s;
     }
     .day-add-pill:hover { color: var(--text-secondary); border-color: rgba(255,255,255,0.22); }
-    .day-pill-del { margin-left: 5px; opacity: 0.4; cursor: pointer; font-size: 11px; }
-    .day-pill-del:hover { opacity: 1; color: #FF6B6B; }
-    .day-pill-del:active { opacity: 1; color: #FF6B6B; transform: scale(0.85); }
+
     .day-pill[draggable="true"] { cursor: grab; }
     .day-pill[draggable="true"]:active { cursor: grabbing; }
     .day-pill.pill-drag-over { outline: 2px solid rgba(91,164,245,0.5); outline-offset: 2px; background: rgba(91,164,245,0.06); }
@@ -967,7 +965,7 @@
       .gym-sidebar { position: static; max-height: none; }
       .day-pill { padding: 8px 16px !important; font-size: 13px !important; user-select: none; -webkit-user-select: none; }
       .day-add-pill { padding: 8px 14px !important; font-size: 12px !important; }
-      .day-pill-del { display: none !important; }
+
     }
 
     /* ── Day-after rehab banner ── */
@@ -1496,8 +1494,6 @@ function renderDayPills() {
   const sorted = [...gymDays].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
   wrap.innerHTML = sorted.map(d => {
     const active = d.day_key === activeDay ? ' active' : '';
-    const del = `<span class="day-pill-del" title="${t('gym.delete_day')}"
-         onclick="event.stopPropagation();deleteDay('${escHtml(d.day_key)}')">×</span>`;
     return `<button class="day-pill${active}" data-day="${escHtml(d.day_key)}"
       draggable="true"
       ondragstart="pillDragStart(event,'${escHtml(d.day_key)}')"
@@ -1509,7 +1505,7 @@ function renderDayPills() {
       oncontextmenu="event.preventDefault();event.stopPropagation();showPillMenu(event,'${escHtml(d.day_key)}')"
       ontouchstart="pillLongPressStart(event,'${escHtml(d.day_key)}')"
       ontouchend="pillLongPressCancel()" ontouchmove="pillLongPressCancel()"
-      title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}${del}</button>`;
+      title="${t('gym.dblclick_rename')}">${escHtml(dayLabel(d))}</button>`;
   }).join('') +
     `<button class="day-add-pill" onclick="openDayDialog()" data-i18n="gym.add_day">${t('gym.add_day')}</button>`;
 }
