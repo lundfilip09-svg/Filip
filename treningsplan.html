@@ -753,8 +753,7 @@
               </div>
               <input class="input-sm detail-input" id="detailPlanCustom" type="text"
                 style="display:none;margin-top:6px"
-                placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder"
-                onkeydown="if(event.key==='Enter')saveDay()">
+                placeholder="Legg inn økt…" data-i18n-placeholder="tp.plan_placeholder">
             </div>
             <div class="detail-field detail-field-notes" style="grid-column:1/-1">
               <div class="detail-field-label" data-i18n="tp.notes">Notater</div>
@@ -764,10 +763,7 @@
             </div>
           </div>
 
-          <div class="detail-actions">
-            <button class="btn btn-success btn-sm" onclick="saveDay()" data-i18n="tp.save">Lagre</button>
-            <button class="btn btn-ghost btn-sm" onclick="clearDay()" data-i18n="tp.clear_day">Tøm dag</button>
-          </div>
+          <div class="detail-actions" style="display:none"></div>
 
           <!-- Multi-velg: legg valgt økt på flere dager denne uka -->
           <div class="detail-multi" id="detailMulti" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07)">
@@ -1916,6 +1912,7 @@ function onDetailPlanSelChange() {
   cust.style.display = custom ? '' : 'none';
   if (custom) cust.focus();
   _syncDetailDropLabel();
+  queueDetailAutosave();
 }
 
 // ── Custom dropdown for Økt/Aktivitet ────────────────────────────────────────
@@ -2088,7 +2085,26 @@ function renderSidebar() {
   document.getElementById('weekLoadLabel').textContent  = loadLabel;
   document.getElementById('weekLoadLabel').style.color  = loadColor;
 }
+let detailAutosaveTimer = null;
 
+function queueDetailAutosave() {
+  clearTimeout(detailAutosaveTimer);
+
+  detailAutosaveTimer = setTimeout(() => {
+    saveDay();
+  }, 500);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('detailNotes')
+    ?.addEventListener('input', queueDetailAutosave);
+
+  document.getElementById('detailPlanCustom')
+    ?.addEventListener('input', queueDetailAutosave);
+
+  document.getElementById('detailPlanSel')
+    ?.addEventListener('change', queueDetailAutosave);
+});
 // ── Save / clear ───────────────────────────────────────────────────────────
 async function saveDay() {
   const txt   = _detailPlanValue();
