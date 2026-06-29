@@ -503,7 +503,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .rpe-slider-hint { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
 .rpe-slider {
   -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 4px;
-  background: linear-gradient(to right, #6BE3A4 0%, #F2C063 55%, #FF6B6B 100%);
+  background: linear-gradient(to right, rgba(91,164,245,0.35) 0%, #5BA4F5 100%);
   outline: none; cursor: pointer; opacity: 0.85;
 }
 .rpe-slider:disabled { opacity: 0.4; cursor: default; }

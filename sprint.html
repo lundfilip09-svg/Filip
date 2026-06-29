@@ -724,7 +724,7 @@ async function loadDistances() {
       '60m':        { show_pb:true,  sort_order:10 },
       '60m_celler': { show_pb:true,  all_runs_count:true, sort_order:20 },
       '100m':       { show_pb:true,  show_goal:true, color:'#5BA4F5', baseline_time:11.52, goal_time:11.10, sort_order:50 },
-      '200m':       { show_pb:true,  show_goal:true, color:'#6BE3A4', baseline_time:23.11, goal_time:22.30, sort_order:90 },
+      '200m':       { show_pb:true,  show_goal:true, color:'#5BA4F5', baseline_time:23.11, goal_time:22.30, sort_order:90 },
     };
     rows = rows.map(r => ({ ...r, ...(seed[r.distance] || { sort_order:100 }) }));
     // legg til seedede distanser som mangler helt
@@ -773,7 +773,7 @@ async function loadPBs() {
   el.innerHTML = _distances.filter(d => d.show_pb).map((d, i) => {
     const r = byDist[d.distance];
     const days   = r?.date ? Math.floor((Date.now() - new Date(r.date + 'T12:00:00').getTime()) / 86400000) : null;
-    const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#6BE3A4' : days < 90 ? '#F2C063' : 'rgba(255,255,255,0.1)';
+    const barClr = days === null ? 'rgba(255,255,255,0.06)' : days < 30 ? '#5BA4F5' : days < 90 ? 'rgba(91,164,245,0.45)' : 'rgba(255,255,255,0.1)';
     const timeHtml = r?.best_time != null
       ? `<span data-countup="${r.best_time}" data-cu-decimals="2">0.00</span>`
       : '–';
