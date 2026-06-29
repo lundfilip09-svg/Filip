@@ -257,7 +257,7 @@ body::after {
 }
 .btn-primary { background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); color: #5BA4F5; }
 .btn-primary:hover { background: rgba(91,164,245,0.25); }
-.btn-success { background: rgba(107,227,164,0.15); border-color: rgba(107,227,164,0.3); color: #6BE3A4; }
+.btn-success { background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); color: #5BA4F5; }
 .btn-success:hover { background: rgba(107,227,164,0.25); }
 .btn-danger  { background: rgba(255,107,107,0.12); border-color: rgba(255,107,107,0.25); color: #FF6B6B; }
 .btn-danger:hover  { background: rgba(255,107,107,0.22); }
@@ -503,7 +503,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .rpe-slider-hint { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
 .rpe-slider {
   -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 4px;
-  background: linear-gradient(to right, rgba(91,164,245,0.35) 0%, #5BA4F5 100%);
+  background: linear-gradient(to right, #6BE3A4 0%, #F2C063 55%, #FF6B6B 100%);
   outline: none; cursor: pointer; opacity: 0.85;
 }
 .rpe-slider:disabled { opacity: 0.4; cursor: default; }
