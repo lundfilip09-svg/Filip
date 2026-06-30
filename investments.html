@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Investments">
+  <title>Investments</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .page { max-width: 1100px; gap: 20px; }
+
+    /* ── Header ── */
+    .inv-header { display: flex; flex-direction: column; gap: 14px; }
+    .inv-header-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .inv-ticker-sel { position: relative; flex: 1; min-width: 180px; }
+    .inv-ticker-btn {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 9px 12px; cursor: pointer; color: var(--text-primary);
+    }
+    .inv-ticker-btn .itk { font-weight: 700; font-family: var(--font-mono); font-size: 14px; }
+    .inv-ticker-btn .inm { color: var(--text-tertiary); font-size: 11px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .inv-ticker-btn .iar { color: var(--text-tertiary); font-size: 10px; transition: transform 0.15s; }
+    .inv-ticker-btn.open .iar { transform: rotate(180deg); }
+    .inv-dd-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.4);
+    }
+    .inv-dd-backdrop.open { display: block; animation: modalBackdropIn 0.18s ease-out both; }
+    .inv-dd-panel {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 310;
+      background: #141416; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5); max-height: 360px; display: flex; flex-direction: column;
+      animation: modalPanelIn 0.18s cubic-bezier(0.2,0.7,0.2,1) both;
+    }
+    .inv-dd-search { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .inv-dd-search input { font-size: 13px; }
+    .inv-dd-list { overflow-y: auto; padding: 4px; }
+    .inv-dd-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 8px;
+      cursor: pointer; color: var(--text-secondary);
+    }
+    .inv-dd-item:hover { background: rgba(255,255,255,0.06); }
+    .inv-dd-item .ddt { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--text-primary); width: 54px; flex-shrink: 0; }
+    .inv-dd-item .ddn { font-size: 11.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .inv-dd-item .ddst { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; flex-shrink: 0; }
+    .inv-dd-empty { padding: 18px 10px; text-align: center; font-size: 12px; color: var(--text-tertiary); }
+
+    .inv-fav-btn, .inv-add-btn {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 13px; border-radius: 10px; font-size: 12px; font-family: var(--font-mono);
+      cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);
+      color: var(--text-secondary); white-space: nowrap;
+    }
+    .inv-fav-btn.is-fav { color: #F2C063; border-color: rgba(242,192,99,0.3); background: rgba(242,192,99,0.1); }
+    .inv-add-btn { background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); color: #5BA4F5; }
+    .inv-add-btn:hover { background: rgba(91,164,245,0.25); }
+
+    .inv-fav-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .inv-fav-chip {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px;
+      border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; font-family: var(--font-mono); cursor: pointer; color: var(--text-secondary);
+    }
+    .inv-fav-chip:hover { background: rgba(255,255,255,0.08); }
+    .inv-fav-chip.active { color: #5BA4F5; border-color: rgba(91,164,245,0.3); background: rgba(91,164,245,0.1); }
+
+    /* ── Quote card ── */
+    .inv-quote-card { display: flex; flex-direction: column; gap: 14px; }
+    .inv-quote-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .inv-quote-name { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+    .inv-quote-sub { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.04em; }
+    .inv-quote-price { font-size: 30px; font-weight: 800; font-family: var(--font-mono); letter-spacing: -0.03em; text-align: right; }
+    .inv-quote-change { font-size: 13px; font-family: var(--font-mono); font-weight: 700; text-align: right; margin-top: 2px; }
+    .inv-quote-change.pos { color: #6BE3A4; }
+    .inv-quote-change.neg { color: #FF6B6B; }
+    .inv-quote-tiles { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    @media (max-width: 640px) { .inv-quote-tiles { grid-template-columns: repeat(2,1fr); } }
+    .inv-status-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .inv-tv-wrap { width: 100%; height: 360px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .inv-empty-state { text-align: center; padding: 50px 20px; color: var(--text-tertiary); }
+    .inv-empty-state .iei { font-size: 32px; margin-bottom: 10px; }
+
+    /* ── Tabs ── */
+    .inv-tabs { display: flex; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .inv-tab {
+      padding: 9px 4px; font-size: 12px; font-weight: 600; font-family: var(--font-mono);
+      color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .inv-tab.active { color: var(--text-primary); border-bottom-color: var(--accent-blue); }
+
+    /* ── Analysis ── */
+    .inv-locked-banner {
+      display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 9px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 14px;
+    }
+    .inv-section { margin-bottom: 18px; }
+    .inv-section:last-child { margin-bottom: 0; }
+    .inv-section-h { font-size: 9.5px; font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px; }
+    .inv-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 640px) { .inv-field-grid { grid-template-columns: 1fr; } }
+    .inv-ro-val { font-size: 13px; color: var(--text-secondary); line-height: 1.5; padding: 8px 0; min-height: 20px; }
+    .inv-ro-val:empty::before { content: '—'; color: var(--text-tertiary); }
+
+    /* ── Journal ── */
+    .inv-journal-add { display: flex; gap: 8px; margin-bottom: 16px; }
+    .inv-journal-list { display: flex; flex-direction: column; gap: 10px; }
+    .inv-j-item { display: flex; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.025); border-radius: 10px; border-left: 2px solid rgba(255,255,255,0.1); }
+    .inv-j-item.jt-buy   { border-left-color: #6BE3A4; }
+    .inv-j-item.jt-sell  { border-left-color: #FF6B6B; }
+    .inv-j-item.jt-stop_loss { border-left-color: #FF6B6B; }
+    .inv-j-item.jt-target_hit { border-left-color: #F2C063; }
+    .inv-j-item.jt-update { border-left-color: #5BA4F5; }
+    .inv-j-icon { font-size: 14px; flex-shrink: 0; line-height: 1.4; }
+    .inv-j-body { flex: 1; min-width: 0; }
+    .inv-j-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+    .inv-j-desc { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; white-space: pre-wrap; }
+    .inv-j-date { font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 4px; }
+    .inv-j-empty { text-align: center; padding: 30px; color: var(--text-tertiary); font-size: 12px; }
+
+    /* ── Result ── */
+    .inv-result-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+    @media (max-width: 640px) { .inv-result-grid { grid-template-columns: 1fr; } }
+
+    /* ── Modal ── */
+    .inv-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,0.55); align-items: center; justify-content: center; padding: 16px;
+    }
+    .inv-backdrop.open { display: flex; animation: modalBackdropIn 0.18s ease-out both; }
+    .inv-panel {
+      background: #131315; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+      padding: 22px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: modalPanelIn 0.2s cubic-bezier(0.2,0.7,0.2,1) both;
+    }
+    .inv-panel-head { display: flex; align-items: center; justify-content: between; justify-content: space-between; margin-bottom: 16px; }
+    .inv-panel-title { font-size: 15px; font-weight: 700; }
+    .inv-panel-close { background: none; border: none; color: var(--text-tertiary); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+    .inv-panel-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+    .inv-stack { display: flex; flex-direction: column; gap: 12px; }
+  </style>
+</head>
+<body>
+
+<nav class="main-nav" data-nav></nav>
+
+<main class="page">
+
+  <!-- ══════════════════  HEADER  ══════════════════ -->
+  <div class="card inv-header">
+    <div class="inv-header-top">
+      <div class="inv-ticker-sel">
+        <button class="inv-ticker-btn" id="invTickerBtn" onclick="toggleTickerDD()">
+          <span class="itk" id="invSelTicker">—</span>
+          <span class="inm" id="invSelName" data-i18n="inv.select_ticker">Velg aksje…</span>
+          <span class="iar">▾</span>
+        </button>
+        <div class="inv-dd-backdrop" id="invDDBackdrop" onclick="closeTickerDD(event)">
+          <div class="inv-dd-panel" id="invDDPanel" onclick="event.stopPropagation()" style="top:46px">
+            <div class="inv-dd-search">
+              <input type="text" id="invDDSearch" data-i18n-placeholder="inv.search_placeholder" placeholder="Søk ticker eller navn…" oninput="renderTickerDD()">
+            </div>
+            <div class="inv-dd-list" id="invDDList"></div>
+          </div>
+        </div>
+      </div>
+      <button class="inv-fav-btn" id="invFavBtn" onclick="toggleFavorite()">
+        <span id="invFavIcon">☆</span><span data-i18n="inv.favorite">Favoritt</span>
+      </button>
+      <button class="inv-add-btn" onclick="openAddModal()">+ <span data-i18n="inv.add_stock">Legg til aksje</span></button>
+    </div>
+    <div class="inv-fav-row" id="invFavRow"></div>
+  </div>
+
+  <!-- ══════════════════  QUOTE / EMPTY  ══════════════════ -->
+  <div id="invMain"></div>
+
+</main>
+
+<!-- ══════════════════  ADD STOCK MODAL  ══════════════════ -->
+<div class="inv-backdrop" id="addBackdrop">
+  <div class="inv-panel">
+    <div class="inv-panel-head">
+      <div class="inv-panel-title" data-i18n="inv.add_stock">Legg til aksje</div>
+      <button class="inv-panel-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="inv-stack">
+      <div class="form-group">
+        <label class="form-label" data-i18n="inv.ticker">Ticker</label>
+        <input type="text" id="addTicker" placeholder="AAPL" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="inv.name">Navn</label>
+        <input type="text" id="addName" placeholder="Apple Inc.">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="inv.thesis_why">Hvorfor</label>
+        <textarea id="addWhy" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="inv-panel-foot">
+      <button class="btn btn-ghost" onclick="closeAddModal()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-primary" onclick="saveAddStock()" data-i18n="save">Lagre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════  BUY MODAL  ══════════════════ -->
+<div class="inv-backdrop" id="buyBackdrop">
+  <div class="inv-panel">
+    <div class="inv-panel-head">
+      <div class="inv-panel-title" data-i18n="inv.register_buy">Registrer kjøp</div>
+      <button class="inv-panel-close" onclick="closeBuyModal()">✕</button>
+    </div>
+    <div class="inv-stack">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.buy_date">Kjøpsdato</label>
+          <input type="date" id="buyDate">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.buy_price">Kjøpskurs</label>
+          <input type="number" id="buyPrice" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.quantity">Antall</label>
+          <input type="number" id="buyQty" step="0.0001">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.commission">Kurtasje</label>
+          <input type="number" id="buyCommission" step="0.01" value="0">
+        </div>
+      </div>
+    </div>
+    <div class="inv-panel-foot">
+      <button class="btn btn-ghost" onclick="closeBuyModal()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-primary" onclick="saveBuy()" data-i18n="save">Lagre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════  SELL MODAL  ══════════════════ -->
+<div class="inv-backdrop" id="sellBackdrop">
+  <div class="inv-panel">
+    <div class="inv-panel-head">
+      <div class="inv-panel-title" data-i18n="inv.register_sell">Registrer salg</div>
+      <button class="inv-panel-close" onclick="closeSellModal()">✕</button>
+    </div>
+    <div class="inv-stack">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.sell_date">Salgsdato</label>
+          <input type="date" id="sellDate">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.sell_price">Salgskurs</label>
+          <input type="number" id="sellPrice" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.quantity_sold">Antall solgt</label>
+          <input type="number" id="sellQty" step="0.0001">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label" data-i18n="inv.commission">Kurtasje</label>
+          <input type="number" id="sellCommission" step="0.01" value="0">
+        </div>
+      </div>
+    </div>
+    <div class="inv-panel-foot">
+      <button class="btn btn-ghost" onclick="closeSellModal()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-danger" onclick="saveSell()" data-i18n="save">Lagre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════  ANALYSIS EDIT MODAL  ══════════════════ -->
+<div class="inv-backdrop" id="analysisBackdrop">
+  <div class="inv-panel" style="max-width:560px">
+    <div class="inv-panel-head">
+      <div class="inv-panel-title" data-i18n="inv.edit_analysis">Rediger analyse</div>
+      <button class="inv-panel-close" onclick="closeAnalysisModal()">✕</button>
+    </div>
+    <div class="inv-stack">
+      <div class="inv-section-h" data-i18n="inv.thesis">Tese</div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.thesis_why">Hvorfor</label><textarea id="anWhy" rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.thesis_catalyst">Katalysator</label><textarea id="anCatalyst" rows="2"></textarea></div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.thesis_horizon">Horisont</label><input type="text" id="anHorizon"></div>
+      </div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.thesis_must">Må skje</label><textarea id="anMustHappen" rows="2"></textarea></div>
+
+      <div class="inv-section-h" style="margin-top:6px" data-i18n="inv.ta">Teknisk analyse</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.ta_trend">Trend</label><input type="text" id="anTrend"></div>
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.ta_rsi">RSI</label><input type="number" id="anRsi" step="0.1"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.ta_support">Støtte</label><input type="number" id="anSupport" step="0.01"></div>
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.ta_resistance">Motstand</label><input type="number" id="anResistance" step="0.01"></div>
+      </div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.ta_macd">MACD</label><input type="text" id="anMacd"></div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.ta_volume">Volumkommentar</label><input type="text" id="anVolume"></div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.ta_comment">TA-kommentar</label><textarea id="anTaComment" rows="2"></textarea></div>
+
+      <div class="inv-section-h" style="margin-top:6px" data-i18n="inv.plan">Plan</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.plan_entry">Inngang</label><input type="number" id="anEntry" step="0.01"></div>
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.plan_stop">Stop loss</label><input type="number" id="anStop" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.plan_t1">Mål 1</label><input type="number" id="anT1" step="0.01"></div>
+        <div class="form-group" style="flex:1"><label class="form-label" data-i18n="inv.plan_t2">Mål 2</label><input type="number" id="anT2" step="0.01"></div>
+      </div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.plan_horizon">Tidshorisont</label><input type="text" id="anPlanHorizon"></div>
+
+      <div class="inv-section-h" style="margin-top:6px" data-i18n="inv.risk">Risiko</div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.risk_wrong">Hva kan gå galt</label><textarea id="anRiskWrong" rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.risk_sell">Selg-trigger</label><textarea id="anRiskSell" rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label" data-i18n="inv.risk_buy_more">Kjøp mer-trigger</label><textarea id="anRiskBuyMore" rows="2"></textarea></div>
+    </div>
+    <div class="inv-panel-foot">
+      <button class="btn btn-ghost" onclick="closeAnalysisModal()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-primary" onclick="saveAnalysis()" data-i18n="save">Lagre</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="utils.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+let db;
+let _investments = [];   // alle rader, egne investments
+let _journal = [];        // journal for valgt investering
+let _selected = null;     // valgt investment-objekt
+let _activeTab = 'analysis';
+let _quoteCache = {};     // ticker -> {ts, data}
+let _tvWidget = null;
+
+const JT_ICON = { note: '📝', buy: '🟢', sell: '🔴', update: '🔄', stop_loss: '⛔', target_hit: '🎯' };
+
+// ── Auth/session helper ─────────────────────────────────────────────────
+async function authHeader() {
+  const { data: { session } } = await db.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+// ── Load investments ─────────────────────────────────────────────────────
+async function loadInvestments() {
+  const { data, error } = await db.from('investments').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  _investments = data || [];
+  renderFavRow();
+}
+
+function renderFavRow() {
+  const favs = _investments.filter(i => i.is_favorite);
+  const el = document.getElementById('invFavRow');
+  if (!favs.length) { el.innerHTML = ''; return; }
+  el.innerHTML = favs.map(i => `
+    <div class="inv-fav-chip${_selected?.id === i.id ? ' active' : ''}" onclick="selectInvestment('${i.id}')">
+      <span>⭐</span><span>${escHtml(i.ticker)}</span>
+    </div>`).join('');
+}
+
+// ── Ticker dropdown ───────────────────────────────────────────────────────
+function toggleTickerDD() {
+  const bd = document.getElementById('invDDBackdrop');
+  const open = bd.classList.toggle('open');
+  document.getElementById('invTickerBtn').classList.toggle('open', open);
+  if (open) { renderTickerDD(); setTimeout(() => document.getElementById('invDDSearch').focus(), 30); }
+}
+function closeTickerDD(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('invDDBackdrop').classList.remove('open');
+  document.getElementById('invTickerBtn').classList.remove('open');
+}
+function renderTickerDD() {
+  const q = (document.getElementById('invDDSearch').value || '').toLowerCase();
+  const list = _investments.filter(i =>
+    i.ticker.toLowerCase().includes(q) || (i.name || '').toLowerCase().includes(q));
+  const el = document.getElementById('invDDList');
+  if (!list.length) { el.innerHTML = `<div class="inv-dd-empty" data-i18n="inv.no_matches">Ingen treff</div>`; applyLang(); return; }
+  const statusBadge = { watchlist: 'badge-grey', open: 'badge-blue', closed: 'badge-green' };
+  el.innerHTML = list.map(i => `
+    <div class="inv-dd-item" onclick="selectInvestment('${i.id}')">
+      <span class="ddt">${escHtml(i.ticker)}</span>
+      <span class="ddn">${escHtml(i.name || '')}</span>
+      <span class="ddst badge ${statusBadge[i.status] || 'badge-grey'}" data-i18n="inv.status_${i.status}">${i.status}</span>
+    </div>`).join('');
+  applyLang();
+}
+
+function selectInvestment(id) {
+  _selected = _investments.find(i => i.id === id) || null;
+  closeTickerDD();
+  _activeTab = 'analysis';
+  renderHeader();
+  renderFavRow();
+  renderMain();
+  if (_selected) loadJournal(_selected.id);
+}
+
+function renderHeader() {
+  document.getElementById('invSelTicker').textContent = _selected ? _selected.ticker : '—';
+  document.getElementById('invSelName').textContent = _selected ? (_selected.name || _selected.ticker) : t('inv.select_ticker');
+  document.getElementById('invSelName').removeAttribute('data-i18n');
+  if (!_selected) document.getElementById('invSelName').setAttribute('data-i18n', 'inv.select_ticker');
+  const favBtn = document.getElementById('invFavBtn');
+  favBtn.classList.toggle('is-fav', !!_selected?.is_favorite);
+  document.getElementById('invFavIcon').textContent = _selected?.is_favorite ? '★' : '☆';
+  favBtn.style.opacity = _selected ? '1' : '0.4';
+  favBtn.style.pointerEvents = _selected ? 'auto' : 'none';
+}
+
+async function toggleFavorite() {
+  if (!_selected) return;
+  const newVal = !_selected.is_favorite;
+  const { error } = await db.from('investments').update({ is_favorite: newVal }).eq('id', _selected.id);
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  _selected.is_favorite = newVal;
+  const idx = _investments.findIndex(i => i.id === _selected.id);
+  if (idx > -1) _investments[idx].is_favorite = newVal;
+  renderHeader();
+  renderFavRow();
+}
+
+// ── Main render (empty state / quote / tabs) ───────────────────────────────
+function renderMain() {
+  const el = document.getElementById('invMain');
+  if (!_selected) {
+    el.innerHTML = `
+      <div class="card inv-empty-state">
+        <div class="iei">📈</div>
+        <div data-i18n="inv.empty_title">Velg en aksje for å se detaljer</div>
+      </div>`;
+    applyLang();
+    return;
+  }
+  el.innerHTML = `
+    <div class="card inv-quote-card">
+      <div class="inv-quote-top">
+        <div>
+          <div class="inv-quote-name">${escHtml(_selected.name || _selected.ticker)}</div>
+          <div class="inv-quote-sub">${escHtml(_selected.ticker)} <span id="invMcap"></span></div>
+        </div>
+        <div>
+          <div class="inv-quote-price" id="invPrice">—</div>
+          <div class="inv-quote-change" id="invChange"></div>
+        </div>
+      </div>
+      <div class="inv-quote-tiles">
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.open">Åpning</div><div class="metric-val" id="invOpen">—</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.high">Høy</div><div class="metric-val" id="invHigh">—</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.low">Lav</div><div class="metric-val" id="invLow">—</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.earnings">Resultat</div><div class="metric-val" id="invEarnings" style="font-size:13px">—</div></div>
+      </div>
+      <div class="inv-status-row">
+        <span class="badge ${({watchlist:'badge-grey',open:'badge-blue',closed:'badge-green'})[_selected.status]}" data-i18n="inv.status_${_selected.status}">${_selected.status}</span>
+        ${_selected.locked ? `<span class="badge badge-grey" data-i18n="inv.locked">Låst</span>` : ''}
+        ${_selected.status === 'watchlist' ? `<button class="btn btn-success btn-sm" onclick="openBuyModal()" data-i18n="inv.register_buy">Registrer kjøp</button>` : ''}
+        ${_selected.status === 'open' ? `<button class="btn btn-danger btn-sm" onclick="openSellModal()" data-i18n="inv.register_sell">Registrer salg</button>` : ''}
+      </div>
+      <div class="inv-tv-wrap"><div id="tvContainer" style="width:100%;height:100%"></div></div>
+    </div>
+
+    ${_selected.status === 'closed' ? renderResultBlock() : ''}
+
+    <div class="card">
+      <div class="inv-tabs">
+        <div class="inv-tab ${_activeTab==='analysis'?'active':''}" onclick="setTab('analysis')" data-i18n="inv.tab_analysis">Analyse</div>
+        <div class="inv-tab ${_activeTab==='journal'?'active':''}" onclick="setTab('journal')" data-i18n="inv.tab_journal">Journal</div>
+      </div>
+      <div id="invTabBody"></div>
+    </div>
+  `;
+  applyLang();
+  renderTabBody();
+  loadQuote(_selected.ticker);
+  initTradingView(_selected.ticker);
+}
+
+function renderResultBlock() {
+  const buyTotal = (_selected.buy_price || 0) * (_selected.quantity || 0) + (_selected.commission_buy || 0);
+  const sellTotal = (_selected.sell_price || 0) * (_selected.quantity_sold || 0) - (_selected.commission_sell || 0);
+  const pl = sellTotal - buyTotal;
+  const plPct = buyTotal ? (pl / buyTotal) * 100 : 0;
+  const days = _selected.buy_date && _selected.sell_date
+    ? Math.round((new Date(_selected.sell_date) - new Date(_selected.buy_date)) / 86400000) : null;
+  const cls = pl >= 0 ? 'success' : 'danger';
+  return `
+    <div class="card">
+      <div class="section-title" data-i18n="inv.result">Resultat</div>
+      <div class="inv-result-grid">
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.pl_nok">Gevinst/tap (NOK)</div><div class="metric-val ${cls}">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.pl_pct">Gevinst/tap (%)</div><div class="metric-val ${cls}">${plPct >= 0 ? '+' : ''}${plPct.toFixed(1)}%</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.days_held">Dager holdt</div><div class="metric-val">${days ?? '—'}</div></div>
+      </div>
+    </div>`;
+}
+
+function setTab(tab) { _activeTab = tab; renderMain(); }
+
+function renderTabBody() {
+  const el = document.getElementById('invTabBody');
+  if (!el) return;
+  if (_activeTab === 'analysis') { el.innerHTML = renderAnalysisTab(); }
+  else { el.innerHTML = renderJournalTab(); }
+  applyLang();
+}
+
+// ── Analysis tab ─────────────────────────────────────────────────────────
+function renderAnalysisTab() {
+  const s = _selected;
+  const locked = !!s.locked;
+  const ro = (v) => `<div class="inv-ro-val">${v ? escHtml(v) : ''}</div>`;
+  return `
+    ${locked ? `<div class="inv-locked-banner">🔒 <span data-i18n="inv.locked_msg">Posisjon er lukket — analyse er låst</span></div>` : ''}
+    ${!locked ? `<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="openAnalysisModal()" data-i18n="inv.edit">Rediger</button></div>` : ''}
+
+    <div class="inv-section">
+      <div class="inv-section-h" data-i18n="inv.thesis">Tese</div>
+      <div class="inv-field-grid">
+        <div><span class="form-label" data-i18n="inv.thesis_why">Hvorfor</span>${ro(s.thesis_why)}</div>
+        <div><span class="form-label" data-i18n="inv.thesis_catalyst">Katalysator</span>${ro(s.thesis_catalyst)}</div>
+        <div><span class="form-label" data-i18n="inv.thesis_horizon">Horisont</span>${ro(s.thesis_horizon)}</div>
+        <div><span class="form-label" data-i18n="inv.thesis_must">Må skje</span>${ro(s.thesis_must_happen)}</div>
+      </div>
+    </div>
+
+    <div class="inv-section">
+      <div class="inv-section-h" data-i18n="inv.ta">Teknisk analyse</div>
+      <div class="inv-field-grid">
+        <div><span class="form-label" data-i18n="inv.ta_trend">Trend</span>${ro(s.ta_trend)}</div>
+        <div><span class="form-label" data-i18n="inv.ta_rsi">RSI</span>${ro(s.ta_rsi)}</div>
+        <div><span class="form-label" data-i18n="inv.ta_support">Støtte</span>${ro(s.ta_support)}</div>
+        <div><span class="form-label" data-i18n="inv.ta_resistance">Motstand</span>${ro(s.ta_resistance)}</div>
+        <div><span class="form-label" data-i18n="inv.ta_macd">MACD</span>${ro(s.ta_macd)}</div>
+        <div><span class="form-label" data-i18n="inv.ta_volume">Volumkommentar</span>${ro(s.ta_volume_comment)}</div>
+      </div>
+      ${s.ta_comment ? `<div style="margin-top:6px"><span class="form-label" data-i18n="inv.ta_comment">TA-kommentar</span>${ro(s.ta_comment)}</div>` : ''}
+    </div>
+
+    <div class="inv-section">
+      <div class="inv-section-h" data-i18n="inv.plan">Plan</div>
+      <div class="inv-field-grid">
+        <div><span class="form-label" data-i18n="inv.plan_entry">Inngang</span>${ro(s.plan_entry)}</div>
+        <div><span class="form-label" data-i18n="inv.plan_stop">Stop loss</span>${ro(s.plan_stop_loss)}</div>
+        <div><span class="form-label" data-i18n="inv.plan_t1">Mål 1</span>${ro(s.plan_target_1)}</div>
+        <div><span class="form-label" data-i18n="inv.plan_t2">Mål 2</span>${ro(s.plan_target_2)}</div>
+        <div><span class="form-label" data-i18n="inv.plan_horizon">Tidshorisont</span>${ro(s.plan_horizon)}</div>
+      </div>
+    </div>
+
+    <div class="inv-section">
+      <div class="inv-section-h" data-i18n="inv.risk">Risiko</div>
+      <div class="inv-field-grid">
+        <div><span class="form-label" data-i18n="inv.risk_wrong">Hva kan gå galt</span>${ro(s.risk_what_could_go_wrong)}</div>
+        <div><span class="form-label" data-i18n="inv.risk_sell">Selg-trigger</span>${ro(s.risk_sell_trigger)}</div>
+        <div><span class="form-label" data-i18n="inv.risk_buy_more">Kjøp mer-trigger</span>${ro(s.risk_buy_more_trigger)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function openAnalysisModal() {
+  const s = _selected;
+  document.getElementById('anWhy').value = s.thesis_why || '';
+  document.getElementById('anCatalyst').value = s.thesis_catalyst || '';
+  document.getElementById('anHorizon').value = s.thesis_horizon || '';
+  document.getElementById('anMustHappen').value = s.thesis_must_happen || '';
+  document.getElementById('anTrend').value = s.ta_trend || '';
+  document.getElementById('anRsi').value = s.ta_rsi ?? '';
+  document.getElementById('anSupport').value = s.ta_support ?? '';
+  document.getElementById('anResistance').value = s.ta_resistance ?? '';
+  document.getElementById('anMacd').value = s.ta_macd || '';
+  document.getElementById('anVolume').value = s.ta_volume_comment || '';
+  document.getElementById('anTaComment').value = s.ta_comment || '';
+  document.getElementById('anEntry').value = s.plan_entry ?? '';
+  document.getElementById('anStop').value = s.plan_stop_loss ?? '';
+  document.getElementById('anT1').value = s.plan_target_1 ?? '';
+  document.getElementById('anT2').value = s.plan_target_2 ?? '';
+  document.getElementById('anPlanHorizon').value = s.plan_horizon || '';
+  document.getElementById('anRiskWrong').value = s.risk_what_could_go_wrong || '';
+  document.getElementById('anRiskSell').value = s.risk_sell_trigger || '';
+  document.getElementById('anRiskBuyMore').value = s.risk_buy_more_trigger || '';
+  document.getElementById('analysisBackdrop').classList.add('open');
+}
+function closeAnalysisModal() { document.getElementById('analysisBackdrop').classList.remove('open'); }
+
+async function saveAnalysis() {
+  const num = (v) => v === '' ? null : parseFloat(v);
+  const patch = {
+    thesis_why: document.getElementById('anWhy').value || null,
+    thesis_catalyst: document.getElementById('anCatalyst').value || null,
+    thesis_horizon: document.getElementById('anHorizon').value || null,
+    thesis_must_happen: document.getElementById('anMustHappen').value || null,
+    ta_trend: document.getElementById('anTrend').value || null,
+    ta_rsi: num(document.getElementById('anRsi').value),
+    ta_support: num(document.getElementById('anSupport').value),
+    ta_resistance: num(document.getElementById('anResistance').value),
+    ta_macd: document.getElementById('anMacd').value || null,
+    ta_volume_comment: document.getElementById('anVolume').value || null,
+    ta_comment: document.getElementById('anTaComment').value || null,
+    plan_entry: num(document.getElementById('anEntry').value),
+    plan_stop_loss: num(document.getElementById('anStop').value),
+    plan_target_1: num(document.getElementById('anT1').value),
+    plan_target_2: num(document.getElementById('anT2').value),
+    plan_horizon: document.getElementById('anPlanHorizon').value || null,
+    risk_what_could_go_wrong: document.getElementById('anRiskWrong').value || null,
+    risk_sell_trigger: document.getElementById('anRiskSell').value || null,
+    risk_buy_more_trigger: document.getElementById('anRiskBuyMore').value || null,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  Object.assign(_selected, patch);
+  const idx = _investments.findIndex(i => i.id === _selected.id);
+  if (idx > -1) Object.assign(_investments[idx], patch);
+  closeAnalysisModal();
+  renderTabBody();
+  toast(t('inv.saved'));
+}
+
+// ── Journal tab ───────────────────────────────────────────────────────────
+function renderJournalTab() {
+  return `
+    <div class="inv-journal-add">
+      <input type="text" id="journalNoteInput" data-i18n-placeholder="inv.journal_placeholder" placeholder="Skriv et notat…" onkeydown="if(event.key==='Enter')addJournalNote()">
+      <button class="btn btn-primary btn-sm" onclick="addJournalNote()" data-i18n="add">Legg til</button>
+    </div>
+    <div class="inv-journal-list" id="invJournalList">
+      ${renderJournalList()}
+    </div>
+  `;
+}
+
+function renderJournalList() {
+  if (!_journal.length) return `<div class="inv-j-empty" data-i18n="inv.journal_empty">Ingen oppføringer ennå</div>`;
+  return _journal.map(j => `
+    <div class="inv-j-item jt-${j.type}">
+      <div class="inv-j-icon">${JT_ICON[j.type] || '📝'}</div>
+      <div class="inv-j-body">
+        <div class="inv-j-title">${escHtml(j.title || t('inv.jt_' + j.type))}</div>
+        ${j.description ? `<div class="inv-j-desc">${escHtml(j.description)}</div>` : ''}
+        <div class="inv-j-date">${fmtDateTime(j.created_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString(fmtLocale(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadJournal(investmentId) {
+  const { data, error } = await db.from('journal_entries').select('*').eq('investment_id', investmentId).order('created_at', { ascending: false });
+  if (error) { _journal = []; return; }
+  _journal = data || [];
+  if (_activeTab === 'journal') renderTabBody();
+}
+
+async function addJournalEntry(type, title, description) {
+  const { error } = await db.from('journal_entries').insert({
+    investment_id: _selected.id, type, title, description: description || null,
+  });
+  if (error) { toast(t('inv.err_save'), 'err'); return false; }
+  await loadJournal(_selected.id);
+  return true;
+}
+
+async function addJournalNote() {
+  const input = document.getElementById('journalNoteInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const ok = await addJournalEntry('note', t('inv.jt_note'), text);
+  if (ok) { input.value = ''; toast(t('inv.saved')); }
+}
+
+// ── Add stock modal ──────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('addTicker').value = '';
+  document.getElementById('addName').value = '';
+  document.getElementById('addWhy').value = '';
+  document.getElementById('addBackdrop').classList.add('open');
+}
+function closeAddModal() { document.getElementById('addBackdrop').classList.remove('open'); }
+
+async function saveAddStock() {
+  const ticker = document.getElementById('addTicker').value.trim().toUpperCase();
+  const name = document.getElementById('addName').value.trim();
+  const why = document.getElementById('addWhy').value.trim();
+  if (!ticker) { toast(t('inv.err_ticker'), 'err'); return; }
+  const { data, error } = await db.from('investments').insert({
+    ticker, name: name || null, status: 'watchlist', thesis_why: why || null,
+  }).select().single();
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  _investments.unshift(data);
+  closeAddModal();
+  selectInvestment(data.id);
+  toast(t('inv.saved'));
+}
+
+// ── Buy modal ─────────────────────────────────────────────────────────────
+function openBuyModal() {
+  document.getElementById('buyDate').value = today();
+  document.getElementById('buyPrice').value = '';
+  document.getElementById('buyQty').value = '';
+  document.getElementById('buyCommission').value = '0';
+  document.getElementById('buyBackdrop').classList.add('open');
+}
+function closeBuyModal() { document.getElementById('buyBackdrop').classList.remove('open'); }
+
+async function saveBuy() {
+  const buy_date = document.getElementById('buyDate').value;
+  const buy_price = parseFloat(document.getElementById('buyPrice').value);
+  const quantity = parseFloat(document.getElementById('buyQty').value);
+  const commission_buy = parseFloat(document.getElementById('buyCommission').value) || 0;
+  if (!buy_date || !buy_price || !quantity) { toast(t('inv.err_fields'), 'err'); return; }
+  const patch = { status: 'open', buy_date, buy_price, quantity, commission_buy };
+  const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  Object.assign(_selected, patch);
+  const idx = _investments.findIndex(i => i.id === _selected.id);
+  if (idx > -1) Object.assign(_investments[idx], patch);
+  await addJournalEntry('buy', t('inv.jt_buy'), `${quantity} @ ${buy_price} (${buy_date})`);
+  closeBuyModal();
+  renderMain();
+  toast(t('inv.saved'));
+}
+
+// ── Sell modal ────────────────────────────────────────────────────────────
+function openSellModal() {
+  document.getElementById('sellDate').value = today();
+  document.getElementById('sellPrice').value = '';
+  document.getElementById('sellQty').value = _selected.quantity ?? '';
+  document.getElementById('sellCommission').value = '0';
+  document.getElementById('sellBackdrop').classList.add('open');
+}
+function closeSellModal() { document.getElementById('sellBackdrop').classList.remove('open'); }
+
+async function saveSell() {
+  const sell_date = document.getElementById('sellDate').value;
+  const sell_price = parseFloat(document.getElementById('sellPrice').value);
+  const quantity_sold = parseFloat(document.getElementById('sellQty').value);
+  const commission_sell = parseFloat(document.getElementById('sellCommission').value) || 0;
+  if (!sell_date || !sell_price || !quantity_sold) { toast(t('inv.err_fields'), 'err'); return; }
+  const patch = { status: 'closed', locked: true, sell_date, sell_price, quantity_sold, commission_sell };
+  const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  Object.assign(_selected, patch);
+  const idx = _investments.findIndex(i => i.id === _selected.id);
+  if (idx > -1) Object.assign(_investments[idx], patch);
+  await addJournalEntry('sell', t('inv.jt_sell'), `${quantity_sold} @ ${sell_price} (${sell_date})`);
+  closeSellModal();
+  _activeTab = 'analysis';
+  renderMain();
+  toast(t('inv.saved'));
+}
+
+// ── Finnhub quote ─────────────────────────────────────────────────────────
+async function fhFetch(ticker, endpoint) {
+  const headers = await authHeader();
+  const r = await fetch(`/api/finnhub?ticker=${encodeURIComponent(ticker)}&endpoint=${endpoint}`, { headers });
+  if (!r.ok) throw new Error('finnhub ' + r.status);
+  return r.json();
+}
+
+async function loadQuote(ticker) {
+  try {
+    const cached = _quoteCache[ticker];
+    let quote, profile;
+    if (cached && Date.now() - cached.ts < 60000) {
+      ({ quote, profile } = cached);
+    } else {
+      [quote, profile] = await Promise.all([
+        fhFetch(ticker, 'quote'),
+        fhFetch(ticker, 'profile').catch(() => null),
+      ]);
+      _quoteCache[ticker] = { ts: Date.now(), quote, profile };
+    }
+    if (_selected?.ticker !== ticker) return;
+    renderQuote(quote, profile);
+    loadEarnings(ticker);
+  } catch (e) {
+    console.error('quote', e);
+  }
+}
+
+function renderQuote(q, profile) {
+  const priceEl = document.getElementById('invPrice');
+  const changeEl = document.getElementById('invChange');
+  if (!priceEl) return;
+  const cur = profile?.currency || 'USD';
+  priceEl.textContent = q.c != null ? `${q.c.toFixed(2)} ${cur}` : '—';
+  const change = q.d, pct = q.dp;
+  if (change != null) {
+    changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+    changeEl.className = 'inv-quote-change ' + (change >= 0 ? 'pos' : 'neg');
+  }
+  document.getElementById('invOpen').textContent = q.o != null ? q.o.toFixed(2) : '—';
+  document.getElementById('invHigh').textContent = q.h != null ? q.h.toFixed(2) : '—';
+  document.getElementById('invLow').textContent = q.l != null ? q.l.toFixed(2) : '—';
+  const mcapEl = document.getElementById('invMcap');
+  if (mcapEl && profile?.marketCapitalization) {
+    mcapEl.textContent = `· ${t('inv.mcap')}: ${(profile.marketCapitalization / 1000).toFixed(1)}B`;
+  }
+}
+
+async function loadEarnings(ticker) {
+  try {
+    const data = await fhFetch(ticker, 'earnings');
+    const el = document.getElementById('invEarnings');
+    if (!el) return;
+    const next = data?.earningsCalendar?.[0];
+    el.textContent = next?.date ? fmtDate(next.date) : '—';
+  } catch (e) { /* silent */ }
+}
+
+// ── TradingView embed ────────────────────────────────────────────────────
+function initTradingView(ticker) {
+  const container = document.getElementById('tvContainer');
+  if (!container || typeof TradingView === 'undefined') return;
+  container.innerHTML = '';
+  _tvWidget = new TradingView.widget({
+    autosize: true,
+    symbol: ticker,
+    interval: 'D',
+    timezone: 'Etc/UTC',
+    theme: 'dark',
+    style: '1',
+    locale: _lang === 'no' ? 'no' : 'en',
+    toolbar_bg: '#131315',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    hide_legend: false,
+    save_image: false,
+    container_id: 'tvContainer',
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const cfg = await getConfig();
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+  } catch (err) {
+    document.querySelector('.page').innerHTML =
+      `<div class="card" style="text-align:center;padding:40px">
+        <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${err.message}</div>
+      </div>`;
+    return;
+  }
+  applyLang();
+  await loadInvestments().catch(e => console.error('investments', e));
+  renderMain();
+  staggerIn(document.querySelectorAll('.page > .card'));
+})();
+
+onLangChange = () => {
+  applyLang();
+  renderHeader();
+  renderFavRow();
+  if (_selected) { renderTabBody(); }
+  renderTickerDD();
+};
+</script>
+</body>
+</html>
