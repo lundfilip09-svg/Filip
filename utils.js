@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Søvn', 'nav.gjoremal': 'Gjøremål',
     'nav.kalender': 'Kalender', 'nav.treningsplan': 'Treningsoversikt',
-    'nav.investments': 'Investments',
+    'nav.investments': 'Investeringer',
     'nav.logout': 'Logg ut', 'nav.pdf': 'Eksporter PDF',
     // Common
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
