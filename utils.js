@@ -2207,7 +2207,7 @@ async function enableNotifications(opts = {}) {
       });
     }
     const token = await getAccessToken();
-    const r = await fetch('/api/push/subscribe', {
+    const r = await fetch('/api/push?action=subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ subscription: sub.toJSON() }),
@@ -2232,7 +2232,7 @@ async function ensurePushReady() {
         // Re-lagre gjeldende abonnement (idempotent upsert) så serveren alltid
         // har nøyaktig ett, riktig abonnement for denne enheten.
         const token = await getAccessToken();
-        if (token) fetch('/api/push/subscribe', {
+        if (token) fetch('/api/push?action=subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ subscription: sub.toJSON() }),
@@ -2251,7 +2251,7 @@ async function schedulePush(opts) {
   try {
     const token = await getAccessToken();
     if (!token) return null;
-    const r = await fetch('/api/push/schedule', {
+    const r = await fetch('/api/push?action=schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(opts),
@@ -2266,7 +2266,7 @@ async function cancelPush(opts) {
   try {
     const token = await getAccessToken();
     if (!token) return;
-    await fetch('/api/push/cancel', {
+    await fetch('/api/push?action=cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(opts),
