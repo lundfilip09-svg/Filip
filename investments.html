@@ -195,11 +195,11 @@
     <div class="inv-stack">
       <div class="form-group">
         <label class="form-label" data-i18n="inv.ticker">Ticker</label>
-        <input type="text" id="addTicker" placeholder="AAPL" style="text-transform:uppercase">
+        <input type="text" id="addTicker" placeholder="KOG" style="text-transform:uppercase">
       </div>
       <div class="form-group">
         <label class="form-label" data-i18n="inv.name">Navn</label>
-        <input type="text" id="addName" placeholder="Apple Inc.">
+        <input type="text" id="addName" placeholder="Kongsberg Gruppen">
       </div>
     </div>
     <div class="inv-panel-foot">
@@ -775,10 +775,17 @@ async function saveSell() {
   toast(t('inv.saved'));
 }
 
+// ── Børs-symbol-mapping ──────────────────────────────────────────────────
+// Filip handler kun på Oslo Børs. Ticker lagres rått (f.eks. "KOG") —
+// her legges riktig suffiks/prefiks på for hvert API som trenger det.
+function finnhubSymbol(ticker) { return `${ticker}.OL`; }
+function tvSymbol(ticker) { return `OSE:${ticker}`; }
+
 // ── Finnhub quote ─────────────────────────────────────────────────────────
 async function fhFetch(ticker, endpoint) {
   const headers = await authHeader();
-  const r = await fetch(`/api/finnhub?ticker=${encodeURIComponent(ticker)}&endpoint=${endpoint}`, { headers });
+  const symbol = finnhubSymbol(ticker);
+  const r = await fetch(`/api/finnhub?ticker=${encodeURIComponent(symbol)}&endpoint=${endpoint}`, { headers });
   if (!r.ok) throw new Error('finnhub ' + r.status);
   return r.json();
 }
@@ -808,7 +815,7 @@ function renderQuote(q, profile) {
   const priceEl = document.getElementById('invPrice');
   const changeEl = document.getElementById('invChange');
   if (!priceEl) return;
-  const cur = profile?.currency || 'USD';
+  const cur = profile?.currency || 'NOK';
   priceEl.textContent = q.c != null ? `${q.c.toFixed(2)} ${cur}` : '—';
   const change = q.d, pct = q.dp;
   if (change != null) {
@@ -842,7 +849,7 @@ function initTradingView(ticker) {
     container.innerHTML = '';
     _tvWidget = new TradingView.widget({
       autosize: true,
-      symbol: ticker,
+      symbol: tvSymbol(ticker),
       interval: 'D',
       timezone: 'Etc/UTC',
       theme: 'dark',
