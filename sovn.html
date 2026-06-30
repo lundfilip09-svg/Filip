@@ -338,7 +338,7 @@ function getHeroText(d) {
   if (!sc) {
     return { main: t('sovn.sleeping'), sub: d.sleep_hours ? t('sovn.registered', {d: sleepHoursStr(d.sleep_hours)}) : t('sovn.waiting'), color:'var(--text-secondary)' };
   }
-  if (sc >= 85) return { main: t('sovn.recovery'),  sub: t('sovn.sprint_ready'), color:'#6BE3A4' };
+  if (sc >= 85) return { main: t('sovn.recovery'),  sub: t('sovn.sprint_ready'), color:'#5BA4F5' };
   if (sc >= 70) return { main: t('sovn.solid'),      sub: t('sovn.train_ready'),  color:'#5BA4F5' };
   if (sc >= 55) return { main: t('sovn.moderate'),   sub: t('sovn.light_session'), color:'#F2C063' };
   return { main: t('sovn.hard'), sub: t('sovn.rest'), color:'#FF6B6B' };
@@ -352,7 +352,7 @@ function getArchInsight(d) {
   const remPct  = (d.rem_sleep_minutes||0)  / total * 100;
   if (deepPct < 10) return { text: t('sovn.arch_low_deep'),  color:'#F2C063' };
   if (remPct  < 14) return { text: t('sovn.arch_low_rem'),   color:'#F2C063' };
-  if (deepPct > 22 && remPct > 20) return { text: t('sovn.arch_excellent'), color:'#6BE3A4' };
+  if (deepPct > 22 && remPct > 20) return { text: t('sovn.arch_excellent'), color:'#5BA4F5' };
   if (deepPct > 18) return { text: t('sovn.arch_deep'),      color:'#5BA4F5' };
   if (remPct  > 22) return { text: t('sovn.arch_good_rem'),  color:'#4A9EE8' };
   return { text: t('sovn.arch_normal'), color:'var(--text-tertiary)' };
@@ -386,7 +386,7 @@ function getReadinessInsight(d) {
   const wSum  = parts.reduce((a, [, w]) => a + w, 0);
   const level = Math.round(parts.reduce((a, [v, w]) => a + v * w, 0) / wSum);
 
-  if (level >= 85) return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color:'#6BE3A4', level };
+  if (level >= 85) return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color:'#5BA4F5', level };
   if (level >= 65) return { status: t('sovn.ready_good'),     desc: t('sovn.ready_good_desc'),     color:'#5BA4F5', level };
   if (level >= 45) return { status: t('sovn.ready_moderate'), desc: t('sovn.ready_moderate_desc'), color:'#F2C063', level };
   return { status: t('sovn.ready_rest'),       desc: t('sovn.ready_rest_desc'),     color:'#FF6B6B', level };
@@ -435,7 +435,7 @@ function renderHero(d) {
   el.innerHTML = `
     <div class="hero-inner">
       <div class="hero-score-box${cls}">
-        <div class="hero-score-num" style="${sc && sc >= 85 ? 'color:#6BE3A4' : sc && sc >= 55 ? 'color:#5BA4F5' : sc ? 'color:#FF6B6B' : ''}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
+        <div class="hero-score-num" style="${sc && sc >= 60 ? 'color:#5BA4F5' : sc && sc < 60 ? 'color:#FF6B6B' : ''}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
         <div class="hero-score-lbl">${t('sovn.score_sub')}</div>
       </div>
       <div class="hero-right">
@@ -490,7 +490,7 @@ function analyzeMetrics(d) {
   // HRV
   if (d?.hrv) {
     const v = d.hrv;
-    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge: t('sovn.hrv_optimal'),  color:'#6BE3A4', glow:'rgba(107,227,164,0.14)',  advice: t('sovn.hrv_advice_optimal') });
+    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge: t('sovn.hrv_optimal'),  color:'#5BA4F5', glow:'rgba(91,164,245,0.14)',  advice: t('sovn.hrv_advice_optimal') });
     else if (v >= 50) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge: t('sovn.hrv_good'),     color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',   advice: t('sovn.hrv_advice_good') });
     else if (v >= 40) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'warn',   badge: t('sovn.hrv_low'),      color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice: t('sovn.hrv_advice_low') });
     else if (v >= 30) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_critical'), color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice: t('sovn.hrv_advice_critical') });
@@ -500,7 +500,7 @@ function analyzeMetrics(d) {
   // Sleep hours
   if (d?.sleep_hours) {
     const v = d.sleep_hours;
-    if (v >= 8)       results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'ok',     badge: t('sovn.sleep_optimal'), color:'#6BE3A4', glow:'rgba(107,227,164,0.12)',  advice: t('sovn.sleep_advice_optimal') });
+    if (v >= 8)       results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'ok',     badge: t('sovn.sleep_optimal'), color:'#5BA4F5', glow:'rgba(91,164,245,0.12)',  advice: t('sovn.sleep_advice_optimal') });
     else if (v >= 7)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'ok',     badge: t('sovn.sleep_good'),    color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',   advice: t('sovn.sleep_advice_good') });
     else if (v >= 6)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'warn',   badge: t('sovn.sleep_little'),  color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice: t('sovn.sleep_advice_little') });
     else              results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'danger', badge: t('sovn.sleep_critical'),color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice: t('sovn.sleep_advice_critical') });
@@ -509,9 +509,9 @@ function analyzeMetrics(d) {
   // Sleep score
   if (d?.sleep_score) {
     const v = d.sleep_score;
-    if (v >= 85)      results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'ok',     badge: t('sovn.score_excellent'), color:'#6BE3A4', glow:'rgba(107,227,164,0.14)',  advice: t('sovn.score_advice_excellent') });
+    if (v >= 85)      results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'ok',     badge: t('sovn.score_excellent'), color:'#5BA4F5', glow:'rgba(91,164,245,0.14)',  advice: t('sovn.score_advice_excellent') });
     else if (v >= 70) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'ok',     badge: t('sovn.score_good'),      color:'#5BA4F5', glow:'rgba(91,164,245,0.1)',   advice: t('sovn.score_advice_good') });
-    else if (v >= 55) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'warn',   badge: t('sovn.score_ok'),        color:'#F2C063', glow:'rgba(242,192,99,0.1)',   advice: t('sovn.score_advice_ok') });
+    else if (v >= 55) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'warn',   badge: t('sovn.score_ok'),        color:'#F2C063', glow:'rgba(242,192,99,0.12)',  advice: t('sovn.score_advice_ok') });
     else              results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'danger', badge: t('sovn.score_bad'),       color:'#FF6B6B', glow:'rgba(255,107,107,0.14)', advice: t('sovn.score_advice_bad') });
   }
 
@@ -522,7 +522,7 @@ function analyzeMetrics(d) {
   // an athlete with high training load, 31–50 = starting to fragment, >50 = flag it.
   if (d?.awake_minutes != null) {
     const v = d.awake_minutes;
-    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_exceptional'), color:'#6BE3A4', glow:'rgba(107,227,164,0.14)',  advice:t('sovn.awake_advice_exceptional', {v}) });
+    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_exceptional'), color:'#5BA4F5', glow:'rgba(91,164,245,0.14)',  advice:t('sovn.awake_advice_exceptional', {v}) });
     else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_good'),        color:'#5BA4F5', glow:'rgba(91,164,245,0.08)',  advice:t('sovn.awake_advice_good', {v}) });
     else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_acceptable'),  color:'var(--text-secondary)', glow:'', advice:t('sovn.awake_advice_acceptable', {v}) });
     else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'warn',   badge:t('sovn.awake_restless'),    color:'#F2C063', glow:'rgba(242,192,99,0.1)',   advice:t('sovn.awake_advice_restless', {v}) });
@@ -646,7 +646,7 @@ function renderReadiness(d) {
   const indicators = [];
   if (d?.sleep_score) {
     const sc = d.sleep_score;
-    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? '#6BE3A4' : sc >= 60 ? '#5BA4F5' : '#FF6B6B' });
+    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? '#5BA4F5' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
   }
   const base = getReadinessBaselines(d?.date);
   if (d?.hrv) {
@@ -654,7 +654,7 @@ function renderReadiness(d) {
     const ratio = base.hrv ? d.hrv / base.hrv : null;
     const good  = ratio != null ? ratio >= 0.95 : d.hrv >= 50;
     const low   = ratio != null ? ratio >= 0.85 : d.hrv >= 35;
-    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? '#5BA4F5' : low ? '#5BA4F5' : '#FF6B6B' });
+    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? '#5BA4F5' : low ? '#F2C063' : '#FF6B6B' });
   }
   if (d?.body_battery != null) {
     const bb = d.body_battery;
@@ -885,8 +885,8 @@ function renderChart(metric, days) {
     const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
     datasets = [{
       label:t('sovn.score_lbl'), data:vals,
-      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 85 ? 'rgba(91,164,245,0.85)' : v >= 70 ? 'rgba(91,164,245,0.6)' : v >= 55 ? 'rgba(91,164,245,0.35)' : 'rgba(255,107,107,0.65)'),
-      borderColor:      vals.map(v => !v ? 'transparent' : v >= 55 ? '#5BA4F5' : '#FF6B6B'),
+      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 80 ? 'rgba(91,164,245,0.75)' : v >= 60 ? 'rgba(91,164,245,0.55)' : 'rgba(255,107,107,0.75)'),
+      borderColor:      vals.map(v => !v ? 'transparent' : v >= 60 ? '#5BA4F5' : '#FF6B6B'),
       borderWidth:1, borderRadius:4,
     }];
     yMax = 100; yLabel = t('sovn.score_sub');
