@@ -492,7 +492,7 @@ function renderMain() {
       <div class="inv-quote-top">
         <div>
           <div class="inv-quote-name">${escHtml(_selected.name || _selected.ticker)}</div>
-          <div class="inv-quote-sub">${escHtml(_selected.ticker)} <span id="invMcap"></span></div>
+          <div class="inv-quote-sub">${escHtml(_selected.ticker)}</div>
         </div>
         <div>
           <div class="inv-quote-price" id="invPrice">—</div>
@@ -503,7 +503,7 @@ function renderMain() {
         <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.open">Åpning</div><div class="metric-val" id="invOpen">—</div></div>
         <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.high">Høy</div><div class="metric-val" id="invHigh">—</div></div>
         <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.low">Lav</div><div class="metric-val" id="invLow">—</div></div>
-        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.earnings">Resultat</div><div class="metric-val" id="invEarnings" style="font-size:13px">—</div></div>
+
       </div>
       <div class="inv-status-row">
         <span class="badge ${({watchlist:'badge-grey',open:'badge-blue',closed:'badge-green'})[_selected.status]}" data-i18n="inv.status_${_selected.status}">${_selected.status}</span>
@@ -744,7 +744,7 @@ function openAddModal() {
 function closeAddModal() { document.getElementById('addBackdrop').classList.remove('open'); }
 
 async function saveAddStock() {
-  const ticker = document.getElementById('addTicker').value.trim().toUpperCase();
+  const ticker = document.getElementById('addTicker').value.trim().toUpperCase().replace(/\.OL$/, '');
   const name = document.getElementById('addName').value.trim();
   if (!ticker) { toast(t('inv.err_ticker'), 'err'); return; }
   const { data, error } = await db.from('investments').insert({
@@ -818,39 +818,37 @@ async function saveSell() {
 // ── Børs-symbol-mapping ──────────────────────────────────────────────────
 // Filip handler kun på Oslo Børs. Ticker lagres rått (f.eks. "KOG") —
 // her legges riktig suffiks/prefiks på for hvert API som trenger det.
-function finnhubSymbol(ticker) { return `${ticker}.OL`; }
+function yahooSymbol(ticker) { return `${ticker}.OL`; }
 function tvSymbol(ticker) { return `OSE:${ticker}`; }
 
-// ── Finnhub quote ─────────────────────────────────────────────────────────
-async function fhFetch(ticker, endpoint) {
+// ── Yahoo Finance quote (key-fri) ────────────────────────────────────────
+async function yhFetch(ticker, endpoint, extraQS) {
   const headers = await authHeader();
-  const symbol = finnhubSymbol(ticker);
-  const r = await fetch(`/api/finnhub?ticker=${encodeURIComponent(symbol)}&endpoint=${endpoint}`, { headers });
+  const symbol = yahooSymbol(ticker);
+  let url = `/api/quote?ticker=${encodeURIComponent(symbol)}&endpoint=${endpoint}`;
+  if (extraQS) url += `&${extraQS}`;
+  const r = await fetch(url, { headers });
   if (r.status === 422) { const body = await r.json().catch(() => ({})); const err = new Error(body.error || 'no_data'); err.noData = true; throw err; }
-  if (!r.ok) throw new Error('finnhub ' + r.status);
+  if (!r.ok) throw new Error('quote ' + r.status);
   return r.json();
 }
 
 async function loadQuote(ticker) {
   try {
     const cached = _quoteCache[ticker];
-    let quote, profile;
+    let quote;
     if (cached && Date.now() - cached.ts < 60000) {
-      ({ quote, profile } = cached);
+      ({ quote } = cached);
     } else {
-      [quote, profile] = await Promise.all([
-        fhFetch(ticker, 'quote'),
-        fhFetch(ticker, 'profile').catch(() => null),
-      ]);
-      _quoteCache[ticker] = { ts: Date.now(), quote, profile };
+      quote = await yhFetch(ticker, 'quote');
+      _quoteCache[ticker] = { ts: Date.now(), quote };
     }
     if (_selected?.ticker !== ticker) return;
-    renderQuote(quote, profile);
-    loadEarnings(ticker);
+    renderQuote(quote);
   } catch (e) {
     if (_selected?.ticker !== ticker) return;
     if (e.noData) { renderQuoteUnavailable(); }
-    else { console.error('quote', e); }
+    else { renderQuoteError(); console.error('quote', e); }
   }
 }
 
@@ -863,34 +861,33 @@ function renderQuoteUnavailable() {
   ['invOpen', 'invHigh', 'invLow'].forEach(id => { document.getElementById(id).textContent = '—'; });
 }
 
-function renderQuote(q, profile) {
+function renderQuoteError() {
+  const priceEl = document.getElementById('invPrice');
+  if (!priceEl) return;
+  priceEl.textContent = t('inv.quote_error');
+  priceEl.style.fontSize = '14px';
+  document.getElementById('invChange').textContent = '';
+  ['invOpen', 'invHigh', 'invLow'].forEach(id => { document.getElementById(id).textContent = '—'; });
+}
+
+function renderQuote(q) {
   const priceEl = document.getElementById('invPrice');
   const changeEl = document.getElementById('invChange');
   if (!priceEl) return;
-  const cur = profile?.currency || 'NOK';
-  priceEl.textContent = q.c != null ? `${q.c.toFixed(2)} ${cur}` : '—';
-  const change = q.d, pct = q.dp;
-  if (change != null) {
+  priceEl.style.fontSize = '';
+  const cur = q.currency || 'NOK';
+  priceEl.textContent = q.price != null ? `${q.price.toFixed(2)} ${cur}` : '—';
+  if (q.price != null && q.previousClose != null) {
+    const change = q.price - q.previousClose;
+    const pct = q.previousClose ? (change / q.previousClose) * 100 : 0;
     changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
     changeEl.className = 'inv-quote-change ' + (change >= 0 ? 'pos' : 'neg');
+  } else {
+    changeEl.textContent = '';
   }
-  document.getElementById('invOpen').textContent = q.o != null ? q.o.toFixed(2) : '—';
-  document.getElementById('invHigh').textContent = q.h != null ? q.h.toFixed(2) : '—';
-  document.getElementById('invLow').textContent = q.l != null ? q.l.toFixed(2) : '—';
-  const mcapEl = document.getElementById('invMcap');
-  if (mcapEl && profile?.marketCapitalization) {
-    mcapEl.textContent = `· ${t('inv.mcap')}: ${(profile.marketCapitalization / 1000).toFixed(1)}B`;
-  }
-}
-
-async function loadEarnings(ticker) {
-  try {
-    const data = await fhFetch(ticker, 'earnings');
-    const el = document.getElementById('invEarnings');
-    if (!el) return;
-    const next = data?.earningsCalendar?.[0];
-    el.textContent = next?.date ? fmtDate(next.date) : '—';
-  } catch (e) { /* silent */ }
+  document.getElementById('invOpen').textContent = q.open != null ? q.open.toFixed(2) : '—';
+  document.getElementById('invHigh').textContent = q.dayHigh != null ? q.dayHigh.toFixed(2) : '—';
+  document.getElementById('invLow').textContent = q.dayLow != null ? q.dayLow.toFixed(2) : '—';
 }
 
 // ── TradingView embed ────────────────────────────────────────────────────
