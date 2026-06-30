@@ -28,12 +28,18 @@
     .inv-ticker-btn .inm { color: var(--text-tertiary); font-size: 11px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .inv-ticker-btn .iar { color: var(--text-tertiary); font-size: 10px; transition: transform 0.15s; }
     .inv-ticker-btn.open .iar { transform: rotate(180deg); }
+    /* Dropdown rendres som position:fixed med koordinater satt av JS (positionTickerDD()).
+       Årsak til at panelet tidligere "dyttet" siden ned: .inv-header er en .card, og .card har
+       backdrop-filter — det skaper en ny compositing-context i nettleseren, så et
+       position:absolute-panel forankret inni det filtrerte kortet komponeres feil i forhold til
+       resten av siden i stedet for å flyte fritt over den. Løsning: panel + backdrop er nå
+       position:fixed med top/left beregnet via getBoundingClientRect(), utenfor kortets context. */
     .inv-dd-backdrop {
       display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.4);
     }
     .inv-dd-backdrop.open { display: block; animation: modalBackdropIn 0.18s ease-out both; }
     .inv-dd-panel {
-      display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 310;
+      display: none; position: fixed; z-index: 310;
       background: #141416; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
       box-shadow: 0 8px 28px rgba(0,0,0,0.5); max-height: 360px; flex-direction: column;
       animation: modalPanelIn 0.18s cubic-bezier(0.2,0.7,0.2,1) both;
@@ -102,13 +108,23 @@
       background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
       font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 14px;
     }
-    .inv-section { margin-bottom: 18px; }
-    .inv-section:last-child { margin-bottom: 0; }
-    .inv-section-h { font-size: 9.5px; font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px; }
-    .inv-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .inv-section {
+      padding: 14px 0; border-bottom: 1px solid var(--hairline-soft);
+    }
+    .inv-section:first-of-type { padding-top: 0; }
+    .inv-section:last-child { border-bottom: none; padding-bottom: 0; }
+    .inv-section-h {
+      font-size: 10px; font-weight: 700; font-family: var(--font-mono); letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-primary); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .inv-section-h::before { content: ''; width: 3px; height: 11px; background: var(--accent-blue); border-radius: 2px; display: inline-block; }
+    .inv-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
     @media (max-width: 640px) { .inv-field-grid { grid-template-columns: 1fr; } }
-    .inv-ro-val { font-size: 13px; color: var(--text-secondary); line-height: 1.5; padding: 8px 0; min-height: 20px; }
-    .inv-ro-val:empty::before { content: '—'; color: var(--text-tertiary); }
+    .inv-field { display: flex; flex-direction: column; gap: 3px; }
+    .inv-ro-val { font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+    .inv-ro-val.empty { color: var(--text-tertiary); font-style: italic; }
+    .inv-ro-val.empty::before { content: '–'; }
 
     /* ── Journal ── */
     .inv-journal-add { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -158,7 +174,7 @@
   <!-- ══════════════════  HEADER  ══════════════════ -->
   <div class="card inv-header">
     <div class="inv-header-top">
-      <div class="inv-ticker-sel">
+      <div class="inv-ticker-sel" id="invTickerSel">
         <button class="inv-ticker-btn" id="invTickerBtn" onclick="toggleTickerDD()">
           <span class="itk" id="invSelTicker">—</span>
           <span class="inm" id="invSelName" data-i18n="inv.select_ticker">Velg aksje…</span>
@@ -376,18 +392,38 @@ function renderFavRow() {
 }
 
 // ── Ticker dropdown ───────────────────────────────────────────────────────
+function positionTickerDD() {
+  const anchor = document.getElementById('invTickerSel');
+  const panel = document.getElementById('invDDPanel');
+  if (!anchor || !panel) return;
+  const r = anchor.getBoundingClientRect();
+  panel.style.top = `${r.bottom + 6}px`;
+  panel.style.left = `${r.left}px`;
+  panel.style.width = `${r.width}px`;
+}
 function toggleTickerDD() {
   const bd = document.getElementById('invDDBackdrop');
   const open = bd.classList.toggle('open');
   document.getElementById('invDDPanel').classList.toggle('open', open);
   document.getElementById('invTickerBtn').classList.toggle('open', open);
-  if (open) { renderTickerDD(); setTimeout(() => document.getElementById('invDDSearch').focus(), 30); }
+  if (open) {
+    positionTickerDD();
+    renderTickerDD();
+    setTimeout(() => document.getElementById('invDDSearch').focus(), 30);
+    window.addEventListener('resize', positionTickerDD);
+    window.addEventListener('scroll', positionTickerDD, true);
+  } else {
+    window.removeEventListener('resize', positionTickerDD);
+    window.removeEventListener('scroll', positionTickerDD, true);
+  }
 }
 function closeTickerDD(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('invDDBackdrop').classList.remove('open');
   document.getElementById('invDDPanel').classList.remove('open');
   document.getElementById('invTickerBtn').classList.remove('open');
+  window.removeEventListener('resize', positionTickerDD);
+  window.removeEventListener('scroll', positionTickerDD, true);
 }
 function renderTickerDD() {
   const q = (document.getElementById('invDDSearch').value || '').toLowerCase();
@@ -531,7 +567,11 @@ function renderTabBody() {
 function renderAnalysisTab() {
   const s = _selected;
   const locked = !!s.locked;
-  const ro = (v) => `<div class="inv-ro-val">${v ? escHtml(v) : ''}</div>`;
+  const field = (labelKey, label, val) =>
+    `<div class="inv-field">
+      <span class="form-label" data-i18n="${labelKey}">${label}</span>
+      <div class="inv-ro-val${val == null || val === '' ? ' empty' : ''}">${val != null && val !== '' ? escHtml(String(val)) : ''}</div>
+    </div>`;
   return `
     ${locked ? `<div class="inv-locked-banner">🔒 <span data-i18n="inv.locked_msg">Posisjon er lukket — analyse er låst</span></div>` : ''}
     ${!locked ? `<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="openAnalysisModal()" data-i18n="inv.edit">Rediger</button></div>` : ''}
@@ -539,43 +579,43 @@ function renderAnalysisTab() {
     <div class="inv-section">
       <div class="inv-section-h" data-i18n="inv.thesis">Tese</div>
       <div class="inv-field-grid">
-        <div><span class="form-label" data-i18n="inv.thesis_why">Hvorfor</span>${ro(s.thesis_why)}</div>
-        <div><span class="form-label" data-i18n="inv.thesis_catalyst">Katalysator</span>${ro(s.thesis_catalyst)}</div>
-        <div><span class="form-label" data-i18n="inv.thesis_horizon">Horisont</span>${ro(s.thesis_horizon)}</div>
-        <div><span class="form-label" data-i18n="inv.thesis_must">Må skje</span>${ro(s.thesis_must_happen)}</div>
+        ${field('inv.thesis_why', 'Hvorfor', s.thesis_why)}
+        ${field('inv.thesis_catalyst', 'Katalysator', s.thesis_catalyst)}
+        ${field('inv.thesis_horizon', 'Horisont', s.thesis_horizon)}
+        ${field('inv.thesis_must', 'Må skje', s.thesis_must_happen)}
       </div>
     </div>
 
     <div class="inv-section">
       <div class="inv-section-h" data-i18n="inv.ta">Teknisk analyse</div>
       <div class="inv-field-grid">
-        <div><span class="form-label" data-i18n="inv.ta_trend">Trend</span>${ro(s.ta_trend)}</div>
-        <div><span class="form-label" data-i18n="inv.ta_rsi">RSI</span>${ro(s.ta_rsi)}</div>
-        <div><span class="form-label" data-i18n="inv.ta_support">Støtte</span>${ro(s.ta_support)}</div>
-        <div><span class="form-label" data-i18n="inv.ta_resistance">Motstand</span>${ro(s.ta_resistance)}</div>
-        <div><span class="form-label" data-i18n="inv.ta_macd">MACD</span>${ro(s.ta_macd)}</div>
-        <div><span class="form-label" data-i18n="inv.ta_volume">Volumkommentar</span>${ro(s.ta_volume_comment)}</div>
+        ${field('inv.ta_trend', 'Trend', s.ta_trend)}
+        ${field('inv.ta_rsi', 'RSI', s.ta_rsi)}
+        ${field('inv.ta_support', 'Støtte', s.ta_support)}
+        ${field('inv.ta_resistance', 'Motstand', s.ta_resistance)}
+        ${field('inv.ta_macd', 'MACD', s.ta_macd)}
+        ${field('inv.ta_volume', 'Volumkommentar', s.ta_volume_comment)}
       </div>
-      ${s.ta_comment ? `<div style="margin-top:6px"><span class="form-label" data-i18n="inv.ta_comment">TA-kommentar</span>${ro(s.ta_comment)}</div>` : ''}
+      ${s.ta_comment ? `<div style="margin-top:10px">${field('inv.ta_comment', 'TA-kommentar', s.ta_comment)}</div>` : ''}
     </div>
 
     <div class="inv-section">
       <div class="inv-section-h" data-i18n="inv.plan">Plan</div>
       <div class="inv-field-grid">
-        <div><span class="form-label" data-i18n="inv.plan_entry">Inngang</span>${ro(s.plan_entry)}</div>
-        <div><span class="form-label" data-i18n="inv.plan_stop">Stop loss</span>${ro(s.plan_stop_loss)}</div>
-        <div><span class="form-label" data-i18n="inv.plan_t1">Mål 1</span>${ro(s.plan_target_1)}</div>
-        <div><span class="form-label" data-i18n="inv.plan_t2">Mål 2</span>${ro(s.plan_target_2)}</div>
-        <div><span class="form-label" data-i18n="inv.plan_horizon">Tidshorisont</span>${ro(s.plan_horizon)}</div>
+        ${field('inv.plan_entry', 'Inngang', s.plan_entry)}
+        ${field('inv.plan_stop', 'Stop loss', s.plan_stop_loss)}
+        ${field('inv.plan_t1', 'Mål 1', s.plan_target_1)}
+        ${field('inv.plan_t2', 'Mål 2', s.plan_target_2)}
+        ${field('inv.plan_horizon', 'Tidshorisont', s.plan_horizon)}
       </div>
     </div>
 
     <div class="inv-section">
       <div class="inv-section-h" data-i18n="inv.risk">Risiko</div>
       <div class="inv-field-grid">
-        <div><span class="form-label" data-i18n="inv.risk_wrong">Hva kan gå galt</span>${ro(s.risk_what_could_go_wrong)}</div>
-        <div><span class="form-label" data-i18n="inv.risk_sell">Selg-trigger</span>${ro(s.risk_sell_trigger)}</div>
-        <div><span class="form-label" data-i18n="inv.risk_buy_more">Kjøp mer-trigger</span>${ro(s.risk_buy_more_trigger)}</div>
+        ${field('inv.risk_wrong', 'Hva kan gå galt', s.risk_what_could_go_wrong)}
+        ${field('inv.risk_sell', 'Selg-trigger', s.risk_sell_trigger)}
+        ${field('inv.risk_buy_more', 'Kjøp mer-trigger', s.risk_buy_more_trigger)}
       </div>
     </div>
   `;
@@ -786,6 +826,7 @@ async function fhFetch(ticker, endpoint) {
   const headers = await authHeader();
   const symbol = finnhubSymbol(ticker);
   const r = await fetch(`/api/finnhub?ticker=${encodeURIComponent(symbol)}&endpoint=${endpoint}`, { headers });
+  if (r.status === 422) { const body = await r.json().catch(() => ({})); const err = new Error(body.error || 'no_data'); err.noData = true; throw err; }
   if (!r.ok) throw new Error('finnhub ' + r.status);
   return r.json();
 }
@@ -807,8 +848,19 @@ async function loadQuote(ticker) {
     renderQuote(quote, profile);
     loadEarnings(ticker);
   } catch (e) {
-    console.error('quote', e);
+    if (_selected?.ticker !== ticker) return;
+    if (e.noData) { renderQuoteUnavailable(); }
+    else { console.error('quote', e); }
   }
+}
+
+function renderQuoteUnavailable() {
+  const priceEl = document.getElementById('invPrice');
+  if (!priceEl) return;
+  priceEl.textContent = t('inv.no_quote_data');
+  priceEl.style.fontSize = '14px';
+  document.getElementById('invChange').textContent = '';
+  ['invOpen', 'invHigh', 'invLow'].forEach(id => { document.getElementById(id).textContent = '—'; });
 }
 
 function renderQuote(q, profile) {
@@ -869,6 +921,14 @@ function initTradingView(ticker) {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 (async () => {
+  // Flytt dropdown-panel/backdrop til <body>. position:fixed alene er ikke nok til å
+  // garantere "flyt over alt": en forelder med filter/backdrop-filter (her: .card) skaper
+  // en ny stacking/containing-context som position:fixed regnes relativt til i moderne
+  // nettlesere, så elementet kan likevel komponeres feil. Ved å flytte DOM-noden ut av
+  // .card og rett under <body> unngår vi det helt.
+  const ddBackdrop = document.getElementById('invDDBackdrop');
+  const ddPanel = document.getElementById('invDDPanel');
+  if (ddBackdrop && ddPanel) { document.body.appendChild(ddBackdrop); document.body.appendChild(ddPanel); }
   try {
     const cfg = await getConfig();
     db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);

@@ -68,6 +68,12 @@ export default async function handler(req, res) {
     const fhRes = await fetch(url);
     if (!fhRes.ok) throw new Error(`Finnhub fetch failed: ${await fhRes.text()}`);
     const data = await fhRes.json();
+    // Finnhub sin gratis-tier har ikke data for ikke-US-børser (f.eks. Oslo Børs, .OL-suffiks).
+    // Den returnerer da IKKE en feilkode, men et "tomt" quote-objekt med alle felt = 0
+    // (c:0, o:0, h:0, l:0, pc:0). Uten denne sjekken vises dette som ekte "0.00"-pris i UI.
+    if (endpoint === 'quote' && data && data.c === 0 && data.o === 0 && data.h === 0 && data.l === 0 && data.pc === 0) {
+      return res.status(422).json({ error: 'no_data', message: 'Ingen kursdata for dette symbolet på gjeldende Finnhub-plan (gratis-tier støtter kun US-børser).' });
+    }
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });

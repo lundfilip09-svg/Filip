@@ -715,6 +715,7 @@ const TRANSLATIONS = {
     // Investments
     'inv.select_ticker': 'Velg aksje…', 'inv.search_placeholder': 'Søk ticker eller navn…',
     'inv.favorite': 'Favoritt', 'inv.add_stock': 'Legg til aksje', 'inv.no_matches': 'Ingen treff',
+    'inv.no_quote_data': 'Ingen kursdata tilgjengelig',
     'inv.ticker': 'Ticker', 'inv.name': 'Navn',
     'inv.status_watchlist': 'Watchlist', 'inv.status_open': 'Åpen', 'inv.status_closed': 'Lukket',
     'inv.locked': 'Låst', 'inv.register_buy': 'Registrer kjøp', 'inv.register_sell': 'Registrer salg',
@@ -1448,6 +1449,7 @@ const TRANSLATIONS = {
     // Investments
     'inv.select_ticker': 'Select stock…', 'inv.search_placeholder': 'Search ticker or name…',
     'inv.favorite': 'Favorite', 'inv.add_stock': 'Add stock', 'inv.no_matches': 'No matches',
+    'inv.no_quote_data': 'No quote data available',
     'inv.ticker': 'Ticker', 'inv.name': 'Name',
     'inv.status_watchlist': 'Watchlist', 'inv.status_open': 'Open', 'inv.status_closed': 'Closed',
     'inv.locked': 'Locked', 'inv.register_buy': 'Register buy', 'inv.register_sell': 'Register sell',
