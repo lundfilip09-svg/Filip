@@ -13,50 +13,53 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* ── Status system ──────────────────────────────────────────────────────
+       good = accent blue (only for good/optimal values or selected state)
+       mid  = neutral grey (acceptable, not great, not bad)
+       warn = yellow/orange
+       danger = red
+       Driven entirely from JS via STATUS map — never hardcode blue per element. */
     .sovn-page {
       max-width: 1440px; margin: 0 auto;
-      padding: 14px 16px 60px;
-      display: flex; flex-direction: column; gap: 10px;
+      padding: 16px 16px 64px;
+      display: flex; flex-direction: column; gap: 12px;
     }
 
     /* ── Hero ── */
     .hero-card {
-      background: #0B0B0D;
+      background: #0A0A0C;
       border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 16px; padding: 22px 26px;
+      border-radius: 16px; padding: 26px 28px;
       position: relative;
     }
-    .hero-inner { display: flex; align-items: center; gap: 26px; }
+    .hero-inner { display: flex; align-items: center; gap: 28px; }
     .hero-score-box {
-      width: 88px; height: 88px; border-radius: 18px; flex-shrink: 0;
+      width: 86px; height: 86px; border-radius: 16px; flex-shrink: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
     }
-    .hero-score-box.score-good { background: rgba(91,164,245,0.06); border-color: rgba(91,164,245,0.22); }
-    .hero-score-box.score-ok   { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); }
-    .hero-score-box.score-bad  { background: rgba(255,107,107,0.06); border-color: rgba(255,107,107,0.22); }
     .hero-score-num {
-      font-size: 34px; font-weight: 800; font-family: var(--font-mono);
-      line-height: 1; letter-spacing: -0.03em;
+      font-size: 33px; font-weight: 700; font-family: var(--font-mono);
+      line-height: 1; letter-spacing: -0.03em; color: var(--text-primary);
     }
     .hero-score-lbl {
       font-size: 7.5px; font-family: var(--font-mono); letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-top: 4px;
+      text-transform: uppercase; color: var(--text-tertiary); margin-top: 5px;
     }
     .hero-right { flex: 1; min-width: 0; }
     .hero-date {
       font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
     }
     .hero-status {
-      font-size: 21px; font-weight: 700; line-height: 1.15;
-      letter-spacing: -0.02em; margin-bottom: 3px;
+      font-size: 20px; font-weight: 650; line-height: 1.2;
+      letter-spacing: -0.01em; margin-bottom: 4px; color: var(--text-primary);
     }
-    .hero-tagline { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
+    .hero-tagline { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
     .hero-chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .hero-chip {
       padding: 3px 9px; border-radius: 20px; font-size: 10.5px; font-family: var(--font-mono);
-      background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
       color: var(--text-secondary);
     }
 
@@ -76,19 +79,19 @@
     .warn-advice { color: var(--text-secondary); margin-top: 1px; font-size: 11px; }
 
     /* ── Metrics ── */
-    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
     .metric-card {
-      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px; padding: 14px 14px 12px; transition: background 0.14s, border-color 0.14s;
+      background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px; padding: 16px 16px 14px; transition: border-color 0.14s;
       cursor: default; position: relative;
     }
-    .metric-card:hover { background: rgba(255,255,255,0.035); }
+    .metric-card:hover { border-color: rgba(255,255,255,0.09); }
     .mc-top-lbl {
       font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 10px;
     }
     .mc-val {
-      font-size: 28px; font-weight: 700; font-family: var(--font-mono);
+      font-size: 27px; font-weight: 650; font-family: var(--font-mono);
       line-height: 1; letter-spacing: -0.02em; color: var(--text-primary);
     }
     .mc-unit {
@@ -96,30 +99,26 @@
     }
     .mc-status-badge {
       display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 8px; padding: 2px 7px; border-radius: 20px;
+      margin-top: 9px; padding: 2px 8px; border-radius: 20px;
       font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.06em;
-      text-transform: uppercase; border: none;
+      text-transform: uppercase; border: 1px solid; background: transparent !important;
     }
     .mc-advice {
-      margin-top: 7px; padding-top: 7px;
+      margin-top: 8px; padding-top: 8px;
       border-top: 1px solid rgba(255,255,255,0.06);
       font-size: 10px; color: var(--text-secondary); line-height: 1.55;
     }
 
     /* ── Mid Grid ── */
-    .mid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .mid-card {
-      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 14px; padding: 17px 18px;
+      background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 14px; padding: 20px 20px;
     }
     .card-lbl {
       font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .card-lbl::after {
-      content: ''; flex: 1; height: 1px;
-      background: linear-gradient(to right, rgba(255,255,255,0.07), transparent);
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     /* Sleep architecture */
@@ -150,7 +149,7 @@
 
     /* Readiness */
     .readiness-status {
-      font-size: 17px; font-weight: 700; font-family: var(--font-mono); margin-bottom: 3px;
+      font-size: 17px; font-weight: 650; font-family: var(--font-mono); margin-bottom: 4px;
     }
     .readiness-desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
     .readiness-level {
@@ -164,8 +163,8 @@
 
     /* ── Chart ── */
     .chart-card {
-      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.055);
-      border-radius: 14px; padding: 17px 18px;
+      background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 14px; padding: 20px 20px;
     }
     .chart-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -297,6 +296,21 @@ let bbCurveInstance = null;
 let chartMetric  = 'sleep';
 let chartDays    = parseInt(localStorage.getItem('sovn_chart_days') || '7', 10);
 
+// ── Sentralt statusfargesystem ───────────────────────────────────────────
+// good   = aksentblå  → KUN når verdien er god/optimal
+// mid    = nøytral grå → akseptabel/middels
+// warn   = gul/oransje → advarsel
+// danger = rød        → dårlig
+// none   = grå (ingen data)
+const STATUS = {
+  good:   { c: 'var(--accent-blue)',    bg: 'rgba(91,164,245,0.10)',  hex: '#5BA4F5' },
+  mid:    { c: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', hex: '#B8B6B0' },
+  warn:   { c: 'var(--warning)',        bg: 'rgba(242,192,99,0.10)',  hex: '#F2C063' },
+  danger: { c: 'var(--danger)',         bg: 'rgba(255,107,107,0.10)', hex: '#FF6B6B' },
+  none:   { c: 'var(--text-tertiary)',  bg: 'rgba(255,255,255,0.04)', hex: '#8E8C85' },
+};
+const statusOf = level => STATUS[level] || STATUS.none;
+
 // Date navigation
 let viewDate = new Date().toLocaleDateString('sv'); // YYYY-MM-DD local
 
@@ -328,15 +342,15 @@ function sleepHoursStr(h) {
 
 // ── Smart insights ─────────────────────────────────────────────────────────
 function getHeroText(d) {
-  if (!d) return { main: t('sovn.no_data'), sub: t('sovn.sync_auto'), color:'var(--text-tertiary)' };
+  if (!d) return { main: t('sovn.no_data'), sub: t('sovn.sync_auto'), level:'none', color: statusOf('none').c };
   const sc = d.sleep_score;
   if (!sc) {
-    return { main: t('sovn.sleeping'), sub: d.sleep_hours ? t('sovn.registered', {d: sleepHoursStr(d.sleep_hours)}) : t('sovn.waiting'), color:'var(--text-secondary)' };
+    return { main: t('sovn.sleeping'), sub: d.sleep_hours ? t('sovn.registered', {d: sleepHoursStr(d.sleep_hours)}) : t('sovn.waiting'), level:'mid', color: statusOf('mid').c };
   }
-  if (sc >= 85) return { main: t('sovn.recovery'),  sub: t('sovn.sprint_ready'), color:'#5BA4F5' };
-  if (sc >= 70) return { main: t('sovn.solid'),      sub: t('sovn.train_ready'),  color:'#9B9890' };
-  if (sc >= 55) return { main: t('sovn.moderate'),   sub: t('sovn.light_session'), color:'#F2C063' };
-  return { main: t('sovn.hard'), sub: t('sovn.rest'), color:'#FF6B6B' };
+  if (sc >= 85) return { main: t('sovn.recovery'),  sub: t('sovn.sprint_ready'),  level:'good',   color: statusOf('good').c };
+  if (sc >= 70) return { main: t('sovn.solid'),      sub: t('sovn.train_ready'),  level:'mid',    color: statusOf('mid').c };
+  if (sc >= 55) return { main: t('sovn.moderate'),   sub: t('sovn.light_session'),level:'warn',   color: statusOf('warn').c };
+  return { main: t('sovn.hard'), sub: t('sovn.rest'), level:'danger', color: statusOf('danger').c };
 }
 
 function getArchInsight(d) {
@@ -345,12 +359,12 @@ function getArchInsight(d) {
   if (total < 10) return null;
   const deepPct = (d.deep_sleep_minutes||0) / total * 100;
   const remPct  = (d.rem_sleep_minutes||0)  / total * 100;
-  if (deepPct < 10) return { text: t('sovn.arch_low_deep'),  color:'#F2C063' };
-  if (remPct  < 14) return { text: t('sovn.arch_low_rem'),   color:'#F2C063' };
-  if (deepPct > 22 && remPct > 20) return { text: t('sovn.arch_excellent'), color:'#5BA4F5' };
-  if (deepPct > 18) return { text: t('sovn.arch_deep'),      color:'#9B9890' };
-  if (remPct  > 22) return { text: t('sovn.arch_good_rem'),  color:'#9B9890' };
-  return { text: t('sovn.arch_normal'), color:'var(--text-tertiary)' };
+  if (deepPct < 10) return { text: t('sovn.arch_low_deep'),  color: statusOf('warn').c };
+  if (remPct  < 14) return { text: t('sovn.arch_low_rem'),   color: statusOf('warn').c };
+  if (deepPct > 22 && remPct > 20) return { text: t('sovn.arch_excellent'), color: statusOf('good').c };
+  if (deepPct > 18) return { text: t('sovn.arch_deep'),      color: statusOf('mid').c };
+  if (remPct  > 22) return { text: t('sovn.arch_good_rem'),  color: statusOf('mid').c };
+  return { text: t('sovn.arch_normal'), color: 'var(--text-tertiary)' };
 }
 
 // Beredskap: kontinuerlig score vektet av søvnscore (40 %), HRV mot egen
@@ -381,10 +395,10 @@ function getReadinessInsight(d) {
   const wSum  = parts.reduce((a, [, w]) => a + w, 0);
   const level = Math.round(parts.reduce((a, [v, w]) => a + v * w, 0) / wSum);
 
-  if (level >= 85) return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color:'#5BA4F5', level };
-  if (level >= 65) return { status: t('sovn.ready_good'),     desc: t('sovn.ready_good_desc'),     color:'#9B9890', level };
-  if (level >= 45) return { status: t('sovn.ready_moderate'), desc: t('sovn.ready_moderate_desc'), color:'#F2C063', level };
-  return { status: t('sovn.ready_rest'),       desc: t('sovn.ready_rest_desc'),     color:'#FF6B6B', level };
+  if (level >= 85) return { status: t('sovn.ready_high'),     desc: t('sovn.ready_high_desc'),     color: statusOf('good').c,   level };
+  if (level >= 65) return { status: t('sovn.ready_good'),     desc: t('sovn.ready_good_desc'),     color: statusOf('mid').c,    level };
+  if (level >= 45) return { status: t('sovn.ready_moderate'), desc: t('sovn.ready_moderate_desc'), color: statusOf('warn').c,   level };
+  return { status: t('sovn.ready_rest'),       desc: t('sovn.ready_rest_desc'),     color: statusOf('danger').c, level };
 }
 
 // ── Render: Hero ───────────────────────────────────────────────────────────
@@ -398,7 +412,6 @@ function renderHero(d) {
   const el  = document.getElementById('heroInner');
   const sc  = d?.sleep_score;
   const txt = getHeroText(d);
-  const cls = !sc ? '' : sc >= 80 ? ' score-good' : sc >= 60 ? ' score-ok' : ' score-bad';
 
   const chips = [];
   if (d?.sleep_hours)    chips.push(`🌙 ${sleepHoursStr(d.sleep_hours)}`);
@@ -429,8 +442,8 @@ function renderHero(d) {
   const noData = !d || !d.sleep_score;
   el.innerHTML = `
     <div class="hero-inner">
-      <div class="hero-score-box${cls}">
-        <div class="hero-score-num" style="${sc >= 85 ? 'color:#5BA4F5' : sc >= 60 ? 'color:var(--text-primary)' : sc != null ? 'color:#FF6B6B' : ''}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
+      <div class="hero-score-box">
+        <div class="hero-score-num" style="${sc != null ? `color:${txt.color}` : ''}">${sc != null ? `<span data-countup="${sc}">0</span>` : '–'}</div>
         <div class="hero-score-lbl">${t('sovn.score_sub')}</div>
       </div>
       <div class="hero-right">
@@ -440,17 +453,17 @@ function renderHero(d) {
           <button onclick="offsetViewDate(1)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:${isToday ? 'rgba(255,255,255,0.12)' : 'var(--text-tertiary)'};border-radius:6px;width:24px;height:24px;cursor:${isToday ? 'default' : 'pointer'};font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${t('sovn.next_day')}" ${isToday ? 'disabled' : ''}>›</button>
           ${!isToday ? `<button onclick="goToToday()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-secondary);border-radius:6px;height:24px;padding:0 9px;cursor:pointer;font-size:10px;font-family:var(--font-mono);flex-shrink:0" title="${t('dash.today')}">${t('dash.today')}</button>` : ''}
         </div>
-        <div class="hero-status" style="color:${txt.color}">${txt.main}</div>
+        <div class="hero-status">${txt.main}</div>
         <div class="hero-tagline">${tagline}</div>
         ${chips.length ? `<div class="hero-chips">${chips.map(c => `<div class="hero-chip">${c}</div>`).join('')}</div>` : ''}
         ${noData && isToday ? `
         <button onclick="fetchSleepNow(this)" style="
           margin-top:14px; display:inline-flex; align-items:center; gap:7px;
-          background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.11);
+          background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09);
           color:var(--text-secondary); font-family:var(--font-mono); font-size:11px;
-          padding:7px 13px; border-radius:7px; cursor:pointer; transition:all 0.15s;
-          letter-spacing:0.03em;" onmouseover="this.style.background='rgba(255,255,255,0.09)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          padding:7px 13px; border-radius:7px; cursor:pointer; transition:border-color 0.15s;
+          letter-spacing:0.03em;" onmouseover="this.style.borderColor='rgba(255,255,255,0.16)'"
+          onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
           <span>🔄</span> ${t('sovn.fetch_now')}
         </button>` : ''}
       </div>
@@ -485,29 +498,29 @@ function analyzeMetrics(d) {
   // HRV
   if (d?.hrv) {
     const v = d.hrv;
-    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge: t('sovn.hrv_optimal'),  color:'#5BA4F5', glow:'',  advice: t('sovn.hrv_advice_optimal') });
-    else if (v >= 50) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'ok',     badge: t('sovn.hrv_good'),     color:'#9B9890', glow:'',   advice: t('sovn.hrv_advice_good') });
-    else if (v >= 40) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'warn',   badge: t('sovn.hrv_low'),      color:'#F2C063', glow:'',  advice: t('sovn.hrv_advice_low') });
-    else if (v >= 30) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_critical'), color:'#FF6B6B', glow:'', advice: t('sovn.hrv_advice_critical') });
-    else              results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_alarm'),    color:'#FF6B6B', glow:'', advice: t('sovn.hrv_advice_alarm') });
+    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'good',   badge: t('sovn.hrv_optimal'),  advice: t('sovn.hrv_advice_optimal') });
+    else if (v >= 50) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'mid',    badge: t('sovn.hrv_good'),     advice: t('sovn.hrv_advice_good') });
+    else if (v >= 40) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'warn',   badge: t('sovn.hrv_low'),      advice: t('sovn.hrv_advice_low') });
+    else if (v >= 30) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_critical'), advice: t('sovn.hrv_advice_critical') });
+    else              results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_alarm'),    advice: t('sovn.hrv_advice_alarm') });
   }
 
   // Sleep hours
   if (d?.sleep_hours) {
     const v = d.sleep_hours;
-    if (v >= 8)       results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'ok',     badge: t('sovn.sleep_optimal'), color:'#5BA4F5', glow:'',  advice: t('sovn.sleep_advice_optimal') });
-    else if (v >= 7)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'ok',     badge: t('sovn.sleep_good'),    color:'#9B9890', glow:'',   advice: t('sovn.sleep_advice_good') });
-    else if (v >= 6)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'warn',   badge: t('sovn.sleep_little'),  color:'#F2C063', glow:'',  advice: t('sovn.sleep_advice_little') });
-    else              results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'danger', badge: t('sovn.sleep_critical'),color:'#FF6B6B', glow:'', advice: t('sovn.sleep_advice_critical') });
+    if (v >= 8)       results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'good',   badge: t('sovn.sleep_optimal'), advice: t('sovn.sleep_advice_optimal') });
+    else if (v >= 7)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'mid',    badge: t('sovn.sleep_good'),    advice: t('sovn.sleep_advice_good') });
+    else if (v >= 6)  results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'warn',   badge: t('sovn.sleep_little'),  advice: t('sovn.sleep_advice_little') });
+    else              results.push({ key:'sleep', val:sleepHoursStr(v), label: t('sovn.total'), level:'danger', badge: t('sovn.sleep_critical'),advice: t('sovn.sleep_advice_critical') });
   }
 
   // Sleep score
   if (d?.sleep_score) {
     const v = d.sleep_score;
-    if (v >= 85)      results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'ok',     badge: t('sovn.score_excellent'), color:'#5BA4F5', glow:'',  advice: t('sovn.score_advice_excellent') });
-    else if (v >= 70) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'ok',     badge: t('sovn.score_good'),      color:'#9B9890', glow:'',   advice: t('sovn.score_advice_good') });
-    else if (v >= 55) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'warn',   badge: t('sovn.score_ok'),        color:'#F2C063', glow:'',  advice: t('sovn.score_advice_ok') });
-    else              results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'danger', badge: t('sovn.score_bad'),       color:'#FF6B6B', glow:'', advice: t('sovn.score_advice_bad') });
+    if (v >= 85)      results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'good',   badge: t('sovn.score_excellent'), advice: t('sovn.score_advice_excellent') });
+    else if (v >= 70) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'mid',    badge: t('sovn.score_good'),      advice: t('sovn.score_advice_good') });
+    else if (v >= 55) results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'warn',   badge: t('sovn.score_ok'),        advice: t('sovn.score_advice_ok') });
+    else              results.push({ key:'score', val:`${v}`, label: t('sovn.score_lbl'), unit:'/100', level:'danger', badge: t('sovn.score_bad'),       advice: t('sovn.score_advice_bad') });
   }
 
   // Awake time (WASO — wakefulness after sleep onset)
@@ -517,11 +530,11 @@ function analyzeMetrics(d) {
   // an athlete with high training load, 31–50 = starting to fragment, >50 = flag it.
   if (d?.awake_minutes != null) {
     const v = d.awake_minutes;
-    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_exceptional'), color:'#5BA4F5', glow:'',  advice:t('sovn.awake_advice_exceptional', {v}) });
-    else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_good'),        color:'#9B9890', glow:'',  advice:t('sovn.awake_advice_good', {v}) });
-    else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'ok',     badge:t('sovn.awake_acceptable'),  color:'var(--text-secondary)', glow:'', advice:t('sovn.awake_advice_acceptable', {v}) });
-    else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'warn',   badge:t('sovn.awake_restless'),    color:'#F2C063', glow:'',   advice:t('sovn.awake_advice_restless', {v}) });
-    else              results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'danger', badge:t('sovn.awake_fragmented'),  color:'#FF6B6B', glow:'', advice:t('sovn.awake_advice_fragmented', {v}) });
+    if (v <= 5)       results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'good',   badge:t('sovn.awake_exceptional'), advice:t('sovn.awake_advice_exceptional', {v}) });
+    else if (v <= 19) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'mid',    badge:t('sovn.awake_good'),        advice:t('sovn.awake_advice_good', {v}) });
+    else if (v <= 30) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'mid',    badge:t('sovn.awake_acceptable'),  advice:t('sovn.awake_advice_acceptable', {v}) });
+    else if (v <= 50) results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'warn',   badge:t('sovn.awake_restless'),    advice:t('sovn.awake_advice_restless', {v}) });
+    else              results.push({ key:'awake', val:`${v}`, label:t('sovn.awake'), unit:'min', level:'danger', badge:t('sovn.awake_fragmented'),  advice:t('sovn.awake_advice_fragmented', {v}) });
   }
 
   return results;
@@ -563,13 +576,14 @@ function renderMetrics(d) {
 
   // Alltid vis alle 4 kort i fast rekkefølge
   const cards = [
-    byKey['score'] || { key:'score', val:'–', label: t('sovn.score_lbl'), unit:'/100', level:'none', badge:'', color:'', glow:'', advice:'' },
-    byKey['sleep'] || { key:'sleep', val:'–', label: t('sovn.total'),     level:'none', badge:'', color:'#5BA4F5', glow:'', advice:'' },
-    byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV',                unit:'ms',   level:'none', badge:'', color:'', glow:'', advice:'' },
-    byKey['awake'] ? { ...byKey['awake'], badge:'', advice:'' } : { key:'awake', val:'–', label:t('sovn.awake'), unit:'min', level:'none', badge:'', color:'', glow:'', advice:'' },
+    byKey['score'] || { key:'score', val:'–', label: t('sovn.score_lbl'), unit:'/100', level:'none', badge:'', advice:'' },
+    byKey['sleep'] || { key:'sleep', val:'–', label: t('sovn.total'),     level:'none', badge:'', advice:'' },
+    byKey['hrv']   || { key:'hrv',   val:'–', label:'HRV',                unit:'ms',   level:'none', badge:'', advice:'' },
+    byKey['awake'] ? { ...byKey['awake'], badge:'', advice:'' } : { key:'awake', val:'–', label:t('sovn.awake'), unit:'min', level:'none', badge:'', advice:'' },
   ];
 
   el.innerHTML = cards.map((m, i) => {
+    const st = statusOf(m.level);
     // Ren numerisk verdi → count-up. Strenger som «7t 23m» eller «–» vises rått.
     const numeric = typeof m.val !== 'string' || /^-?\d+(\.\d+)?$/.test(m.val.trim());
     const valHtml = numeric
@@ -578,9 +592,9 @@ function renderMetrics(d) {
     return `
     <div class="metric-card" style="--anim-i:${Math.min(i,4)};">
       <div class="mc-top-lbl">${m.label}</div>
-      <div class="mc-val" style="${m.color ? `color:${m.color}` : ''}">${valHtml}</div>
+      <div class="mc-val" style="${m.level !== 'none' ? `color:${st.c}` : ''}">${valHtml}</div>
       ${m.unit ? `<div class="mc-unit">${m.unit}</div>` : ''}
-      ${m.badge ? `<div class="mc-status-badge" style="color:${m.color};background:${m.color}14">${m.badge}</div>` : ''}
+      ${m.badge ? `<div class="mc-status-badge" style="color:${st.c};border-color:${st.c}">${m.badge}</div>` : ''}
       ${m.advice ? `<div class="mc-advice">${m.advice}</div>` : ''}
     </div>`;
   }).join('');
@@ -604,9 +618,9 @@ function renderArch(d) {
   const insight = getArchInsight(d);
 
   const stages = [
-    { name: t('sovn.deep'),  mins:d.deep_sleep_minutes,  color:'#7C6FD4' },
-    { name: t('sovn.rem'),   mins:d.rem_sleep_minutes,   color:'#4A9EE8' },
-    { name: t('sovn.light'), mins:d.light_sleep_minutes, color:'#5BA4F5' },
+    { name: t('sovn.deep'),  mins:d.deep_sleep_minutes,  color:'#6E6BBF' },
+    { name: t('sovn.rem'),   mins:d.rem_sleep_minutes,   color:'#5B8DEF' },
+    { name: t('sovn.light'), mins:d.light_sleep_minutes, color:'#8CA0BD' },
   ];
   if (d.awake_minutes) stages.push({ name: t('sovn.awake'), mins:d.awake_minutes, color:'rgba(255,255,255,0.15)' });
 
@@ -641,7 +655,7 @@ function renderReadiness(d) {
   const indicators = [];
   if (d?.sleep_score) {
     const sc = d.sleep_score;
-    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? '#5BA4F5' : sc >= 60 ? '#F2C063' : '#FF6B6B' });
+    indicators.push({ label: t('sovn.score_lbl'), val:`${sc}/100`, status: sc >= 80 ? t('sovn.score_good') : sc >= 60 ? t('sovn.score_ok') : t('sovn.score_bad'), color: sc >= 80 ? statusOf('good').c : sc >= 60 ? statusOf('warn').c : statusOf('danger').c });
   }
   const base = getReadinessBaselines(d?.date);
   if (d?.hrv) {
@@ -649,11 +663,11 @@ function renderReadiness(d) {
     const ratio = base.hrv ? d.hrv / base.hrv : null;
     const good  = ratio != null ? ratio >= 0.95 : d.hrv >= 50;
     const low   = ratio != null ? ratio >= 0.85 : d.hrv >= 35;
-    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? '#5BA4F5' : low ? '#F2C063' : '#FF6B6B' });
+    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? statusOf('good').c : low ? statusOf('warn').c : statusOf('danger').c });
   }
   if (d?.body_battery != null) {
     const bb = d.body_battery;
-    indicators.push({ label: t('sovn.bb_label'), val:`${bb}/100`, status: `${bb}/100`, color: bb >= 75 ? '#5BA4F5' : bb >= 50 ? '#F2C063' : '#FF6B6B' });
+    indicators.push({ label: t('sovn.bb_label'), val:`${bb}/100`, status: `${bb}/100`, color: bb >= 75 ? statusOf('good').c : bb >= 50 ? statusOf('warn').c : statusOf('danger').c });
   }
 
   el.innerHTML = `
@@ -698,21 +712,21 @@ function renderBbCurve(d) {
 
   const levels = pts.map(p => p.y);
   const peak = Math.max(...levels), low = Math.min(...levels);
-  const col = v => v >= 75 ? '#5BA4F5' : v >= 50 ? '#F2C063' : '#FF6B6B';
+  const col = v => v >= 75 ? statusOf('good').hex : v >= 50 ? statusOf('warn').hex : statusOf('danger').hex;
   statsEl.innerHTML =
-    `<span style="color:#5BA4F5">${t('sovn.bb_peak')} ${peak}</span>` +
+    `<span style="color:${col(peak)}">${t('sovn.bb_peak')} ${peak}</span>` +
     `<span style="color:${col(low)}">${t('sovn.bb_low')} ${low}</span>`;
 
   const ctx = document.getElementById('bbCurveChart').getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, 240);
-  grad.addColorStop(0, 'rgba(91,164,245,0.28)');
-  grad.addColorStop(1, 'rgba(91,164,245,0.01)');
+  grad.addColorStop(0, 'rgba(126,135,148,0.16)');
+  grad.addColorStop(1, 'rgba(126,135,148,0.005)');
 
   bbCurveInstance = new Chart(ctx, {
     type: 'line',
     data: { datasets: [{
       data: pts, parsing: false,
-      borderColor: '#5BA4F5', borderWidth: 2,
+      borderColor: '#7E8794', borderWidth: 1.75,
       backgroundColor: grad, fill: true,
       tension: 0.35, pointRadius: 0, pointHoverRadius: 4,
       pointHoverBackgroundColor: '#5BA4F5', pointHoverBorderColor: 'transparent',
@@ -815,14 +829,14 @@ function updateChartLegend(metric) {
   const el = document.getElementById('chartLegend');
   const legends = {
     sleep: `
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#7C6FD4"></div>${t('sovn.leg_deep')}</div>
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8"></div>${t('sovn.leg_rem')}</div>
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#5BA4F5"></div>${t('sovn.leg_light')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#6E6BBF"></div>${t('sovn.leg_deep')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#5B8DEF"></div>${t('sovn.leg_rem')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#8CA0BD"></div>${t('sovn.leg_light')}</div>
       <div class="chart-leg-item"><div class="chart-leg-dot" style="background:rgba(255,255,255,0.3)"></div>${t('sovn.awake')}</div>
       <div class="chart-leg-item"><div class="chart-leg-line"></div>${t('sovn.goal_8h')}</div>`,
-    hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#4A9EE8;border-radius:50%"></div>${t('sovn.leg_hrv')}</div>`,
-    rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#FF6B6B;border-radius:50%"></div>${t('sovn.leg_rhr')}</div>`,
-    score: `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:#5BA4F5"></div>${t('sovn.leg_score')}</div>`,
+    hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--text-secondary);border-radius:50%"></div>${t('sovn.leg_hrv')}</div>`,
+    rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--text-secondary);border-radius:50%"></div>${t('sovn.leg_rhr')}</div>`,
+    score: `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--accent-blue)"></div>${t('sovn.leg_score')}</div>`,
   };
   el.innerHTML = legends[metric] || '';
 }
@@ -858,30 +872,33 @@ function renderChart(metric, days) {
     });
     const awakeV = dates.map(ds => { const e=find(ds); return e?.awake_minutes ? minToH(e.awake_minutes) : null; });
     datasets = [
-      { label:t('sovn.leg_deep'),  data:deepV,  backgroundColor:'rgba(124,111,212,0.82)', borderColor:'#7C6FD4', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.leg_rem'),   data:remV,   backgroundColor:'rgba(74,158,232,0.82)',  borderColor:'#4A9EE8', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.leg_light'), data:lightV, backgroundColor:'rgba(91,164,245,0.55)',  borderColor:'#5BA4F5', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.awake'),     data:awakeV, backgroundColor:'rgba(255,255,255,0.18)', borderColor:'rgba(255,255,255,0.3)', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
-      { label:t('sovn.goal_8h'), data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.2)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
+      { label:t('sovn.leg_deep'),  data:deepV,  backgroundColor:'rgba(110,107,191,0.78)', borderColor:'#6E6BBF', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_rem'),   data:remV,   backgroundColor:'rgba(91,141,239,0.78)',  borderColor:'#5B8DEF', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_light'), data:lightV, backgroundColor:'rgba(140,160,189,0.55)', borderColor:'#8CA0BD', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.awake'),     data:awakeV, backgroundColor:'rgba(255,255,255,0.16)', borderColor:'rgba(255,255,255,0.28)', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
+      { label:t('sovn.goal_8h'), data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.18)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
     ];
     yMax = 12; yLabel = t('sovn.hours');
 
   } else if (metric === 'hrv') {
     const vals = dates.map(ds => { const e=find(ds); return e?.hrv || null; });
-    datasets = [{ label:'HRV', data:vals, borderColor:'#4A9EE8', backgroundColor:'rgba(74,158,232,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#4A9EE8', pointHoverRadius:5, pointBorderColor:'transparent' }];
+    const dotCol = v => !v ? 'transparent' : v >= 60 ? statusOf('good').hex : v >= 50 ? statusOf('mid').hex : v >= 40 ? statusOf('warn').hex : statusOf('danger').hex;
+    datasets = [{ label:'HRV', data:vals, borderColor:'#7E8794', backgroundColor:'rgba(126,135,148,0.08)', borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
     isLine = true; yLabel = 'ms';
 
   } else if (metric === 'rhr') {
     const vals = dates.map(ds => { const e=find(ds); return e?.rhr || null; });
-    datasets = [{ label:t('sovn.rhr'), data:vals, borderColor:'#FF6B6B', backgroundColor:'rgba(255,107,107,0.09)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#FF6B6B', pointHoverRadius:5, pointBorderColor:'transparent' }];
+    const dotCol = v => !v ? 'transparent' : v <= 45 ? statusOf('good').hex : v <= 55 ? statusOf('mid').hex : v <= 65 ? statusOf('warn').hex : statusOf('danger').hex;
+    datasets = [{ label:t('sovn.rhr'), data:vals, borderColor:'#7E8794', backgroundColor:'rgba(126,135,148,0.08)', borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
     isLine = true; yLabel = 'bpm';
 
   } else if (metric === 'score') {
     const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
+    const col = v => !v ? null : v >= 85 ? statusOf('good').hex : v >= 70 ? statusOf('mid').hex : v >= 55 ? statusOf('warn').hex : statusOf('danger').hex;
     datasets = [{
       label:t('sovn.score_lbl'), data:vals,
-      backgroundColor: vals.map(v => !v ? 'transparent' : v >= 80 ? 'rgba(91,164,245,0.75)' : v >= 60 ? 'rgba(91,164,245,0.55)' : 'rgba(255,107,107,0.75)'),
-      borderColor:      vals.map(v => !v ? 'transparent' : v >= 60 ? '#5BA4F5' : '#FF6B6B'),
+      backgroundColor: vals.map(v => col(v) ? col(v)+'BF' : 'transparent'),
+      borderColor:      vals.map(v => col(v) || 'transparent'),
       borderWidth:1, borderRadius:4,
     }];
     yMax = 100; yLabel = t('sovn.score_sub');
