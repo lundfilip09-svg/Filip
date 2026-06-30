@@ -37,7 +37,7 @@
     /* ── 2-kolonne grid ─────────────────────────────────────── */
     .tp-layout {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 272px;
       gap: 18px;
       align-items: start;
     }
@@ -47,10 +47,15 @@
     /* ── Hero-rad ────────────────────────────────────────────── */
     .tp-hero-row {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 20px;
-      padding: 24px 26px 20px;
+      padding: 22px 26px 18px;
+    }
+    .hero-week-inline {
+      font-size: 11px; color: var(--text-tertiary);
+      font-family: var(--font-mono); margin-top: 10px;
+      letter-spacing: 0.02em;
     }
     .hero-eyebrow {
       font-size: 11px; color: var(--text-tertiary);
@@ -98,9 +103,9 @@
     }
     .day-card {
       background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px; padding: 13px 10px 12px; cursor: pointer;
+      border-radius: 12px; padding: 11px 10px 10px; cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
-      display: flex; flex-direction: column; gap: 6px; min-height: 118px;
+      display: flex; flex-direction: column; gap: 4px; min-height: 84px;
     }
     .day-card:hover:not(.is-selected) {
       background: rgba(255,255,255,0.05);
@@ -122,7 +127,8 @@
     .day-card.is-today .day-card-date { color: #5BA4F5; }
     .day-logged-dot { width: 6px; height: 6px; border-radius: 50%; background: #5BA4F5; flex-shrink: 0; margin-top: 5px; box-shadow: 0 0 6px rgba(91,164,245,0.6); }
     .day-card-plan { font-size: 10.5px; color: var(--text-secondary); line-height: 1.4; margin-top: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal; }
-    .day-card-rest { font-size: 9.5px; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.06em; margin-top: auto; font-weight: 500; }
+    .day-card-rest { font-size: 9.5px; color: rgba(255,255,255,0.15); text-transform: uppercase; letter-spacing: 0.06em; margin-top: auto; font-weight: 500; transition: color 0.15s; }
+    .day-card:hover .day-card-rest { color: rgba(255,255,255,0.4); }
 
     /* ── Separator between week strip and editor ─────────────── */
     .tp-strip-divider {
@@ -132,7 +138,11 @@
     }
 
     /* ── Dag-editor (under ukestrip) ─────────────────────────── */
-    .tp-detail-wrap { padding: 20px 18px 22px; }
+    .tp-detail-wrap {
+      padding: 20px 18px 22px 21px;
+      border-left: 2px solid rgba(91,164,245,0.25);
+      margin: 0 18px 0 17px;
+    }
     .detail-header {
       display: flex; align-items: flex-start;
       justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
@@ -230,7 +240,7 @@
 
     /* ── Responsive ──────────────────────────────────────────── */
     @media (max-width: 1100px) {
-      .tp-layout { grid-template-columns: 1fr 280px; }
+      .tp-layout { grid-template-columns: 1fr 250px; }
     }
     @media (max-width: 940px) {
       .tp-layout { grid-template-columns: 1fr; }
@@ -254,8 +264,7 @@
       }
       .tp-hero-week #weekNavLabel { flex: 1; text-align: center; font-size: 12px; }
       .tp-hero-week .btn { flex-shrink: 0; }
-      .tp-hero-kpis { order: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .tp-kpi { min-width: 0; padding: 12px 10px; }
+      .hero-week-inline { order: 2; font-size: 10.5px; }
 
       .day-strip { grid-template-columns: repeat(7,1fr); gap: 5px; padding: 12px 12px 14px; }
       .day-card { min-height: 0; padding: 11px 3px; gap: 4px; border-radius: 11px; }
@@ -266,7 +275,7 @@
       .day-logged-dot { position: absolute; top: -3px; right: -1px; margin: 0; }
       .day-card-plan, .day-card-rest { display: none; }
 
-      .tp-detail-wrap { padding: 16px 14px 18px; }
+      .tp-detail-wrap { padding: 16px 14px 18px; margin: 0; border-left: none; }
       .detail-2col { grid-template-columns: 1fr; }
       .detail-day-title { font-size: 17px; }
       .sess-grid { grid-template-columns: 1fr; }
@@ -308,8 +317,8 @@
     .trend-neutral { background: rgba(255,255,255,0.05); color: var(--text-tertiary); border: 1px solid rgba(255,255,255,0.08); }
 
     .sess-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 10px;
     }
 
@@ -397,6 +406,16 @@
       content: ''; width: 18px; height: 2px; border-radius: 2px;
       background: var(--accent-blue); flex-shrink: 0;
     }
+    /* Tab header for merged Trender/Belastning sidebar card */
+    .tl-tabs { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; }
+    .tl-tabs::before { content: none; }
+    .tl-tab {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; color: var(--text-tertiary); transition: color 0.15s;
+      background: none; border: none; padding: 0; font-family: inherit;
+    }
+    .tl-tab.active { color: var(--text-secondary); }
+    .tl-tab-sep { color: rgba(255,255,255,0.15); font-size: 11px; }
     .stat-quad {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     }
@@ -700,7 +719,8 @@
             <div class="hero-session" id="heroSession">—</div>
             <div class="hero-next" id="heroNext"></div>
             <button id="heroQuickLog" onclick="quickLogToday()" data-i18n="tp.ql_btn"
-              style="margin-top:12px;padding:9px 16px;border-radius:9px;border:1px solid var(--accent-blue,#5BA4F5);background:rgba(91,164,245,0.12);color:var(--accent-blue,#5BA4F5);font:inherit;font-size:13px;font-weight:600;cursor:pointer">Logg dagens økt</button>
+              style="margin-top:12px;padding:10px 18px;border-radius:9px;border:1px solid transparent;background:var(--accent-blue,#5BA4F5);color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Logg dagens økt</button>
+            <div class="hero-week-inline" id="heroWeekInline"></div>
           </div>
           <div class="tp-hero-week" id="heroWeekNav">
             <button class="btn btn-ghost btn-sm" onclick="changeWeek(-1)"
@@ -708,16 +728,6 @@
             <span id="weekNavLabel">Uke —</span>
             <button class="btn btn-ghost btn-sm" id="weekNavNext" onclick="changeWeek(1)"
               style="font-family:var(--font-mono);font-size:10px" data-i18n="tp.next_week">Neste →</button>
-          </div>
-          <div class="tp-hero-kpis">
-            <div class="tp-kpi">
-              <div class="tp-kpi-val" id="kpiDone">—</div>
-              <div class="tp-kpi-lbl" data-i18n-html="tp.kpi_sessions">Treninger<br>denne uke</div>
-            </div>
-            <div class="tp-kpi">
-              <div class="tp-kpi-val" id="kpiLeft">—</div>
-              <div class="tp-kpi-lbl" data-i18n-html="tp.kpi_left">Planlagte<br>igjen</div>
-            </div>
           </div>
         </div>
 
@@ -802,29 +812,6 @@
     <!-- ASIDE (høyre 20%) ───────────────────────────────────────── -->
     <aside class="tp-aside">
 
-      <!-- Ukestatistikk -->
-      <div class="card">
-        <div class="widget-label" data-i18n="tp.this_week">Denne uken</div>
-        <div class="stat-quad">
-          <div class="stat-block">
-            <div class="stat-block-val" id="sbLogged">—</div>
-            <div class="stat-block-lbl" data-i18n="tp.stat_done">Fullførte</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-block-val" id="sbPlanned">—</div>
-            <div class="stat-block-lbl" data-i18n="tp.stat_planned">Planlagte</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-block-val" id="sbPct">—</div>
-            <div class="stat-block-lbl" data-i18n="tp.stat_consistency">Konsistens</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-block-val" id="sbRest">—</div>
-            <div class="stat-block-lbl" data-i18n="tp.stat_rest">Hviledager</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Skader & rehab -->
       <div class="card" id="kneeDashCard">
         <div class="widget-label" data-i18n="tp.inj_dash">Skader & rehab</div>
@@ -833,22 +820,24 @@
         </div>
       </div>
 
-      <!-- Trender -->
-      <div class="card" id="trendCard">
-        <div class="widget-label" data-i18n="tp.trends">Trender</div>
-        <div id="trendBody">
-          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+      <!-- Trender + Ukeslast (slått sammen i faner) -->
+      <div class="card" id="trendLoadCard">
+        <div class="tl-tabs">
+          <button type="button" class="tl-tab active" data-tab="trend" onclick="switchTLTab('trend')" data-i18n="tp.trends">Trender</button>
+          <span class="tl-tab-sep">·</span>
+          <button type="button" class="tl-tab" data-tab="load" onclick="switchTLTab('load')" data-i18n="tp.week_load">Ukeslast (sRPE)</button>
+        </div>
+        <div id="trendPanel">
+          <div id="trendBody">
+            <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+          </div>
+        </div>
+        <div id="loadPanel" style="display:none">
+          <div id="weekLoadBody">
+            <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
+          </div>
         </div>
       </div>
-
-      <!-- Ukeslast (sRPE) -->
-      <div class="card" id="weekLoadCard">
-        <div class="widget-label" data-i18n="tp.week_load">Ukeslast (sRPE)</div>
-        <div id="weekLoadBody">
-          <div class="loading" style="padding:8px 0;font-size:11px" data-i18n="tp.loading_log">Laster…</div>
-        </div>
-      </div>
-
 
     </aside>
   </div>
@@ -1793,21 +1782,27 @@ function renderHero() {
   }
   document.getElementById('heroNext').textContent = nextStr;
 
-  // KPIs always show current week
+  // Week summary — replaces old kpi boxes + the removed sidebar "Denne uken" card.
+  // Reuses existing i18n keys only (no new keys added).
   const mon = getMonday();
-  let logged = 0;
+  let logged = 0, planned = 0, rest = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(mon); d.setDate(mon.getDate() + i);
     if (currentWeekLoggedDates.has(localISODate(d))) logged++;
+    if (!isRest(i)) planned++; else rest++;
   }
   let daysLeft = 0;
   for (let i = ti + 1; i < 7; i++) {
     const tp = todayPlanText(i).toLowerCase();
     if (tp && !tp.startsWith('hvile') && !tp.startsWith('fri')) daysLeft++;
   }
-
-  _cuSet('kpiDone', logged);
-  _cuSet('kpiLeft', daysLeft);
+  const pct = planned > 0 ? Math.round(logged / planned * 100) : 0;
+  const inlineEl = document.getElementById('heroWeekInline');
+  if (inlineEl) {
+    const leftLbl = (t('tp.kpi_left') || '').replace(/<br\s*\/?>/gi, ' ').trim();
+    inlineEl.textContent =
+      `${logged}/${planned} ${t('tp.stat_planned').toLowerCase()} · ${pct}% ${t('tp.stat_consistency').toLowerCase()} · ${daysLeft} ${leftLbl.toLowerCase()}`;
+  }
 }
 
 // Tell opp tall kun ved første render (når feltet viser plassholder), ellers sett direkte.
@@ -2021,6 +2016,16 @@ function selectDay(i) {
   }
 }
 
+// ── Sidebar tab switch (Trender ⇄ Ukeslast, merged card) ───────────────────
+function switchTLTab(tab) {
+  const trendPanel = document.getElementById('trendPanel');
+  const loadPanel  = document.getElementById('loadPanel');
+  if (trendPanel) trendPanel.style.display = tab === 'trend' ? '' : 'none';
+  if (loadPanel)  loadPanel.style.display  = tab === 'load'  ? '' : 'none';
+  document.querySelectorAll('.tl-tab').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === tab));
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function loadLevelForDay(i) {
   if (isRest(i)) return 'rest';
@@ -2042,11 +2047,6 @@ function renderSidebar() {
     if (!isRest(i)) planned++; else rest++;
   }
   const pct = planned > 0 ? Math.round(logged / planned * 100) : 0;
-
-  _cuSet('sbLogged',  logged);
-  _cuSet('sbPlanned', planned);
-  _cuSet('sbPct',     pct, { suffix: '%' });
-  _cuSet('sbRest',    rest);
 
   // Bar chart — load-aware. (Ukens belastning-kortet er fjernet i redesign;
   // hopp over hvis elementet ikke finnes.)
