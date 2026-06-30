@@ -737,7 +737,7 @@ const TRANSLATIONS = {
     'inv.jt_stop_loss': 'Stop loss', 'inv.jt_target_hit': 'Mål nådd',
     'inv.buy_date': 'Kjøpsdato', 'inv.buy_price': 'Kjøpskurs', 'inv.quantity': 'Antall', 'inv.commission': 'Kurtasje',
     'inv.sell_date': 'Salgsdato', 'inv.sell_price': 'Salgskurs', 'inv.quantity_sold': 'Antall solgt',
-    'inv.saved': 'Lagret', 'inv.err_save': 'Lagring feilet', 'inv.err_ticker': 'Ticker er påkrevd', 'inv.err_fields': 'Fyll ut alle felt',
+    'inv.saved': 'Lagret', 'inv.err_save': 'Lagring feilet', 'inv.err_ticker': 'Ticker er påkrevd', 'inv.err_fields': 'Fyll ut alle felt', 'inv.err_duplicate': 'Allerede lagt til',
   },
   en: {
     // Nav
@@ -1472,7 +1472,7 @@ const TRANSLATIONS = {
     'inv.jt_stop_loss': 'Stop loss', 'inv.jt_target_hit': 'Target hit',
     'inv.buy_date': 'Buy date', 'inv.buy_price': 'Buy price', 'inv.quantity': 'Quantity', 'inv.commission': 'Commission',
     'inv.sell_date': 'Sell date', 'inv.sell_price': 'Sell price', 'inv.quantity_sold': 'Quantity sold',
-    'inv.saved': 'Saved', 'inv.err_save': 'Save failed', 'inv.err_ticker': 'Ticker is required', 'inv.err_fields': 'Fill all fields',
+    'inv.saved': 'Saved', 'inv.err_save': 'Save failed', 'inv.err_ticker': 'Ticker is required', 'inv.err_fields': 'Fill all fields', 'inv.err_duplicate': 'Already added',
   },
 };
 

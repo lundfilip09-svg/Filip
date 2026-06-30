@@ -747,6 +747,14 @@ async function saveAddStock() {
   const ticker = document.getElementById('addTicker').value.trim().toUpperCase().replace(/\.OL$/, '');
   const name = document.getElementById('addName').value.trim();
   if (!ticker) { toast(t('inv.err_ticker'), 'err'); return; }
+  const existing = _investments.find(i => i.ticker.toUpperCase() === ticker);
+  if (existing) {
+    closeAddModal();
+    selectInvestment(existing.id);
+    renderTickerDD();
+    toast(t('inv.err_duplicate'), 'err');
+    return;
+  }
   const { data, error } = await db.from('investments').insert({
     ticker, name: name || null, status: 'watchlist',
   }).select().single();
@@ -819,7 +827,7 @@ async function saveSell() {
 // Filip handler kun på Oslo Børs. Ticker lagres rått (f.eks. "KOG") —
 // her legges riktig suffiks/prefiks på for hvert API som trenger det.
 function yahooSymbol(ticker) { return `${ticker}.OL`; }
-function tvSymbol(ticker) { return `OSE:${ticker}`; }
+function tvSymbol(ticker) { return `OSL:${ticker.replace(/\.OL$/i, '')}`; }
 
 // ── Yahoo Finance quote (key-fri) ────────────────────────────────────────
 async function yhFetch(ticker, endpoint, extraQS) {
