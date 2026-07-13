@@ -11,6 +11,7 @@
 .biz-table{width:100%;border-collapse:collapse}
 .biz-table th,.biz-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
 .biz-table input,.biz-table select,.biz-table textarea{width:100%}
+.maps-paste{min-height:190px;resize:vertical}
 .warning{background:rgba(255,196,0,.12);border:1px solid rgba(255,196,0,.3)}
 .biz-toast{position:fixed;right:18px;bottom:18px;z-index:9999;padding:10px 14px;border-radius:8px;background:rgba(24,24,27,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 34px rgba(0,0,0,.35);color:var(--text-primary);font-size:13px;font-weight:700;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
 .biz-toast.show{opacity:1;transform:translateY(0)}
@@ -103,11 +104,8 @@ Too many low-tier clients
 <div class="card">
 <div class="section-title">Lovable Meta Prompt</div>
 
-<div class="form-group"><label class="form-label">Business</label><input id="lbName"></div>
-<div class="form-group"><label class="form-label">Style</label><input id="lbStyle"></div>
-<div class="form-group"><label class="form-label">Hours</label><input id="lbHours"></div>
-<div class="form-group"><label class="form-label">Services</label><textarea id="lbServices"></textarea></div>
-<div class="form-group"><label class="form-label">Reviews</label><textarea id="lbReviews"></textarea></div>
+<div class="form-group"><label class="form-label">Google Maps Paste</label><textarea id="lbMapsPaste" class="maps-paste" placeholder="Paste everything copied from Google Maps..."></textarea></div>
+<div class="form-group"><label class="form-label">Brand colors (optional)</label><input id="lbBrandColors" placeholder="e.g. black, white, warm gold"></div>
 
 <button class="btn btn-primary copy-btn" data-prompt="lovable">Copy</button>
 </div>
@@ -117,20 +115,8 @@ Too many low-tier clients
 <div class="card">
 <div class="section-title">Sales Meta Prompt</div>
 
-<div class="form-group">
-<label class="form-label">Business / Industry</label>
-<input id="salesBusiness">
-</div>
-
-<div class="form-group">
-<label class="form-label">Website Status</label>
-<input id="salesStatus">
-</div>
-
-<div class="form-group">
-<label class="form-label">Reviews</label>
-<textarea id="salesReviews"></textarea>
-</div>
+<div class="form-group"><label class="form-label">Google Maps Paste</label><textarea id="salesMapsPaste" class="maps-paste" placeholder="Paste everything copied from Google Maps..."></textarea></div>
+<div class="form-group"><label class="form-label">Brand colors (optional)</label><input id="salesBrandColors" placeholder="e.g. navy, cream, fresh green"></div>
 
 <button class="btn btn-primary copy-btn" data-prompt="sales">Copy</button>
 </div>
@@ -164,14 +150,10 @@ Too many low-tier clients
     inputs: {
       city: "",
       industry: "",
-      lbName: "",
-      lbStyle: "",
-      lbHours: "",
-      lbServices: "",
-      lbReviews: "",
-      salesBusiness: "",
-      salesStatus: "",
-      salesReviews: ""
+      lbMapsPaste: "",
+      lbBrandColors: "",
+      salesMapsPaste: "",
+      salesBrandColors: ""
     }
   };
 
@@ -189,14 +171,10 @@ Too many low-tier clients
     toast: $("#bizToast"),
     city: $("#city"),
     industry: $("#industry"),
-    lbName: $("#lbName"),
-    lbStyle: $("#lbStyle"),
-    lbHours: $("#lbHours"),
-    lbServices: $("#lbServices"),
-    lbReviews: $("#lbReviews"),
-    salesBusiness: $("#salesBusiness"),
-    salesStatus: $("#salesStatus"),
-    salesReviews: $("#salesReviews")
+    lbMapsPaste: $("#lbMapsPaste"),
+    lbBrandColors: $("#lbBrandColors"),
+    salesMapsPaste: $("#salesMapsPaste"),
+    salesBrandColors: $("#salesBrandColors")
   };
 
   function cloneDefaultState() {
@@ -474,27 +452,31 @@ Return the result as a clean, scannable list.`;
   }
 
   function buildLovablePrompt() {
-    const business = el.lbName?.value.trim() || "[BUSINESS]";
-    const style = el.lbStyle?.value.trim() || "[STYLE]";
-    const hours = el.lbHours?.value.trim() || "[HOURS]";
-    const services = el.lbServices?.value.trim() || "[SERVICES]";
-    const reviews = el.lbReviews?.value.trim() || "[REVIEWS]";
+    const mapsPaste = el.lbMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
+    const brandColors = el.lbBrandColors?.value.trim() || "Infer suitable brand colors from the business type, photos/reviews if mentioned, and local positioning.";
 
-    return `Create a premium, modern website for ${business}.
+    return `Create a premium, modern website from this Google Maps business data.
+
+Google Maps paste:
+${mapsPaste}
+
+Brand colors:
+${brandColors}
+
+First, infer and structure everything possible from the pasted Google Maps content:
+- Business name
+- Business category / industry
+- Phone number
+- Website URL
+- Address and local area
+- Opening hours
+- Reviews, rating, review count, and repeated customer themes
+- Description, services, products, treatments, or specialties
+- Tone, positioning, trust signals, and likely target customers
+
+If some details are missing, make sensible assumptions from context, but do not invent specific facts like phone numbers, addresses, ratings, awards, or opening hours.
 
 The website must be written in Norwegian.
-
-Business style / visual direction:
-${style}
-
-Opening hours:
-${hours}
-
-Services:
-${services}
-
-Customer reviews / raw trust signals:
-${reviews}
 
 Build a complete website with these sections:
 
@@ -502,30 +484,30 @@ Build a complete website with these sections:
 - Strong Norwegian headline
 - Short value proposition
 - Clear call-to-action
-- Trust signal based on reviews, experience, location, or service quality
+- Trust signal based on reviews, service quality, location, opening hours, or category
 
 2. About
 - Explain who the business is
-- Make the copy warm, credible, and local
-- Use details from the business, services, and reviews
+- Make the copy warm, credible, and local.
+- Use only details that can be inferred from the Google Maps paste.
 
 3. Services
-- Present the services clearly
-- Use cards or structured blocks
-- Explain benefits, not only features
+- Infer the main services from the pasted content.
+- Present them clearly with cards or structured blocks.
+- Explain customer benefits, not only features.
 
 4. Testimonials
-- Turn the review data into natural testimonial-style copy
-- Keep it believable and grounded in the provided reviews
+- Turn review content into natural testimonial-style copy.
+- Keep it believable and grounded in the pasted reviews.
 
 5. Galleri
-- Add a gallery section suitable for this business type
-- Use realistic image placeholders or image prompts
+- Add a gallery section suitable for this business type.
+- Use realistic image prompts/placeholders based on what the business likely does.
 
 6. Contact / CTA
-- Include opening hours
-- Add clear contact buttons
-- Add a final conversion-focused section
+- Include address, phone, website link, and opening hours if available.
+- Add clear contact buttons.
+- Add a final conversion-focused section.
 
 Design requirements:
 - Premium but clean
@@ -534,38 +516,48 @@ Design requirements:
 - SEO-friendly structure
 - Accessible contrast and readable typography
 - No generic filler text
+- No visible explanations of what the website is doing
 - Make it feel like a real local Norwegian business website, not a template.`;
   }
 
   function buildSalesPrompt() {
-    const business = el.salesBusiness?.value.trim() || "[BUSINESS / INDUSTRY]";
-    const status = el.salesStatus?.value.trim() || "[WEBSITE STATUS]";
-    const reviews = el.salesReviews?.value.trim() || "[REVIEWS / RAW DATA]";
+    const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
+    const brandColors = el.salesBrandColors?.value.trim() || "Infer if useful; do not force color references into the outreach.";
 
-    return `You are an expert outreach copywriter helping me contact a local business.
+    return `You are an expert outreach copywriter helping me contact a local business using Google Maps research.
 
-Business / industry:
-${business}
+Google Maps paste:
+${mapsPaste}
 
-Website status:
-${status}
+Optional brand colors / visual clues:
+${brandColors}
 
-Reviews / raw data:
-${reviews}
+First, infer everything possible from the pasted Google Maps content:
+- Business name
+- Industry/category
+- Phone number
+- Website status or lack of website
+- Address / local area
+- Opening hours
+- Reviews, rating, review count, and customer praise
+- Services, specialties, description, and positioning
+- Any weak points, missed opportunities, or signs of strong reputation
 
-Write 3 unique outreach message angles for this business:
+Do not invent specific facts. If website status is unclear, phrase it carefully.
+
+Write 3 unique outreach message angles for this exact business:
 
 1. Weakness angle
-- Point out a clear website or digital presence weakness
-- Keep it helpful, not critical or rude
+- Mention a clear digital presence or website weakness only if it can be inferred.
+- Keep it helpful, not critical or rude.
 
 2. Opportunity angle
-- Focus on missed bookings, trust, visibility, mobile experience, or conversion
-- Make the upside feel concrete
+- Focus on bookings, trust, visibility, mobile experience, local search, or conversion.
+- Make the upside feel concrete and relevant to their category.
 
 3. Praise angle
-- Start from something positive in their reviews, reputation, service, or local presence
-- Then naturally connect it to how a better website could support that strength
+- Start from something positive in their reviews, rating, service, or local presence.
+- Then naturally connect it to how a better website could support that strength.
 
 For each angle, write:
 - One Instagram DM version
