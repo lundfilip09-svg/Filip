@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Søvn', 'nav.gjoremal': 'Gjøremål',
     'nav.kalender': 'Kalender', 'nav.treningsplan': 'Treningsoversikt',
-    'nav.investments': 'Investeringer', 'nav.business': 'Business',
+    'nav.investments': 'Investeringer',
     'nav.logout': 'Logg ut', 'nav.pdf': 'Eksporter PDF',
     // Common
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
@@ -740,13 +740,20 @@ const TRANSLATIONS = {
     'inv.saved': 'Lagret', 'inv.err_save': 'Lagring feilet', 'inv.err_ticker': 'Ticker er påkrevd', 'inv.err_fields': 'Fyll ut alle felt', 'inv.err_duplicate': 'Allerede lagt til',
     'inv.search_stock': 'Søk aksje', 'inv.search_stock_placeholder': 'Skriv navn eller ticker…', 'inv.selected_stock': 'Valgt aksje', 'inv.searching': 'Søker…', 'inv.search_error': 'Søk feilet',
     'inv.no_chart_data': 'Ingen graf-data tilgjengelig', 'inv.range_1d': '1D', 'inv.range_1u': '1U', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Å', 'inv.range_5y': '5Å',
+    'inv.position': 'Posisjon', 'inv.avg_price': 'Snittkurs', 'inv.total_qty': 'Antall', 'inv.invested': 'Investert',
+    'inv.market_value': 'Markedsverdi', 'inv.unrealized_pl': 'Urealisert gevinst/tap', 'inv.buy_more': 'Kjøp mer',
+    'inv.lots_title': 'Kjøp', 'inv.lots_empty': 'Ingen kjøp registrert', 'inv.lot_remaining': 'gjenstår',
+    'inv.delete_lot': 'Slett kjøp', 'inv.delete_lot_confirm': 'Slette dette kjøpet? Kan ikke angres.',
+    'inv.sales_title': 'Salg', 'inv.sales_empty': 'Ingen salg registrert',
+    'inv.err_qty_exceeds': 'Antall solgt overstiger tilgjengelig beholdning',
+    'inv.tab_position': 'Posisjon',
   },
   en: {
     // Nav
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Sleep', 'nav.gjoremal': 'Tasks',
     'nav.kalender': 'Calendar', 'nav.treningsplan': 'Training Overview',
-    'nav.investments': 'Investments', 'nav.business': 'Business',
+    'nav.investments': 'Investments',
     'nav.logout': 'Log out', 'nav.pdf': 'Export PDF',
     // Common
     'loading': 'Loading…', 'no_data': 'No data', 'save': 'Save',
@@ -1477,6 +1484,13 @@ const TRANSLATIONS = {
     'inv.saved': 'Saved', 'inv.err_save': 'Save failed', 'inv.err_ticker': 'Ticker is required', 'inv.err_fields': 'Fill all fields', 'inv.err_duplicate': 'Already added',
     'inv.search_stock': 'Search stock', 'inv.search_stock_placeholder': 'Type name or ticker…', 'inv.selected_stock': 'Selected stock', 'inv.searching': 'Searching…', 'inv.search_error': 'Search failed',
     'inv.no_chart_data': 'No chart data available', 'inv.range_1d': '1D', 'inv.range_1u': '1W', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Y', 'inv.range_5y': '5Y',
+    'inv.position': 'Position', 'inv.avg_price': 'Avg. price', 'inv.total_qty': 'Quantity', 'inv.invested': 'Invested',
+    'inv.market_value': 'Market value', 'inv.unrealized_pl': 'Unrealized P/L', 'inv.buy_more': 'Buy more',
+    'inv.lots_title': 'Buys', 'inv.lots_empty': 'No buys registered', 'inv.lot_remaining': 'remaining',
+    'inv.delete_lot': 'Delete buy', 'inv.delete_lot_confirm': 'Delete this buy? Cannot be undone.',
+    'inv.sales_title': 'Sales', 'inv.sales_empty': 'No sales registered',
+    'inv.err_qty_exceeds': 'Quantity sold exceeds available holdings',
+    'inv.tab_position': 'Position',
   },
 };
 
@@ -1545,7 +1559,6 @@ const NAV_TABS = [
   ['kalender.html', 'kalender', 'nav.kalender', 'Kalender'],
   ['treningsplan.html', 'treningsplan', 'nav.treningsplan', 'Treningsoversikt'],
   ['investments.html', 'investments', 'nav.investments', 'Investments'],
-  ['business.html', 'business', 'nav.business', 'Business'],
 ];
 function injectNav() {
   const nav = document.querySelector('nav.main-nav[data-nav]');

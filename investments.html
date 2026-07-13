@@ -179,6 +179,21 @@
     .inv-result-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
     @media (max-width: 640px) { .inv-result-grid { grid-template-columns: 1fr; } }
 
+    /* ── Position ── */
+    .inv-pos-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    @media (max-width: 640px) { .inv-pos-grid { grid-template-columns: repeat(2,1fr); } }
+    .inv-lots-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .inv-lot-item, .inv-sale-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.025); border-left: 2px solid #6BE3A4; margin-bottom: 8px;
+    }
+    .inv-sale-item { border-left-color: #FF6B6B; }
+    .inv-lot-main { flex: 1; min-width: 0; }
+    .inv-lot-line1 { font-size: 12.5px; font-weight: 600; color: var(--text-primary); font-family: var(--font-mono); }
+    .inv-lot-line2 { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .inv-lot-del { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 15px; padding: 4px 6px; flex-shrink: 0; }
+    .inv-lot-del:hover { color: #FF6B6B; }
+
     /* ── Modal ── */
     .inv-backdrop {
       display: none; position: fixed; inset: 0; z-index: 400;
@@ -395,8 +410,10 @@
 let db;
 let _investments = [];   // alle rader, egne investments
 let _journal = [];        // journal for valgt investering
+let _lots = [];            // kjøps-lots for valgt investering
+let _sales = [];           // salg for valgt investering
 let _selected = null;     // valgt investment-objekt
-let _activeTab = 'analysis';
+let _activeTab = 'position';
 let _quoteCache = {};     // ticker -> {ts, data}
 
 const JT_ICON = { note: '📝', buy: '🟢', sell: '🔴', update: '🔄', stop_loss: '⛔', target_hit: '🎯' };
@@ -506,11 +523,11 @@ function renderTickerDD() {
 function selectInvestment(id) {
   _selected = _investments.find(i => i.id === id) || null;
   closeTickerDD();
-  _activeTab = 'analysis';
+  _activeTab = 'position';
   renderHeader();
   renderFavRow();
   renderMain();
-  if (_selected) loadJournal(_selected.id);
+  if (_selected) { loadJournal(_selected.id); loadLots(_selected.id); }
 }
 
 function renderHeader() {
@@ -570,8 +587,8 @@ function renderMain() {
       <div class="inv-status-row">
         <span class="badge ${({watchlist:'badge-grey',open:'badge-blue',closed:'badge-green'})[_selected.status]}" data-i18n="inv.status_${_selected.status}">${_selected.status}</span>
         ${_selected.locked ? `<span class="badge badge-grey" data-i18n="inv.locked">Låst</span>` : ''}
-        ${_selected.status === 'watchlist' ? `<button class="btn btn-success btn-sm" onclick="openBuyModal()" data-i18n="inv.register_buy">Registrer kjøp</button>` : ''}
-        ${_selected.status === 'open' ? `<button class="btn btn-danger btn-sm" onclick="openSellModal()" data-i18n="inv.register_sell">Registrer salg</button>` : ''}
+        ${!_selected.locked ? `<button class="btn btn-success btn-sm" onclick="openBuyModal()" data-i18n="${totalQty(_selected) > 0 ? 'inv.buy_more' : 'inv.register_buy'}">${totalQty(_selected) > 0 ? 'Kjøp mer' : 'Registrer kjøp'}</button>` : ''}
+        ${!_selected.locked && totalQty(_selected) > 0 ? `<button class="btn btn-danger btn-sm" onclick="openSellModal()" data-i18n="inv.register_sell">Registrer salg</button>` : ''}
       </div>
       <div class="inv-tv-wrap">
         <div class="inv-chart-ranges" id="invChartRanges">
@@ -587,6 +604,7 @@ function renderMain() {
 
     <div class="card">
       <div class="inv-tabs">
+        <div class="inv-tab ${_activeTab==='position'?'active':''}" onclick="setTab('position')" data-i18n="inv.tab_position">Posisjon</div>
         <div class="inv-tab ${_activeTab==='analysis'?'active':''}" onclick="setTab('analysis')" data-i18n="inv.tab_analysis">Analyse</div>
         <div class="inv-tab ${_activeTab==='journal'?'active':''}" onclick="setTab('journal')" data-i18n="inv.tab_journal">Journal</div>
       </div>
@@ -604,12 +622,14 @@ function renderMain() {
 }
 
 function renderResultBlock() {
-  const buyTotal = (_selected.buy_price || 0) * (_selected.quantity || 0) + (_selected.commission_buy || 0);
-  const sellTotal = (_selected.sell_price || 0) * (_selected.quantity_sold || 0) - (_selected.commission_sell || 0);
+  const buyTotal = _lots.reduce((s, l) => s + Number(l.quantity) * Number(l.buy_price) + Number(l.commission_buy || 0), 0);
+  const sellTotal = _sales.reduce((s, sale) => s + Number(sale.quantity_sold) * Number(sale.sell_price) - Number(sale.commission_sell || 0), 0);
   const pl = sellTotal - buyTotal;
   const plPct = buyTotal ? (pl / buyTotal) * 100 : 0;
-  const days = _selected.buy_date && _selected.sell_date
-    ? Math.round((new Date(_selected.sell_date) - new Date(_selected.buy_date)) / 86400000) : null;
+  const buyDates = _lots.map(l => new Date(l.buy_date)).filter(d => !isNaN(d));
+  const sellDates = _sales.map(s => new Date(s.sell_date)).filter(d => !isNaN(d));
+  const days = (buyDates.length && sellDates.length)
+    ? Math.round((Math.max(...sellDates) - Math.min(...buyDates)) / 86400000) : null;
   const cls = pl >= 0 ? 'success' : 'danger';
   return `
     <div class="card">
@@ -622,12 +642,117 @@ function renderResultBlock() {
     </div>`;
 }
 
+// ── Position (lots/sales) ────────────────────────────────────────────────
+async function loadLots(investmentId) {
+  const [lotsRes, salesRes] = await Promise.all([
+    db.from('investment_lots').select('*').eq('investment_id', investmentId).order('buy_date', { ascending: false }),
+    db.from('investment_sales').select('*').eq('investment_id', investmentId).order('sell_date', { ascending: false }),
+  ]);
+  _lots = lotsRes.error ? [] : (lotsRes.data || []);
+  _sales = salesRes.error ? [] : (salesRes.data || []);
+  refreshStatusRow();
+  renderTabBody();
+}
+
+function refreshStatusRow() {
+  const el = document.querySelector('.inv-status-row');
+  if (!el || !_selected) return;
+  el.innerHTML = `
+    <span class="badge ${({watchlist:'badge-grey',open:'badge-blue',closed:'badge-green'})[_selected.status]}" data-i18n="inv.status_${_selected.status}">${_selected.status}</span>
+    ${_selected.locked ? `<span class="badge badge-grey" data-i18n="inv.locked">Låst</span>` : ''}
+    ${!_selected.locked ? `<button class="btn btn-success btn-sm" onclick="openBuyModal()" data-i18n="${totalQty(_selected) > 0 ? 'inv.buy_more' : 'inv.register_buy'}">${totalQty(_selected) > 0 ? 'Kjøp mer' : 'Registrer kjøp'}</button>` : ''}
+    ${!_selected.locked && totalQty(_selected) > 0 ? `<button class="btn btn-danger btn-sm" onclick="openSellModal()" data-i18n="inv.register_sell">Registrer salg</button>` : ''}
+  `;
+  applyLang();
+}
+
+function totalQty(inv) {
+  if (!inv || inv.id !== _selected?.id) return 0;
+  return _lots.reduce((s, l) => s + Number(l.quantity_remaining || 0), 0);
+}
+function avgPrice() {
+  const qty = _lots.reduce((s, l) => s + Number(l.quantity_remaining || 0), 0);
+  if (!qty) return 0;
+  const cost = _lots.reduce((s, l) => s + Number(l.quantity_remaining || 0) * Number(l.buy_price || 0), 0);
+  return cost / qty;
+}
+function totalInvested() {
+  return _lots.reduce((s, l) => s + Number(l.quantity_remaining || 0) * Number(l.buy_price || 0), 0);
+}
+
+function renderPositionTab() {
+  const qty = totalQty(_selected);
+  const avg = avgPrice();
+  const invested = totalInvested();
+  const lastPrice = _quoteCache[_selected.ticker]?.quote?.price;
+  const marketValue = lastPrice != null ? qty * lastPrice : null;
+  const upl = marketValue != null ? marketValue - invested : null;
+  const uplPct = (upl != null && invested) ? (upl / invested) * 100 : null;
+  const cls = upl == null ? '' : (upl >= 0 ? 'success' : 'danger');
+  return `
+    <div class="inv-pos-grid">
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.total_qty">Antall</div><div class="metric-val">${qty || '—'}</div></div>
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.avg_price">Snittkurs</div><div class="metric-val">${qty ? avg.toFixed(2) : '—'}</div></div>
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.invested">Investert</div><div class="metric-val">${qty ? invested.toFixed(2) : '—'}</div></div>
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.unrealized_pl">Urealisert gevinst/tap</div><div class="metric-val ${cls}">${upl != null ? `${upl >= 0 ? '+' : ''}${upl.toFixed(2)} (${uplPct >= 0 ? '+' : ''}${uplPct.toFixed(1)}%)` : '—'}</div></div>
+    </div>
+    <div class="inv-lots-head">
+      <div class="section-title" data-i18n="inv.lots_title" style="margin:0">Kjøp</div>
+    </div>
+    <div id="invLotsList">${renderLotsList()}</div>
+    ${_sales.length ? `
+    <div class="inv-lots-head" style="margin-top:18px">
+      <div class="section-title" data-i18n="inv.sales_title" style="margin:0">Salg</div>
+    </div>
+    <div>${renderSalesList()}</div>` : ''}
+  `;
+}
+
+function renderLotsList() {
+  if (!_lots.length) return `<div class="inv-j-empty" data-i18n="inv.lots_empty">Ingen kjøp registrert</div>`;
+  return _lots.map(l => `
+    <div class="inv-lot-item">
+      <div class="inv-lot-main">
+        <div class="inv-lot-line1">${Number(l.quantity_remaining)} × ${Number(l.buy_price).toFixed(2)}</div>
+        <div class="inv-lot-line2">${fmtDate(l.buy_date)}${Number(l.quantity_remaining) !== Number(l.quantity) ? ` · ${Number(l.quantity_remaining)}/${Number(l.quantity)} <span data-i18n="inv.lot_remaining">gjenstår</span>` : ''}</div>
+      </div>
+      <button class="inv-lot-del" onclick="deleteLot('${l.id}')" title="${t('inv.delete_lot')}">✕</button>
+    </div>`).join('');
+}
+
+function renderSalesList() {
+  if (!_sales.length) return `<div class="inv-j-empty" data-i18n="inv.sales_empty">Ingen salg registrert</div>`;
+  return _sales.map(s => `
+    <div class="inv-sale-item">
+      <div class="inv-lot-main">
+        <div class="inv-lot-line1">${Number(s.quantity_sold)} × ${Number(s.sell_price).toFixed(2)}</div>
+        <div class="inv-lot-line2">${fmtDate(s.sell_date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString(fmtLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function deleteLot(id) {
+  if (!confirm(t('inv.delete_lot_confirm'))) return;
+  const { error } = await db.from('investment_lots').delete().eq('id', id);
+  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  await loadLots(_selected.id);
+  await syncInvestmentStatus();
+  renderMain();
+  toast(t('inv.saved'));
+}
+
 function setTab(tab) { _activeTab = tab; renderMain(); }
 
 function renderTabBody() {
   const el = document.getElementById('invTabBody');
   if (!el) return;
-  if (_activeTab === 'analysis') { el.innerHTML = renderAnalysisTab(); }
+  if (_activeTab === 'position') { el.innerHTML = renderPositionTab(); }
+  else if (_activeTab === 'analysis') { el.innerHTML = renderAnalysisTab(); }
   else { el.innerHTML = renderJournalTab(); }
   applyLang();
 }
@@ -909,7 +1034,7 @@ async function saveAddStock() {
   toast(t('inv.saved'));
 }
 
-// ── Buy modal ─────────────────────────────────────────────────────────────
+// ── Buy modal (legger til nytt lot) ──────────────────────────────────────
 function openBuyModal() {
   document.getElementById('buyDate').value = today();
   document.getElementById('buyPrice').value = '';
@@ -925,23 +1050,24 @@ async function saveBuy() {
   const quantity = parseFloat(document.getElementById('buyQty').value);
   const commission_buy = parseFloat(document.getElementById('buyCommission').value) || 0;
   if (!buy_date || !buy_price || !quantity) { toast(t('inv.err_fields'), 'err'); return; }
-  const patch = { status: 'open', buy_date, buy_price, quantity, commission_buy };
-  const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
+  const { error } = await db.from('investment_lots').insert({
+    investment_id: _selected.id, buy_date, buy_price, quantity, quantity_remaining: quantity, commission_buy,
+  });
   if (error) { toast(t('inv.err_save'), 'err'); return; }
-  Object.assign(_selected, patch);
-  const idx = _investments.findIndex(i => i.id === _selected.id);
-  if (idx > -1) Object.assign(_investments[idx], patch);
+  await loadLots(_selected.id);
+  await syncInvestmentStatus();
   await addJournalEntry('buy', t('inv.jt_buy'), `${quantity} @ ${buy_price} (${buy_date})`);
   closeBuyModal();
   renderMain();
   toast(t('inv.saved'));
 }
 
-// ── Sell modal ────────────────────────────────────────────────────────────
+// ── Sell modal (trekker FIFO fra lots) ───────────────────────────────────
 function openSellModal() {
   document.getElementById('sellDate').value = today();
   document.getElementById('sellPrice').value = '';
-  document.getElementById('sellQty').value = _selected.quantity ?? '';
+  document.getElementById('sellQty').value = '';
+  document.getElementById('sellQty').max = totalQty(_selected) || '';
   document.getElementById('sellCommission').value = '0';
   document.getElementById('sellBackdrop').classList.add('open');
 }
@@ -950,20 +1076,55 @@ function closeSellModal() { document.getElementById('sellBackdrop').classList.re
 async function saveSell() {
   const sell_date = document.getElementById('sellDate').value;
   const sell_price = parseFloat(document.getElementById('sellPrice').value);
-  const quantity_sold = parseFloat(document.getElementById('sellQty').value);
+  let quantity_sold = parseFloat(document.getElementById('sellQty').value);
   const commission_sell = parseFloat(document.getElementById('sellCommission').value) || 0;
   if (!sell_date || !sell_price || !quantity_sold) { toast(t('inv.err_fields'), 'err'); return; }
-  const patch = { status: 'closed', locked: true, sell_date, sell_price, quantity_sold, commission_sell };
+  const available = totalQty(_selected);
+  if (quantity_sold > available) { toast(t('inv.err_qty_exceeds'), 'err'); return; }
+
+  // Trekk FIFO: eldste kjøp (siste i buy_date-sortert desc-liste) først
+  const lotsFifo = [..._lots].filter(l => Number(l.quantity_remaining) > 0)
+    .sort((a, b) => new Date(a.buy_date) - new Date(b.buy_date));
+  let remainingToSell = quantity_sold;
+  const updates = [];
+  for (const lot of lotsFifo) {
+    if (remainingToSell <= 0) break;
+    const take = Math.min(Number(lot.quantity_remaining), remainingToSell);
+    updates.push({ id: lot.id, quantity_remaining: Number(lot.quantity_remaining) - take });
+    remainingToSell -= take;
+  }
+  for (const u of updates) {
+    const { error } = await db.from('investment_lots').update({ quantity_remaining: u.quantity_remaining }).eq('id', u.id);
+    if (error) { toast(t('inv.err_save'), 'err'); return; }
+  }
+  const { error: saleErr } = await db.from('investment_sales').insert({
+    investment_id: _selected.id, sell_date, sell_price, quantity_sold, commission_sell,
+  });
+  if (saleErr) { toast(t('inv.err_save'), 'err'); return; }
+
+  await loadLots(_selected.id);
+  await syncInvestmentStatus();
+  await addJournalEntry('sell', t('inv.jt_sell'), `${quantity_sold} @ ${sell_price} (${sell_date})`);
+  closeSellModal();
+  renderMain();
+  toast(t('inv.saved'));
+}
+
+// ── Status-synk: avledet av lots (watchlist=0 kjøp, open=har beholdning, closed=solgt alt) ──
+async function syncInvestmentStatus() {
+  const qty = totalQty(_selected);
+  const hasSales = _sales.length > 0;
+  let status = 'watchlist';
+  if (qty > 0) status = 'open';
+  else if (hasSales) status = 'closed';
+  const locked = status === 'closed';
+  if (_selected.status === status && _selected.locked === locked) return;
+  const patch = { status, locked };
   const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
-  if (error) { toast(t('inv.err_save'), 'err'); return; }
+  if (error) return;
   Object.assign(_selected, patch);
   const idx = _investments.findIndex(i => i.id === _selected.id);
   if (idx > -1) Object.assign(_investments[idx], patch);
-  await addJournalEntry('sell', t('inv.jt_sell'), `${quantity_sold} @ ${sell_price} (${sell_date})`);
-  closeSellModal();
-  _activeTab = 'analysis';
-  renderMain();
-  toast(t('inv.saved'));
 }
 
 // ── Børs-symbol-mapping ──────────────────────────────────────────────────
@@ -995,6 +1156,7 @@ async function loadQuote(ticker) {
     }
     if (_selected?.ticker !== ticker) return;
     renderQuote(quote);
+    if (_activeTab === 'position') renderTabBody();
   } catch (e) {
     if (_selected?.ticker !== ticker) return;
     if (e.noData) { renderQuoteUnavailable(); }
