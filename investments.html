@@ -598,7 +598,7 @@ function renderMain() {
         </div>
       </div>
       <div class="inv-quote-tiles">
-        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.open">Åpning</div><div class="metric-val" id="invOpen">—</div></div>
+        <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.range_start">Start</div><div class="metric-val" id="invOpen">—</div></div>
         <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.high">Høy</div><div class="metric-val" id="invHigh">—</div></div>
         <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.low">Lav</div><div class="metric-val" id="invLow">—</div></div>
 
@@ -611,7 +611,7 @@ function renderMain() {
       </div>
       <div class="inv-tv-wrap">
         <div class="inv-chart-ranges" id="invChartRanges">
-          ${['1d','1u','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r==='3m'?' active':''}" data-range="${r}" onclick="setChartRange('${r}')">
+          ${['1d','1u','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r===_chartRange?' active':''}" data-range="${r}" onclick="setChartRange('${r}')">
             <span data-i18n="inv.range_${r}">${r}</span>
             <span class="icrb-pct flat" id="invRangePct_${r}">—</span>
           </div>`).join('')}
@@ -716,7 +716,7 @@ function renderPositionTab() {
     <div class="inv-pos-grid">
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.total_qty">Antall</div><div class="metric-val">${qty || '—'}</div></div>
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.avg_price">Snittkurs</div><div class="metric-val">${qty ? avg.toFixed(2) : '—'}</div></div>
-      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.invested">Investert</div><div class="metric-val">${qty ? invested.toFixed(2) : '—'}</div></div>
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.invested">Investert</div><div class="metric-val">${qty ? `${invested.toFixed(2)} kr` : '—'}</div></div>
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.unrealized_pl">Urealisert gevinst/tap</div><div class="metric-val ${cls}">${uplPct != null ? `${uplPct >= 0 ? '+' : ''}${uplPct.toFixed(1)}%` : '—'}</div></div>
     </div>
     <div class="inv-lots-head">
@@ -1220,18 +1220,17 @@ function renderQuote(q) {
   } else {
     changeEl.textContent = '';
   }
-  document.getElementById('invOpen').textContent = q.open != null ? q.open.toFixed(2) : '—';
-  document.getElementById('invHigh').textContent = q.dayHigh != null ? q.dayHigh.toFixed(2) : '—';
-  document.getElementById('invLow').textContent = q.dayLow != null ? q.dayLow.toFixed(2) : '—';
+  // Start/Høy/Lav settes av renderChart() ut fra valgt range, ikke herfra (kun dagens tall).
 }
 
 // ── Chart.js graf (historikk fra Yahoo) ──────────────────────────────────
-let _chartRange = '3m';
+let _chartRange = localStorage.getItem('inv_last_range') || '1u';
 let _chartInstance = null;
 let _chartCache = {}; // `${ticker}:${range}` -> {ts, points, currency}
 
 function setChartRange(range) {
   _chartRange = range;
+  try { localStorage.setItem('inv_last_range', range); } catch (e) {}
   document.querySelectorAll('#invChartRanges .inv-chart-range-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.range === range));
   if (_selected) loadChart(_selected.ticker, range);
@@ -1319,6 +1318,15 @@ function renderChart(points, currency) {
   const first = values[0], last = values[values.length - 1];
   const up = last >= first;
   const lineColor = up ? '#6BE3A4' : '#FF6B6B';
+
+  // Start/Høy/Lav for VALGT range (ikke bare i dag) — oppdateres når range endres
+  const openEl = document.getElementById('invOpen');
+  const highEl = document.getElementById('invHigh');
+  const lowEl = document.getElementById('invLow');
+  if (openEl) openEl.textContent = first != null ? first.toFixed(2) : '—';
+  if (highEl) highEl.textContent = values.length ? Math.max(...values).toFixed(2) : '—';
+  if (lowEl) lowEl.textContent = values.length ? Math.min(...values).toFixed(2) : '—';
+
   if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
   _chartInstance = new Chart(ctx, {
     type: 'line',
