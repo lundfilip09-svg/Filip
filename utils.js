@@ -1634,6 +1634,17 @@ function injectNav() {
 }
 injectNav();
 
+// Aktiv fane settes nå automatisk ut fra filnavnet i URL-en (matcher NAV_TABS).
+// Sidene trenger ikke lenger sette classList.add('active') selv — det var det
+// som feilet for business.html (kalt for sent / aldri nådd), så fanen forble umarkert.
+(function markActiveNavTab() {
+  const file = (location.pathname.split('/').pop() || 'dashboard.html');
+  const match = NAV_TABS.find(([href]) => href === file);
+  if (!match) return;
+  const tab = document.querySelector(`.nav-tab[data-p="${match[1]}"]`);
+  if (tab) tab.classList.add('active');
+})();
+
 // ── Varselsenter: per-side varsler med lest-status ──────────────────────────
 // Hvert varsel hører til ÉN side (item.page = nav data-p). Uleste varsler gir:
 //   • en rød prikk på riktig fane i toppnav (_renderNavBadges)

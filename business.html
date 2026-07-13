@@ -22,14 +22,34 @@
 .biz-warning{margin-bottom:14px}
 
 .table-wrap{overflow:auto;border:1px solid var(--hairline-soft);border-radius:var(--radius-lg)}
-.biz-table{width:100%;border-collapse:collapse;min-width:760px}
-.biz-table th,.biz-table td{padding:9px 10px;border-bottom:1px solid var(--hairline-soft);white-space:nowrap}
+.biz-table{width:100%;border-collapse:collapse;min-width:760px;table-layout:fixed}
+.biz-table th,.biz-table td{padding:9px 10px;border-bottom:1px solid var(--hairline-soft);white-space:nowrap;overflow:hidden}
 .biz-table th{font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;background:var(--surface-1)}
 .biz-table tbody tr{transition:background .12s}
 .biz-table tbody tr:hover{background:var(--surface-2)}
 .biz-table tr:last-child td{border-bottom:0}
-.biz-table input,.biz-table select{width:100%;min-height:32px;font-size:12.5px}
+.biz-table input,.biz-table select{
+  width:100%;min-height:32px;font-size:12.5px;box-sizing:border-box;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.biz-table select{
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8f9c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+  padding-right:22px;
+}
 .biz-table .delete-row{width:30px;height:30px;padding:0}
+
+/* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
+.biz-table col.col-name{width:15%}
+.biz-table col.col-contact{width:23%}
+.biz-table col.col-tier{width:13%}
+.biz-table col.col-price{width:11%}
+.biz-table col.col-onetime{width:11%}
+.biz-table col.col-start{width:13%}
+.biz-table col.col-status{width:11%}
+.biz-table col.col-del{width:34px}
 
 .biz-lovable-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
 .biz-lovable-row .form-group{flex:1;min-width:200px;margin-bottom:0}
@@ -96,6 +116,11 @@
 
 <div class="table-wrap">
 <table class="biz-table">
+<colgroup>
+<col class="col-name"><col class="col-contact"><col class="col-tier">
+<col class="col-price"><col class="col-onetime"><col class="col-start">
+<col class="col-status"><col class="col-del">
+</colgroup>
 <thead>
 <tr>
 <th data-i18n="biz.customer">Customer</th>
@@ -288,6 +313,29 @@
     }).format(Number(value) || 0);
   }
 
+  // ── Formatert kr-input (Pris / Engangsbeløp) ────────────────────────────
+  // Viser "49 000,00 kr" i feltet, men lagrer/leser rått tall internt.
+  function formatMoneyInput(value) {
+    return moneyNok(value);
+  }
+
+  function parseMoneyInput(raw) {
+    const cleaned = String(raw ?? "")
+      .replace(/[^\d,.-]/g, "")   // fjern "kr", mellomrom (inkl. NBSP), bokstaver
+      .replace(/\.(?=\d{3}(\D|$))/g, "") // punktum som tusenskille
+      .replace(",", ".");        // komma som desimalskille
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function formatMoneyInputLive(inputEl) {
+    const caretFromEnd = inputEl.value.length - (inputEl.selectionEnd ?? inputEl.value.length);
+    const value = parseMoneyInput(inputEl.value);
+    inputEl.value = formatMoneyInput(value);
+    const pos = Math.max(0, inputEl.value.length - caretFromEnd);
+    inputEl.setSelectionRange(pos, pos);
+  }
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -349,8 +397,8 @@
               )).join("")}
             </select>
           </td>
-          <td><input type="number" min="0" step="1" class="cust-price" value="${Number(customer.price || 0)}"></td>
-          <td><input type="number" min="0" step="1" class="cust-onetime" value="${Number(customer.oneTimeFee || 0)}"></td>
+          <td><input type="text" inputmode="decimal" class="cust-price money-input" value="${formatMoneyInput(customer.price)}"></td>
+          <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(customer.oneTimeFee)}"></td>
           <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
           <td>
             <select class="cust-status">
@@ -434,13 +482,13 @@
 
     const priceInput = $(".cust-price", row);
     const oneTimeInput = $(".cust-onetime", row);
-    existing.oneTimeFee = Number(oneTimeInput?.value || 0);
+    existing.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
 
     if (Object.prototype.hasOwnProperty.call(TIER_PRICES, existing.tier)) {
       existing.price = TIER_PRICES[existing.tier];
-      if (priceInput) priceInput.value = String(existing.price);
+      if (priceInput) priceInput.value = formatMoneyInput(existing.price);
     } else {
-      existing.price = Number(priceInput?.value || 0);
+      existing.price = parseMoneyInput(priceInput?.value);
     }
 
     state.customers[index] = existing;
@@ -738,6 +786,9 @@ Email:`;
   function handleDocumentInput(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
+      if (event.target.classList.contains("money-input")) {
+        formatMoneyInputLive(event.target);
+      }
       readCustomerRow(row);
       return;
     }
@@ -818,8 +869,6 @@ Email:`;
 
     applyLang();
     onLangChange = () => { renderCustomers(); renderMetrics(); };
-
-    document.querySelector('[data-p="business"]')?.classList.add("active");
   }
 
   init();
