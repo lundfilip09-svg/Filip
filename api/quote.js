@@ -53,6 +53,37 @@ async function handleQuote(ticker, res) {
   });
 }
 
+async function handleChart(ticker, range, res) {
+  const RANGE_MAP = {
+    '1d': { range: '1d', interval: '5m' },
+    '1m': { range: '1mo', interval: '1d' },
+    '3m': { range: '3mo', interval: '1d' },
+    '1y': { range: '1y', interval: '1wk' },
+    '5y': { range: '5y', interval: '1mo' },
+  };
+  const cfg = RANGE_MAP[range] || RANGE_MAP['3m'];
+  const url = `${YAHOO_CHART}${encodeURIComponent(ticker)}?interval=${cfg.interval}&range=${cfg.range}`;
+  const r = await fetch(url, { headers: YAHOO_HEADERS });
+  if (!r.ok) throw new Error(`Yahoo chart fetch failed: ${await r.text()}`);
+  const json = await r.json();
+  const result = json?.chart?.result?.[0];
+  const err = json?.chart?.error;
+  if (err || !result || !result.timestamp) {
+    return res.status(422).json({ error: 'no_data', message: 'Ingen graf-data funnet for dette symbolet.' });
+  }
+  const ts = result.timestamp;
+  const closes = result.indicators?.quote?.[0]?.close || [];
+  const points = ts
+    .map((t, i) => ({ t: t * 1000, c: closes[i] }))
+    .filter(p => p.c != null);
+  return res.status(200).json({
+    symbol: result.meta?.symbol,
+    currency: result.meta?.currency || 'NOK',
+    range,
+    points,
+  });
+}
+
 async function handleSearch(query, res) {
   const url = `${YAHOO_SEARCH}?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0`;
   const r = await fetch(url, { headers: YAHOO_HEADERS });
@@ -88,12 +119,16 @@ export default async function handler(req, res) {
 
   if (!await requireAuth(req, res)) return;
 
-  const { ticker, endpoint, q } = req.query;
+  const { ticker, endpoint, q, range } = req.query;
 
   try {
     if (endpoint === 'search') {
       if (!q) return res.status(400).json({ error: 'Missing q' });
       return await handleSearch(q, res);
+    }
+    if (endpoint === 'chart') {
+      if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
+      return await handleChart(ticker, range, res);
     }
     if (endpoint === 'quote' || !endpoint) {
       if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
