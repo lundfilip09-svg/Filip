@@ -750,7 +750,7 @@ const TRANSLATIONS = {
     // Business
     'biz.accounting': 'Virksomhetsoversikt', 'biz.revenue': 'Inntekt',
     'biz.expense': 'Utgift', 'biz.profit': 'Fortjeneste',
-    'biz.lowtier': 'For mange lavpris-kunder',
+    'biz.onetime': 'Engangsbeløp', 'biz.onetime_revenue': 'Engangsinntekt',
     'biz.customers': 'Kunder',
     'biz.customer': 'Kunde', 'biz.contact': 'Kontakt', 'biz.tier': 'Nivå',
     'biz.price': 'Pris', 'biz.start': 'Start', 'biz.status': 'Status',
@@ -1514,7 +1514,7 @@ const TRANSLATIONS = {
     // Business
     'biz.accounting': 'Business Command Center', 'biz.revenue': 'Revenue',
     'biz.expense': 'Expense', 'biz.profit': 'Profit',
-    'biz.lowtier': 'Too many low-tier clients',
+    'biz.onetime': 'One-time', 'biz.onetime_revenue': 'One-time revenue',
     'biz.customers': 'Customers',
     'biz.customer': 'Customer', 'biz.contact': 'Contact', 'biz.tier': 'Tier',
     'biz.price': 'Price', 'biz.start': 'Start', 'biz.status': 'Status',

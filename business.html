@@ -65,10 +65,15 @@
 <div class="card">
 <div class="section-title" data-i18n="biz.accounting">Business Command Center</div>
 
-<div class="grid-3 biz-metrics">
+<div class="grid-4 biz-metrics">
 <div class="metric-tile">
 <div class="metric-lbl" data-i18n="biz.revenue">Revenue</div>
 <div class="metric-val success" id="revMetric">0 NOK</div>
+</div>
+
+<div class="metric-tile">
+<div class="metric-lbl" data-i18n="biz.onetime_revenue">One-time revenue</div>
+<div class="metric-val success" id="oneTimeMetric">0 NOK</div>
 </div>
 
 <div class="metric-tile">
@@ -80,10 +85,6 @@
 <div class="metric-lbl" data-i18n="biz.profit">Profit</div>
 <div class="metric-val" id="profitMetric">0 NOK</div>
 </div>
-</div>
-
-<div id="lowTierWarning" class="badge badge-yellow biz-warning" hidden data-i18n="biz.lowtier">
-Too many low-tier clients
 </div>
 
 <div class="divider"></div>
@@ -101,6 +102,7 @@ Too many low-tier clients
 <th data-i18n="biz.contact">Contact</th>
 <th data-i18n="biz.tier">Tier</th>
 <th data-i18n="biz.price">Price</th>
+<th data-i18n="biz.onetime">One-time</th>
 <th data-i18n="biz.start">Start</th>
 <th data-i18n="biz.status">Status</th>
 <th></th>
@@ -174,6 +176,7 @@ Too many low-tier clients
 </div>
 <div id="bizToast" class="toast" role="status" aria-live="polite"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="utils.js"></script>
 <script>
 (() => {
@@ -213,9 +216,9 @@ Too many low-tier clients
     customerRows: $("#customerRows"),
     addCustomer: $("#addCustomer"),
     revMetric: $("#revMetric"),
+    oneTimeMetric: $("#oneTimeMetric"),
     expMetric: $("#expMetric"),
     profitMetric: $("#profitMetric"),
-    warning: $("#tier-warning") || $("#lowTierWarning"),
     lovablePlan: $("#lovablePlan"),
     fxInfo: $("#fxInfo"),
     toast: $("#bizToast"),
@@ -303,6 +306,7 @@ Too many low-tier clients
       contact: customer.contact || "",
       tier,
       price: Number(customer.price || (isStandardTier ? TIER_PRICES[tier] : 0)),
+      oneTimeFee: Number(customer.oneTimeFee || 0),
       start: customer.start || "",
       status: customer.status || "Aktiv"
     };
@@ -314,6 +318,10 @@ Too many low-tier clients
 
   function revenueNok() {
     return activeCustomers().reduce((sum, customer) => sum + Number(customer.price || 0), 0);
+  }
+
+  function oneTimeRevenueNok() {
+    return state.customers.reduce((sum, customer) => sum + Number(customer.oneTimeFee || 0), 0);
   }
 
   function expenseNok() {
@@ -342,6 +350,7 @@ Too many low-tier clients
             </select>
           </td>
           <td><input type="number" min="0" step="1" class="cust-price" value="${Number(customer.price || 0)}"></td>
+          <td><input type="number" min="0" step="1" class="cust-onetime" value="${Number(customer.oneTimeFee || 0)}"></td>
           <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
           <td>
             <select class="cust-status">
@@ -371,21 +380,14 @@ Too many low-tier clients
 
   function renderMetrics() {
     const revenue = revenueNok();
+    const oneTime = oneTimeRevenueNok();
     const expense = expenseNok();
     const profit = revenue - expense;
 
     if (el.revMetric) el.revMetric.textContent = moneyNok(revenue);
+    if (el.oneTimeMetric) el.oneTimeMetric.textContent = moneyNok(oneTime);
     if (el.expMetric) el.expMetric.textContent = moneyNok(expense);
     if (el.profitMetric) el.profitMetric.textContent = moneyNok(profit);
-
-    const active = activeCustomers();
-    const lowTierCount = active.filter(customer => customer.tier === "Lav").length;
-    const lowTierRatio = active.length ? lowTierCount / active.length : 0;
-
-    if (el.warning) {
-      el.warning.hidden = !(active.length > 0 && lowTierRatio > 0.4);
-      el.warning.textContent = t("biz.lowtier");
-    }
 
     renderFxInfo();
   }
@@ -431,6 +433,8 @@ Too many low-tier clients
     existing.status = $(".cust-status", row)?.value || "Aktiv";
 
     const priceInput = $(".cust-price", row);
+    const oneTimeInput = $(".cust-onetime", row);
+    existing.oneTimeFee = Number(oneTimeInput?.value || 0);
 
     if (Object.prototype.hasOwnProperty.call(TIER_PRICES, existing.tier)) {
       existing.price = TIER_PRICES[existing.tier];
@@ -770,7 +774,28 @@ Email:`;
     }
   }
 
-  function init() {
+  let db;
+
+  async function initAuth() {
+    try {
+      const cfg = await getConfig();
+      db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { window.location.href = "login.html"; return false; }
+      return true;
+    } catch (err) {
+      document.querySelector(".page").innerHTML =
+        `<div class="card" style="text-align:center;padding:40px">
+          <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${escapeHtml(err.message)}</div>
+        </div>`;
+      return false;
+    }
+  }
+
+  async function init() {
+    const ok = await initAuth();
+    if (!ok) return;
+
     state.customers = state.customers.map(normalizeCustomer);
     syncInputsFromState();
 
