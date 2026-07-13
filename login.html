@@ -200,10 +200,12 @@ async function verifySecrets() {
   btn.disabled = true;
   btn.textContent = t('login.loading');
 
-  const { data, error } = await db
-    .from('app_secrets')
-    .select('key, value')
-    .in('key', ['q1_answer', 'q2_answer']);
+  const res = await fetch(
+    `${window._supabaseCfg.supabaseUrl}/rest/v1/app_secrets?select=key,value&key=in.(q1_answer,q2_answer)`,
+    { headers: { apikey: window._supabaseCfg.supabaseAnonKey } }
+  );
+  const data = res.ok ? await res.json() : null;
+  const error = res.ok ? null : { message: `HTTP ${res.status}` };
 
   if (error || !data || data.length < 2) {
     errEl.textContent = error?.message || t('login.q_error');
