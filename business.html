@@ -142,238 +142,588 @@ Too many low-tier clients
 <script src="utils.js"></script>
 <script>
 (() => {
+  "use strict";
 
-/* State */
-const STORAGE_KEY="business_customers";
-const FX_KEY="business_fx";
+  const STORAGE_KEY = "business_state";
+  const LEGACY_CUSTOMERS_KEY = "business_customers";
+  const LEGACY_FX_KEY = "business_fx";
+  const FALLBACK_FX = 11.5;
 
-const state={
-customers:JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"),
-fx:Number(localStorage.getItem(FX_KEY)||11.5)
-};
+  const TIER_PRICES = {
+    Lav: 490,
+    Medium: 790,
+    "Høy": 1490
+  };
 
-const tiers={Lav:490,Medium:790,Høy:1490};
-const $=s=>document.querySelector(s);
+  const DEFAULT_STATE = {
+    customers: [],
+    fx: {
+      rate: FALLBACK_FX,
+      updatedAt: null
+    },
+    lovablePlan: "10",
+    inputs: {
+      city: "",
+      industry: "",
+      lbName: "",
+      lbStyle: "",
+      lbHours: "",
+      lbServices: "",
+      lbReviews: "",
+      salesBusiness: "",
+      salesStatus: "",
+      salesReviews: ""
+    }
+  };
 
-/* Storage */
-const save=()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(state.customers));
+  const $ = (selector, root = document) => root.querySelector(selector);
 
-/* Helpers */
-const nok=v=>new Intl.NumberFormat("nb-NO",{style:"currency",currency:"NOK"}).format(v||0);
+  const el = {
+    customerRows: $("#customerRows"),
+    addCustomer: $("#addCustomer"),
+    revMetric: $("#revMetric"),
+    expMetric: $("#expMetric"),
+    profitMetric: $("#profitMetric"),
+    warning: $("#tier-warning") || $("#lowTierWarning"),
+    lovablePlan: $("#lovablePlan"),
+    fxInfo: $("#fxInfo"),
+    city: $("#city"),
+    industry: $("#industry"),
+    researchPrompt: $("#researchPrompt"),
+    lbName: $("#lbName"),
+    lbStyle: $("#lbStyle"),
+    lbHours: $("#lbHours"),
+    lbServices: $("#lbServices"),
+    lbReviews: $("#lbReviews"),
+    lovablePrompt: $("#lovablePrompt"),
+    salesBusiness: $("#salesBusiness"),
+    salesStatus: $("#salesStatus"),
+    salesReviews: $("#salesReviews"),
+    salesPrompt: $("#salesPrompt")
+  };
 
-function activeCustomers(){
-return state.customers.filter(c=>c.status==="Aktiv");
-}
+  function cloneDefaultState() {
+    return JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
 
-/* API */
-async function loadFx(){
-try{
-const r=await fetch("https://api.frankfurter.app/latest?from=EUR&to=NOK");
-const d=await r.json();
-state.fx=d.rates.NOK;
-localStorage.setItem(FX_KEY,state.fx);
-}catch{}
-renderExpense();
-}
+  function safeJsonParse(value, fallback) {
+    try {
+      return value ? JSON.parse(value) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
 
-/* Rendering */
-function renderCustomers(){
-const tbody=$("#customerRows");
+  function loadState() {
+    const stored = safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
+    const base = cloneDefaultState();
 
-tbody.innerHTML=state.customers.map((c,i)=>`
-<tr data-id="${i}">
-<td><input class="cust-name" value="${c.name||""}"></td>
-<td><input class="cust-contact" value="${c.contact||""}"></td>
-<td>
-<select class="cust-tier">
-${["Lav","Medium","Høy","Custom"].map(t=>`<option ${c.tier===t?"selected":""}>${t}</option>`).join("")}
-</select>
-</td>
-<td><input type="number" class="cust-price" value="${c.price||0}"></td>
-<td><input type="date" class="cust-date" value="${c.start||""}"></td>
-<td>
-<select class="cust-status">
-${["Aktiv","Pauset","Avsluttet"].map(s=>`<option ${c.status===s?"selected":""}>${s}</option>`).join("")}
-</select>
-</td>
-<td><button class="btn delete-row">✕</button></td>
-</tr>`).join("");
+    if (stored && typeof stored === "object") {
+      return {
+        ...base,
+        ...stored,
+        fx: { ...base.fx, ...(stored.fx || {}) },
+        inputs: { ...base.inputs, ...(stored.inputs || {}) },
+        customers: Array.isArray(stored.customers) ? stored.customers : []
+      };
+    }
 
-renderMetrics();
-}
+    const legacyCustomers = safeJsonParse(localStorage.getItem(LEGACY_CUSTOMERS_KEY), []);
+    const legacyFx = Number(localStorage.getItem(LEGACY_FX_KEY));
 
-function renderExpense(){
-const eur=Number($("#lovablePlan").value||10);
-const nokPrice=eur*state.fx;
+    return {
+      ...base,
+      customers: Array.isArray(legacyCustomers) ? legacyCustomers : [],
+      fx: {
+        rate: Number.isFinite(legacyFx) && legacyFx > 0 ? legacyFx : FALLBACK_FX,
+        updatedAt: null
+      }
+    };
+  }
 
-$("#fxInfo").innerHTML=`
-<div>EUR: €${eur}</div>
-<div>Rate: ${state.fx.toFixed(2)}</div>
-<div>NOK: ${nok(nokPrice)}</div>
-`;
+  const state = loadState();
 
-renderMetrics();
-}
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(LEGACY_CUSTOMERS_KEY, JSON.stringify(state.customers));
+    localStorage.setItem(LEGACY_FX_KEY, String(state.fx.rate || FALLBACK_FX));
+  }
 
-function renderMetrics(){
-const revenue=activeCustomers().reduce((a,b)=>a+Number(b.price||0),0);
+  function moneyNok(value) {
+    return new Intl.NumberFormat("nb-NO", {
+      style: "currency",
+      currency: "NOK",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+  }
 
-const expense=(Number($("#lovablePlan")?.value||10))*state.fx;
-const profit=revenue-expense;
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-$("#revMetric").textContent=nok(revenue);
-$("#expMetric").textContent=nok(expense);
-$("#profitMetric").textContent=nok(profit);
+  function normalizeCustomer(customer = {}) {
+    const tier = customer.tier || "Lav";
+    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
 
-const active=activeCustomers();
-const low=active.filter(x=>x.tier==="Lav").length;
-const ratio=active.length?low/active.length:0;
+    return {
+      name: customer.name || "",
+      contact: customer.contact || "",
+      tier,
+      price: Number(customer.price || (isStandardTier ? TIER_PRICES[tier] : 0)),
+      start: customer.start || "",
+      status: customer.status || "Aktiv"
+    };
+  }
 
-$("#lowTierWarning").hidden=ratio<=0.4;
-}
+  function activeCustomers() {
+    return state.customers.filter(customer => customer.status === "Aktiv");
+  }
 
-/* Prompts */
-function updateResearch(){
-$("#researchPrompt").value=`You are an expert market researcher.
+  function revenueNok() {
+    return activeCustomers().reduce((sum, customer) => sum + Number(customer.price || 0), 0);
+  }
 
-Find 10 local businesses in ${$("#city").value} within the ${$("#industry").value} industry.
+  function expenseNok() {
+    return Number(state.lovablePlan || 10) * Number(state.fx.rate || FALLBACK_FX);
+  }
+
+  function renderCustomers() {
+    if (!el.customerRows) return;
+
+    el.customerRows.innerHTML = state.customers.map((rawCustomer, index) => {
+      const customer = normalizeCustomer(rawCustomer);
+      state.customers[index] = customer;
+
+      return `
+        <tr data-id="${index}">
+          <td><input class="cust-name" value="${escapeHtml(customer.name)}" autocomplete="off"></td>
+          <td><input class="cust-contact" value="${escapeHtml(customer.contact)}" autocomplete="off"></td>
+          <td>
+            <select class="cust-tier">
+              ${["Lav", "Medium", "Høy", "Custom"].map(tier => (
+                `<option value="${escapeHtml(tier)}" ${customer.tier === tier ? "selected" : ""}>${escapeHtml(tier)}</option>`
+              )).join("")}
+            </select>
+          </td>
+          <td><input type="number" min="0" step="1" class="cust-price" value="${Number(customer.price || 0)}"></td>
+          <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
+          <td>
+            <select class="cust-status">
+              ${["Aktiv", "Pauset", "Avsluttet"].map(status => (
+                `<option value="${escapeHtml(status)}" ${customer.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`
+              )).join("")}
+            </select>
+          </td>
+          <td><button type="button" class="btn delete-row" aria-label="Delete customer">x</button></td>
+        </tr>
+      `;
+    }).join("");
+
+    saveState();
+    renderMetrics();
+  }
+
+  function renderFxInfo() {
+    if (!el.fxInfo) return;
+
+    const eur = Number(state.lovablePlan || 10);
+    const rate = Number(state.fx.rate || FALLBACK_FX);
+    const nokValue = eur * rate;
+
+    el.fxInfo.innerHTML = `
+      <div>EUR: €${eur}</div>
+      <div>Rate: ${rate.toFixed(2)}</div>
+      <div>NOK: ${moneyNok(nokValue)}</div>
+    `;
+  }
+
+  function renderMetrics() {
+    const revenue = revenueNok();
+    const expense = expenseNok();
+    const profit = revenue - expense;
+
+    if (el.revMetric) el.revMetric.textContent = moneyNok(revenue);
+    if (el.expMetric) el.expMetric.textContent = moneyNok(expense);
+    if (el.profitMetric) el.profitMetric.textContent = moneyNok(profit);
+
+    const active = activeCustomers();
+    const lowTierCount = active.filter(customer => customer.tier === "Lav").length;
+    const lowTierRatio = active.length ? lowTierCount / active.length : 0;
+
+    if (el.warning) {
+      el.warning.hidden = !(active.length > 0 && lowTierRatio > 0.4);
+      el.warning.textContent = "Too many low-tier clients";
+    }
+
+    renderFxInfo();
+  }
+
+  async function loadFxRate() {
+    const cachedRate = Number(state.fx.rate || localStorage.getItem(LEGACY_FX_KEY) || FALLBACK_FX);
+    state.fx.rate = Number.isFinite(cachedRate) && cachedRate > 0 ? cachedRate : FALLBACK_FX;
+    renderMetrics();
+
+    try {
+      const response = await fetch("https://frankfurter.app/latest?from=EUR&to=NOK", {
+        cache: "no-store"
+      });
+
+      if (!response.ok) throw new Error(`FX request failed: ${response.status}`);
+
+      const data = await response.json();
+      const liveRate = Number(data?.rates?.NOK);
+
+      if (!Number.isFinite(liveRate) || liveRate <= 0) {
+        throw new Error("Invalid NOK rate");
+      }
+
+      state.fx.rate = liveRate;
+      state.fx.updatedAt = new Date().toISOString();
+      saveState();
+    } catch {
+      state.fx.rate = Number.isFinite(cachedRate) && cachedRate > 0 ? cachedRate : FALLBACK_FX;
+      saveState();
+    }
+
+    renderMetrics();
+  }
+
+  function readCustomerRow(row) {
+    const index = Number(row.dataset.id);
+    const existing = normalizeCustomer(state.customers[index]);
+
+    existing.name = $(".cust-name", row)?.value || "";
+    existing.contact = $(".cust-contact", row)?.value || "";
+    existing.tier = $(".cust-tier", row)?.value || "Lav";
+    existing.start = $(".cust-date", row)?.value || "";
+    existing.status = $(".cust-status", row)?.value || "Aktiv";
+
+    const priceInput = $(".cust-price", row);
+
+    if (Object.prototype.hasOwnProperty.call(TIER_PRICES, existing.tier)) {
+      existing.price = TIER_PRICES[existing.tier];
+      if (priceInput) priceInput.value = String(existing.price);
+    } else {
+      existing.price = Number(priceInput?.value || 0);
+    }
+
+    state.customers[index] = existing;
+    saveState();
+    renderMetrics();
+  }
+
+  function cssId(id) {
+    if (window.CSS && typeof window.CSS.escape === "function") return CSS.escape(id);
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+  }
+
+  function syncInputsFromState() {
+    Object.entries(state.inputs).forEach(([id, value]) => {
+      const node = $(`#${cssId(id)}`);
+      if (node) node.value = value || "";
+    });
+
+    if (el.lovablePlan) {
+      el.lovablePlan.value = state.lovablePlan || "10";
+    }
+  }
+
+  function saveInputsToState() {
+    Object.keys(state.inputs).forEach(id => {
+      const node = $(`#${cssId(id)}`);
+      if (node) state.inputs[id] = node.value || "";
+    });
+
+    if (el.lovablePlan) {
+      state.lovablePlan = el.lovablePlan.value || "10";
+    }
+
+    saveState();
+  }
+
+  function updateResearchPrompt() {
+    if (!el.researchPrompt) return;
+
+    const city = el.city?.value.trim() || "[STED]";
+    const industry = el.industry?.value.trim() || "[BRANSJE]";
+
+    el.researchPrompt.value = `You are an expert market researcher.
+
+Find 10 local businesses in ${city} within the ${industry} industry.
 
 Prioritize businesses that:
 • have no website
 • have an outdated website
+• have a weak mobile experience
 • have strong Google Reviews but weak digital presence
+• would benefit from a modern, conversion-focused website
 
-For each company provide:
-* Name
-* Website
-* Google Rating
-* Review Count
-* Reason this business is a good prospect.`;
-}
+For each business, provide:
+* Business name
+* Location
+* Website or "No website found"
+* Google rating
+* Review count
+* Short summary of what they do
+* Main digital weakness
+* Reason this business is a good prospect
+* Suggested outreach angle
 
-function updateLovable(){
-$("#lovablePrompt").value=`Create a premium website for ${$("#lbName").value}.
+Return the result as a clean, scannable list.`;
+  }
 
-Style: ${$("#lbStyle").value}
-Opening hours: ${$("#lbHours").value}
+  function updateLovablePrompt() {
+    if (!el.lovablePrompt) return;
+
+    const business = el.lbName?.value.trim() || "[BUSINESS]";
+    const style = el.lbStyle?.value.trim() || "[STYLE]";
+    const hours = el.lbHours?.value.trim() || "[HOURS]";
+    const services = el.lbServices?.value.trim() || "[SERVICES]";
+    const reviews = el.lbReviews?.value.trim() || "[REVIEWS]";
+
+    el.lovablePrompt.value = `Create a premium, modern website for ${business}.
+
+The website must be written in Norwegian.
+
+Business style / visual direction:
+${style}
+
+Opening hours:
+${hours}
 
 Services:
-${$("#lbServices").value}
+${services}
 
-Customer reviews:
-${$("#lbReviews").value}
+Customer reviews / raw trust signals:
+${reviews}
 
-Build:
-- Hero
-- About
-- Services
-- Testimonials
-- Gallery
-- CTA
-- Contact
-- Google Maps
+Build a complete website with these sections:
 
-Requirements:
-- Mobile responsive
-- SEO optimized
+1. Hero
+- Strong Norwegian headline
+- Short value proposition
+- Clear call-to-action
+- Trust signal based on reviews, experience, location, or service quality
+
+2. About
+- Explain who the business is
+- Make the copy warm, credible, and local
+- Use details from the business, services, and reviews
+
+3. Services
+- Present the services clearly
+- Use cards or structured blocks
+- Explain benefits, not only features
+
+4. Testimonials
+- Turn the review data into natural testimonial-style copy
+- Keep it believable and grounded in the provided reviews
+
+5. Galleri
+- Add a gallery section suitable for this business type
+- Use realistic image placeholders or image prompts
+
+6. Contact / CTA
+- Include opening hours
+- Add clear contact buttons
+- Add a final conversion-focused section
+
+Design requirements:
+- Premium but clean
+- Mobile-first and fully responsive
 - Fast loading
-- Accessibility
-- Norwegian language support
-- Extract themes from reviews and use them throughout the copy.`;
-}
+- SEO-friendly structure
+- Accessible contrast and readable typography
+- No generic filler text
+- Make it feel like a real local Norwegian business website, not a template.`;
+  }
 
-function updateSales(){
-$("#salesPrompt").value=`Business: ${$("#salesBusiness").value}
+  function updateSalesPrompt() {
+    if (!el.salesPrompt) return;
+
+    const business = el.salesBusiness?.value.trim() || "[BUSINESS / INDUSTRY]";
+    const status = el.salesStatus?.value.trim() || "[WEBSITE STATUS]";
+    const reviews = el.salesReviews?.value.trim() || "[REVIEWS / RAW DATA]";
+
+    el.salesPrompt.value = `You are an expert outreach copywriter helping me contact a local business.
+
+Business / industry:
+${business}
 
 Website status:
-${$("#salesStatus").value}
+${status}
 
-Reviews:
-${$("#salesReviews").value}
+Reviews / raw data:
+${reviews}
 
-Write 3 outreach messages.
+Write 3 unique outreach message angles for this business:
 
-Tone:
-- Friendly
-- Natural
-- Short
-- Low pressure
-- Not salesy
-
-Create:
 1. Weakness angle
+- Point out a clear website or digital presence weakness
+- Keep it helpful, not critical or rude
+
 2. Opportunity angle
+- Focus on missed bookings, trust, visibility, mobile experience, or conversion
+- Make the upside feel concrete
+
 3. Praise angle
+- Start from something positive in their reviews, reputation, service, or local presence
+- Then naturally connect it to how a better website could support that strength
 
-Provide DM and Email versions.`;
-}
+For each angle, write:
+- One Instagram DM version
+- One email version
 
-/* Events */
-$("#addCustomer").addEventListener("click",()=>{
-state.customers.push({
-name:"",
-contact:"",
-tier:"Lav",
-price:490,
-start:"",
-status:"Aktiv"
-});
-save();
-renderCustomers();
-});
+Tone requirements:
+- Norwegian
+- Informal but professional
+- Short and natural
+- Friendly and low-pressure
+- No hype
+- No fake claims
+- No pushy sales language
+- Make each message feel written specifically for this business
 
-document.addEventListener("click",e=>{
-if(e.target.classList.contains("delete-row")){
-const row=e.target.closest("tr");
-state.customers.splice(Number(row.dataset.id),1);
-save();
-renderCustomers();
-}
+Format the answer with clear headings:
+Weakness
+Instagram DM:
+Email:
 
-if(e.target.classList.contains("copy-btn")){
-navigator.clipboard.writeText($("#"+e.target.dataset.target).value);
-}
-});
+Opportunity
+Instagram DM:
+Email:
 
-document.addEventListener("input",e=>{
-const row=e.target.closest("tr");
-if(row){
-const i=Number(row.dataset.id);
-const c=state.customers[i];
+Praise
+Instagram DM:
+Email:`;
+  }
 
-c.name=row.querySelector(".cust-name").value;
-c.contact=row.querySelector(".cust-contact").value;
-c.tier=row.querySelector(".cust-tier").value;
-c.start=row.querySelector(".cust-date").value;
-c.status=row.querySelector(".cust-status").value;
+  function updateAllPrompts() {
+    updateResearchPrompt();
+    updateLovablePrompt();
+    updateSalesPrompt();
+  }
 
-if(c.tier!=="Custom"){
-c.price=tiers[c.tier];
-row.querySelector(".cust-price").value=c.price;
-}else{
-c.price=Number(row.querySelector(".cust-price").value||0);
-}
+  function addCustomer() {
+    state.customers.push({
+      name: "",
+      contact: "",
+      tier: "Lav",
+      price: TIER_PRICES.Lav,
+      start: "",
+      status: "Aktiv"
+    });
 
-save();
-renderMetrics();
-}
+    saveState();
+    renderCustomers();
+  }
 
-updateResearch();
-updateLovable();
-updateSales();
-});
+  function deleteCustomer(button) {
+    const row = button.closest("tr");
+    if (!row) return;
 
-$("#lovablePlan").addEventListener("change",renderExpense);
+    const index = Number(row.dataset.id);
+    if (!Number.isInteger(index)) return;
 
-/* Init */
-renderCustomers();
-renderExpense();
-updateResearch();
-updateLovable();
-updateSales();
-loadFx();
-document.querySelector('[data-p="business"]')?.classList.add('active');
+    state.customers.splice(index, 1);
+    saveState();
+    renderCustomers();
+  }
 
+  async function copyFromButton(button) {
+    const targetId = button.dataset.target;
+    const target = targetId ? $(`#${cssId(targetId)}`) : null;
+    if (!target) return;
+
+    const originalText = button.textContent;
+    const text = target.value || target.textContent || "";
+
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = "Copied!";
+      button.disabled = true;
+
+      window.setTimeout(() => {
+        button.textContent = originalText || "Copy";
+        button.disabled = false;
+      }, 2000);
+    } catch {
+      button.textContent = "Copy failed";
+
+      window.setTimeout(() => {
+        button.textContent = originalText || "Copy";
+      }, 2000);
+    }
+  }
+
+  function handleDocumentInput(event) {
+    const row = event.target.closest("#customerRows tr");
+    if (row) {
+      readCustomerRow(row);
+      return;
+    }
+
+    saveInputsToState();
+    updateAllPrompts();
+  }
+
+  function handleDocumentChange(event) {
+    const row = event.target.closest("#customerRows tr");
+    if (row) {
+      readCustomerRow(row);
+      return;
+    }
+
+    if (event.target === el.lovablePlan) {
+      saveInputsToState();
+      renderMetrics();
+      return;
+    }
+
+    saveInputsToState();
+    updateAllPrompts();
+  }
+
+  function handleDocumentClick(event) {
+    const deleteButton = event.target.closest(".delete-row");
+    if (deleteButton) {
+      deleteCustomer(deleteButton);
+      return;
+    }
+
+    const copyButton = event.target.closest(".copy-btn");
+    if (copyButton) {
+      copyFromButton(copyButton);
+    }
+  }
+
+  function init() {
+    state.customers = state.customers.map(normalizeCustomer);
+    syncInputsFromState();
+
+    if (el.addCustomer) {
+      el.addCustomer.addEventListener("click", addCustomer);
+    }
+
+    document.addEventListener("input", handleDocumentInput);
+    document.addEventListener("change", handleDocumentChange);
+    document.addEventListener("click", handleDocumentClick);
+
+    renderCustomers();
+    renderMetrics();
+    updateAllPrompts();
+    loadFxRate();
+
+    document.querySelector('[data-p="business"]')?.classList.add("active");
+  }
+
+  init();
 })();
 </script>
 </body>
