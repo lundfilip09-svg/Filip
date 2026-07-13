@@ -739,7 +739,7 @@ const TRANSLATIONS = {
     'inv.sell_date': 'Salgsdato', 'inv.sell_price': 'Salgskurs', 'inv.quantity_sold': 'Antall solgt',
     'inv.saved': 'Lagret', 'inv.err_save': 'Lagring feilet', 'inv.err_ticker': 'Ticker er påkrevd', 'inv.err_fields': 'Fyll ut alle felt', 'inv.err_duplicate': 'Allerede lagt til',
     'inv.search_stock': 'Søk aksje', 'inv.search_stock_placeholder': 'Skriv navn eller ticker…', 'inv.selected_stock': 'Valgt aksje', 'inv.searching': 'Søker…', 'inv.search_error': 'Søk feilet',
-    'inv.no_chart_data': 'Ingen graf-data tilgjengelig', 'inv.range_1d': '1D', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Å', 'inv.range_5y': '5Å',
+    'inv.no_chart_data': 'Ingen graf-data tilgjengelig', 'inv.range_1d': '1D', 'inv.range_1u': '1U', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Å', 'inv.range_5y': '5Å',
   },
   en: {
     // Nav
@@ -1476,7 +1476,7 @@ const TRANSLATIONS = {
     'inv.sell_date': 'Sell date', 'inv.sell_price': 'Sell price', 'inv.quantity_sold': 'Quantity sold',
     'inv.saved': 'Saved', 'inv.err_save': 'Save failed', 'inv.err_ticker': 'Ticker is required', 'inv.err_fields': 'Fill all fields', 'inv.err_duplicate': 'Already added',
     'inv.search_stock': 'Search stock', 'inv.search_stock_placeholder': 'Type name or ticker…', 'inv.selected_stock': 'Selected stock', 'inv.searching': 'Searching…', 'inv.search_error': 'Search failed',
-    'inv.no_chart_data': 'No chart data available', 'inv.range_1d': '1D', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Y', 'inv.range_5y': '5Y',
+    'inv.no_chart_data': 'No chart data available', 'inv.range_1d': '1D', 'inv.range_1u': '1W', 'inv.range_1m': '1M', 'inv.range_3m': '3M', 'inv.range_1y': '1Y', 'inv.range_5y': '5Y',
   },
 };
 

@@ -56,6 +56,7 @@ async function handleQuote(ticker, res) {
 async function handleChart(ticker, range, res) {
   const RANGE_MAP = {
     '1d': { range: '1d', interval: '5m' },
+    '1u': { range: '5d', interval: '30m' },
     '1m': { range: '1mo', interval: '1d' },
     '3m': { range: '3mo', interval: '1d' },
     '1y': { range: '1y', interval: '1wk' },

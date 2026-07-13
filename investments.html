@@ -68,14 +68,20 @@
     .inv-add-btn { background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); color: #5BA4F5; }
     .inv-add-btn:hover { background: rgba(91,164,245,0.25); }
 
-    .inv-fav-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .inv-fav-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .inv-fav-chip {
-      display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px;
-      border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      font-size: 11px; font-family: var(--font-mono); cursor: pointer; color: var(--text-secondary);
+      display: inline-flex; align-items: center; gap: 9px; padding: 7px 12px 7px 10px;
+      border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer; color: var(--text-secondary); transition: background 0.12s, border-color 0.12s;
     }
-    .inv-fav-chip:hover { background: rgba(255,255,255,0.08); }
-    .inv-fav-chip.active { color: #5BA4F5; border-color: rgba(91,164,245,0.3); background: rgba(91,164,245,0.1); }
+    .inv-fav-chip:hover { background: rgba(255,255,255,0.07); }
+    .inv-fav-chip.active { border-color: rgba(91,164,245,0.35); background: rgba(91,164,245,0.09); }
+    .inv-fav-chip .ifc-tkr { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--text-primary); letter-spacing: 0.02em; }
+    .inv-fav-chip .ifc-px { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+    .inv-fav-chip .ifc-chg { font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+    .inv-fav-chip .ifc-chg.pos { color: #6BE3A4; }
+    .inv-fav-chip .ifc-chg.neg { color: #FF6B6B; }
+    .inv-fav-chip .ifc-chg.flat { color: var(--text-tertiary); }
 
     /* ── Quote card ── */
     .inv-quote-card { display: flex; flex-direction: column; gap: 14px; }
@@ -414,10 +420,37 @@ function renderFavRow() {
   const favs = _investments.filter(i => i.is_favorite);
   const el = document.getElementById('invFavRow');
   if (!favs.length) { el.innerHTML = ''; return; }
-  el.innerHTML = favs.map(i => `
+  el.innerHTML = favs.map(i => {
+    const cached = _quoteCache[i.ticker]?.quote;
+    let mid = `<span class="ifc-px">—</span>`;
+    if (cached && cached.price != null) {
+      let chgHtml = '';
+      if (cached.previousClose != null) {
+        const change = cached.price - cached.previousClose;
+        const pct = cached.previousClose ? (change / cached.previousClose) * 100 : 0;
+        const cls = pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'flat';
+        chgHtml = `<span class="ifc-chg ${cls}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>`;
+      }
+      mid = `<span class="ifc-px">${cached.price.toFixed(2)}</span>${chgHtml}`;
+    }
+    return `
     <div class="inv-fav-chip${_selected?.id === i.id ? ' active' : ''}" onclick="selectInvestment('${i.id}')">
-      <span>⭐</span><span>${escHtml(i.ticker)}</span>
-    </div>`).join('');
+      <span class="ifc-tkr">${escHtml(i.ticker)}</span>${mid}
+    </div>`;
+  }).join('');
+  favs.forEach(i => loadFavQuote(i.ticker));
+}
+
+async function loadFavQuote(ticker) {
+  try {
+    const cached = _quoteCache[ticker];
+    if (cached && Date.now() - cached.ts < 60000) return;
+    const quote = await yhFetch(ticker, 'quote');
+    _quoteCache[ticker] = { ts: Date.now(), quote };
+    renderFavRow();
+  } catch (e) {
+    // stille feil for favoritt-rad — hovedvisning viser feil ved behov
+  }
 }
 
 // ── Ticker dropdown ───────────────────────────────────────────────────────
@@ -542,7 +575,7 @@ function renderMain() {
       </div>
       <div class="inv-tv-wrap">
         <div class="inv-chart-ranges" id="invChartRanges">
-          ${['1d','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r==='3m'?' active':''}" data-range="${r}" onclick="setChartRange('${r}')" data-i18n="inv.range_${r}">${r}</div>`).join('')}
+          ${['1d','1u','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r==='3m'?' active':''}" data-range="${r}" onclick="setChartRange('${r}')" data-i18n="inv.range_${r}">${r}</div>`).join('')}
         </div>
         <div class="inv-chart-canvas-wrap" id="invChartWrap">
           <canvas id="invChartCanvas"></canvas>
@@ -1086,7 +1119,7 @@ function renderChart(points, currency) {
         callbacks: { label: (c) => `${c.parsed.y.toFixed(2)} ${currency}` },
       } },
       scales: {
-        x: { type: 'time', time: { unit: _chartRange === '1d' ? 'hour' : _chartRange === '5y' ? 'year' : 'day' },
+        x: { type: 'time', time: { unit: (_chartRange === '1d' || _chartRange === '1u') ? 'hour' : _chartRange === '5y' ? 'year' : 'day' },
           grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.35)', font: { size: 9 }, maxTicksLimit: 6 } },
         y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.35)', font: { size: 9 } } },
       },
