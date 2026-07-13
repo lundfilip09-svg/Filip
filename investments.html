@@ -98,10 +98,15 @@
     .inv-tv-wrap { width: 100%; height: 360px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); position: relative; }
     .inv-chart-ranges { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); }
     .inv-chart-range-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
       padding: 5px 10px; border-radius: 7px; font-size: 11px; font-family: var(--font-mono);
       color: var(--text-tertiary); cursor: pointer; background: transparent; border: 1px solid transparent;
     }
     .inv-chart-range-btn.active { color: var(--text-primary); background: rgba(91,164,245,0.15); border-color: rgba(91,164,245,0.3); }
+    .inv-chart-range-btn .icrb-pct { font-size: 9.5px; font-weight: 700; }
+    .inv-chart-range-btn .icrb-pct.pos { color: #6BE3A4; }
+    .inv-chart-range-btn .icrb-pct.neg { color: #FF6B6B; }
+    .inv-chart-range-btn .icrb-pct.flat { color: var(--text-tertiary); }
     .inv-chart-canvas-wrap { position: relative; height: calc(100% - 38px); padding: 8px 10px; }
     .inv-chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary); font-size: 12px; }
     .inv-empty-state { text-align: center; padding: 50px 20px; color: var(--text-tertiary); }
@@ -592,7 +597,10 @@ function renderMain() {
       </div>
       <div class="inv-tv-wrap">
         <div class="inv-chart-ranges" id="invChartRanges">
-          ${['1d','1u','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r==='3m'?' active':''}" data-range="${r}" onclick="setChartRange('${r}')" data-i18n="inv.range_${r}">${r}</div>`).join('')}
+          ${['1d','1u','1m','3m','1y','5y'].map(r => `<div class="inv-chart-range-btn${r==='3m'?' active':''}" data-range="${r}" onclick="setChartRange('${r}')">
+            <span data-i18n="inv.range_${r}">${r}</span>
+            <span class="icrb-pct flat" id="invRangePct_${r}">—</span>
+          </div>`).join('')}
         </div>
         <div class="inv-chart-canvas-wrap" id="invChartWrap">
           <canvas id="invChartCanvas"></canvas>
@@ -616,6 +624,7 @@ function renderMain() {
     renderTabBody();
     loadQuote(_selected.ticker);
     loadChart(_selected.ticker, _chartRange);
+    loadAllRangePcts(_selected.ticker);
   } catch (e) {
     console.error('renderMain', e);
   }
@@ -1236,6 +1245,43 @@ async function loadChart(ticker, range) {
     console.error('loadChart', e);
     renderChartEmpty();
   }
+}
+
+// ── %-endring per range-knapp (1D/1U/1M/3M/1Å/5Å), à la Nordnet ─────────
+const RANGE_PCT_LIST = ['1d', '1u', '1m', '3m', '1y', '5y'];
+async function loadAllRangePcts(ticker) {
+  RANGE_PCT_LIST.forEach(async (range) => {
+    try {
+      const key = `${ticker}:${range}`;
+      let entry = _chartCache[key];
+      if (!entry || Date.now() - entry.ts > 60000) {
+        const headers = await authHeader();
+        const symbol = yahooSymbol(ticker);
+        const r = await fetch(`/api/quote?ticker=${encodeURIComponent(symbol)}&endpoint=chart&range=${range}`, { headers });
+        if (!r.ok) { renderRangePct(range, null); return; }
+        const data = await r.json();
+        entry = { ts: Date.now(), points: data.points || [], currency: data.currency || 'NOK' };
+        _chartCache[key] = entry;
+      }
+      if (_selected?.ticker !== ticker) return;
+      const pts = entry.points;
+      if (!pts.length) { renderRangePct(range, null); return; }
+      const first = pts[0].c, last = pts[pts.length - 1].c;
+      const pct = first ? ((last - first) / first) * 100 : null;
+      renderRangePct(range, pct);
+    } catch (e) {
+      renderRangePct(range, null);
+    }
+  });
+}
+
+function renderRangePct(range, pct) {
+  const el = document.getElementById(`invRangePct_${range}`);
+  if (!el) return;
+  if (pct == null || isNaN(pct)) { el.textContent = '—'; el.className = 'icrb-pct flat'; return; }
+  const cls = pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'flat';
+  el.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  el.className = `icrb-pct ${cls}`;
 }
 
 function renderChartEmpty() {
