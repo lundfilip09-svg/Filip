@@ -11,8 +11,9 @@
 .biz-table{width:100%;border-collapse:collapse}
 .biz-table th,.biz-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
 .biz-table input,.biz-table select,.biz-table textarea{width:100%}
-.prompt-box{min-height:260px}
 .warning{background:rgba(255,196,0,.12);border:1px solid rgba(255,196,0,.3)}
+.biz-toast{position:fixed;right:18px;bottom:18px;z-index:9999;padding:10px 14px;border-radius:8px;background:rgba(24,24,27,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 34px rgba(0,0,0,.35);color:var(--text-primary);font-size:13px;font-weight:700;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.biz-toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:768px){.grid-3,.grid-2{grid-template-columns:1fr!important}}
 </style>
 </head>
@@ -96,8 +97,7 @@ Too many low-tier clients
 <input id="industry">
 </div>
 
-<textarea id="researchPrompt" class="prompt-box"></textarea>
-<button class="btn btn-primary copy-btn" data-target="researchPrompt">Copy</button>
+<button class="btn btn-primary copy-btn" data-prompt="research">Copy</button>
 </div>
 
 <div class="card">
@@ -109,8 +109,7 @@ Too many low-tier clients
 <div class="form-group"><label class="form-label">Services</label><textarea id="lbServices"></textarea></div>
 <div class="form-group"><label class="form-label">Reviews</label><textarea id="lbReviews"></textarea></div>
 
-<textarea id="lovablePrompt" class="prompt-box"></textarea>
-<button class="btn btn-primary copy-btn" data-target="lovablePrompt">Copy</button>
+<button class="btn btn-primary copy-btn" data-prompt="lovable">Copy</button>
 </div>
 
 </div>
@@ -133,11 +132,11 @@ Too many low-tier clients
 <textarea id="salesReviews"></textarea>
 </div>
 
-<textarea id="salesPrompt" class="prompt-box"></textarea>
-<button class="btn btn-primary copy-btn" data-target="salesPrompt">Copy</button>
+<button class="btn btn-primary copy-btn" data-prompt="sales">Copy</button>
 </div>
 
 </div>
+<div id="bizToast" class="biz-toast" role="status" aria-live="polite"></div>
 
 <script src="utils.js"></script>
 <script>
@@ -187,19 +186,17 @@ Too many low-tier clients
     warning: $("#tier-warning") || $("#lowTierWarning"),
     lovablePlan: $("#lovablePlan"),
     fxInfo: $("#fxInfo"),
+    toast: $("#bizToast"),
     city: $("#city"),
     industry: $("#industry"),
-    researchPrompt: $("#researchPrompt"),
     lbName: $("#lbName"),
     lbStyle: $("#lbStyle"),
     lbHours: $("#lbHours"),
     lbServices: $("#lbServices"),
     lbReviews: $("#lbReviews"),
-    lovablePrompt: $("#lovablePrompt"),
     salesBusiness: $("#salesBusiness"),
     salesStatus: $("#salesStatus"),
-    salesReviews: $("#salesReviews"),
-    salesPrompt: $("#salesPrompt")
+    salesReviews: $("#salesReviews")
   };
 
   function cloneDefaultState() {
@@ -447,13 +444,11 @@ Too many low-tier clients
     saveState();
   }
 
-  function updateResearchPrompt() {
-    if (!el.researchPrompt) return;
-
+  function buildResearchPrompt() {
     const city = el.city?.value.trim() || "[STED]";
     const industry = el.industry?.value.trim() || "[BRANSJE]";
 
-    el.researchPrompt.value = `You are an expert market researcher.
+    return `You are an expert market researcher.
 
 Find 10 local businesses in ${city} within the ${industry} industry.
 
@@ -478,16 +473,14 @@ For each business, provide:
 Return the result as a clean, scannable list.`;
   }
 
-  function updateLovablePrompt() {
-    if (!el.lovablePrompt) return;
-
+  function buildLovablePrompt() {
     const business = el.lbName?.value.trim() || "[BUSINESS]";
     const style = el.lbStyle?.value.trim() || "[STYLE]";
     const hours = el.lbHours?.value.trim() || "[HOURS]";
     const services = el.lbServices?.value.trim() || "[SERVICES]";
     const reviews = el.lbReviews?.value.trim() || "[REVIEWS]";
 
-    el.lovablePrompt.value = `Create a premium, modern website for ${business}.
+    return `Create a premium, modern website for ${business}.
 
 The website must be written in Norwegian.
 
@@ -544,14 +537,12 @@ Design requirements:
 - Make it feel like a real local Norwegian business website, not a template.`;
   }
 
-  function updateSalesPrompt() {
-    if (!el.salesPrompt) return;
-
+  function buildSalesPrompt() {
     const business = el.salesBusiness?.value.trim() || "[BUSINESS / INDUSTRY]";
     const status = el.salesStatus?.value.trim() || "[WEBSITE STATUS]";
     const reviews = el.salesReviews?.value.trim() || "[REVIEWS / RAW DATA]";
 
-    el.salesPrompt.value = `You are an expert outreach copywriter helping me contact a local business.
+    return `You are an expert outreach copywriter helping me contact a local business.
 
 Business / industry:
 ${business}
@@ -604,10 +595,21 @@ Instagram DM:
 Email:`;
   }
 
-  function updateAllPrompts() {
-    updateResearchPrompt();
-    updateLovablePrompt();
-    updateSalesPrompt();
+  function buildPrompt(kind) {
+    if (kind === "research") return buildResearchPrompt();
+    if (kind === "lovable") return buildLovablePrompt();
+    if (kind === "sales") return buildSalesPrompt();
+    return "";
+  }
+
+  function showToast(message) {
+    if (!el.toast) return;
+    el.toast.textContent = message;
+    el.toast.classList.add("show");
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => {
+      el.toast.classList.remove("show");
+    }, 2200);
   }
 
   function addCustomer() {
@@ -637,17 +639,15 @@ Email:`;
   }
 
   async function copyFromButton(button) {
-    const targetId = button.dataset.target;
-    const target = targetId ? $(`#${cssId(targetId)}`) : null;
-    if (!target) return;
-
     const originalText = button.textContent;
-    const text = target.value || target.textContent || "";
+    const text = buildPrompt(button.dataset.prompt);
+    if (!text) return;
 
     try {
       await navigator.clipboard.writeText(text);
       button.textContent = "Copied!";
       button.disabled = true;
+      showToast("Prompt copied");
 
       window.setTimeout(() => {
         button.textContent = originalText || "Copy";
@@ -670,7 +670,6 @@ Email:`;
     }
 
     saveInputsToState();
-    updateAllPrompts();
   }
 
   function handleDocumentChange(event) {
@@ -687,7 +686,6 @@ Email:`;
     }
 
     saveInputsToState();
-    updateAllPrompts();
   }
 
   function handleDocumentClick(event) {
@@ -717,7 +715,6 @@ Email:`;
 
     renderCustomers();
     renderMetrics();
-    updateAllPrompts();
     loadFxRate();
 
     document.querySelector('[data-p="business"]')?.classList.add("active");
