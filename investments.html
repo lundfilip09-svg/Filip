@@ -95,8 +95,8 @@
     .inv-quote-tiles { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
     @media (max-width: 640px) { .inv-quote-tiles { grid-template-columns: repeat(2,1fr); } }
     .inv-status-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .inv-tv-wrap { width: 100%; height: 360px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); position: relative; }
-    .inv-chart-ranges { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .inv-tv-wrap { width: 100%; height: 380px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); position: relative; display: flex; flex-direction: column; }
+    .inv-chart-ranges { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
     .inv-chart-range-btn {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       padding: 5px 10px; border-radius: 7px; font-size: 11px; font-family: var(--font-mono);
@@ -107,7 +107,7 @@
     .inv-chart-range-btn .icrb-pct.pos { color: #6BE3A4; }
     .inv-chart-range-btn .icrb-pct.neg { color: #FF6B6B; }
     .inv-chart-range-btn .icrb-pct.flat { color: var(--text-tertiary); }
-    .inv-chart-canvas-wrap { position: relative; height: calc(100% - 38px); padding: 8px 10px; }
+    .inv-chart-canvas-wrap { position: relative; flex: 1; min-height: 0; padding: 8px 10px 4px; }
     .inv-chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary); font-size: 12px; }
     .inv-empty-state { text-align: center; padding: 50px 20px; color: var(--text-tertiary); }
     .inv-empty-state .iei { font-size: 32px; margin-bottom: 10px; }
@@ -433,7 +433,15 @@ async function authHeader() {
 async function loadInvestments() {
   const { data, error } = await db.from('investments').select('*').order('created_at', { ascending: false });
   if (error) throw error;
-  _investments = data || [];
+  // Forsvar mot duplikate rader på samme ticker (kan oppstå ved dobbelklikk e.l.) —
+  // behold kun første (nyeste, siden sortert desc på created_at).
+  const seen = new Set();
+  _investments = (data || []).filter(i => {
+    const key = i.ticker.toUpperCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   renderFavRow();
   if (document.getElementById('invDDBackdrop')?.classList.contains('open')) renderTickerDD();
 }
@@ -525,14 +533,20 @@ function renderTickerDD() {
   applyLang();
 }
 
-function selectInvestment(id) {
+async function selectInvestment(id) {
   _selected = _investments.find(i => i.id === id) || null;
   closeTickerDD();
   _activeTab = 'position';
+  _lots = [];
+  _sales = [];
+  if (_selected) { try { localStorage.setItem('inv_last_selected', _selected.id); } catch (e) {} }
   renderHeader();
   renderFavRow();
+  if (_selected) {
+    await loadLots(_selected.id); // henter lots/sales FØR første render, unngår "stale data fra forrige aksje"
+    loadJournal(_selected.id);
+  }
   renderMain();
-  if (_selected) { loadJournal(_selected.id); loadLots(_selected.id); }
 }
 
 function renderHeader() {
@@ -703,7 +717,7 @@ function renderPositionTab() {
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.total_qty">Antall</div><div class="metric-val">${qty || '—'}</div></div>
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.avg_price">Snittkurs</div><div class="metric-val">${qty ? avg.toFixed(2) : '—'}</div></div>
       <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.invested">Investert</div><div class="metric-val">${qty ? invested.toFixed(2) : '—'}</div></div>
-      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.unrealized_pl">Urealisert gevinst/tap</div><div class="metric-val ${cls}">${upl != null ? `${upl >= 0 ? '+' : ''}${upl.toFixed(2)} (${uplPct >= 0 ? '+' : ''}${uplPct.toFixed(1)}%)` : '—'}</div></div>
+      <div class="metric-tile"><div class="metric-lbl" data-i18n="inv.unrealized_pl">Urealisert gevinst/tap</div><div class="metric-val ${cls}">${uplPct != null ? `${uplPct >= 0 ? '+' : ''}${uplPct.toFixed(1)}%` : '—'}</div></div>
     </div>
     <div class="inv-lots-head">
       <div class="section-title" data-i18n="inv.lots_title" style="margin:0">Kjøp</div>
@@ -1361,7 +1375,12 @@ function renderChart(points, currency) {
   applyLang();
   await loadInvestments().catch(e => { console.error('loadInvestments', e); toast(t('inv.err_save'), 'err'); });
   try {
-    renderMain();
+    const lastId = localStorage.getItem('inv_last_selected');
+    const preferred = (lastId && _investments.find(i => i.id === lastId))
+      || _investments.find(i => i.is_favorite)
+      || null;
+    if (preferred) { await selectInvestment(preferred.id); }
+    else { renderMain(); }
   } catch (e) {
     console.error('renderMain init', e);
   }
