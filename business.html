@@ -1,0 +1,378 @@
+<!-- business.html -->
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Business</title>
+<link rel="stylesheet" href="styles.css">
+<script src="utils.js"></script>
+<style>
+.table-wrap{overflow:auto}
+.biz-table{width:100%;border-collapse:collapse}
+.biz-table th,.biz-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
+.biz-table input,.biz-table select,.biz-table textarea{width:100%}
+.prompt-box{min-height:260px}
+.warning{background:rgba(255,196,0,.12);border:1px solid rgba(255,196,0,.3)}
+@media(max-width:768px){.grid-3,.grid-2{grid-template-columns:1fr!important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="card">
+<div class="section-title" data-i18n="biz.accounting">Business Command Center</div>
+
+<div class="grid-3">
+<div class="metric-tile">
+<div data-i18n="biz.revenue">Revenue</div>
+<h2 id="revMetric">0 NOK</h2>
+</div>
+
+<div class="metric-tile">
+<div data-i18n="biz.expense">Expense</div>
+<h2 id="expMetric">0 NOK</h2>
+</div>
+
+<div class="metric-tile">
+<div data-i18n="biz.profit">Profit</div>
+<h2 id="profitMetric">0 NOK</h2>
+</div>
+</div>
+
+<div id="lowTierWarning" class="badge warning" hidden data-i18n="biz.lowtier">
+Too many low-tier clients
+</div>
+
+<div class="table-wrap">
+<table class="biz-table">
+<thead>
+<tr>
+<th data-i18n="biz.customer">Customer</th>
+<th data-i18n="biz.contact">Contact</th>
+<th data-i18n="biz.tier">Tier</th>
+<th data-i18n="biz.price">Price</th>
+<th data-i18n="biz.start">Start</th>
+<th data-i18n="biz.status">Status</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="customerRows"></tbody>
+</table>
+</div>
+
+<button id="addCustomer" class="btn btn-primary" data-i18n="add">Add</button>
+
+<div class="card" style="margin-top:20px">
+<div class="section-title" data-i18n="biz.lovable">Lovable</div>
+
+<div class="form-group">
+<label class="form-label">Plan</label>
+<select id="lovablePlan">
+<option value="10">100 credits (€10)</option>
+<option value="25">200 credits (€25)</option>
+<option value="45">400 credits (€45)</option>
+<option value="85">800 credits (€85)</option>
+<option value="120">1200 credits (€120)</option>
+</select>
+</div>
+
+<div id="fxInfo"></div>
+</div>
+</div>
+
+<div class="grid-2">
+
+<div class="card">
+<div class="section-title">Research Prompt</div>
+
+<div class="form-group">
+<label class="form-label">Sted</label>
+<input id="city">
+</div>
+
+<div class="form-group">
+<label class="form-label">Bransje</label>
+<input id="industry">
+</div>
+
+<textarea id="researchPrompt" class="prompt-box"></textarea>
+<button class="btn btn-primary copy-btn" data-target="researchPrompt">Copy</button>
+</div>
+
+<div class="card">
+<div class="section-title">Lovable Meta Prompt</div>
+
+<div class="form-group"><label class="form-label">Business</label><input id="lbName"></div>
+<div class="form-group"><label class="form-label">Style</label><input id="lbStyle"></div>
+<div class="form-group"><label class="form-label">Hours</label><input id="lbHours"></div>
+<div class="form-group"><label class="form-label">Services</label><textarea id="lbServices"></textarea></div>
+<div class="form-group"><label class="form-label">Reviews</label><textarea id="lbReviews"></textarea></div>
+
+<textarea id="lovablePrompt" class="prompt-box"></textarea>
+<button class="btn btn-primary copy-btn" data-target="lovablePrompt">Copy</button>
+</div>
+
+</div>
+
+<div class="card">
+<div class="section-title">Sales Meta Prompt</div>
+
+<div class="form-group">
+<label class="form-label">Business / Industry</label>
+<input id="salesBusiness">
+</div>
+
+<div class="form-group">
+<label class="form-label">Website Status</label>
+<input id="salesStatus">
+</div>
+
+<div class="form-group">
+<label class="form-label">Reviews</label>
+<textarea id="salesReviews"></textarea>
+</div>
+
+<textarea id="salesPrompt" class="prompt-box"></textarea>
+<button class="btn btn-primary copy-btn" data-target="salesPrompt">Copy</button>
+</div>
+
+</div>
+
+<script>
+(() => {
+
+/* State */
+const STORAGE_KEY="business_customers";
+const FX_KEY="business_fx";
+
+const state={
+customers:JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"),
+fx:Number(localStorage.getItem(FX_KEY)||11.5)
+};
+
+const tiers={Lav:490,Medium:790,Høy:1490};
+const $=s=>document.querySelector(s);
+
+/* Storage */
+const save=()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(state.customers));
+
+/* Helpers */
+const nok=v=>new Intl.NumberFormat("nb-NO",{style:"currency",currency:"NOK"}).format(v||0);
+
+function activeCustomers(){
+return state.customers.filter(c=>c.status==="Aktiv");
+}
+
+/* API */
+async function loadFx(){
+try{
+const r=await fetch("https://api.frankfurter.app/latest?from=EUR&to=NOK");
+const d=await r.json();
+state.fx=d.rates.NOK;
+localStorage.setItem(FX_KEY,state.fx);
+}catch{}
+renderExpense();
+}
+
+/* Rendering */
+function renderCustomers(){
+const tbody=$("#customerRows");
+
+tbody.innerHTML=state.customers.map((c,i)=>`
+<tr data-id="${i}">
+<td><input class="cust-name" value="${c.name||""}"></td>
+<td><input class="cust-contact" value="${c.contact||""}"></td>
+<td>
+<select class="cust-tier">
+${["Lav","Medium","Høy","Custom"].map(t=>`<option ${c.tier===t?"selected":""}>${t}</option>`).join("")}
+</select>
+</td>
+<td><input type="number" class="cust-price" value="${c.price||0}"></td>
+<td><input type="date" class="cust-date" value="${c.start||""}"></td>
+<td>
+<select class="cust-status">
+${["Aktiv","Pauset","Avsluttet"].map(s=>`<option ${c.status===s?"selected":""}>${s}</option>`).join("")}
+</select>
+</td>
+<td><button class="btn delete-row">✕</button></td>
+</tr>`).join("");
+
+renderMetrics();
+}
+
+function renderExpense(){
+const eur=Number($("#lovablePlan").value||10);
+const nokPrice=eur*state.fx;
+
+$("#fxInfo").innerHTML=`
+<div>EUR: €${eur}</div>
+<div>Rate: ${state.fx.toFixed(2)}</div>
+<div>NOK: ${nok(nokPrice)}</div>
+`;
+
+renderMetrics();
+}
+
+function renderMetrics(){
+const revenue=activeCustomers().reduce((a,b)=>a+Number(b.price||0),0);
+
+const expense=(Number($("#lovablePlan")?.value||10))*state.fx;
+const profit=revenue-expense;
+
+$("#revMetric").textContent=nok(revenue);
+$("#expMetric").textContent=nok(expense);
+$("#profitMetric").textContent=nok(profit);
+
+const active=activeCustomers();
+const low=active.filter(x=>x.tier==="Lav").length;
+const ratio=active.length?low/active.length:0;
+
+$("#lowTierWarning").hidden=ratio<=0.4;
+}
+
+/* Prompts */
+function updateResearch(){
+$("#researchPrompt").value=`You are an expert market researcher.
+
+Find 10 local businesses in ${$("#city").value} within the ${$("#industry").value} industry.
+
+Prioritize businesses that:
+• have no website
+• have an outdated website
+• have strong Google Reviews but weak digital presence
+
+For each company provide:
+* Name
+* Website
+* Google Rating
+* Review Count
+* Reason this business is a good prospect.`;
+}
+
+function updateLovable(){
+$("#lovablePrompt").value=`Create a premium website for ${$("#lbName").value}.
+
+Style: ${$("#lbStyle").value}
+Opening hours: ${$("#lbHours").value}
+
+Services:
+${$("#lbServices").value}
+
+Customer reviews:
+${$("#lbReviews").value}
+
+Build:
+- Hero
+- About
+- Services
+- Testimonials
+- Gallery
+- CTA
+- Contact
+- Google Maps
+
+Requirements:
+- Mobile responsive
+- SEO optimized
+- Fast loading
+- Accessibility
+- Norwegian language support
+- Extract themes from reviews and use them throughout the copy.`;
+}
+
+function updateSales(){
+$("#salesPrompt").value=`Business: ${$("#salesBusiness").value}
+
+Website status:
+${$("#salesStatus").value}
+
+Reviews:
+${$("#salesReviews").value}
+
+Write 3 outreach messages.
+
+Tone:
+- Friendly
+- Natural
+- Short
+- Low pressure
+- Not salesy
+
+Create:
+1. Weakness angle
+2. Opportunity angle
+3. Praise angle
+
+Provide DM and Email versions.`;
+}
+
+/* Events */
+$("#addCustomer").addEventListener("click",()=>{
+state.customers.push({
+name:"",
+contact:"",
+tier:"Lav",
+price:490,
+start:"",
+status:"Aktiv"
+});
+save();
+renderCustomers();
+});
+
+document.addEventListener("click",e=>{
+if(e.target.classList.contains("delete-row")){
+const row=e.target.closest("tr");
+state.customers.splice(Number(row.dataset.id),1);
+save();
+renderCustomers();
+}
+
+if(e.target.classList.contains("copy-btn")){
+navigator.clipboard.writeText($("#"+e.target.dataset.target).value);
+}
+});
+
+document.addEventListener("input",e=>{
+const row=e.target.closest("tr");
+if(row){
+const i=Number(row.dataset.id);
+const c=state.customers[i];
+
+c.name=row.querySelector(".cust-name").value;
+c.contact=row.querySelector(".cust-contact").value;
+c.tier=row.querySelector(".cust-tier").value;
+c.start=row.querySelector(".cust-date").value;
+c.status=row.querySelector(".cust-status").value;
+
+if(c.tier!=="Custom"){
+c.price=tiers[c.tier];
+row.querySelector(".cust-price").value=c.price;
+}else{
+c.price=Number(row.querySelector(".cust-price").value||0);
+}
+
+save();
+renderMetrics();
+}
+
+updateResearch();
+updateLovable();
+updateSales();
+});
+
+$("#lovablePlan").addEventListener("change",renderExpense);
+
+/* Init */
+renderCustomers();
+renderExpense();
+updateResearch();
+updateLovable();
+updateSales();
+loadFx();
+
+})();
+</script>
+</body>
+</html>
