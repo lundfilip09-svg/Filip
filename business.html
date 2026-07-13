@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Business</title>
 <link rel="stylesheet" href="styles.css">
-<script src="utils.js"></script>
 <style>
 .table-wrap{overflow:auto}
 .biz-table{width:100%;border-collapse:collapse}
@@ -18,6 +17,7 @@
 </style>
 </head>
 <body>
+<nav class="main-nav" data-nav></nav>
 <div class="page">
 
 <div class="card">
@@ -139,6 +139,7 @@ Too many low-tier clients
 
 </div>
 
+<script src="utils.js"></script>
 <script>
 (() => {
 
@@ -371,6 +372,7 @@ updateResearch();
 updateLovable();
 updateSales();
 loadFx();
+document.querySelector('[data-p="business"]')?.classList.add('active');
 
 })();
 </script>
