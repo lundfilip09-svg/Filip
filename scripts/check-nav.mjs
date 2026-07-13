@@ -1,10 +1,10 @@
 // scripts/check-nav.mjs
 // Nav har ÉN kilde: NAV_TABS/injectNav() i utils.js. Sidene har bare en
 // placeholder. Denne sjekken verifiserer at:
-//   1) alle 8 sider har <nav class="main-nav" data-nav> (gym også data-unit)
+//   1) alle 10 sider har <nav class="main-nav" data-nav> (gym også data-unit)
 //   2) ingen side har gammel inline nav-markup (nav-tab utenfor utils.js)
 //   3) utils.js lastes ETTER nav-elementet (ellers finner injectNav() den ikke)
-//   4) utils.js-templaten dekker alle 8 faner + diary/lang/unit/logout-knappene
+//   4) utils.js-templaten dekker alle 10 faner + diary/lang/unit/logout-knappene
 // Exit 0 = OK, exit 1 = drift.
 
 import { readFileSync } from 'fs';
@@ -16,8 +16,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'ai.html', 'dashboard.html', 'gym.html', 'sprint.html',
   'sovn.html', 'gjoremal.html', 'kalender.html', 'treningsplan.html',
+  'investments.html', 'business.html',
 ];
-const NAV_PAGES = ['ai', 'dashboard', 'gym', 'sprint', 'sovn', 'gjoremal', 'kalender', 'treningsplan'];
+const NAV_PAGES = ['ai', 'dashboard', 'gym', 'sprint', 'sovn', 'gjoremal', 'kalender', 'treningsplan', 'investments', 'business'];
 
 let failed = false;
 const err = (m) => { console.error('FAIL ' + m); failed = true; };
@@ -45,4 +46,4 @@ for (const frag of ['function injectNav', 'id="diaryLink"', 'id="langBtn"', 'id=
   if (!utils.includes(frag)) err(`utils.js: nav-templaten mangler «${frag}»`);
 
 if (failed) process.exit(1);
-console.log('nav OK — én kilde i utils.js, placeholder i alle 8 sider');
+console.log('nav OK — én kilde i utils.js, placeholder i alle 10 sider');
