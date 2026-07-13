@@ -94,7 +94,7 @@ Too many low-tier clients
 <div class="section-title" data-i18n="biz.lovable">Lovable</div>
 
 <div class="form-group">
-<label class="form-label">Plan</label>
+<label class="form-label" data-i18n="biz.plan">Plan</label>
 <select id="lovablePlan">
 <option value="0">Free (€0)</option>
 <option value="25">100 credits (€25)</option>
@@ -113,46 +113,43 @@ Too many low-tier clients
 </div>
 </div>
 
-<div class="grid-2">
-
 <div class="card">
-<div class="section-title">Research Prompt</div>
+<div class="section-title" data-i18n="biz.leadgen">Lead Generator</div>
 
 <div class="form-group">
-<label class="form-label">Sted</label>
+<label class="form-label" data-i18n="biz.leadgen_type">Prompt type</label>
+<select id="leadgenType">
+<option value="research" data-i18n="biz.type_research">Research</option>
+<option value="lovable" data-i18n="biz.type_lovable">Lovable website</option>
+<option value="sales" data-i18n="biz.type_sales">Sales outreach</option>
+</select>
+</div>
+
+<div id="leadgenResearch" class="leadgen-fields">
+<div class="form-group">
+<label class="form-label" data-i18n="biz.city">Sted</label>
 <input id="city">
 </div>
-
 <div class="form-group">
-<label class="form-label">Bransje</label>
+<label class="form-label" data-i18n="biz.industry">Bransje</label>
 <input id="industry">
 </div>
-
-<button class="btn btn-primary copy-btn" data-prompt="research">Copy</button>
 </div>
 
-<div class="card">
-<div class="section-title">Lovable Meta Prompt</div>
-
-<div class="form-group"><label class="form-label">Google Maps Paste</label><textarea id="lbMapsPaste" class="maps-paste" placeholder="Paste everything copied from Google Maps..."></textarea></div>
-<div class="form-group"><label class="form-label">Brand colors (optional)</label><input id="lbBrandColors" placeholder="e.g. black, white, warm gold"></div>
-
-<button class="btn btn-primary copy-btn" data-prompt="lovable">Copy</button>
+<div id="leadgenLovable" class="leadgen-fields" hidden>
+<div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Paste</label><textarea id="lbMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
+<div class="form-group"><label class="form-label" data-i18n="biz.brand_colors">Brand colors (optional)</label><input id="lbBrandColors" placeholder="e.g. black, white, warm gold"></div>
 </div>
 
+<div id="leadgenSales" class="leadgen-fields" hidden>
+<div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Paste</label><textarea id="salesMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
+<div class="form-group"><label class="form-label" data-i18n="biz.brand_colors">Brand colors (optional)</label><input id="salesBrandColors" placeholder="e.g. navy, cream, fresh green"></div>
 </div>
 
-<div class="card">
-<div class="section-title">Sales Meta Prompt</div>
-
-<div class="form-group"><label class="form-label">Google Maps Paste</label><textarea id="salesMapsPaste" class="maps-paste" placeholder="Paste everything copied from Google Maps..."></textarea></div>
-<div class="form-group"><label class="form-label">Brand colors (optional)</label><input id="salesBrandColors" placeholder="e.g. navy, cream, fresh green"></div>
-
-<button class="btn btn-primary copy-btn" data-prompt="sales">Copy</button>
-</div>
-
+<button id="leadgenCopyBtn" class="btn btn-primary copy-btn" data-prompt="research" data-i18n="biz.copy">Copy</button>
 </div>
 <div id="bizToast" class="biz-toast" role="status" aria-live="polite"></div>
+</div>
 
 <script src="utils.js"></script>
 <script>
@@ -204,7 +201,9 @@ Too many low-tier clients
     lbMapsPaste: $("#lbMapsPaste"),
     lbBrandColors: $("#lbBrandColors"),
     salesMapsPaste: $("#salesMapsPaste"),
-    salesBrandColors: $("#salesBrandColors")
+    salesBrandColors: $("#salesBrandColors"),
+    leadgenType: $("#leadgenType"),
+    leadgenCopyBtn: $("#leadgenCopyBtn")
   };
 
   function cloneDefaultState() {
@@ -298,6 +297,9 @@ Too many low-tier clients
     return Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
   }
 
+  const TIER_LABEL_KEYS = { Lav: "biz.tier_lav", Medium: "biz.tier_medium", "Høy": "biz.tier_hoy", Custom: "biz.tier_custom" };
+  const STATUS_LABEL_KEYS = { Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet" };
+
   function renderCustomers() {
     if (!el.customerRows) return;
 
@@ -312,7 +314,7 @@ Too many low-tier clients
           <td>
             <select class="cust-tier">
               ${["Lav", "Medium", "Høy", "Custom"].map(tier => (
-                `<option value="${escapeHtml(tier)}" ${customer.tier === tier ? "selected" : ""}>${escapeHtml(tier)}</option>`
+                `<option value="${escapeHtml(tier)}" ${customer.tier === tier ? "selected" : ""}>${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</option>`
               )).join("")}
             </select>
           </td>
@@ -321,11 +323,11 @@ Too many low-tier clients
           <td>
             <select class="cust-status">
               ${["Aktiv", "Pauset", "Avsluttet"].map(status => (
-                `<option value="${escapeHtml(status)}" ${customer.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`
+                `<option value="${escapeHtml(status)}" ${customer.status === status ? "selected" : ""}>${escapeHtml(t(STATUS_LABEL_KEYS[status]))}</option>`
               )).join("")}
             </select>
           </td>
-          <td><button type="button" class="btn delete-row" aria-label="Delete customer">x</button></td>
+          <td><button type="button" class="btn delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}">x</button></td>
         </tr>
       `;
     }).join("");
@@ -359,7 +361,7 @@ Too many low-tier clients
 
     if (el.warning) {
       el.warning.hidden = !(active.length > 0 && lowTierRatio > 0.4);
-      el.warning.textContent = "Too many low-tier clients";
+      el.warning.textContent = t("biz.lowtier");
     }
 
     renderFxInfo();
@@ -647,6 +649,15 @@ Email:`;
     }, 2200);
   }
 
+  function syncLeadgenFields() {
+    const type = el.leadgenType?.value || "research";
+    document.querySelectorAll(".leadgen-fields").forEach(sec => { sec.hidden = true; });
+    const map = { research: "leadgenResearch", lovable: "leadgenLovable", sales: "leadgenSales" };
+    const activeSec = document.getElementById(map[type]);
+    if (activeSec) activeSec.hidden = false;
+    if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
+  }
+
   function addCustomer() {
     state.customers.push({
       name: "",
@@ -680,19 +691,19 @@ Email:`;
 
     try {
       await navigator.clipboard.writeText(text);
-      button.textContent = "Copied!";
+      button.textContent = t("biz.copied");
       button.disabled = true;
-      showToast("Prompt copied");
+      showToast(t("biz.copied_toast"));
 
       window.setTimeout(() => {
-        button.textContent = originalText || "Copy";
+        button.textContent = originalText || t("biz.copy");
         button.disabled = false;
       }, 2000);
     } catch {
-      button.textContent = "Copy failed";
+      button.textContent = t("biz.copy_failed");
 
       window.setTimeout(() => {
-        button.textContent = originalText || "Copy";
+        button.textContent = originalText || t("biz.copy");
       }, 2000);
     }
   }
@@ -744,6 +755,11 @@ Email:`;
       el.addCustomer.addEventListener("click", addCustomer);
     }
 
+    if (el.leadgenType) {
+      el.leadgenType.addEventListener("change", syncLeadgenFields);
+    }
+    syncLeadgenFields();
+
     document.addEventListener("input", handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleDocumentClick);
@@ -751,6 +767,9 @@ Email:`;
     renderCustomers();
     renderMetrics();
     loadFxRate();
+
+    applyLang();
+    onLangChange = () => { renderCustomers(); renderMetrics(); };
 
     document.querySelector('[data-p="business"]')?.classList.add("active");
   }
