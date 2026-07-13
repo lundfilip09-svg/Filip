@@ -1149,6 +1149,7 @@ function renderChart(points, currency) {
       </div>`;
     return;
   }
+  document.querySelector('[data-p="investments"]')?.classList.add('active');
   applyLang();
   await loadInvestments().catch(e => { console.error('loadInvestments', e); toast(t('inv.err_save'), 'err'); });
   try {
