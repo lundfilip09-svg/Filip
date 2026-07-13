@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Søvn', 'nav.gjoremal': 'Gjøremål',
     'nav.kalender': 'Kalender', 'nav.treningsplan': 'Treningsoversikt',
-    'nav.investments': 'Investeringer',
+    'nav.investments': 'Investeringer', 'nav.business': 'Business',
     'nav.logout': 'Logg ut', 'nav.pdf': 'Eksporter PDF',
     // Common
     'loading': 'Laster…', 'no_data': 'Ingen data', 'save': 'Lagre',
@@ -753,7 +753,7 @@ const TRANSLATIONS = {
     'nav.ai': 'AI', 'nav.dashboard': 'Dashboard', 'nav.gym': 'Gym',
     'nav.sprint': 'Sprint', 'nav.sovn': 'Sleep', 'nav.gjoremal': 'Tasks',
     'nav.kalender': 'Calendar', 'nav.treningsplan': 'Training Overview',
-    'nav.investments': 'Investments',
+    'nav.investments': 'Investments', 'nav.business': 'Business',
     'nav.logout': 'Log out', 'nav.pdf': 'Export PDF',
     // Common
     'loading': 'Loading…', 'no_data': 'No data', 'save': 'Save',
@@ -1559,6 +1559,7 @@ const NAV_TABS = [
   ['kalender.html', 'kalender', 'nav.kalender', 'Kalender'],
   ['treningsplan.html', 'treningsplan', 'nav.treningsplan', 'Treningsoversikt'],
   ['investments.html', 'investments', 'nav.investments', 'Investments'],
+  ['business.html', 'business', 'nav.business', 'Business'],
 ];
 function injectNav() {
   const nav = document.querySelector('nav.main-nav[data-nav]');
