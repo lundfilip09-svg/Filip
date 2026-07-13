@@ -31,10 +31,17 @@
 .biz-table input,.biz-table select{width:100%;min-height:32px;font-size:12.5px}
 .biz-table .delete-row{width:30px;height:30px;padding:0}
 
-.biz-fx{display:flex;align-items:baseline;gap:8px;font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)}
-.biz-fx .metric-val{font-size:18px}
+.biz-lovable-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.biz-lovable-row .form-group{flex:1;min-width:200px;margin-bottom:0}
+.biz-fx{display:flex;flex-direction:column;gap:4px;padding:10px 14px;background:var(--surface-1);border:1px solid var(--hairline-soft);border-radius:var(--radius-md);min-width:140px}
+.biz-fx .biz-fx-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary)}
+.biz-fx .metric-val{font-size:17px;font-family:var(--font-mono)}
 
 .maps-paste{min-height:150px;resize:vertical}
+
+.biz-table .delete-row{background:transparent;border-color:transparent;color:var(--text-tertiary)}
+.biz-table .delete-row:hover{background:rgba(242,109,109,0.12);border-color:rgba(242,109,109,0.28);color:var(--danger)}
+.biz-table .delete-row svg{pointer-events:none}
 
 @media(max-width:768px){
   .biz-table th:nth-child(2),.biz-table td:nth-child(2){display:none}
@@ -97,6 +104,7 @@ Too many low-tier clients
 <div class="card">
 <div class="section-title" data-i18n="biz.lovable">Lovable</div>
 
+<div class="biz-lovable-row">
 <div class="form-group">
 <label class="form-label" data-i18n="biz.plan">Plan</label>
 <select id="lovablePlan">
@@ -114,6 +122,7 @@ Too many low-tier clients
 </div>
 
 <div id="fxInfo" class="biz-fx"></div>
+</div>
 </div>
 
 <div class="card">
@@ -331,7 +340,7 @@ Too many low-tier clients
               )).join("")}
             </select>
           </td>
-          <td><button type="button" class="btn delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}">x</button></td>
+          <td><button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
         </tr>
       `;
     }).join("");
@@ -347,7 +356,7 @@ Too many low-tier clients
     const rate = Number(state.fx.rate || FALLBACK_FX);
     const nokValue = eur * rate;
 
-    el.fxInfo.innerHTML = `<div>${moneyNok(nokValue)}</div>`;
+    el.fxInfo.innerHTML = `<div class="biz-fx-lbl">${escapeHtml(t("biz.cost_nok"))}</div><div class="metric-val">${moneyNok(nokValue)}</div>`;
   }
 
   function renderMetrics() {
