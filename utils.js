@@ -1778,7 +1778,7 @@ async function loadNotifications() {
         .select('week_start').order('week_start', { ascending: false }).limit(1).maybeSingle();
       if (ws?.week_start) {
         items.push({ key: `ws:${ws.week_start}`, section: 'weekly_summary', page: 'ai',
-          i18nTitle: 'notif.weekly_report_title', when: ws.week_start + 'T08:00:00', url: 'ai.html' });
+          i18nTitle: 'notif.weekly_report_title', when: ws.week_start + 'T08:00:00', weekStart: ws.week_start, url: 'ai.html' });
       }
     } catch (e) {}
   } catch (e) { return null; }
@@ -1807,7 +1807,7 @@ function _notifSub(i) {
     case 'calendar': return i.allDay ? t('kal.whole_day') : _notifClock(i.when);
     case 'rest':
     case 'reminder': return _notifClock(i.when);
-    case 'weekly_summary': return fmtDate(i.when);
+    case 'weekly_summary': return fmtDate(i.weekStart || i.when.slice(0, 10));
     case 'overdue':
     case 'today': {
       const base = fmtDate(i.when);
