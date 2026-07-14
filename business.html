@@ -130,6 +130,19 @@
 @media(max-width:768px){
   .biz-table th:nth-child(2),.biz-table td:nth-child(2){display:none}
 }
+
+/* ── Animasjoner: rad inn/ut + leadgen-felt-bytte ── */
+@keyframes bizRowFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bizRowFadeOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.98)}}
+.biz-table tbody tr.row-enter{animation:bizRowFadeIn .22s cubic-bezier(0.2,0.7,0.2,1) both}
+.biz-table tbody tr.row-leave{animation:bizRowFadeOut .18s ease both;pointer-events:none}
+
+@keyframes bizFieldsFadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.leadgen-fields.fields-enter{animation:bizFieldsFadeIn .2s ease both}
+
+@media (prefers-reduced-motion: reduce){
+  .biz-table tbody tr.row-enter,.biz-table tbody tr.row-leave,.leadgen-fields.fields-enter{animation:none}
+}
 </style>
 </head>
 <body>
@@ -447,7 +460,7 @@
 
   const STATUS_LABEL_KEYS = { Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet" };
 
-  function renderCustomers() {
+  function renderCustomers({ animateNew = false } = {}) {
     if (!el.customerRows) return;
 
     el.customerRows.innerHTML = state.customers.map((rawCustomer, index) => {
@@ -475,6 +488,10 @@
         </tr>
       `;
     }).join("");
+
+    if (animateNew && el.customerRows.lastElementChild) {
+      el.customerRows.lastElementChild.classList.add("row-enter");
+    }
 
     saveState();
     renderMetrics();
@@ -534,7 +551,23 @@
     renderMetrics();
   }
 
-  function readCustomerRow(row) {
+  // ── Debounce av tunge operasjoner (localStorage-write + dropdown-rebuild) ──
+  // Disse trenger IKKE kjøre på hvert tastetrykk — kun etter en kort pause,
+  // ved blur/change, eller når siden lukkes/skjules. renderMetrics() er billig
+  // (kun textContent) og kjører fortsatt live for umiddelbar tilbakemelding.
+  let _pendingHeavy = null;
+  let _pendingNameChanged = false;
+
+  function flushHeavyUpdate() {
+    if (_pendingHeavy) { clearTimeout(_pendingHeavy); _pendingHeavy = null; }
+    saveState();
+    if (_pendingNameChanged) {
+      populateBusinessDropdown();
+      _pendingNameChanged = false;
+    }
+  }
+
+  function readCustomerRow(row, { defer = false, nameChanged = false } = {}) {
     const index = Number(row.dataset.id);
     const existing = normalizeCustomer(state.customers[index]);
 
@@ -557,9 +590,16 @@
     }
 
     state.customers[index] = existing;
-    saveState();
     renderMetrics();
-    populateBusinessDropdown();
+
+    if (nameChanged) _pendingNameChanged = true;
+
+    if (defer) {
+      clearTimeout(_pendingHeavy);
+      _pendingHeavy = setTimeout(flushHeavyUpdate, 300);
+    } else {
+      flushHeavyUpdate();
+    }
   }
 
   function cssId(id) {
@@ -681,7 +721,12 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     document.querySelectorAll(".leadgen-fields").forEach(sec => { sec.hidden = true; });
     const map = { research: "leadgenResearch", lovable: "leadgenLovable", sales: "leadgenSales" };
     const activeSec = document.getElementById(map[type]);
-    if (activeSec) activeSec.hidden = false;
+    if (activeSec) {
+      activeSec.hidden = false;
+      activeSec.classList.remove("fields-enter");
+      void activeSec.offsetWidth; // restart animasjon
+      activeSec.classList.add("fields-enter");
+    }
     if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
   }
 
@@ -717,7 +762,7 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     });
 
     saveState();
-    renderCustomers();
+    renderCustomers({ animateNew: true });
     populateBusinessDropdown();
   }
 
@@ -728,9 +773,19 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     const index = Number(row.dataset.id);
     if (!Number.isInteger(index)) return;
 
-    state.customers.splice(index, 1);
-    saveState();
-    renderCustomers();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      state.customers.splice(index, 1);
+      saveState();
+      renderCustomers();
+      populateBusinessDropdown();
+    };
+
+    row.classList.add("row-leave");
+    row.addEventListener("animationend", finish, { once: true });
+    setTimeout(finish, 220); // fallback — sikrer sletting selv uten animasjon (prefers-reduced-motion)
   }
 
   function resetLeadgenFields(type) {
@@ -783,7 +838,7 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       if (event.target.classList.contains("money-input")) {
         formatMoneyInputLive(event.target);
       }
-      readCustomerRow(row);
+      readCustomerRow(row, { defer: true, nameChanged: event.target.classList.contains("cust-name") });
       return;
     }
 
@@ -793,7 +848,7 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
   function handleDocumentChange(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
-      readCustomerRow(row);
+      readCustomerRow(row, { defer: false, nameChanged: event.target.classList.contains("cust-name") });
       return;
     }
 
@@ -872,6 +927,13 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     document.addEventListener("input", handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleDocumentClick);
+
+    // Sikre at debounced lagring/dropdown-rebuild rekker å kjøre selv om
+    // brukeren navigerer bort eller bytter app rett etter å ha tastet.
+    window.addEventListener("beforeunload", flushHeavyUpdate);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushHeavyUpdate();
+    });
 
     const lovableSelect = $("#lovable-name-select");
     if (lovableSelect) {
