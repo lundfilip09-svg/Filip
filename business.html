@@ -231,10 +231,12 @@
 </div>
 
 <div id="leadgenLovable" class="leadgen-fields" hidden>
+<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><input id="lbBizName"></div>
 <div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Paste</label><textarea id="lbMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
 </div>
 
 <div id="leadgenSales" class="leadgen-fields" hidden>
+<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><input id="salesBizName"></div>
 <div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Paste</label><textarea id="salesMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
 </div>
 
@@ -271,7 +273,9 @@
     inputs: {
       city: "",
       industry: "",
+      lbBizName: "",
       lbMapsPaste: "",
+      salesBizName: "",
       salesMapsPaste: ""
     }
   };
@@ -289,7 +293,9 @@
     fxInfo: $("#fxInfo"),
     city: $("#city"),
     industry: $("#industry"),
+    lbBizName: $("#lbBizName"),
     lbMapsPaste: $("#lbMapsPaste"),
+    salesBizName: $("#salesBizName"),
     salesMapsPaste: $("#salesMapsPaste"),
     leadgenType: $("#leadgenType"),
     leadgenCopyBtn: $("#leadgenCopyBtn")
@@ -589,9 +595,12 @@ Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
 
   function buildLovablePrompt() {
+    const bizName = el.lbBizName?.value.trim() || "[BUSINESS NAME]";
     const mapsPaste = el.lbMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
     return `Create a premium, modern website from this Google Maps business data.
+
+Business name: ${bizName}
 
 Google Maps paste:
 ${mapsPaste}
@@ -669,9 +678,12 @@ Design requirements:
   }
 
   function buildSalesPrompt() {
+    const bizName = el.salesBizName?.value.trim() || "[BEDRIFTNAVN]";
     const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
     return `Du er en ung, lokal webdesigner fra Bergen-området som skal skrive kontakttekster til en lokal bedrift, basert på Google Maps-research under. Du hjelper meg (avsenderen) med å ta kontakt på en måte som IKKE lukter markedsføringsbyrå, IKKE lukter AI-spam, og IKKE lukter salg.
+
+Bedriftnavn: ${bizName}
 
 Google Maps-utklipp:
 ${mapsPaste}
