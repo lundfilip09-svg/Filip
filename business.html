@@ -649,59 +649,25 @@ Output ONLY the final Norwegian Lovable prompt inside a code block, ready for th
     const bizName = el.salesBizName?.value.trim() || "[BEDRIFTNAVN]";
     const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
-    return `Du er en ung, lokal webdesigner fra Bergen-området som skal skrive kontakttekster til en lokal bedrift, basert på Google Maps-research under. Du hjelper meg (avsenderen) med å ta kontakt på en måte som IKKE lukter markedsføringsbyrå, IKKE lukter AI-spam, og IKKE lukter salg.
+    return `You are a Senior Business Consultant and Local Outreach Expert for small businesses in Norway.
+Analyze the following raw data for the business: ${bizName}
+Data paste: ${mapsPaste}
 
-Bedriftnavn: ${bizName}
+Your output must provide a 3-step strategic execution plan in Norwegian (Bokmål):
 
-Google Maps-utklipp:
-${mapsPaste}
+PART 1: BEDRIFTSANALYSE & SÅRBARHET (Vulnerability)
+- Identify their main organizational struggle based on the text (e.g., sell-out issues, lack of clarity, or manual message chaos).
+- Identify their core strength and signature products that locals love.
 
-Les gjennom utklippet og finn det du kan om:
-- Navn, bransje, adresse/lokalområde
-- Telefon, åpningstider
-- Nettside-status (mangler helt, utdatert, eller ok)
-- Anmeldelser, rating, antall, og konkret ros fra kunder
-- Spesialiteter / varer / ting de er kjent for
+PART 2: ANBEFALT PRISSTRATEGI (Pricing Model)
+- Recommend which of my 3 pricing tiers fits this business best: Lav (490 kr/mnd for static setup), Medium (790 kr/mnd for seasonal menu updates), or Høy (1490 kr/mnd for dynamic ordering).
+- Provide a concrete reason WHY you picked this tier for this specific business based on their activity level.
 
-Ikke finn på fakta som ikke støttes av utklippet. Er nettside-status uklar, formuler det forsiktig.
-
-Bergensere har en ekstremt fintfølende bullshit-detektor. De hater å bli solgt til, og ignorerer alt som lukter av byrå eller AI. Skriv derfor ALDRI med ord som "konvertering", "oppside", "vinkling", "vi kan doble salget ditt", eller andre store løfter. Ingen stive høflighetsfraser. Det skal høres ut som en melding skrevet på farten av et ekte, ungt menneske fra nærområdet som faktisk vil hjelpe — ikke selge.
-
-Skriv 3 kontakttekster til denne bedriften, én per vinkling:
-
-Vinkling 1 – Forhåndsbestilling / slipp meldingskaoset
-- Vis til at de (ifølge anmeldelser) fort blir utsolgt — definer det som et luksusproblem.
-- Forklar kort og avslappet at en enkel nettside kan fungere som en bestillingsknapp som sikrer omsetningen og fjerner svinn, så de slipper meldingskaos på sosiale medier.
-
-Vinkling 2 – Den digitale oppslagstavlen
-- De har tydeligvis et godt rykte, men mangler en samlet plass på eget domene der folk faktisk finner åpningstider og meny på mobilen, uten å måtte lete seg gjennom Facebook.
-
-Vinkling 3 – Lokal skryt + visuell skisse
-- Start med ekte, konkret skryt av noe spesifikt de lager eller selger (basert på anmeldelsene/utklippet).
-- Nevn at du er en lokal webdesigner som ble inspirert, og at du har satt opp en uforpliktende visuell skisse på en test-lenke de kan titte på hvis de har lyst.
-
-For hver vinkling, skriv:
-- Instagram DM (maks 3–4 setninger)
-- E-post til daglig leder (maks 2 korte avsnitt)
-
-Toneregler (ufravikelige):
-- Bokmål, flytende, folkelig, direkte bergensk stil.
-- Ingen kunstige høflighetsfraser, ingen store løfter, ingen stiv korporativ tone.
-- Skal føles personlig og spesifikt skrevet til akkurat denne bedriften.
-- Avslutt ALLE meldinger med en ekstremt lavterskel invitasjon til en kjapp, uforpliktende kaffe eller en 3-minutters prat en dag de har det rolig. Ingen pushy call-to-action.
-
-Formater svaret med tydelige overskrifter:
-Vinkling 1 – Forhåndsbestilling
-Instagram DM:
-E-post:
-
-Vinkling 2 – Digital oppslagstavle
-Instagram DM:
-E-post:
-
-Vinkling 3 – Lokal skryt + skisse
-Instagram DM:
-E-post:`;
+PART 3: SKREDDERSYDD KONTAKTTEKST (The Outreach Execution)
+Write ONE highly targeted, ultra-short Instagram DM (max 3-4 sentences) and ONE professional Email to the manager.
+- The outreach MUST blend their core strength with the specific solution to their logistics struggle.
+- Include the exact placeholder: '[SETT INN DIN LOVABLE-LENKE HER]' so I can display the visual preview I built.
+- Keep the tone natural, polite, and low-pressure. End with a casual invite to a quick coffee chat.`;
   }
 
   function buildPrompt(kind) {
