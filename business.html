@@ -655,18 +655,18 @@ Output ONLY the final Norwegian Lovable prompt inside a code block, ready for th
     const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
     return `Du er en Senior Forretningsanalytiker og ekspert på innsalg til småbedrifter i Norge.
-KONTEKST: Jeg driver et digitalbyrå som bygger og drifter moderne, lynraske nettsider for lokale bedrifter ved hjelp av Lovable.dev. Nettsidene inkluderer funksjoner for forhåndsbestilling og booking for å løse logistikkproblemer. Målet mitt er å selge en nettside til bedriften under, enten som et engangskjøp eller på en månedlig driftsavtale.
+KONTEKST: Jeg driver et digitalbyrå som bygger og drifter moderne web-applikasjoner og nettsider for lokale bedrifter ved hjelp av Lovable.dev. Siden Lovable er en fullstack AI-utviklingsplattform, kan jeg levere alt fra enkle landingssider til komplekse systemer med brukerinnlogging, databaser, lojalitetsprogrammer, avanserte kalkulatorer og skreddersydde admin-dashboards. Målet mitt er å selge en optimal løsning til bedriften under på en månedlig driftsavtale.
 Oppgaven din er å analysere denne bedriften for et potensielt salg:
 - Bedriftsnavn: ${bizName}
 - Rådata og anmeldelser: ${mapsPaste}
 
-Generer en detaljert 3-trinns strategi på norsk (Bokmål):
+Undersøk og vurder Lovables fulle spekter av funksjoner opp mot dataene over, og generer en detaljert 3-trinns strategi på norsk (Bokmål):
 
-Del 1: Sårbarhetsanalyse (Finn ut nøyaktig hvilke logistiske problemer eller mangler de har basert på dataene, og hvorfor de er sårbare digitalt).
+Del 1: Sårbarhetsanalyse (Finn digitale mangler og logistikkproblemer).
 
-Del 2: Prisstrategi (Anbefal om jeg skal selge dem Lav (490 kr/mnd), Medium (790 kr/mnd) eller Høy (1490 kr/mnd) avtale, med en beinhard begrunnelse ut ifra deres aktivitet).
+Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke spesifikke Lovable-features vil gi akkurat denne bedriften størst verdi? Anbefal om jeg skal legge dem på Lav (490 kr/mnd), Medium (790 kr/mnd) eller Høy (1490 kr/mnd) avtale basert på de foreslåtte funksjonene).
 
-Del 3: Skreddersydd kontakttekst (Skriv én kort Instagram-DM og én profesjonell e-post som tilbyr løsningen på problemet deres, og inkluder plassholderen '[SETT INN DIN LOVABLE-LENKE HER]').`;
+Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pitcher akkurat denne unike løsningen, inkludert '[SETT INN DIN LOVABLE-LENKE HER]').`;
   }
 
   function buildPrompt(kind) {
