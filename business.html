@@ -635,6 +635,12 @@ Your output must be a master-prompt for Lovable that instructs it to build a sit
 
 5. BILDER UTEN AI-PLASTIKK: IKKE generer falske, urealistiske AI-bilder av produkter. Alle produktbilder skal være stilrene, grå bilde-plassholdere med et nøytralt ikon som passer bransjen. Bilde-stiene i koden skal peke til en lokal mappe (f.eks. src="images/produkt1.jpg") slik at de enkelt kan byttes ut senere.
 
+6. OBLIGATORISK SKJEMA-VERIFISERING: Bestillings/bookingskjemaet SKAL inneholde separate, tydelige input-felter for 'Fullt navn', 'E-postadresse', 'Mobilnummer' og 'Hentedato'. ALLE disse feltene skal være strengt obligatoriske (required i koden). Rett under eller ved siden av innsendingsknappen skal det ligge en synlig hjelpetekst på norsk: "⚠️ Alle bestillinger må verifiseres via SMS eller telefon før de er gyldige for å unngå tullebestillinger."
+
+7. MIKROTEKST OG LOGIKK: Hold alle hjelpetekster og knapper 100 % profesjonelle og jordnære. Forby AI-en å generere kunstige eller "morsomme" metaforer (som f.eks. å skrive at de ansatte er i ovnen eller lignende AI-merkeligheter).
+
+8. SKJEMA-BEKREFTELSE (SUKSESS-TILSTAND): Instruer Lovable til å bygge en innebygd suksess-tilstand for bestillingsskjemaet. Når brukeren trykker på innsendingsknappen, skal skjemaet skjules og erstattes av en ren, tillitvekkende takkemelding på norsk (f.eks. "Takk! Din bestilling er mottatt. Du vil få en SMS-bekreftelse innen kort tid").
+
 Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
 
