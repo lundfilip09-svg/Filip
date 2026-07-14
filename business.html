@@ -42,20 +42,26 @@
 .biz-table .delete-row{width:30px;height:30px;padding:0}
 .biz-table .cust-price,.biz-table .cust-onetime{padding-left:6px;padding-right:6px;font-size:12px}
 
-/* Status-select farges som resten av dashboardet (grønn/gul/rød) */
-.cust-status{font-weight:600;border-color:var(--hairline-soft)}
-.cust-status.st-active{background:rgba(95,217,154,0.13);color:var(--success);border-color:rgba(95,217,154,0.35)}
-.cust-status.st-paused{background:rgba(232,182,87,0.13);color:var(--warning);border-color:rgba(232,182,87,0.35)}
-.cust-status.st-ended{background:rgba(242,109,109,0.13);color:var(--danger);border-color:rgba(242,109,109,0.35)}
+/* Status: kun farge, ingen tekst — liten klikkbar prikk som bytter grønn/gul/rød */
+.cust-status-dot{
+  width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;padding:0;display:block;margin:0 auto;
+  transition:transform .12s;
+}
+.cust-status-dot:hover{transform:scale(1.12)}
+.cust-status-dot:active{transform:scale(0.94)}
+.cust-status-dot.st-active{background:var(--success)}
+.cust-status-dot.st-paused{background:var(--warning)}
+.cust-status-dot.st-ended{background:var(--danger)}
 
 /* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
 .biz-table col.col-name{width:12%}
-.biz-table col.col-contact{width:20%}
-.biz-table col.col-tier{width:16%}
+.biz-table col.col-contact{width:22%}
+.biz-table col.col-tier{width:15%}
 .biz-table col.col-price{width:13%}
 .biz-table col.col-onetime{width:13%}
-.biz-table col.col-start{width:17%}
-.biz-table col.col-status{width:9%}
+.biz-table col.col-start{width:19%}
+.biz-table col.col-status{width:6%}
 .biz-table col.col-del{width:34px}
 .biz-table td:last-child{padding-left:14px;padding-right:14px;text-align:center}
 
@@ -411,11 +417,7 @@
           <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(customer.oneTimeFee)}"></td>
           <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
           <td>
-            <select class="cust-status ${STATUS_CLASS[customer.status] || "st-active"}">
-              ${["Aktiv", "Pauset", "Avsluttet"].map(status => (
-                `<option value="${escapeHtml(status)}" ${customer.status === status ? "selected" : ""}>${escapeHtml(t(STATUS_LABEL_KEYS[status]))}</option>`
-              )).join("")}
-            </select>
+            <button type="button" class="cust-status-dot ${STATUS_CLASS[customer.status] || "st-active"}" data-status="${escapeHtml(customer.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
           </td>
           <td><button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
         </tr>
@@ -488,12 +490,8 @@
     existing.contact = $(".cust-contact", row)?.value || "";
     existing.tier = $(".cust-tier", row)?.value || "Lav";
     existing.start = $(".cust-date", row)?.value || "";
-    const statusSelect = $(".cust-status", row);
-    existing.status = statusSelect?.value || "Aktiv";
-    if (statusSelect) {
-      statusSelect.classList.remove("st-active", "st-paused", "st-ended");
-      statusSelect.classList.add(STATUS_CLASS[existing.status] || "st-active");
-    }
+    const statusDot = $(".cust-status-dot", row);
+    existing.status = statusDot?.dataset.status || "Aktiv";
 
     const priceInput = $(".cust-price", row);
     const oneTimeInput = $(".cust-onetime", row);
@@ -828,6 +826,22 @@ Email:`;
   }
 
   function handleDocumentClick(event) {
+    const statusDot = event.target.closest(".cust-status-dot");
+    if (statusDot) {
+      const order = ["Aktiv", "Pauset", "Avsluttet"];
+      const next = order[(order.indexOf(statusDot.dataset.status) + 1) % order.length];
+      statusDot.dataset.status = next;
+      statusDot.classList.remove("st-active", "st-paused", "st-ended");
+      statusDot.classList.add(STATUS_CLASS[next] || "st-active");
+      const label = t(STATUS_LABEL_KEYS[next] || STATUS_LABEL_KEYS.Aktiv);
+      statusDot.setAttribute("aria-label", label);
+      statusDot.setAttribute("title", label);
+
+      const row = statusDot.closest("#customerRows tr");
+      if (row) readCustomerRow(row);
+      return;
+    }
+
     const deleteButton = event.target.closest(".delete-row");
     if (deleteButton) {
       deleteCustomer(deleteButton);
