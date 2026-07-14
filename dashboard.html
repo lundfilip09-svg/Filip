@@ -843,6 +843,11 @@ function renderSleepCard(d) {
   const deep = d.deep_sleep_minutes > 0  ? d.deep_sleep_minutes : null;
   const rem  = d.rem_sleep_minutes  > 0  ? d.rem_sleep_minutes  : null;
 
+  if (sc == null && hrs == null && rhr == null && hrv == null) {
+    el.innerHTML = `<div class="empty">${t('sovn.no_data')}</div>`;
+    return null;
+  }
+
   // ── Readiness score (0-100): weighted composite ──
   // HRV 40%, RHR 25%, SleepScore 25%, Duration 10%
   let readiness = null;
@@ -928,7 +933,7 @@ function renderSleepCard(d) {
   }
 
   // Age
-  const daysAgo = d.date ? Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const daysAgo = d.date ? Math.max(0, Math.floor((Date.now() - new Date(d.date + 'T12:00:00').getTime()) / 86400000)) : null;
   const dataAge = daysAgo === 0 ? t('dash.tonight') : daysAgo === 1 ? t('dash.yesterday') : daysAgo != null ? t('dash.days_ago', {n: daysAgo}) : '';
   const ageColor = daysAgo != null && daysAgo > 2 ? 'var(--warning)' : 'var(--text-tertiary)';
 
