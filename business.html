@@ -737,13 +737,19 @@ Del 3: Skreddersydd kontakttekst (Skriv én kort Instagram-DM og én profesjonel
     if (type === "lovable") {
       if (el.lbBizName) el.lbBizName.value = "";
       if (el.lbMapsPaste) el.lbMapsPaste.value = "";
+      const lovableSelect = $("#lovable-name-select");
+      if (lovableSelect) lovableSelect.value = "";
     } else if (type === "sales") {
       if (el.salesBizName) el.salesBizName.value = "";
       if (el.salesMapsPaste) el.salesMapsPaste.value = "";
+      const salesSelect = $("#sales-name-select");
+      if (salesSelect) salesSelect.value = "";
     } else if (type === "research") {
       if (el.city) el.city.value = "";
       if (el.industry) el.industry.value = "";
     }
+
+    saveInputsToState();
   }
 
   async function copyFromButton(button) {
