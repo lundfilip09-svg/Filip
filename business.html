@@ -654,25 +654,19 @@ Output ONLY the final Norwegian Lovable prompt inside a code block, ready for th
     const bizName = el.salesBizName?.value.trim() || "[BEDRIFTNAVN]";
     const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
-    return `You are a Senior Business Consultant and Local Outreach Expert for small businesses in Norway.
-Analyze the following raw data for the business: ${bizName}
-Data paste: ${mapsPaste}
+    return `Du er en Senior Forretningsanalytiker og ekspert på innsalg til småbedrifter i Norge.
+KONTEKST: Jeg driver et digitalbyrå som bygger og drifter moderne, lynraske nettsider for lokale bedrifter ved hjelp av Lovable.dev. Nettsidene inkluderer funksjoner for forhåndsbestilling og booking for å løse logistikkproblemer. Målet mitt er å selge en nettside til bedriften under, enten som et engangskjøp eller på en månedlig driftsavtale.
+Oppgaven din er å analysere denne bedriften for et potensielt salg:
+- Bedriftsnavn: ${bizName}
+- Rådata og anmeldelser: ${mapsPaste}
 
-Your output must provide a 3-step strategic execution plan in Norwegian (Bokmål):
+Generer en detaljert 3-trinns strategi på norsk (Bokmål):
 
-PART 1: BEDRIFTSANALYSE & SÅRBARHET (Vulnerability)
-- Identify their main organizational struggle based on the text (e.g., sell-out issues, lack of clarity, or manual message chaos).
-- Identify their core strength and signature products that locals love.
+Del 1: Sårbarhetsanalyse (Finn ut nøyaktig hvilke logistiske problemer eller mangler de har basert på dataene, og hvorfor de er sårbare digitalt).
 
-PART 2: ANBEFALT PRISSTRATEGI (Pricing Model)
-- Recommend which of my 3 pricing tiers fits this business best: Lav (490 kr/mnd for static setup), Medium (790 kr/mnd for seasonal menu updates), or Høy (1490 kr/mnd for dynamic ordering).
-- Provide a concrete reason WHY you picked this tier for this specific business based on their activity level.
+Del 2: Prisstrategi (Anbefal om jeg skal selge dem Lav (490 kr/mnd), Medium (790 kr/mnd) eller Høy (1490 kr/mnd) avtale, med en beinhard begrunnelse ut ifra deres aktivitet).
 
-PART 3: SKREDDERSYDD KONTAKTTEKST (The Outreach Execution)
-Write ONE highly targeted, ultra-short Instagram DM (max 3-4 sentences) and ONE professional Email to the manager.
-- The outreach MUST blend their core strength with the specific solution to their logistics struggle.
-- Include the exact placeholder: '[SETT INN DIN LOVABLE-LENKE HER]' so I can display the visual preview I built.
-- Keep the tone natural, polite, and low-pressure. End with a casual invite to a quick coffee chat.`;
+Del 3: Skreddersydd kontakttekst (Skriv én kort Instagram-DM og én profesjonell e-post som tilbyr løsningen på problemet deres, og inkluder plassholderen '[SETT INN DIN LOVABLE-LENKE HER]').`;
   }
 
   function buildPrompt(kind) {
