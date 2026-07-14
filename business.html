@@ -108,7 +108,7 @@
 
 .maps-paste{min-height:150px;resize:vertical}
 
-#lovablePlan,#leadgenType{
+#lovablePlan,#leadgenType,#lovable-name-select,#sales-name-select{
   -webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8f9c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
@@ -248,12 +248,12 @@
 </div>
 
 <div id="leadgenLovable" class="leadgen-fields" hidden>
-<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><input id="lbBizName"></div>
+<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><select id="lovable-name-select" class="form-control"></select><input type="hidden" id="lbBizName"></div>
 <div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Info</label><textarea id="lbMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
 </div>
 
 <div id="leadgenSales" class="leadgen-fields" hidden>
-<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><input id="salesBizName"></div>
+<div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><select id="sales-name-select" class="form-control"></select><input type="hidden" id="salesBizName"></div>
 <div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps Info</label><textarea id="salesMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Paste everything copied from Google Maps..."></textarea></div>
 </div>
 
@@ -554,6 +554,7 @@
     state.customers[index] = existing;
     saveState();
     renderMetrics();
+    populateBusinessDropdown();
   }
 
   function cssId(id) {
@@ -719,6 +720,27 @@ E-post:`;
     if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
   }
 
+  function populateBusinessDropdown() {
+    const names = state.customers
+      .map(c => (c.name || "").trim())
+      .filter(Boolean);
+
+    const uniqueNames = [...new Set(names)];
+
+    [$("#lovable-name-select"), $("#sales-name-select")].forEach(select => {
+      if (!select) return;
+
+      const previousValue = select.value;
+
+      select.innerHTML = `<option value="">${escapeHtml(t("biz.select_customer"))}</option>`
+        + uniqueNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+
+      if (uniqueNames.includes(previousValue)) {
+        select.value = previousValue;
+      }
+    });
+  }
+
   function addCustomer() {
     state.customers.push({
       name: "",
@@ -731,6 +753,7 @@ E-post:`;
 
     saveState();
     renderCustomers();
+    populateBusinessDropdown();
   }
 
   function deleteCustomer(button) {
@@ -879,9 +902,32 @@ E-post:`;
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleDocumentClick);
 
+    const lovableSelect = $("#lovable-name-select");
+    if (lovableSelect) {
+      lovableSelect.addEventListener("change", () => {
+        if (el.lbBizName) {
+          el.lbBizName.value = lovableSelect.value;
+          state.inputs.lbBizName = lovableSelect.value;
+          saveState();
+        }
+      });
+    }
+
+    const salesSelect = $("#sales-name-select");
+    if (salesSelect) {
+      salesSelect.addEventListener("change", () => {
+        if (el.salesBizName) {
+          el.salesBizName.value = salesSelect.value;
+          state.inputs.salesBizName = salesSelect.value;
+          saveState();
+        }
+      });
+    }
+
     renderCustomers();
     renderMetrics();
     loadFxRate();
+    populateBusinessDropdown();
 
     applyLang();
     onLangChange = () => { renderCustomers(); renderMetrics(); };
