@@ -250,6 +250,7 @@ const TRANSLATIONS = {
     'notif.rest_timers': 'Hviletimere', 'notif.today': 'I dag', 'notif.empty': 'Ingen aktive varsler',
     'notif.calendar': 'Kalender', 'notif.sleep': 'Søvn', 'notif.dismiss': 'Lukk',
     'notif.sleep_low_title': 'Lav søvnscore i natt', 'notif.sleep_low_sub': 'Score {score} — prioriter restitusjon i dag',
+    'notif.weekly_report': 'Ukesrapport', 'notif.weekly_report_title': 'Ny ukesrapport er klar',
     'gm.reminder': 'Påminnelse', 'gm.add_reminder': 'Påminnelse', 'gm.reminder_set': 'Påminnelse satt',
     'gm.reminder_cleared': 'Påminnelse fjernet', 'gm.reminder_at': 'Påminnelse {time}',
     'gm.reminder_past': 'Velg et tidspunkt frem i tid', 'gm.clear_reminder': 'Fjern påminnelse',
@@ -1014,6 +1015,7 @@ const TRANSLATIONS = {
     'notif.rest_timers': 'Rest timers', 'notif.today': 'Today', 'notif.empty': 'No active notifications',
     'notif.calendar': 'Calendar', 'notif.sleep': 'Sleep', 'notif.dismiss': 'Dismiss',
     'notif.sleep_low_title': 'Low sleep score last night', 'notif.sleep_low_sub': 'Score {score} — prioritize recovery today',
+    'notif.weekly_report': 'Weekly report', 'notif.weekly_report_title': 'New weekly report is ready',
     'gm.reminder': 'Reminder', 'gm.add_reminder': 'Reminder', 'gm.reminder_set': 'Reminder set',
     'gm.reminder_cleared': 'Reminder cleared', 'gm.reminder_at': 'Reminder {time}',
     'gm.reminder_past': 'Pick a time in the future', 'gm.clear_reminder': 'Clear reminder',
@@ -1660,11 +1662,11 @@ let _bannersShown = false;
 // section → side (matcher nav data-p). Bestemmer hvilken fane som lyser.
 const NOTIF_PAGE = {
   overdue: 'gjoremal', reminder: 'gjoremal', today: 'gjoremal',
-  rest: 'gym', calendar: 'kalender', sleep: 'sovn',
+  rest: 'gym', calendar: 'kalender', sleep: 'sovn', weekly_summary: 'ai',
 };
 const NOTIF_ICON = {
   overdue: '⚠️', reminder: '⏰', today: '📋',
-  rest: '⏱️', calendar: '📅', sleep: '😴',
+  rest: '⏱️', calendar: '📅', sleep: '😴', weekly_summary: '📅',
 };
 // "Stille" seksjoner: vises i bjelle-panelet, men gir IKKE rødt badge,
 // fane-prikk eller banner. Kalender er ren info — ikke noe å handle på.
@@ -1678,10 +1680,22 @@ function _notifTodayStr() { return new Date().toLocaleDateString('sv'); } // YYY
 // ── Lest-status (localStorage; enkel og offline-trygg, synker ikke på tvers
 //    av enheter — bevisst valg for en personlig app) ──────────────────────────
 function _notifReadMap() { try { return JSON.parse(localStorage.getItem('notifRead') || '{}'); } catch { return {}; } }
-function _notifIsRead(key) { return !!_notifReadMap()[key]; }
+// ws:-nøkler (ukesrapport) speiler 'ws_last_seen' — samme lest-status som
+// badgen inni ai.html, så åpning av rapporten ett sted fjerner prikken begge steder.
+function _notifIsRead(key) {
+  if (key.startsWith('ws:')) return key.slice(3) <= (localStorage.getItem('ws_last_seen') || '');
+  return !!_notifReadMap()[key];
+}
 function _notifMarkRead(keys) {
   const m = _notifReadMap(); let changed = false;
-  for (const k of keys) if (!m[k]) { m[k] = Date.now(); changed = true; }
+  for (const k of keys) {
+    if (k.startsWith('ws:')) {
+      const week = k.slice(3);
+      if (week > (localStorage.getItem('ws_last_seen') || '')) localStorage.setItem('ws_last_seen', week);
+      continue;
+    }
+    if (!m[k]) { m[k] = Date.now(); changed = true; }
+  }
   if (!changed) return;
   const cut = Date.now() - 30 * 864e5;            // rydd nøkler eldre enn 30 dager
   for (const k in m) if (m[k] < cut) delete m[k];
@@ -1758,6 +1772,15 @@ async function loadNotifications() {
         when: ev.start?.dateTime || (ev.start?.date ? ev.start.date + 'T00:00:00' : nowIso),
         allDay: !ev.start?.dateTime, url: 'kalender.html' });
     }
+    // 5) Ukesrapport → AI: nyeste rapport er uåpnet (samme sjekk som badgen i ai.html).
+    try {
+      const { data: ws } = await db.from('weekly_summaries')
+        .select('week_start').order('week_start', { ascending: false }).limit(1).maybeSingle();
+      if (ws?.week_start) {
+        items.push({ key: `ws:${ws.week_start}`, section: 'weekly_summary', page: 'ai',
+          i18nTitle: 'notif.weekly_report_title', when: ws.week_start + 'T08:00:00', url: 'ai.html' });
+      }
+    } catch (e) {}
   } catch (e) { return null; }
 
   _notifItems = items;
@@ -1784,6 +1807,7 @@ function _notifSub(i) {
     case 'calendar': return i.allDay ? t('kal.whole_day') : _notifClock(i.when);
     case 'rest':
     case 'reminder': return _notifClock(i.when);
+    case 'weekly_summary': return fmtDate(i.when);
     case 'overdue':
     case 'today': {
       const base = fmtDate(i.when);
@@ -1813,6 +1837,7 @@ function _renderNotifPanel() {
     ['calendar', t('notif.calendar')],
     ['rest',     t('notif.rest_timers')],
     ['sleep',    t('notif.sleep')],
+    ['weekly_summary', t('notif.weekly_report')],
     ['today',    t('notif.today')],
   ];
   const shown = _panelItems();
