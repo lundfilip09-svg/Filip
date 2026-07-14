@@ -20,6 +20,7 @@
 .biz-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .biz-section-head .section-title{margin-bottom:0}
 .biz-warning{margin-bottom:14px}
+.biz-card-compact{padding-bottom:18px}
 
 .table-wrap{overflow:auto;border:1px solid var(--hairline-soft);border-radius:var(--radius-lg)}
 .biz-table{width:100%;border-collapse:collapse;min-width:760px;table-layout:fixed}
@@ -31,6 +32,12 @@
 .biz-table input,.biz-table select{
   width:100%;min-height:32px;font-size:12.5px;box-sizing:border-box;
   overflow:hidden;text-overflow:ellipsis;
+  background:transparent;border:1px solid transparent;border-radius:var(--radius-sm);
+  padding:6px 8px;color:var(--text-primary);transition:background .12s,border-color .12s;
+}
+.biz-table input:hover,.biz-table select:hover{background:var(--surface-1)}
+.biz-table input:focus,.biz-table select:focus{
+  background:var(--surface-1);border-color:var(--hairline-soft);outline:none;
 }
 .biz-table select{
   -webkit-appearance:none;appearance:none;
@@ -55,21 +62,21 @@
 .cust-status-dot.st-ended{background:var(--danger)}
 
 /* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
-.biz-table col.col-name{width:12%}
-.biz-table col.col-contact{width:22%}
-.biz-table col.col-tier{width:15%}
-.biz-table col.col-price{width:13%}
-.biz-table col.col-onetime{width:13%}
-.biz-table col.col-start{width:19%}
+.biz-table col.col-name{width:15%}
+.biz-table col.col-contact{width:26%}
+.biz-table col.col-tier{width:13%}
+.biz-table col.col-price{width:11%}
+.biz-table col.col-onetime{width:12%}
+.biz-table col.col-start{width:14%}
 .biz-table col.col-status{width:6%}
 .biz-table col.col-del{width:34px}
 .biz-table td:last-child{padding-left:14px;padding-right:14px;text-align:center}
 
 .biz-lovable-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
 .biz-lovable-row .form-group{flex:1;min-width:200px;margin-bottom:0}
-.biz-fx{display:flex;flex-direction:column;gap:4px;padding:10px 14px;background:var(--surface-1);border:1px solid var(--hairline-soft);border-radius:var(--radius-md);min-width:140px}
+.biz-fx{display:flex;flex-direction:column;gap:2px;min-width:140px;padding-bottom:1px}
 .biz-fx .biz-fx-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary)}
-.biz-fx .metric-val{font-size:17px;font-family:var(--font-mono)}
+.biz-fx .metric-val{font-size:20px;font-family:var(--font-mono);line-height:1.15}
 
 .maps-paste{min-height:150px;resize:vertical}
 
@@ -152,7 +159,7 @@
 </div>
 </div>
 
-<div class="card">
+<div class="card biz-card-compact">
 <div class="section-title" data-i18n="biz.lovable">Lovable</div>
 
 <div class="biz-lovable-row">
