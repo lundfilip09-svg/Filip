@@ -625,15 +625,15 @@ First, extract and infer everything possible from the raw data above: business c
 
 Your output must be a master-prompt for Lovable that instructs it to build a site with these exact parameters:
 
-1. DESIGN & STIL: Moderne, minimalistisk, men lun og autentisk for kategorien. Layouten må være ekstremt lettvektig og optimalisert for rask innlasting på trege mobilnett.
+1. INGEN ANMELDELSER: IKKE inkluder noen "Testimonials"-seksjon, og IKKE nevn eksakte Google-ratings eller antall anmeldelser noe sted i teksten.
 
-2. HERO-SEKSJON: En modig, lokal overskrift på norsk rettet mot kundens ønske, en tydelig lavterskel knapp (CTA), og et synlig tillitssignal basert på Google-ratingen.
+2. SMART MENY-LOGIKK ("Dagens utvalg"): Meny-seksjonen skal hete "Dagens utvalg". Hvis konkrete produkter er oppgitt i rådataene, vis dem i en ren, minimalistisk liste. Hvis ingen produkter er oppgitt, generer tomme, profesjonelle plassholdere (f.eks. "Produktnavn", "Pris kr --,-").
 
-3. LOGISTIKK & BESTILLING: Hvis anmeldelsene nevner at de blir fort utsolgt eller har meldingskaos, instruer Lovable eksplisitt til å bygge et dominerende 'Forhåndsbestilling / Booking'-skjema på forsiden for å sikre omsetning og fjerne svinn.
+3. PRODUKTKORT-MINIMALISME: Hvert produktkort skal ha kun én tittel, én kort beskrivelse og én pris. IKKE bruk doble titler eller repeterende bransje-kategorier over produktnavnet (f.eks. IKKE skriv "Brød" som egen etikett rett over "Ekte Surdeigsbrød").
 
-4. INGEN AMERIKANSK HYPETEKST: Teksten som genereres skal være flytende, jordnær og uformell norsk (Bokmål). Ingen aggressive salgsfloskler eller falske løfter.
+4. EMBED-KLAR SOSIAL FEED: Rett under menyen skal det genereres en tom, stilren container med id="social-media-feed" og placeholder-teksten "Her publiseres våre nyeste oppdateringer direkte fra sosiale medier".
 
-5. LOKAL INFO: Sørg for at åpningstider, nøyaktig adresse og en ren kart-plassholder får et tydelig, markert oppsett.
+5. BILDER UTEN AI-PLASTIKK: IKKE generer falske, urealistiske AI-bilder av produkter. Alle produktbilder skal være stilrene, grå bilde-plassholdere med et nøytralt ikon som passer bransjen. Bilde-stiene i koden skal peke til en lokal mappe (f.eks. src="images/produkt1.jpg") slik at de enkelt kan byttes ut senere.
 
 Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
