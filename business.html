@@ -42,6 +42,12 @@
 .biz-table .delete-row{width:30px;height:30px;padding:0}
 .biz-table .cust-price,.biz-table .cust-onetime{padding-left:6px;padding-right:6px;font-size:12px}
 
+/* Status-select farges som resten av dashboardet (grønn/gul/rød) */
+.cust-status{font-weight:600;border-color:var(--hairline-soft)}
+.cust-status.st-active{background:rgba(95,217,154,0.13);color:var(--success);border-color:rgba(95,217,154,0.35)}
+.cust-status.st-paused{background:rgba(232,182,87,0.13);color:var(--warning);border-color:rgba(232,182,87,0.35)}
+.cust-status.st-ended{background:rgba(242,109,109,0.13);color:var(--danger);border-color:rgba(242,109,109,0.35)}
+
 /* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
 .biz-table col.col-name{width:12%}
 .biz-table col.col-contact{width:20%}
@@ -51,7 +57,7 @@
 .biz-table col.col-start{width:17%}
 .biz-table col.col-status{width:9%}
 .biz-table col.col-del{width:34px}
-.biz-table td:last-child{padding-left:6px;padding-right:10px;text-align:center}
+.biz-table td:last-child{padding-left:14px;padding-right:14px;text-align:center}
 
 .biz-lovable-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
 .biz-lovable-row .form-group{flex:1;min-width:200px;margin-bottom:0}
@@ -379,6 +385,8 @@
   }
 
   const TIER_LABEL_KEYS = { Lav: "biz.tier_lav", Medium: "biz.tier_medium", "Høy": "biz.tier_hoy", Custom: "biz.tier_custom" };
+  const STATUS_CLASS = { Aktiv: "st-active", Pauset: "st-paused", Avsluttet: "st-ended" };
+
   const STATUS_LABEL_KEYS = { Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet" };
 
   function renderCustomers() {
@@ -403,7 +411,7 @@
           <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(customer.oneTimeFee)}"></td>
           <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
           <td>
-            <select class="cust-status">
+            <select class="cust-status ${STATUS_CLASS[customer.status] || "st-active"}">
               ${["Aktiv", "Pauset", "Avsluttet"].map(status => (
                 `<option value="${escapeHtml(status)}" ${customer.status === status ? "selected" : ""}>${escapeHtml(t(STATUS_LABEL_KEYS[status]))}</option>`
               )).join("")}
@@ -480,7 +488,12 @@
     existing.contact = $(".cust-contact", row)?.value || "";
     existing.tier = $(".cust-tier", row)?.value || "Lav";
     existing.start = $(".cust-date", row)?.value || "";
-    existing.status = $(".cust-status", row)?.value || "Aktiv";
+    const statusSelect = $(".cust-status", row);
+    existing.status = statusSelect?.value || "Aktiv";
+    if (statusSelect) {
+      statusSelect.classList.remove("st-active", "st-paused", "st-ended");
+      statusSelect.classList.add(STATUS_CLASS[existing.status] || "st-active");
+    }
 
     const priceInput = $(".cust-price", row);
     const oneTimeInput = $(".cust-onetime", row);
