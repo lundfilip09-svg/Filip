@@ -598,83 +598,27 @@ Returner resultatet som en ren, oversiktlig liste på norsk.`;
     const bizName = el.lbBizName?.value.trim() || "[BUSINESS NAME]";
     const mapsPaste = el.lbMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
 
-    return `Create a premium, modern website from this Google Maps business data.
+    return `You are an expert local web designer and copywriter specialized in the Norwegian small-business market. Your task is to act as a Meta-Prompt Generator. You must take the raw Google Maps data below and generate a single, highly detailed web design prompt for Lovable.dev written in Norwegian.
 
-Business name: ${bizName}
+Here is the raw data:
+- Business Name: ${bizName}
+- Raw Google Maps Data (hours, services, reviews, category, etc.): ${mapsPaste}
 
-Google Maps paste:
-${mapsPaste}
+First, extract and infer everything possible from the raw data above: business category, phone number, website status, address and local area, opening hours, services/products/specialties, and recurring themes from the reviews (e.g. service quality, speed, trust, friendliness, atmosphere, results, convenience, pricing, reliability). Do not invent specific facts like phone numbers, addresses, ratings, or opening hours that are not present in the raw data — if something is missing, make a sensible assumption from context instead.
 
-Infer suitable brand colors, visual style, and overall vibe yourself from the business type, logo, photos, and reviews. Do not ask the user for colors.
+Your output must be a master-prompt for Lovable that instructs it to build a site with these exact parameters:
 
-First, infer and structure everything possible from the pasted Google Maps content:
-- Business name
-- Business category / industry
-- Phone number
-- Website URL
-- Address and local area
-- Opening hours
-- Reviews, rating, review count, and repeated customer themes
-- Description, services, products, treatments, or specialties
-- Tone, positioning, trust signals, and likely target customers
+1. DESIGN & STIL: Moderne, minimalistisk, men lun og autentisk for kategorien. Layouten må være ekstremt lettvektig og optimalisert for rask innlasting på trege mobilnett.
 
-Extract recurring themes from the reviews, such as service quality, speed, trust, friendliness, expertise, atmosphere, results, convenience, pricing, location, and reliability. Use those recurring themes throughout the website copy, especially in the hero, about section, service descriptions, testimonials, CTA, and SEO copy.
+2. HERO-SEKSJON: En modig, lokal overskrift på norsk rettet mot kundens ønske, en tydelig lavterskel knapp (CTA), og et synlig tillitssignal basert på Google-ratingen.
 
-If some details are missing, make sensible assumptions from context, but do not invent specific facts like phone numbers, addresses, ratings, awards, or opening hours.
+3. LOGISTIKK & BESTILLING: Hvis anmeldelsene nevner at de blir fort utsolgt eller har meldingskaos, instruer Lovable eksplisitt til å bygge et dominerende 'Forhåndsbestilling / Booking'-skjema på forsiden for å sikre omsetning og fjerne svinn.
 
-The website must be written in Norwegian.
+4. INGEN AMERIKANSK HYPETEKST: Teksten som genereres skal være flytende, jordnær og uformell norsk (Bokmål). Ingen aggressive salgsfloskler eller falske løfter.
 
-Build a complete premium modern website with these sections:
+5. LOKAL INFO: Sørg for at åpningstider, nøyaktig adresse og en ren kart-plassholder får et tydelig, markert oppsett.
 
-1. Hero
-- Strong Norwegian headline
-- Short value proposition
-- Clear call-to-action
-- Trust signal based on reviews, service quality, location, opening hours, or category
-
-2. About
-- Explain who the business is
-- Make the copy warm, credible, and local.
-- Use only details that can be inferred from the Google Maps paste.
-
-3. Services
-- Infer the main services from the pasted content.
-- Present them clearly with cards or structured blocks.
-- Explain customer benefits, not only features.
-
-4. Testimonials
-- Turn review content into natural testimonial-style copy.
-- Keep it believable and grounded in the pasted reviews.
-
-5. Galleri
-- Add a gallery section suitable for this business type.
-- Use realistic image prompts/placeholders based on what the business likely does.
-
-6. CTA
-- Add a strong conversion-focused call-to-action section.
-- Make the next step obvious and low-friction.
-
-7. Contact
-- Include address, phone, website link, and opening hours if available.
-- Add clear contact buttons.
-
-8. Google Maps
-- Add an embedded Google Maps section or clear map placeholder using the inferred address.
-- Include local area context if available.
-
-9. SEO
-- Create SEO-friendly page title, meta description, H1/H2 structure, and local search copy.
-- Include relevant local keywords inferred from the business, category, services, and location.
-
-Design requirements:
-- Premium but clean
-- Mobile-first and fully responsive
-- Fast loading
-- SEO-friendly structure
-- Accessible contrast and readable typography
-- No generic filler text
-- No visible explanations of what the website is doing
-- Make it feel like a real local Norwegian business website, not a template.`;
+Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
 
   function buildSalesPrompt() {
