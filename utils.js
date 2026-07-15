@@ -803,7 +803,7 @@ const TRANSLATIONS = {
     'biz.sb_f3': 'Ingen månedskostnad',
     'biz.sb_f4': 'Endringer etter 90 dager: 490 kr oppstart + 690 kr/t',
     'biz.sc_lav_features': 'Hosting · SSL · oppetid',
-    'biz.sc_med_features': 'Alt i Lav + 2 endringer/mnd',
+    'biz.sc_med_features': 'Alt i Lav + 3 endringer/mnd',
     'biz.sc_hoy_features': 'Alt i Medium + ukentlige oppdateringer',
   },
   en: {
@@ -1605,7 +1605,7 @@ const TRANSLATIONS = {
     'biz.sb_f3': 'No monthly fee',
     'biz.sb_f4': 'Changes after 90 days: 490 kr setup + 690 kr/hr',
     'biz.sc_lav_features': 'Hosting · SSL · uptime',
-    'biz.sc_med_features': 'Everything in Low + 2 changes/mo',
+    'biz.sc_med_features': 'Everything in Low + 3 changes/mo',
     'biz.sc_hoy_features': 'Everything in Medium + weekly updates',
   },
 };

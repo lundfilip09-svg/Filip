@@ -516,21 +516,21 @@
           <div class="sales-tier-name" data-i18n="biz.tier_lav">Lav</div>
           <div class="sales-tier-incl" data-i18n="biz.sc_lav_features">Hosting · SSL · oppetid</div>
         </div>
-        <div class="sales-tier-price">490 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+        <div class="sales-tier-price">690 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
       </div>
       <div class="sales-tier-row">
         <div class="sales-tier-left">
           <div class="sales-tier-name" data-i18n="biz.tier_medium">Medium</div>
-          <div class="sales-tier-incl" data-i18n="biz.sc_med_features">Alt i Lav + 2 endringer/mnd</div>
+          <div class="sales-tier-incl" data-i18n="biz.sc_med_features">Alt i Lav + 3 endringer/mnd</div>
         </div>
-        <div class="sales-tier-price">790 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+        <div class="sales-tier-price">1190 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
       </div>
       <div class="sales-tier-row">
         <div class="sales-tier-left">
           <div class="sales-tier-name" data-i18n="biz.tier_hoy">Høy</div>
           <div class="sales-tier-incl" data-i18n="biz.sc_hoy_features">Alt i Medium + ukentlige oppdateringer</div>
         </div>
-        <div class="sales-tier-price">1490 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+        <div class="sales-tier-price">1990 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
       </div>
     </div>
   </div>
@@ -572,7 +572,7 @@
   const LOCAL_STATE_KEY = "business_state_v2";
   const FALLBACK_FX     = 11.5;
 
-  const TIER_PRICES = { Lav: 490, Medium: 790, "Høy": 1490 };
+  const TIER_PRICES = { Lav: 690, Medium: 1190, "Høy": 1990 };
   const CONTRACT_HOURLY_RATE  = 690;
   const SCENARIO_B_RESTART_FEE = 490;
 
@@ -1061,7 +1061,7 @@
     utforende:       "Filip Lund",
     fakturautsteder: "Frilans Finans Norge AS",
     orgnr:           "",
-    kontakt:         "filip.lund09@gmail.com"
+    kontakt:         "f.lund.konsulent@gmail.com"
   };
 
   const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret forfaller ved bestilling.";
@@ -1069,7 +1069,7 @@
   const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
 
   function getScopeTextC() {
-    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (490 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (790 kr/mnd) inkluderes 2 små endringer/mnd. For Høy (1490 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
+    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (690 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (1190 kr/mnd) inkluderes 3 små endringer/mnd. For Høy (1990 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
   }
 
   function defaultScopeText(c) {
@@ -1219,7 +1219,7 @@ For hver bedrift, oppgi nøyaktig:
 * Google-rating og antall anmeldelser
 * Hovedproblem (Hvorfor de er sårbare digitalt)
 * Konkret løsning (Hva en ny nettside skal fikse for dem, f.eks. forhåndsbestilling)
-* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (490 kr/mnd), Middels (790 kr/mnd) eller Høy (1490 kr/mnd), inkludert eventuelt engangsbeløp for oppsett, basert på hvor mye logistikk/bestilling de har. Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
+* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (690 kr/mnd), Middels (1190 kr/mnd) eller Høy (1990 kr/mnd), inkludert eventuelt engangsbeløp for oppsett, basert på hvor mye logistikk/bestilling de har. Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
 
 Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
@@ -1269,7 +1269,7 @@ Undersøk og vurder Lovables fulle spekter av funksjoner opp mot dataene over, o
 
 Del 1: Sårbarhetsanalyse (Finn digitale mangler og logistikkproblemer).
 
-Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke spesifikke Lovable-features vil gi akkurat denne bedriften størst verdi? Anbefal om jeg skal legge dem på Lav (490 kr/mnd), Medium (790 kr/mnd) eller Høy (1490 kr/mnd) avtale basert på de foreslåtte funksjonene).
+Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke spesifikke Lovable-features vil gi akkurat denne bedriften størst verdi? Anbefal om jeg skal legge dem på Lav (690 kr/mnd), Medium (1190 kr/mnd) eller Høy (1990 kr/mnd) avtale basert på de foreslåtte funksjonene).
 
 Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pitcher akkurat denne unike løsningen, inkludert '[SETT INN DIN LOVABLE-LENKE HER]').`;
   }
