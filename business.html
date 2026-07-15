@@ -186,11 +186,125 @@
 @media (prefers-reduced-motion: reduce){
   .biz-table tbody tr.row-enter,.biz-table tbody tr.row-leave,.leadgen-fields.fields-enter{animation:none}
 }
+
+/* ── Tab-veksler ── */
+.biz-tab-bar{
+  display:flex;gap:0;border-bottom:1px solid var(--hairline-soft);
+  margin-bottom:20px;
+}
+.biz-tab{
+  padding:11px 20px;font-size:13px;font-weight:600;
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  color:var(--text-tertiary);cursor:pointer;margin-bottom:-1px;
+  transition:color .14s,border-color .14s;
+  white-space:nowrap;
+}
+.biz-tab.active{color:var(--text-primary);border-bottom-color:var(--accent-blue)}
+.biz-tab:hover:not(.active){color:var(--text-secondary)}
+
+/* ── Salgspresentasjon — mørk glassmorphism ── */
+.sales-hero{text-align:center;padding:28px 12px 22px}
+.sales-hero-title{
+  font-size:24px;font-weight:800;color:var(--text-primary);
+  letter-spacing:-.025em;margin-bottom:8px;
+}
+.sales-hero-sub{font-size:13px;color:var(--text-secondary);line-height:1.5}
+
+.sales-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;
+}
+@media(max-width:860px){.sales-grid{grid-template-columns:1fr;gap:14px}}
+
+.sales-card{
+  border-radius:var(--radius-lg);border:1px solid var(--hairline-soft);
+  padding:22px 20px 20px;position:relative;overflow:hidden;
+  background:rgba(255,255,255,.025);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  transition:transform .15s,box-shadow .15s;
+  display:flex;flex-direction:column;
+}
+.sales-card:hover{transform:translateY(-3px);box-shadow:0 18px 48px rgba(0,0,0,.42)}
+
+.sales-card-glow{
+  position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+}
+.scenario-a .sales-card-glow{background:linear-gradient(140deg,rgba(91,164,245,.07),transparent 52%)}
+.scenario-b .sales-card-glow{background:linear-gradient(140deg,rgba(180,120,255,.07),transparent 52%)}
+.scenario-c .sales-card-glow{background:linear-gradient(140deg,rgba(95,217,154,.07),transparent 52%)}
+
+.sales-card-icon{font-size:28px;margin-bottom:10px;line-height:1}
+.sales-card-badge{
+  display:inline-block;font-size:9px;font-family:var(--font-mono);font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--text-tertiary);
+  background:var(--surface-1);border:1px solid var(--hairline-soft);
+  border-radius:4px;padding:2px 8px;margin-bottom:10px;
+}
+.sales-card-title{font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.sales-card-desc{
+  font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:16px;
+  flex-shrink:0;
+}
+
+.sales-price-block{margin-bottom:12px}
+.sales-price-row{display:flex;align-items:baseline;gap:4px}
+.sales-price-main{
+  font-size:40px;font-weight:900;font-family:var(--font-mono);
+  color:var(--text-primary);line-height:1;letter-spacing:-.03em;
+}
+.sales-price-unit{font-size:14px;color:var(--text-tertiary);font-family:var(--font-mono)}
+.sales-price-note{font-size:11px;color:var(--text-tertiary);margin-top:5px;line-height:1.4}
+
+.sales-divider{height:1px;background:var(--hairline-soft);margin:14px 0}
+
+.sales-features{
+  list-style:none;padding:0;margin:0;
+  display:flex;flex-direction:column;gap:8px;
+  flex:1;
+}
+.sales-features li{
+  font-size:12.5px;color:var(--text-secondary);
+  display:flex;gap:8px;align-items:flex-start;line-height:1.45;
+}
+.sales-features li .sf-check{color:var(--success);font-weight:700;flex-shrink:0;margin-top:1px;font-size:13px}
+.sales-features li .sf-warn{color:var(--warning);flex-shrink:0;margin-top:1px;font-size:13px}
+
+/* Scenario C: tiers-tabell inne i kortet */
+.sales-tier-rows{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.sales-tier-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;
+  background:var(--surface-1);border:1px solid var(--hairline-soft);
+  border-radius:var(--radius-sm);
+}
+.sales-tier-left{display:flex;flex-direction:column;gap:2px}
+.sales-tier-name{font-size:12px;font-weight:700;color:var(--text-primary)}
+.sales-tier-incl{font-size:10px;color:var(--text-tertiary);line-height:1.35}
+.sales-tier-price{
+  font-size:16px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-primary);white-space:nowrap;flex-shrink:0;
+}
+
+.sales-footer-note{
+  text-align:center;padding:10px 0 6px;
+  font-size:11px;color:var(--text-tertiary);
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;
+}
 </style>
 </head>
 <body>
 <nav class="main-nav" data-nav></nav>
 <div class="page">
+
+<!-- ── Tab-veksler ── -->
+<div class="biz-tab-bar">
+  <button id="tabAccounting" class="biz-tab active" data-i18n="biz.accounting_tab">Regnskap</button>
+  <button id="tabPricing" class="biz-tab" data-i18n="biz.pricing_tab">Produkter &amp; priser</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     REGNSKAPSVISNING
+═══════════════════════════════════════════════════════════ -->
+<div id="accountingView">
 
 <div class="card">
 <div class="section-title" data-i18n="biz.accounting">Business Command Center</div>
@@ -323,7 +437,112 @@
 <button id="leadgenCopyBtn" class="btn btn-primary copy-btn" data-prompt="research" data-i18n="biz.copy">Copy</button>
 </div>
 
+</div><!-- /accountingView -->
+
+<!-- ══════════════════════════════════════════════════════════
+     SALGSPRESENTASJON
+═══════════════════════════════════════════════════════════ -->
+<div id="pricingView" hidden>
+
+<div class="sales-hero">
+  <div class="sales-hero-title" data-i18n="biz.sales_page_title">Nettside-pakker</div>
+  <div class="sales-hero-sub">Lovable.dev · Vercel · Supabase</div>
 </div>
+
+<div class="sales-grid">
+
+  <!-- Scenario A -->
+  <div class="sales-card scenario-a">
+    <div class="sales-card-glow"></div>
+    <div class="sales-card-icon">🚀</div>
+    <div class="sales-card-badge" data-i18n="biz.scenario_a">Scenario A</div>
+    <div class="sales-card-title" data-i18n="biz.sa_title">Prosjektoverføring</div>
+    <div class="sales-card-desc" data-i18n="biz.scenario_a_desc">Kunden overtar prosjektet selv etter godkjent leveranse. Videre arbeid faktureres per time.</div>
+
+    <div class="sales-price-block">
+      <div class="sales-price-row">
+        <span class="sales-price-main">—</span>
+      </div>
+      <div class="sales-price-note" data-i18n="biz.onetime_delivery">Engangsleveranse</div>
+    </div>
+
+    <div class="sales-divider"></div>
+
+    <ul class="sales-features">
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sa_f1">Komplett nettside etter dine krav</span></li>
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sa_f2">Skriftlig godkjenning før overføring</span></li>
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sa_f3">Kunden eier kildekoden 100%</span></li>
+      <li><span class="sf-warn">⚡</span><span data-i18n="biz.sa_f4">Fremtidige endringer: 690 kr/t</span></li>
+    </ul>
+  </div>
+
+  <!-- Scenario B -->
+  <div class="sales-card scenario-b">
+    <div class="sales-card-glow"></div>
+    <div class="sales-card-icon">☁️</div>
+    <div class="sales-card-badge" data-i18n="biz.scenario_b">Scenario B</div>
+    <div class="sales-card-title" data-i18n="biz.sb_title">Serverløs Hosting</div>
+    <div class="sales-card-desc" data-i18n="biz.scenario_b_desc">Gratis serverløs hosting. Første 90 dager uten oppstartsgebyr ved endringer, deretter 490 kr per forespørsel.</div>
+
+    <div class="sales-price-block">
+      <div class="sales-price-row">
+        <span class="sales-price-main">490</span>
+        <span class="sales-price-unit" data-i18n="biz.onetime_setup">kr oppstart</span>
+      </div>
+      <div class="sales-price-note">+ 690 <span data-i18n="biz.hourly_rate">kr/t</span> · etter 90 dager</div>
+    </div>
+
+    <div class="sales-divider"></div>
+
+    <ul class="sales-features">
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sb_f1">Gratis hosting på Vercel eller Netlify</span></li>
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sb_f2">SSL-sertifikat + tilpasset domene</span></li>
+      <li><span class="sf-check">✓</span><span data-i18n="biz.sb_f3">Ingen månedskostnad</span></li>
+      <li><span class="sf-warn">⚡</span><span data-i18n="biz.sb_f4">Endringer etter 90 dager: 490 kr oppstart + 690 kr/t</span></li>
+    </ul>
+  </div>
+
+  <!-- Scenario C -->
+  <div class="sales-card scenario-c">
+    <div class="sales-card-glow"></div>
+    <div class="sales-card-icon">🛡️</div>
+    <div class="sales-card-badge" data-i18n="biz.scenario_c">Scenario C</div>
+    <div class="sales-card-title" data-i18n="biz.sc_title">Full Driftsavtale</div>
+    <div class="sales-card-desc" data-i18n="biz.scenario_c_desc">Full driftsavtale med hosting, SSL og oppetid. Medium/Høy inkluderer faste endringer per måned.</div>
+
+    <div class="sales-tier-rows">
+      <div class="sales-tier-row">
+        <div class="sales-tier-left">
+          <div class="sales-tier-name" data-i18n="biz.tier_lav">Lav</div>
+          <div class="sales-tier-incl" data-i18n="biz.sc_lav_features">Hosting · SSL · oppetid</div>
+        </div>
+        <div class="sales-tier-price">490 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+      </div>
+      <div class="sales-tier-row">
+        <div class="sales-tier-left">
+          <div class="sales-tier-name" data-i18n="biz.tier_medium">Medium</div>
+          <div class="sales-tier-incl" data-i18n="biz.sc_med_features">Alt i Lav + 2 endringer/mnd</div>
+        </div>
+        <div class="sales-tier-price">790 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+      </div>
+      <div class="sales-tier-row">
+        <div class="sales-tier-left">
+          <div class="sales-tier-name" data-i18n="biz.tier_hoy">Høy</div>
+          <div class="sales-tier-incl" data-i18n="biz.sc_hoy_features">Alt i Medium + ukentlige oppdateringer</div>
+        </div>
+        <div class="sales-tier-price">1490 <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)" data-i18n="biz.per_month">kr/mnd</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sales-grid -->
+
+<div class="sales-footer-note" data-i18n="biz.sales_price_note">Alle priser eks. mva. · Timesats 690 kr/t</div>
+
+</div><!-- /pricingView -->
+
+</div><!-- /page -->
+
 <div class="modal-overlay" id="notesModalOverlay" hidden>
 <div class="modal-card">
 <div class="modal-head">
@@ -349,140 +568,228 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "business_state";
-  const LEGACY_CUSTOMERS_KEY = "business_customers";
-  const LEGACY_FX_KEY = "business_fx";
-  const FALLBACK_FX = 11.5;
+  // ── Konstanter ─────────────────────────────────────────────────────────────
+  const LOCAL_STATE_KEY = "business_state_v2";
+  const FALLBACK_FX     = 11.5;
 
-  const TIER_PRICES = {
-    Lav: 490,
-    Medium: 790,
-    "Høy": 1490
+  const TIER_PRICES = { Lav: 490, Medium: 790, "Høy": 1490 };
+  const CONTRACT_HOURLY_RATE  = 690;
+  const SCENARIO_B_RESTART_FEE = 490;
+
+  const TIER_LABEL_KEYS = {
+    Lav: "biz.tier_lav", Medium: "biz.tier_medium",
+    "Høy": "biz.tier_hoy", Custom: "biz.tier_custom"
+  };
+  const BUSINESS_MODEL_ORDER = ["A", "B", "C", "Custom"];
+  const BUSINESS_MODEL_LABEL_KEYS = {
+    A: "biz.bm_a", B: "biz.bm_b", C: "biz.bm_c", Custom: "biz.bm_custom"
+  };
+  const STATUS_CLASS = { Aktiv: "st-active", Pauset: "st-paused", Avsluttet: "st-ended" };
+  const STATUS_LABEL_KEYS = {
+    Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet"
   };
 
-  const CONTRACT_HOURLY_RATE = 690;
-  let activeModalIndex = null;
-
-  const DEFAULT_STATE = {
+  // ── State (kunder kommer fra Supabase; resten fra localStorage) ────────────
+  const state = {
     customers: [],
-    fx: {
-      rate: FALLBACK_FX,
-      updatedAt: null
-    },
+    fx:          { rate: FALLBACK_FX, updatedAt: null },
     lovablePlan: "0",
     inputs: {
-      city: "",
-      industry: "",
-      lbBizName: "",
-      lbMapsPaste: "",
-      salesBizName: "",
-      salesMapsPaste: ""
+      city: "", industry: "",
+      lbBizName: "", lbMapsPaste: "",
+      salesBizName: "", salesMapsPaste: ""
     }
   };
 
-  const $ = (selector, root = document) => root.querySelector(selector);
+  let db = null;
+  let activeModalId = null; // UUID-streng for åpen notat-modal
+
+  // ── DOM-referanser ──────────────────────────────────────────────────────────
+  const $ = (sel, root = document) => root.querySelector(sel);
 
   const el = {
-    customerRows: $("#customerRows"),
-    addCustomer: $("#addCustomer"),
-    revMetric: $("#revMetric"),
-    oneTimeMetric: $("#oneTimeMetric"),
-    expMetric: $("#expMetric"),
-    profitMetric: $("#profitMetric"),
-    lovablePlan: $("#lovablePlan"),
-    fxInfo: $("#fxInfo"),
-    city: $("#city"),
-    industry: $("#industry"),
-    lbBizName: $("#lbBizName"),
-    lbMapsPaste: $("#lbMapsPaste"),
-    salesBizName: $("#salesBizName"),
-    salesMapsPaste: $("#salesMapsPaste"),
-    leadgenType: $("#leadgenType"),
-    leadgenCopyBtn: $("#leadgenCopyBtn"),
-    notesModalOverlay: $("#notesModalOverlay"),
-    notesModalTitle: $("#notesModalTitle"),
-    customerNotes: $("#customer-notes"),
-    customScope: $("#custom-scope")
+    customerRows:       $("#customerRows"),
+    addCustomer:        $("#addCustomer"),
+    revMetric:          $("#revMetric"),
+    oneTimeMetric:      $("#oneTimeMetric"),
+    expMetric:          $("#expMetric"),
+    profitMetric:       $("#profitMetric"),
+    lovablePlan:        $("#lovablePlan"),
+    fxInfo:             $("#fxInfo"),
+    city:               $("#city"),
+    industry:           $("#industry"),
+    lbBizName:          $("#lbBizName"),
+    lbMapsPaste:        $("#lbMapsPaste"),
+    salesBizName:       $("#salesBizName"),
+    salesMapsPaste:     $("#salesMapsPaste"),
+    leadgenType:        $("#leadgenType"),
+    leadgenCopyBtn:     $("#leadgenCopyBtn"),
+    notesModalOverlay:  $("#notesModalOverlay"),
+    notesModalTitle:    $("#notesModalTitle"),
+    customerNotes:      $("#customer-notes"),
+    customScope:        $("#custom-scope"),
+    tabAccounting:      $("#tabAccounting"),
+    tabPricing:         $("#tabPricing"),
+    accountingView:     $("#accountingView"),
+    pricingView:        $("#pricingView")
   };
 
-  function cloneDefaultState() {
-    return JSON.parse(JSON.stringify(DEFAULT_STATE));
-  }
-
-  function safeJsonParse(value, fallback) {
+  // ── LocalStorage: kun fx + lovable + leadgen-inputs ──────────────────────
+  function loadLocalState() {
     try {
-      return value ? JSON.parse(value) : fallback;
-    } catch {
-      return fallback;
-    }
+      const stored = JSON.parse(localStorage.getItem(LOCAL_STATE_KEY) || "{}");
+      if (stored.fx)          state.fx          = { ...state.fx, ...stored.fx };
+      if (stored.lovablePlan) state.lovablePlan = stored.lovablePlan;
+      if (stored.inputs)      state.inputs      = { ...state.inputs, ...stored.inputs };
+    } catch {}
   }
 
-  function loadState() {
-    const stored = safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
-    const base = cloneDefaultState();
+  function saveLocalState() {
+    localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify({
+      fx:          state.fx,
+      lovablePlan: state.lovablePlan,
+      inputs:      state.inputs
+    }));
+  }
 
-    if (stored && typeof stored === "object") {
-      return {
-        ...base,
-        ...stored,
-        fx: { ...base.fx, ...(stored.fx || {}) },
-        inputs: { ...base.inputs, ...(stored.inputs || {}) },
-        customers: Array.isArray(stored.customers) ? stored.customers : []
-      };
-    }
-
-    const legacyCustomers = safeJsonParse(localStorage.getItem(LEGACY_CUSTOMERS_KEY), []);
-    const legacyFx = Number(localStorage.getItem(LEGACY_FX_KEY));
-
+  // ── DB → intern representasjon ─────────────────────────────────────────────
+  function dbToCustomer(row) {
+    const tier = Object.prototype.hasOwnProperty.call(TIER_PRICES, row.tier) ? row.tier : "Lav";
+    const businessModel = BUSINESS_MODEL_ORDER.includes(row.business_model) ? row.business_model : "A";
+    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
     return {
-      ...base,
-      customers: Array.isArray(legacyCustomers) ? legacyCustomers : [],
-      fx: {
-        rate: Number.isFinite(legacyFx) && legacyFx > 0 ? legacyFx : FALLBACK_FX,
-        updatedAt: null
-      }
+      id:           row.id,
+      name:         row.name         || "",
+      contact:      row.contact      || "",
+      tier,
+      businessModel,
+      price:        Number(row.price      ?? (isStandardTier ? TIER_PRICES[tier] : 0)),
+      oneTimeFee:   Number(row.one_time_fee ?? 0),
+      start:        row.start_date   || "",
+      status:       row.status       || "Aktiv",
+      notes:        row.notes        || "",
+      customScope:  row.custom_scope || ""
     };
   }
 
-  const state = loadState();
-
-  function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    localStorage.setItem(LEGACY_CUSTOMERS_KEY, JSON.stringify(state.customers));
-    localStorage.setItem(LEGACY_FX_KEY, String(state.fx.rate || FALLBACK_FX));
+  function customerToDbFields(c) {
+    return {
+      name:          c.name,
+      contact:       c.contact,
+      tier:          c.tier,
+      business_model: c.businessModel,
+      price:         c.price,
+      one_time_fee:  c.oneTimeFee,
+      start_date:    c.start || null,
+      status:        c.status,
+      notes:         c.notes,
+      custom_scope:  c.customScope
+    };
   }
 
+  function normalizeCustomer(c) {
+    const tier = Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier) ? c.tier : "Lav";
+    const businessModel = BUSINESS_MODEL_ORDER.includes(c.businessModel) ? c.businessModel : "A";
+    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
+    return {
+      ...c,
+      tier,
+      businessModel,
+      price:       Number(c.price       ?? (isStandardTier ? TIER_PRICES[tier] : 0)),
+      oneTimeFee:  Number(c.oneTimeFee  ?? 0),
+      name:        c.name       || "",
+      contact:     c.contact    || "",
+      start:       c.start      || "",
+      status:      c.status     || "Aktiv",
+      notes:       c.notes      || "",
+      customScope: c.customScope || ""
+    };
+  }
+
+  // ── Supabase CRUD ──────────────────────────────────────────────────────────
+  async function fetchCustomers() {
+    const { data, error } = await db
+      .from("business_customers")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data || []).map(dbToCustomer);
+  }
+
+  async function addCustomerToDb() {
+    const { data, error } = await db
+      .from("business_customers")
+      .insert([{
+        name: "", contact: "", tier: "Lav",
+        business_model: "A", price: TIER_PRICES.Lav,
+        one_time_fee: 0, start_date: null,
+        status: "Aktiv", notes: "", custom_scope: ""
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return dbToCustomer(data);
+  }
+
+  async function deleteCustomerFromDb(id) {
+    const { error } = await db.from("business_customers").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  // Debounced skriving per kunde-id — forhindrer flooding ved rask tastetrykk
+  const _dbTimers = {};
+
+  async function updateCustomerInDb(id, fields) {
+    const { error } = await db.from("business_customers").update(fields).eq("id", id);
+    if (error) toast(t("biz.sync_error"), "err");
+  }
+
+  function scheduleDbUpdate(customer, immediate = false) {
+    const id = customer.id;
+    if (!id) return;
+    if (_dbTimers[id]) clearTimeout(_dbTimers[id]);
+
+    if (immediate) {
+      updateCustomerInDb(id, customerToDbFields(customer));
+    } else {
+      _dbTimers[id] = setTimeout(() => {
+        delete _dbTimers[id];
+        updateCustomerInDb(id, customerToDbFields(customer));
+      }, 400);
+    }
+  }
+
+  function flushPendingDbUpdates() {
+    Object.keys(_dbTimers).forEach(id => {
+      clearTimeout(_dbTimers[id]);
+      delete _dbTimers[id];
+      const c = state.customers.find(x => x.id === id);
+      if (c) updateCustomerInDb(id, customerToDbFields(c));
+    });
+  }
+
+  // ── Hjelpe-funksjoner ──────────────────────────────────────────────────────
   function moneyNok(value) {
     return new Intl.NumberFormat("nb-NO", {
-      style: "currency",
-      currency: "NOK",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      style: "currency", currency: "NOK",
+      minimumFractionDigits: 2, maximumFractionDigits: 2
     }).format(Number(value) || 0);
   }
 
-  // ── Formatert kr-input (Pris / Engangsbeløp) ────────────────────────────
-  // Viser "49 000,00 kr" i feltet, men lagrer/leser rått tall internt.
-  function formatMoneyInput(value) {
-    return moneyNok(value);
-  }
+  function formatMoneyInput(value) { return moneyNok(value); }
 
   function parseMoneyInput(raw) {
     const cleaned = String(raw ?? "")
-      .replace(/[^\d,.-]/g, "")   // fjern "kr", mellomrom (inkl. NBSP), bokstaver
-      .replace(/\.(?=\d{3}(\D|$))/g, "") // punktum som tusenskille
-      .replace(",", ".");        // komma som desimalskille
+      .replace(/[^\d,.-]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".");
     const n = parseFloat(cleaned);
     return Number.isFinite(n) ? n : 0;
   }
 
-  // Rått, redigerbart tall uten "kr"/tusenskille – vises mens feltet er i fokus
-  // slik at backspace/slett fungerer overalt i feltet, ikke bare på tallet.
   function plainMoneyValue(value) {
     return Number(value || 0).toLocaleString("nb-NO", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      useGrouping: false
+      minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false
     });
   }
 
@@ -497,214 +804,9 @@
 
   function escapeHtml(value) {
     return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
-  }
-
-  function normalizeCustomer(customer = {}) {
-    const tier = customer.tier || "Lav";
-    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
-
-    const businessModel = BUSINESS_MODEL_ORDER.includes(customer.businessModel) ? customer.businessModel : "A";
-
-    return {
-      name: customer.name || "",
-      contact: customer.contact || "",
-      tier,
-      businessModel,
-      price: Number(customer.price || (isStandardTier ? TIER_PRICES[tier] : 0)),
-      oneTimeFee: Number(customer.oneTimeFee || 0),
-      start: customer.start || "",
-      status: customer.status || "Aktiv",
-      notes: customer.notes || "",
-      customScope: customer.customScope || ""
-    };
-  }
-
-  function activeCustomers() {
-    return state.customers.filter(customer => customer.status === "Aktiv");
-  }
-
-  function revenueNok() {
-    return activeCustomers().reduce((sum, customer) => sum + Number(customer.price || 0), 0);
-  }
-
-  function oneTimeRevenueNok() {
-    return state.customers.reduce((sum, customer) => sum + Number(customer.oneTimeFee || 0), 0);
-  }
-
-  function expenseNok() {
-    return Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
-  }
-
-  const TIER_LABEL_KEYS = { Lav: "biz.tier_lav", Medium: "biz.tier_medium", "Høy": "biz.tier_hoy", Custom: "biz.tier_custom" };
-  const BUSINESS_MODEL_ORDER = ["A", "B", "C", "Custom"];
-  const BUSINESS_MODEL_LABEL_KEYS = { A: "biz.bm_a", B: "biz.bm_b", C: "biz.bm_c", Custom: "biz.bm_custom" };
-  const STATUS_CLASS = { Aktiv: "st-active", Pauset: "st-paused", Avsluttet: "st-ended" };
-
-  const STATUS_LABEL_KEYS = { Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet" };
-
-  function renderCustomers({ animateNew = false } = {}) {
-    if (!el.customerRows) return;
-
-    el.customerRows.innerHTML = state.customers.map((rawCustomer, index) => {
-      const customer = normalizeCustomer(rawCustomer);
-      state.customers[index] = customer;
-
-      return `
-        <tr data-id="${index}">
-          <td><input class="cust-name" value="${escapeHtml(customer.name)}" autocomplete="off"></td>
-          <td><input class="cust-contact" value="${escapeHtml(customer.contact)}" autocomplete="off"></td>
-          <td>
-            <select class="cust-tier">
-              ${["Lav", "Medium", "Høy", "Custom"].map(tier => (
-                `<option value="${escapeHtml(tier)}" ${customer.tier === tier ? "selected" : ""}>${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</option>`
-              )).join("")}
-            </select>
-          </td>
-          <td>
-            <select class="cust-bizmodel">
-              ${BUSINESS_MODEL_ORDER.map(bm => (
-                `<option value="${escapeHtml(bm)}" ${customer.businessModel === bm ? "selected" : ""}>${escapeHtml(t(BUSINESS_MODEL_LABEL_KEYS[bm]))}</option>`
-              )).join("")}
-            </select>
-          </td>
-          <td><input type="text" inputmode="decimal" class="cust-price money-input" value="${formatMoneyInput(customer.price)}"></td>
-          <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(customer.oneTimeFee)}"></td>
-          <td><input type="date" class="cust-date" value="${escapeHtml(customer.start)}"></td>
-          <td>
-            <button type="button" class="cust-status-dot ${STATUS_CLASS[customer.status] || "st-active"}" data-status="${escapeHtml(customer.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
-          </td>
-          <td>
-            <div class="cust-actions">
-              <button type="button" class="btn btn-icon notes-btn${(customer.notes || customer.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
-              <button type="button" class="btn btn-icon print-contract-btn" aria-label="${escapeHtml(t("biz.print_contract"))}" title="${escapeHtml(t("biz.print_contract"))}">🖨️</button>
-              <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    if (animateNew && el.customerRows.lastElementChild) {
-      el.customerRows.lastElementChild.classList.add("row-enter");
-    }
-
-    saveState();
-    renderMetrics();
-  }
-
-  function renderFxInfo() {
-    if (!el.fxInfo) return;
-
-    const eur = Number(state.lovablePlan || 0);
-    const rate = Number(state.fx.rate || FALLBACK_FX);
-    const nokValue = eur * rate;
-
-    el.fxInfo.innerHTML = `<div class="biz-fx-lbl">${escapeHtml(t("biz.cost_nok"))}</div><div class="metric-val">${moneyNok(nokValue)}</div>`;
-  }
-
-  function renderMetrics() {
-    const revenue = revenueNok();
-    const oneTime = oneTimeRevenueNok();
-    const expense = expenseNok();
-    const profit = revenue - expense;
-
-    if (el.revMetric) el.revMetric.textContent = moneyNok(revenue);
-    if (el.oneTimeMetric) el.oneTimeMetric.textContent = moneyNok(oneTime);
-    if (el.expMetric) el.expMetric.textContent = moneyNok(expense);
-    if (el.profitMetric) el.profitMetric.textContent = moneyNok(profit);
-
-    renderFxInfo();
-  }
-
-  async function loadFxRate() {
-    const cachedRate = Number(state.fx.rate || localStorage.getItem(LEGACY_FX_KEY) || FALLBACK_FX);
-    state.fx.rate = Number.isFinite(cachedRate) && cachedRate > 0 ? cachedRate : FALLBACK_FX;
-    renderMetrics();
-
-    try {
-      const response = await fetch("https://frankfurter.app/latest?from=EUR&to=NOK", {
-        cache: "no-store"
-      });
-
-      if (!response.ok) throw new Error(`FX request failed: ${response.status}`);
-
-      const data = await response.json();
-      const liveRate = Number(data?.rates?.NOK);
-
-      if (!Number.isFinite(liveRate) || liveRate <= 0) {
-        throw new Error("Invalid NOK rate");
-      }
-
-      state.fx.rate = liveRate;
-      state.fx.updatedAt = new Date().toISOString();
-      saveState();
-    } catch {
-      state.fx.rate = Number.isFinite(cachedRate) && cachedRate > 0 ? cachedRate : FALLBACK_FX;
-      saveState();
-    }
-
-    renderMetrics();
-  }
-
-  // ── Debounce av tunge operasjoner (localStorage-write + dropdown-rebuild) ──
-  // Disse trenger IKKE kjøre på hvert tastetrykk — kun etter en kort pause,
-  // ved blur/change, eller når siden lukkes/skjules. renderMetrics() er billig
-  // (kun textContent) og kjører fortsatt live for umiddelbar tilbakemelding.
-  let _pendingHeavy = null;
-  let _pendingNameChanged = false;
-
-  function flushHeavyUpdate() {
-    if (_pendingHeavy) { clearTimeout(_pendingHeavy); _pendingHeavy = null; }
-    saveState();
-    if (_pendingNameChanged) {
-      populateBusinessDropdown();
-      _pendingNameChanged = false;
-    }
-  }
-
-  function readCustomerRow(row, { defer = false, nameChanged = false } = {}) {
-    const index = Number(row.dataset.id);
-    const existing = normalizeCustomer(state.customers[index]);
-
-    existing.name = $(".cust-name", row)?.value || "";
-    existing.contact = $(".cust-contact", row)?.value || "";
-    existing.tier = $(".cust-tier", row)?.value || "Lav";
-    existing.businessModel = BUSINESS_MODEL_ORDER.includes($(".cust-bizmodel", row)?.value)
-      ? $(".cust-bizmodel", row).value
-      : "A";
-    existing.start = $(".cust-date", row)?.value || "";
-    const statusDot = $(".cust-status-dot", row);
-    existing.status = statusDot?.dataset.status || "Aktiv";
-
-    const priceInput = $(".cust-price", row);
-    const oneTimeInput = $(".cust-onetime", row);
-    existing.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
-
-    if (Object.prototype.hasOwnProperty.call(TIER_PRICES, existing.tier)) {
-      existing.price = TIER_PRICES[existing.tier];
-      if (priceInput && document.activeElement !== priceInput) {
-        priceInput.value = formatMoneyInput(existing.price);
-      }
-    } else {
-      existing.price = parseMoneyInput(priceInput?.value);
-    }
-
-    state.customers[index] = existing;
-    renderMetrics();
-
-    if (nameChanged) _pendingNameChanged = true;
-
-    if (defer) {
-      clearTimeout(_pendingHeavy);
-      _pendingHeavy = setTimeout(flushHeavyUpdate, 300);
-    } else {
-      flushHeavyUpdate();
-    }
   }
 
   function cssId(id) {
@@ -712,15 +814,147 @@
     return String(id).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
   }
 
+  // ── Metrikker ──────────────────────────────────────────────────────────────
+  function activeCustomers() {
+    return state.customers.filter(c => c.status === "Aktiv");
+  }
+
+  function revenueNok() {
+    return activeCustomers().reduce((s, c) => s + Number(c.price || 0), 0);
+  }
+
+  function oneTimeRevenueNok() {
+    return state.customers.reduce((s, c) => s + Number(c.oneTimeFee || 0), 0);
+  }
+
+  function expenseNok() {
+    return Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
+  }
+
+  function renderFxInfo() {
+    if (!el.fxInfo) return;
+    const eur = Number(state.lovablePlan || 0);
+    const nok = eur * Number(state.fx.rate || FALLBACK_FX);
+    el.fxInfo.innerHTML = `<div class="biz-fx-lbl">${escapeHtml(t("biz.cost_nok"))}</div><div class="metric-val">${moneyNok(nok)}</div>`;
+  }
+
+  function renderMetrics() {
+    const revenue = revenueNok();
+    const oneTime = oneTimeRevenueNok();
+    const expense = expenseNok();
+    const profit  = revenue - expense;
+
+    if (el.revMetric)      el.revMetric.textContent     = moneyNok(revenue);
+    if (el.oneTimeMetric)  el.oneTimeMetric.textContent  = moneyNok(oneTime);
+    if (el.expMetric)      el.expMetric.textContent      = moneyNok(expense);
+    if (el.profitMetric)   el.profitMetric.textContent   = moneyNok(profit);
+
+    renderFxInfo();
+  }
+
+  // ── Render kunderad ────────────────────────────────────────────────────────
+  function renderCustomers({ animateNew = false } = {}) {
+    if (!el.customerRows) return;
+
+    el.customerRows.innerHTML = state.customers.map(rawC => {
+      const c = normalizeCustomer(rawC);
+      // Oppdater in-place for å holde state synkronisert
+      const idx = state.customers.findIndex(x => x.id === rawC.id);
+      if (idx !== -1) state.customers[idx] = c;
+
+      return `
+        <tr data-id="${escapeHtml(c.id)}">
+          <td><input class="cust-name" value="${escapeHtml(c.name)}" autocomplete="off"></td>
+          <td><input class="cust-contact" value="${escapeHtml(c.contact)}" autocomplete="off"></td>
+          <td>
+            <select class="cust-tier">
+              ${["Lav", "Medium", "Høy", "Custom"].map(tier =>
+                `<option value="${escapeHtml(tier)}" ${c.tier === tier ? "selected" : ""}>${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</option>`
+              ).join("")}
+            </select>
+          </td>
+          <td>
+            <select class="cust-bizmodel">
+              ${BUSINESS_MODEL_ORDER.map(bm =>
+                `<option value="${escapeHtml(bm)}" ${c.businessModel === bm ? "selected" : ""}>${escapeHtml(t(BUSINESS_MODEL_LABEL_KEYS[bm]))}</option>`
+              ).join("")}
+            </select>
+          </td>
+          <td><input type="text" inputmode="decimal" class="cust-price money-input" value="${formatMoneyInput(c.price)}"></td>
+          <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(c.oneTimeFee)}"></td>
+          <td><input type="date" class="cust-date" value="${escapeHtml(c.start)}"></td>
+          <td>
+            <button type="button" class="cust-status-dot ${STATUS_CLASS[c.status] || "st-active"}" data-status="${escapeHtml(c.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
+          </td>
+          <td>
+            <div class="cust-actions">
+              <button type="button" class="btn btn-icon notes-btn${(c.notes || c.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
+              <button type="button" class="btn btn-icon print-contract-btn" aria-label="${escapeHtml(t("biz.print_contract"))}" title="${escapeHtml(t("biz.print_contract"))}">🖨️</button>
+              <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+            </div>
+          </td>
+        </tr>`;
+    }).join("");
+
+    if (animateNew && el.customerRows.lastElementChild) {
+      el.customerRows.lastElementChild.classList.add("row-enter");
+    }
+
+    renderMetrics();
+  }
+
+  // ── Lese rad og planlegge DB-oppdatering ───────────────────────────────────
+  let _pendingNameChanged = false;
+  let _nameRebuildTimer = null;
+
+  function readCustomerRow(row, { defer = false, nameChanged = false } = {}) {
+    const id  = row.dataset.id;
+    const idx = state.customers.findIndex(c => c.id === id);
+    if (idx === -1) return;
+
+    const c = normalizeCustomer(state.customers[idx]);
+
+    c.name    = $(".cust-name", row)?.value    || "";
+    c.contact = $(".cust-contact", row)?.value || "";
+    c.tier    = $(".cust-tier", row)?.value    || "Lav";
+    c.businessModel = BUSINESS_MODEL_ORDER.includes($(".cust-bizmodel", row)?.value)
+      ? $(".cust-bizmodel", row).value : "A";
+    c.start  = $(".cust-date", row)?.value || "";
+
+    const statusDot   = $(".cust-status-dot", row);
+    c.status = statusDot?.dataset.status || "Aktiv";
+
+    const priceInput   = $(".cust-price", row);
+    const oneTimeInput = $(".cust-onetime", row);
+    c.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
+
+    if (Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
+      c.price = TIER_PRICES[c.tier];
+      if (priceInput && document.activeElement !== priceInput) {
+        priceInput.value = formatMoneyInput(c.price);
+      }
+    } else {
+      c.price = parseMoneyInput(priceInput?.value);
+    }
+
+    state.customers[idx] = c;
+    renderMetrics();
+
+    scheduleDbUpdate(c, !defer);
+
+    if (nameChanged) {
+      clearTimeout(_nameRebuildTimer);
+      _nameRebuildTimer = setTimeout(populateBusinessDropdown, 300);
+    }
+  }
+
+  // ── Dropdowns ──────────────────────────────────────────────────────────────
   function syncInputsFromState() {
     Object.entries(state.inputs).forEach(([id, value]) => {
       const node = $(`#${cssId(id)}`);
       if (node) node.value = value || "";
     });
-
-    if (el.lovablePlan) {
-      el.lovablePlan.value = state.lovablePlan || "0";
-    }
+    if (el.lovablePlan) el.lovablePlan.value = state.lovablePlan || "0";
   }
 
   function saveInputsToState() {
@@ -728,18 +962,203 @@
       const node = $(`#${cssId(id)}`);
       if (node) state.inputs[id] = node.value || "";
     });
-
-    if (el.lovablePlan) {
-      state.lovablePlan = el.lovablePlan.value || "0";
-    }
-
-    saveState();
+    if (el.lovablePlan) state.lovablePlan = el.lovablePlan.value || "0";
+    saveLocalState();
   }
 
-  function buildResearchPrompt() {
-    const city = el.city?.value.trim() || "[STED]";
-    const industry = el.industry?.value.trim() || "[BRANSJE]";
+  function populateBusinessDropdown() {
+    const uniqueNames = [...new Set(
+      state.customers.map(c => (c.name || "").trim()).filter(Boolean)
+    )];
 
+    [$("#lovable-name-select"), $("#sales-name-select")].forEach(sel => {
+      if (!sel) return;
+      const prev = sel.value;
+      sel.innerHTML = `<option value="">${escapeHtml(t("biz.select_customer"))}</option>`
+        + uniqueNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+      if (uniqueNames.includes(prev)) sel.value = prev;
+    });
+  }
+
+  // ── Kunde CRUD ─────────────────────────────────────────────────────────────
+  async function addCustomer() {
+    try {
+      const newC = await addCustomerToDb();
+      state.customers.push(newC);
+      renderCustomers({ animateNew: true });
+      populateBusinessDropdown();
+    } catch {
+      toast(t("biz.sync_error"), "err");
+    }
+  }
+
+  async function deleteCustomer(button) {
+    const row = button.closest("tr");
+    if (!row) return;
+    const id = row.dataset.id;
+    if (!id) return;
+
+    row.classList.add("row-leave");
+
+    let done = false;
+    const finish = async () => {
+      if (done) return;
+      done = true;
+      try {
+        await deleteCustomerFromDb(id);
+      } catch {
+        toast(t("biz.sync_error"), "err");
+      }
+      state.customers = state.customers.filter(c => c.id !== id);
+      renderCustomers();
+      populateBusinessDropdown();
+    };
+
+    row.addEventListener("animationend", finish, { once: true });
+    setTimeout(finish, 220);
+  }
+
+  // ── Notat-modal ────────────────────────────────────────────────────────────
+  function openNotesModal(id) {
+    const c = state.customers.find(x => x.id === id);
+    if (!c) return;
+    activeModalId = id;
+
+    if (el.notesModalTitle) el.notesModalTitle.textContent = c.name || t("biz.unnamed_customer");
+    if (el.customerNotes)   el.customerNotes.value         = c.notes || "";
+    if (el.customScope)     el.customScope.value           = c.customScope || "";
+    if (el.notesModalOverlay) el.notesModalOverlay.hidden  = false;
+    el.customerNotes?.focus();
+  }
+
+  function closeNotesModal() {
+    if (el.notesModalOverlay) el.notesModalOverlay.hidden = true;
+    activeModalId = null;
+  }
+
+  function handleModalNotesInput(event) {
+    if (!activeModalId) return;
+    const idx = state.customers.findIndex(c => c.id === activeModalId);
+    if (idx === -1) return;
+    const c = { ...state.customers[idx] };
+
+    if (event.target === el.customerNotes)  c.notes       = el.customerNotes.value;
+    else if (event.target === el.customScope) c.customScope = el.customScope.value;
+    else return;
+
+    state.customers[idx] = c;
+    scheduleDbUpdate(c, false); // autosave med 400ms debounce
+
+    const row     = el.customerRows?.querySelector(`tr[data-id="${c.id}"]`);
+    const notesBtn = row?.querySelector(".notes-btn");
+    if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(c.notes || c.customScope));
+  }
+
+  // ── Kontrakt-print ─────────────────────────────────────────────────────────
+  // Scenario B: eksplisitt 90-dagersgrense for gjenoppstartsgebyr
+  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret forfaller ved bestilling.";
+
+  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev avsluttes reklamasjonsperioden, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr eks. mva.";
+
+  // Scenario C: support-begrensning for Lav gjelder kun nye avtaler (anti-retroaktivitet)
+  function getScopeTextC() {
+    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (490 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (790 kr/mnd) inkluderes 2 små endringer/mnd. For Høy (1490 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
+  }
+
+  function defaultScopeText(c) {
+    if (c.businessModel === "A") return SCOPE_TEXT_A;
+    if (c.businessModel === "B") return SCOPE_TEXT_B;
+    if (c.businessModel === "C") return getScopeTextC();
+    if (c.tier === "Lav") return "Kun hosting og drift av eksisterende nettløsning. Ingen endringer, videreutvikling eller nytt innhold er inkludert i denne avtalen.";
+    return "Utvikling og drift av en komplett, mobilresponsiv nettside bygget på moderne fullstack-arkitektur, tilpasset kundens behov.";
+  }
+
+  function nl2br(value) {
+    return escapeHtml(value).replace(/\n/g, "<br>");
+  }
+
+  function todayNo() {
+    return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
+  }
+
+  function buildContractHtml(c) {
+    const scopeText = (c.customScope && c.customScope.trim())
+      ? nl2br(c.customScope.trim())
+      : escapeHtml(defaultScopeText(c));
+
+    const priceLine   = c.price > 0
+      ? `<p><strong>Avtalt månedsbeløp:</strong> ${moneyNok(c.price)}, fakturert forskuddsvis den 1. i hver måned.</p>` : "";
+    const oneTimeLine = c.oneTimeFee > 0
+      ? `<p><strong>Engangsbeløp:</strong> ${moneyNok(c.oneTimeFee)}.</p>` : "";
+    const startLine   = c.start
+      ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(c.start)}</p>` : "";
+
+    return `<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Kontrakt – ${escapeHtml(c.name || "Kunde")}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Georgia,'Times New Roman',serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.55;font-size:14px}
+h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
+.sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
+h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
+p{margin:6px 0}
+.parties{display:flex;gap:24px;margin-bottom:8px}
+.parties div{flex:1}
+.sig{display:flex;gap:40px;margin-top:56px}
+.sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
+.warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
+@media print{body{margin:0;padding:0 12px}}
+</style>
+</head>
+<body>
+<h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
+<div class="sub">Utarbeidet ${todayNo()}</div>
+
+<h2>§1 Partene</h2>
+<div class="parties">
+<div><strong>Leverandør</strong><br>[Ditt Firmanavn]<br>[Org.nr / privatperson]<br>[E-post]</div>
+<div><strong>Kunde</strong><br>${escapeHtml(c.name || "[Kundenavn]")}<br>${escapeHtml(c.contact || "[Kontaktinfo]")}</div>
+</div>
+
+<h2>§2 Avtaleomfang</h2>
+<p>${scopeText}</p>
+
+<h2>§3 Pris og betalingsbetingelser</h2>
+${priceLine}
+${oneTimeLine}
+<p>Betaling skjer forskuddsvis den 1. i hver måned via e-postfaktura, med 14 dagers betalingsfrist. Ved manglende betaling etter skriftlig varsel deaktiveres nettsiden.</p>
+<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track. Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+
+<h2>§4 Oppsigelse</h2>
+<p>Avtalen kan sies opp av begge parter med 1 måned gjensidig oppsigelsestid, skriftlig.</p>
+
+${startLine}
+
+<div class="sig">
+<div>Sted/dato, Leverandør</div>
+<div>Sted/dato, Kunde</div>
+</div>
+</body>
+</html>`;
+  }
+
+  function printContract(id) {
+    const c = normalizeCustomer(state.customers.find(x => x.id === id) || {});
+    const win = window.open("", "_blank", "width=860,height=1000");
+    if (!win) { toast(t("biz.popup_blocked"), "err"); return; }
+    win.document.open();
+    win.document.write(buildContractHtml(c));
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+  }
+
+  // ── Leadgen-prompts ────────────────────────────────────────────────────────
+  function buildResearchPrompt() {
+    const city     = el.city?.value.trim()     || "[STED]";
+    const industry = el.industry?.value.trim() || "[BRANSJE]";
     return `Du er en ekspert på markedsanalyse og det lokale bedriftsmarkedet i Norge.
 
 Finn 10 uavhengige, lokale bedrifter i ${city} innenfor bransjen ${industry}. Fokuser på populære steder som er sårbare digitalt.
@@ -763,9 +1182,8 @@ Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
 
   function buildLovablePrompt() {
-    const bizName = el.lbBizName?.value.trim() || "[BUSINESS NAME]";
-    const mapsPaste = el.lbMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
-
+    const bizName   = el.lbBizName?.value.trim()   || "[BUSINESS NAME]";
+    const mapsPaste = el.lbMapsPaste?.value.trim()  || "[GOOGLE MAPS PASTE]";
     return `You are an expert local web designer and copywriter specialized in the Norwegian small-business market. Your task is to act as a Meta-Prompt Generator. You must take the raw Google Maps data below and generate a single, highly detailed web design prompt for Lovable.dev written in Norwegian.
 
 Here is the raw data:
@@ -796,9 +1214,8 @@ Output ONLY the final Norwegian Lovable prompt inside a code block, ready for th
   }
 
   function buildSalesPrompt() {
-    const bizName = el.salesBizName?.value.trim() || "[BEDRIFTNAVN]";
-    const mapsPaste = el.salesMapsPaste?.value.trim() || "[GOOGLE MAPS PASTE]";
-
+    const bizName   = el.salesBizName?.value.trim()   || "[BEDRIFTNAVN]";
+    const mapsPaste = el.salesMapsPaste?.value.trim()  || "[GOOGLE MAPS PASTE]";
     return `Du er en Senior Forretningsanalytiker og ekspert på innsalg til småbedrifter i Norge.
 KONTEKST: Jeg driver et digitalbyrå som bygger og drifter moderne web-applikasjoner og nettsider for lokale bedrifter ved hjelp av Lovable.dev. Siden Lovable er en fullstack AI-utviklingsplattform, kan jeg levere alt fra enkle landingssider til komplekse systemer med brukerinnlogging, databaser, lojalitetsprogrammer, avanserte kalkulatorer og skreddersydde admin-dashboards. Målet mitt er å selge en optimal løsning til bedriften under på en månedlig driftsavtale.
 Oppgaven din er å analysere denne bedriften for et potensielt salg:
@@ -816,360 +1233,172 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
 
   function buildPrompt(kind) {
     if (kind === "research") return buildResearchPrompt();
-    if (kind === "lovable") return buildLovablePrompt();
-    if (kind === "sales") return buildSalesPrompt();
+    if (kind === "lovable")  return buildLovablePrompt();
+    if (kind === "sales")    return buildSalesPrompt();
     return "";
   }
 
+  // ── Leadgen ─────────────────────────────────────────────────────────────────
   function syncLeadgenFields() {
     const type = el.leadgenType?.value || "research";
     document.querySelectorAll(".leadgen-fields").forEach(sec => { sec.hidden = true; });
     const map = { research: "leadgenResearch", lovable: "leadgenLovable", sales: "leadgenSales" };
-    const activeSec = document.getElementById(map[type]);
-    if (activeSec) {
-      activeSec.hidden = false;
-      activeSec.classList.remove("fields-enter");
-      void activeSec.offsetWidth; // restart animasjon
-      activeSec.classList.add("fields-enter");
+    const active = document.getElementById(map[type]);
+    if (active) {
+      active.hidden = false;
+      active.classList.remove("fields-enter");
+      void active.offsetWidth;
+      active.classList.add("fields-enter");
     }
     if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
   }
 
-  function populateBusinessDropdown() {
-    const names = state.customers
-      .map(c => (c.name || "").trim())
-      .filter(Boolean);
-
-    const uniqueNames = [...new Set(names)];
-
-    [$("#lovable-name-select"), $("#sales-name-select")].forEach(select => {
-      if (!select) return;
-
-      const previousValue = select.value;
-
-      select.innerHTML = `<option value="">${escapeHtml(t("biz.select_customer"))}</option>`
-        + uniqueNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
-
-      if (uniqueNames.includes(previousValue)) {
-        select.value = previousValue;
-      }
-    });
-  }
-
-  function addCustomer() {
-    state.customers.push({
-      name: "",
-      contact: "",
-      tier: "Lav",
-      businessModel: "A",
-      price: TIER_PRICES.Lav,
-      start: "",
-      status: "Aktiv"
-    });
-
-    saveState();
-    renderCustomers({ animateNew: true });
-    populateBusinessDropdown();
-  }
-
-  function deleteCustomer(button) {
-    const row = button.closest("tr");
-    if (!row) return;
-
-    const index = Number(row.dataset.id);
-    if (!Number.isInteger(index)) return;
-
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      state.customers.splice(index, 1);
-      saveState();
-      renderCustomers();
-      populateBusinessDropdown();
-    };
-
-    row.classList.add("row-leave");
-    row.addEventListener("animationend", finish, { once: true });
-    setTimeout(finish, 220); // fallback — sikrer sletting selv uten animasjon (prefers-reduced-motion)
-  }
-
   function resetLeadgenFields(type) {
     if (type === "lovable") {
-      if (el.lbBizName) el.lbBizName.value = "";
-      if (el.lbMapsPaste) el.lbMapsPaste.value = "";
-      const lovableSelect = $("#lovable-name-select");
-      if (lovableSelect) lovableSelect.value = "";
+      if (el.lbBizName)   el.lbBizName.value   = "";
+      if (el.lbMapsPaste) el.lbMapsPaste.value  = "";
+      const s = $("#lovable-name-select"); if (s) s.value = "";
     } else if (type === "sales") {
-      if (el.salesBizName) el.salesBizName.value = "";
-      if (el.salesMapsPaste) el.salesMapsPaste.value = "";
-      const salesSelect = $("#sales-name-select");
-      if (salesSelect) salesSelect.value = "";
+      if (el.salesBizName)   el.salesBizName.value   = "";
+      if (el.salesMapsPaste) el.salesMapsPaste.value  = "";
+      const s = $("#sales-name-select"); if (s) s.value = "";
     } else if (type === "research") {
-      if (el.city) el.city.value = "";
+      if (el.city)     el.city.value     = "";
       if (el.industry) el.industry.value = "";
     }
-
     saveInputsToState();
   }
 
   async function copyFromButton(button) {
-    const originalText = button.textContent;
+    const orig = button.textContent;
     const text = buildPrompt(button.dataset.prompt);
     if (!text) return;
-
     try {
       await navigator.clipboard.writeText(text);
       button.textContent = t("biz.copied");
       button.disabled = true;
       toast(t("biz.copied_toast"));
       resetLeadgenFields(button.dataset.prompt);
-
-      window.setTimeout(() => {
-        button.textContent = originalText || t("biz.copy");
-        button.disabled = false;
-      }, 2000);
+      window.setTimeout(() => { button.textContent = orig || t("biz.copy"); button.disabled = false; }, 2000);
     } catch {
       button.textContent = t("biz.copy_failed");
-
-      window.setTimeout(() => {
-        button.textContent = originalText || t("biz.copy");
-      }, 2000);
+      window.setTimeout(() => { button.textContent = orig || t("biz.copy"); }, 2000);
     }
   }
 
-  // ── Notat-modal (autosave per kunde, uten Lagre-knapp) ──────────────────
-  function openNotesModal(index) {
-    const customer = normalizeCustomer(state.customers[index]);
-    state.customers[index] = customer;
-    activeModalIndex = index;
-
-    if (el.notesModalTitle) el.notesModalTitle.textContent = customer.name || t("biz.unnamed_customer");
-    if (el.customerNotes) el.customerNotes.value = customer.notes || "";
-    if (el.customScope) el.customScope.value = customer.customScope || "";
-    if (el.notesModalOverlay) el.notesModalOverlay.hidden = false;
-    el.customerNotes?.focus();
-  }
-
-  function closeNotesModal() {
-    if (el.notesModalOverlay) el.notesModalOverlay.hidden = true;
-    activeModalIndex = null;
-  }
-
-  function handleModalNotesInput(event) {
-    if (activeModalIndex === null) return;
-    const customer = normalizeCustomer(state.customers[activeModalIndex]);
-
-    if (event.target === el.customerNotes) customer.notes = el.customerNotes.value;
-    else if (event.target === el.customScope) customer.customScope = el.customScope.value;
-    else return;
-
-    state.customers[activeModalIndex] = customer;
-    saveState();
-
-    const row = el.customerRows?.querySelector(`tr[data-id="${activeModalIndex}"]`);
-    const notesBtn = row?.querySelector(".notes-btn");
-    if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(customer.notes || customer.customScope));
-  }
-
-  // ── Kontrakt-print (nytt vindu, formell, trigger window.print()) ────────
-  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført 'Transfer' i Lovable.dev avsluttes reklamasjonsperioden, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på 690 kr eks. mva.";
-  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). For fremtidige endringer påløper det et fast gjenoppstartsgebyr på 490 kr eks. mva per forespørsel, i tillegg til ordinær timesats på 690 kr/t (minimum 1 time).";
-  const SCOPE_TEXT_C = "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (490 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert og faktureres med gjeldende timesats på 690 kr/t. For Medium (790 kr/mnd) inkluderes 2 små endringer/mnd. For Høy (1490 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
-
-  function defaultScopeText(customer) {
-    if (customer.businessModel === "A") return SCOPE_TEXT_A;
-    if (customer.businessModel === "B") return SCOPE_TEXT_B;
-    if (customer.businessModel === "C") return SCOPE_TEXT_C;
-
-    // Custom uten eget "custom-scope"-notat: bruk gammel tier-basert standardtekst
-    if (customer.tier === "Lav") {
-      return "Kun hosting og drift av eksisterende nettløsning. Ingen endringer, videreutvikling eller nytt innhold er inkludert i denne avtalen.";
+  // ── Tab-veksler ────────────────────────────────────────────────────────────
+  function initTabs() {
+    function switchTab(which) {
+      const isAccounting = which === "accounting";
+      el.tabAccounting?.classList.toggle("active", isAccounting);
+      el.tabPricing?.classList.toggle("active", !isAccounting);
+      if (el.accountingView) el.accountingView.hidden = !isAccounting;
+      if (el.pricingView)    el.pricingView.hidden    =  isAccounting;
     }
-    return "Utvikling og drift av en komplett, mobilresponsiv nettside bygget på moderne fullstack-arkitektur, tilpasset kundens behov.";
+    el.tabAccounting?.addEventListener("click", () => switchTab("accounting"));
+    el.tabPricing?.addEventListener("click",    () => switchTab("pricing"));
   }
 
-  function nl2br(value) {
-    return escapeHtml(value).replace(/\n/g, "<br>");
-  }
+  // ── FX-rente ───────────────────────────────────────────────────────────────
+  async function loadFxRate() {
+    state.fx.rate = Number.isFinite(Number(state.fx.rate)) && state.fx.rate > 0
+      ? Number(state.fx.rate) : FALLBACK_FX;
+    renderMetrics();
 
-  function todayNo() {
-    return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
-  }
-
-  function buildContractHtml(customer) {
-    const scopeText = customer.customScope && customer.customScope.trim()
-      ? nl2br(customer.customScope.trim())
-      : escapeHtml(defaultScopeText(customer));
-
-    const priceLine = customer.price > 0
-      ? `<p><strong>Avtalt månedsbeløp:</strong> ${moneyNok(customer.price)}, fakturert forskuddsvis den 1. i hver måned.</p>`
-      : "";
-
-    const oneTimeLine = customer.oneTimeFee > 0
-      ? `<p><strong>Engangsbeløp:</strong> ${moneyNok(customer.oneTimeFee)}.</p>`
-      : "";
-
-    const startLine = customer.start
-      ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(customer.start)}</p>`
-      : "";
-
-    return `<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="UTF-8">
-<title>Kontrakt – ${escapeHtml(customer.name || "Kunde")}</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:Georgia,'Times New Roman',serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.55;font-size:14px}
-h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
-.sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
-h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
-p{margin:6px 0}
-.parties{display:flex;gap:24px;margin-bottom:8px}
-.parties div{flex:1}
-.sig{display:flex;gap:40px;margin-top:56px}
-.sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
-.warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
-@media print{body{margin:0;padding:0 12px}}
-</style>
-</head>
-<body>
-<h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
-<div class="sub">Utarbeidet ${todayNo()}</div>
-
-<h2>§1 Partene</h2>
-<div class="parties">
-<div><strong>Leverandør</strong><br>[Ditt Firmanavn]<br>[Org.nr / privatperson]<br>[E-post]</div>
-<div><strong>Kunde</strong><br>${escapeHtml(customer.name || "[Kundenavn]")}<br>${escapeHtml(customer.contact || "[Kontaktinfo]")}</div>
-</div>
-
-<h2>§2 Avtaleomfang</h2>
-<p>${scopeText}</p>
-
-<h2>§3 Pris og betalingsbetingelser</h2>
-${priceLine}
-${oneTimeLine}
-<p>Betaling skjer forskuddsvis den 1. i hver måned via e-postfaktura, med 14 dagers betalingsfrist. Ved manglende betaling etter skriftlig varsel deaktiveres nettsiden.</p>
-<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track. Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
-
-<h2>§4 Oppsigelse</h2>
-<p>Avtalen kan sies opp av begge parter med 1 måned gjensidig oppsigelsestid, skriftlig.</p>
-
-${startLine}
-
-<div class="sig">
-<div>Sted/dato, Leverandør</div>
-<div>Sted/dato, Kunde</div>
-</div>
-</body>
-</html>`;
-  }
-
-  function printContract(index) {
-    const customer = normalizeCustomer(state.customers[index]);
-    state.customers[index] = customer;
-
-    const win = window.open("", "_blank", "width=860,height=1000");
-    if (!win) {
-      toast(t("biz.popup_blocked"), "err");
-      return;
+    try {
+      const res = await fetch("https://frankfurter.app/latest?from=EUR&to=NOK", { cache: "no-store" });
+      if (!res.ok) throw new Error(`FX ${res.status}`);
+      const data = await res.json();
+      const live = Number(data?.rates?.NOK);
+      if (!Number.isFinite(live) || live <= 0) throw new Error("Invalid rate");
+      state.fx.rate      = live;
+      state.fx.updatedAt = new Date().toISOString();
+      saveLocalState();
+    } catch {
+      saveLocalState();
     }
 
-    win.document.open();
-    win.document.write(buildContractHtml(customer));
-    win.document.close();
-
-    win.onload = () => {
-      win.focus();
-      win.print();
-    };
+    renderMetrics();
   }
 
+  // ── Event-handlers ─────────────────────────────────────────────────────────
   function handleDocumentInput(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
-      readCustomerRow(row, { defer: true, nameChanged: event.target.classList.contains("cust-name") });
+      readCustomerRow(row, {
+        defer: true,
+        nameChanged: event.target.classList.contains("cust-name")
+      });
       return;
     }
-
+    if (el.notesModalOverlay && !el.notesModalOverlay.hidden) {
+      handleModalNotesInput(event);
+      return;
+    }
     saveInputsToState();
   }
 
   function handleDocumentChange(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
-      readCustomerRow(row, { defer: false, nameChanged: event.target.classList.contains("cust-name") });
+      readCustomerRow(row, {
+        defer: false,
+        nameChanged: event.target.classList.contains("cust-name")
+      });
       return;
     }
-
     if (event.target === el.lovablePlan) {
       saveInputsToState();
       renderMetrics();
       return;
     }
-
     saveInputsToState();
   }
 
   function handleDocumentClick(event) {
-    const modalCloseButton = event.target.closest(".modal-close");
-    if (modalCloseButton) {
-      closeNotesModal();
+    if (event.target.closest(".modal-close") || event.target === el.notesModalOverlay) {
+      closeNotesModal(); return;
+    }
+
+    const notesBtn = event.target.closest(".notes-btn");
+    if (notesBtn) {
+      const row = notesBtn.closest("#customerRows tr");
+      const id  = row?.dataset.id;
+      if (id) openNotesModal(id);
       return;
     }
 
-    if (event.target === el.notesModalOverlay) {
-      closeNotesModal();
-      return;
-    }
-
-    const notesButton = event.target.closest(".notes-btn");
-    if (notesButton) {
-      const row = notesButton.closest("#customerRows tr");
-      const index = Number(row?.dataset.id);
-      if (Number.isInteger(index)) openNotesModal(index);
-      return;
-    }
-
-    const printButton = event.target.closest(".print-contract-btn");
-    if (printButton) {
-      const row = printButton.closest("#customerRows tr");
-      const index = Number(row?.dataset.id);
-      if (Number.isInteger(index)) printContract(index);
+    const printBtn = event.target.closest(".print-contract-btn");
+    if (printBtn) {
+      const row = printBtn.closest("#customerRows tr");
+      const id  = row?.dataset.id;
+      if (id) printContract(id);
       return;
     }
 
     const statusDot = event.target.closest(".cust-status-dot");
     if (statusDot) {
       const order = ["Aktiv", "Pauset", "Avsluttet"];
-      const next = order[(order.indexOf(statusDot.dataset.status) + 1) % order.length];
+      const next  = order[(order.indexOf(statusDot.dataset.status) + 1) % order.length];
       statusDot.dataset.status = next;
       statusDot.classList.remove("st-active", "st-paused", "st-ended");
       statusDot.classList.add(STATUS_CLASS[next] || "st-active");
       const label = t(STATUS_LABEL_KEYS[next] || STATUS_LABEL_KEYS.Aktiv);
       statusDot.setAttribute("aria-label", label);
       statusDot.setAttribute("title", label);
-
       const row = statusDot.closest("#customerRows tr");
-      if (row) readCustomerRow(row);
+      if (row) readCustomerRow(row, { defer: false });
       return;
     }
 
-    const deleteButton = event.target.closest(".delete-row");
-    if (deleteButton) {
-      deleteCustomer(deleteButton);
-      return;
-    }
+    const delBtn = event.target.closest(".delete-row");
+    if (delBtn) { deleteCustomer(delBtn); return; }
 
-    const copyButton = event.target.closest(".copy-btn");
-    if (copyButton) {
-      copyFromButton(copyButton);
-    }
+    const copyBtn = event.target.closest(".copy-btn");
+    if (copyBtn) copyFromButton(copyBtn);
   }
 
-  let db;
-
+  // ── Auth + init ────────────────────────────────────────────────────────────
   async function initAuth() {
     try {
       const cfg = await getConfig();
@@ -1180,8 +1409,8 @@ ${startLine}
     } catch (err) {
       document.querySelector(".page").innerHTML =
         `<div class="card" style="text-align:center;padding:40px">
-          <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${escapeHtml(err.message)}</div>
-        </div>`;
+           <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${escapeHtml(err.message)}</div>
+         </div>`;
       return false;
     }
   }
@@ -1190,45 +1419,36 @@ ${startLine}
     const ok = await initAuth();
     if (!ok) return;
 
-    state.customers = state.customers.map(normalizeCustomer);
+    loadLocalState();
     syncInputsFromState();
 
-    if (el.addCustomer) {
-      el.addCustomer.addEventListener("click", addCustomer);
+    try {
+      state.customers = await fetchCustomers();
+    } catch {
+      toast(t("biz.sync_error"), "err");
+      state.customers = [];
     }
 
-    if (el.leadgenType) {
-      el.leadgenType.addEventListener("change", syncLeadgenFields);
-    }
+    initTabs();
+
+    if (el.addCustomer) el.addCustomer.addEventListener("click", addCustomer);
+    if (el.leadgenType)  el.leadgenType.addEventListener("change", syncLeadgenFields);
     syncLeadgenFields();
 
-    document.addEventListener("input", handleDocumentInput);
+    document.addEventListener("input",  handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
-    document.addEventListener("click", handleDocumentClick);
-    document.addEventListener("keydown", (event) => {
+    document.addEventListener("click",  handleDocumentClick);
+    document.addEventListener("keydown", event => {
       if (event.key === "Escape" && el.notesModalOverlay && !el.notesModalOverlay.hidden) {
         closeNotesModal();
       }
     });
 
-    if (el.customerNotes) el.customerNotes.addEventListener("input", handleModalNotesInput);
-    if (el.customScope) el.customScope.addEventListener("input", handleModalNotesInput);
-    document.addEventListener("focusin", (event) => {
-      if (event.target.classList && event.target.classList.contains("money-input")) {
-        beginMoneyEdit(event.target);
-      }
+    document.addEventListener("focusin", event => {
+      if (event.target.classList?.contains("money-input")) beginMoneyEdit(event.target);
     });
-    document.addEventListener("focusout", (event) => {
-      if (event.target.classList && event.target.classList.contains("money-input")) {
-        endMoneyEdit(event.target);
-      }
-    });
-
-    // Sikre at debounced lagring/dropdown-rebuild rekker å kjøre selv om
-    // brukeren navigerer bort eller bytter app rett etter å ha tastet.
-    window.addEventListener("beforeunload", flushHeavyUpdate);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") flushHeavyUpdate();
+    document.addEventListener("focusout", event => {
+      if (event.target.classList?.contains("money-input")) endMoneyEdit(event.target);
     });
 
     const lovableSelect = $("#lovable-name-select");
@@ -1237,7 +1457,7 @@ ${startLine}
         if (el.lbBizName) {
           el.lbBizName.value = lovableSelect.value;
           state.inputs.lbBizName = lovableSelect.value;
-          saveState();
+          saveLocalState();
         }
       });
     }
@@ -1248,10 +1468,16 @@ ${startLine}
         if (el.salesBizName) {
           el.salesBizName.value = salesSelect.value;
           state.inputs.salesBizName = salesSelect.value;
-          saveState();
+          saveLocalState();
         }
       });
     }
+
+    // Flush ev. pending DB-skrivinger ved navigering bort / app i bakgrunn
+    window.addEventListener("beforeunload", flushPendingDbUpdates);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushPendingDbUpdates();
+    });
 
     renderCustomers();
     renderMetrics();
