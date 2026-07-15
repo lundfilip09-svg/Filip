@@ -574,6 +574,7 @@
 
   const TIER_PRICES = { Lav: 690, Medium: 1190, "Høy": 1990 };
   const CONTRACT_HOURLY_RATE  = 690;
+  const CONTRACT_OVERUSE_RATE  = 1050;  // overforbruk Scenario C utover inkludert kvote
   const SCENARIO_B_RESTART_FEE = 490;
 
   const TIER_LABEL_KEYS = {
@@ -1064,12 +1065,12 @@
     kontakt:         "f.lund.konsulent@gmail.com"
   };
 
-  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret forfaller ved bestilling.";
+  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
 
   const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
 
   function getScopeTextC() {
-    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (690 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (1190 kr/mnd) inkluderes 3 små endringer/mnd. For Høy (1990 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
+    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (690 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (1190 kr/mnd) inkluderes 3 små endringer/mnd; overforbruk utover kvoten faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. For Høy (1990 kr/mnd) inkluderes 1 oppdatering/uke; overforbruk utover dette faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva.";
   }
 
   function defaultScopeText(c) {
@@ -1138,6 +1139,9 @@
       ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(c.start)}</p>` : "";
     const levOrgLine = LEVERANDOR.orgnr
       ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
+    const overuseNote = c.businessModel === "C"
+      ? ` Overforbruk på Scenario C-pakken utover inkludert kvote faktureres med <strong>${CONTRACT_OVERUSE_RATE} kr eks. mva per påbegynt time</strong> (også dokumentert med Toggl).`
+      : "";
 
     return `<!DOCTYPE html>
 <html lang="no">
@@ -1174,7 +1178,7 @@ p{margin:6px 0}
 
 <h2>§3 Pris og betalingsbetingelser</h2>
 ${buildPaymentSection(c)}
-<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track. Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
 
 <h2>§4 Varighet og oppsigelse</h2>
 ${buildTerminationSection(c)}
