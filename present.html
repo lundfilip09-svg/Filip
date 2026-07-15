@@ -292,7 +292,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
     const startLine  = c.start_date ? `<p><strong>Oppstartsdato:</strong> ${esc(c.start_date)}</p>` : "";
     const overuseNote = bm === "C"
-      ? " Overforbruk utover inkludert kvote faktureres med <strong>1 050 kr eks. mva per påbegynt time</strong> (dokumentert med tidslogg)."
+      ? " For arbeid utover inkludert kvote gjelder et overforbrukstillegg på <strong>1 050 kr/t eks. mva per påbegynt time</strong> (dokumentert med tidslogg). Se §2."
       : "";
 
     const emailText = `Hei ${esc((c.name||"").split(" ")[0]||"der")},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;

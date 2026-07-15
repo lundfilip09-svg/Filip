@@ -504,6 +504,16 @@
   const LOCAL_STATE_KEY = "business_state_v2";
   const FALLBACK_FX     = 11.5;
 
+  // Priser skrives over fra pricing_tiers etter DB-lasting (updatePricingFromDb).
+  // Disse er fallback-verdier som sikrer at siden ikke krasjer før data er hentet.
+  let TIER_PRICES          = { Lav: 690, Medium: 1190, "Høy": 1990 };
+  let CONTRACT_HOURLY_RATE  = 690;   // Ordinær timesats (alle scenarioer)
+  let CONTRACT_OVERUSE_RATE  = 1050; // Overforbrukstillegg (kun Scenario C Medium/Høy)
+  let SCENARIO_B_RESTART_FEE = 490;  // Gjenoppstartsgebyr Scenario B (avledes fra DB)
+
+  // Avtalepart i kontrakt — oppdater når Frilans Finans-spørsmålet er avklart
+  const AVTALEPART = "[AVTALEPART – AVKLARES]";
+
   const TIER_LABEL_KEYS = {
     Lav: "biz.tier_lav", Medium: "biz.tier_medium",
     "Høy": "biz.tier_hoy", Custom: "biz.tier_custom"
@@ -667,6 +677,17 @@
     return data || [];
   }
 
+  function updatePricingFromDb() {
+    const cLav = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Lav");
+    const cMed = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Medium");
+    const cHoy = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Høy");
+    const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
+    if (cLav) TIER_PRICES.Lav          = Number(cLav.pris_nok);
+    if (cMed) TIER_PRICES.Medium        = Number(cMed.pris_nok);
+    if (cHoy) TIER_PRICES["Høy"]        = Number(cHoy.pris_nok);
+    if (bRow) SCENARIO_B_RESTART_FEE    = Number(bRow.pris_nok);
+  }
+
   function renderSalesCards() {
     const grid       = document.getElementById("salesGrid");
     const footerNote = document.getElementById("salesFooterNote");
@@ -702,14 +723,12 @@
 
     function priceBlockB(row) {
       const fee = row ? Number(row.pris_nok) : 0;
-      const lavRow = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Lav");
-      const hourlyRate = lavRow ? Number(lavRow.pris_nok) : 0;
       return `<div class="sales-price-block">
         <div class="sales-price-row">
           <span class="sales-price-main">${fee}</span>
           <span class="sales-price-unit">${escapeHtml(t("biz.onetime_setup"))}</span>
         </div>
-        <div class="sales-price-note">+ ${hourlyRate} ${escapeHtml(t("biz.hourly_rate"))} · ${escapeHtml(t("biz.after_90_days"))}</div>
+        <div class="sales-price-note">+ ${CONTRACT_HOURLY_RATE} ${escapeHtml(t("biz.hourly_rate"))} · ${escapeHtml(t("biz.after_90_days"))}</div>
       </div>`;
     }
 
@@ -760,7 +779,7 @@
       .from("business_customers")
       .insert([{
         name: "", contact: "", tier: "Lav",
-        business_model: "A", price: tierPrice("Lav"),
+        business_model: "A", price: 0,
         one_time_fee: 0, start_date: null,
         status: "Aktiv", notes: "", deposit_paid: false,
         bekreftet_dato: null, contract_version: null, custom_scope: ""
@@ -887,7 +906,10 @@
     if (el.revMetric)      el.revMetric.textContent     = moneyNok(revenue);
     if (el.oneTimeMetric)  el.oneTimeMetric.textContent  = moneyNok(oneTime);
     if (el.expMetric)      el.expMetric.textContent      = moneyNok(expense);
-    if (el.profitMetric)   el.profitMetric.textContent   = moneyNok(profit);
+    if (el.profitMetric) {
+      el.profitMetric.textContent = moneyNok(profit);
+      el.profitMetric.className   = `metric-val ${profit >= 0 ? "success" : "danger"}`;
+    }
 
     renderFxInfo();
   }
@@ -977,8 +999,8 @@
     const oneTimeInput = $(".cust-onetime", row);
     c.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
 
-    if (["Lav", "Medium", "Høy"].includes(c.tier)) {
-      c.price = tierPrice(c.tier);
+    if (c.businessModel === "C" && Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
+      c.price = TIER_PRICES[c.tier];
       if (priceInput && document.activeElement !== priceInput) {
         priceInput.value = formatMoneyInput(c.price);
       }
@@ -1113,17 +1135,33 @@
     kontakt:         "f.lund.konsulent@gmail.com"
   };
 
-  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
+  function getScopeTextA() {
+    return "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
+  }
 
-  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
+  function getScopeTextB() {
+    return "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
+  }
 
   function getScopeTextC() {
-    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (690 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (1190 kr/mnd) inkluderes 3 små endringer/mnd; overforbruk utover kvoten faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. For Høy (1990 kr/mnd) inkluderes 1 oppdatering/uke; overforbruk utover dette faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva.";
+    const lavPris = TIER_PRICES.Lav;
+    const medPris = TIER_PRICES.Medium;
+    const hoyPris = TIER_PRICES["Høy"];
+    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. " +
+      "For Lav-pakken (" + lavPris + " kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. " +
+      "Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva " +
+      "— denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. " +
+      "For Medium-pakken (" + medPris + " kr/mnd) inkluderes 3 endringer per måned; " +
+      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. " +
+      "For Høy-pakken (" + hoyPris + " kr/mnd) inkluderes 1 oppdatering per uke; " +
+      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. " +
+      "Overforbrukstillegget er høyere enn ordinær timesats (" + CONTRACT_HOURLY_RATE + " kr/t) fordi arbeidet skjer utenfor planlagt kapasitet og på kort varsel. " +
+      "Tillegget er videre ment å synliggjøre verdien av å oppgradere abonnementet fremfor gjentatt overforbruk av inkludert kvote.";
   }
 
   function defaultScopeText(c) {
-    if (c.businessModel === "A") return SCOPE_TEXT_A;
-    if (c.businessModel === "B") return SCOPE_TEXT_B;
+    if (c.businessModel === "A") return getScopeTextA();
+    if (c.businessModel === "B") return getScopeTextB();
     if (c.businessModel === "C") return getScopeTextC();
     if (c.tier === "Lav") return "Kun hosting og drift av eksisterende nettløsning. Ingen endringer, videreutvikling eller nytt innhold er inkludert i denne avtalen.";
     return "Utvikling og drift av en komplett, mobilresponsiv nettside bygget på moderne fullstack-arkitektur, tilpasset kundens behov.";
@@ -1195,7 +1233,7 @@
     const levOrgLine = LEVERANDOR.orgnr
       ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
     const overuseNote = c.businessModel === "C"
-      ? ` Overforbruk på Scenario C-pakken utover inkludert kvote faktureres med <strong>${CONTRACT_OVERUSE_RATE} kr eks. mva per påbegynt time</strong> (dokumentert med tidslogg).`
+      ? ` For Scenario C-kunder gjelder i tillegg et overforbrukstillegg på <strong>${CONTRACT_OVERUSE_RATE} kr/t eks. mva per påbegynt time</strong> for arbeid utover inkludert kvote (dokumentert med tidslogg). Se §2 for detaljer.`
       : "";
 
     const versjon   = pricingRow?.versjon    || 1;
@@ -1337,7 +1375,7 @@ For hver bedrift, oppgi nøyaktig:
 * Google-rating og antall anmeldelser
 * Hovedproblem (den viktigste digitale svakheten — konvertering, synlighet, booking eller logistikk)
 * Konkret løsning (Hva en ny nettside skal fikse for dem, f.eks. tydelig booking, kontakt-/tilbudsskjema, forhåndsbestilling, eller ganske enkelt en profesjonell side som konverterer besøkende til kunder)
-* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (690 kr/mnd), Middels (1190 kr/mnd) eller Høy (1990 kr/mnd), inkludert eventuelt engangsbeløp for oppsett — basert på hvor mye funksjonalitet de faktisk trenger (ren konverteringsside = Lav; noe booking eller jevnlige endringer = Medium; fullt bestillingssystem eller ukentlige oppdateringer = Høy). Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
+* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (${TIER_PRICES.Lav} kr/mnd), Medium (${TIER_PRICES.Medium} kr/mnd) eller Høy (${TIER_PRICES["Høy"]} kr/mnd), inkludert eventuelt engangsbeløp for oppsett — basert på hvor mye funksjonalitet de faktisk trenger (ren konverteringsside = Lav; noe booking eller jevnlige endringer = Medium; fullt bestillingssystem eller ukentlige oppdateringer = Høy). Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
 
 Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
@@ -1393,7 +1431,7 @@ Undersøk og vurder Lovables fulle spekter av funksjoner opp mot dataene over, o
 
 Del 1: Sårbarhetsanalyse (Finn de digitale svakhetene — svak konvertering/synlighet, mangel på booking, ELLER logistikkproblemer. Identifiser det ÉNE viktigste problemet som koster bedriften kunder).
 
-Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke Lovable-features løser akkurat DETTE problemet? Anbefal en riktig-dimensjonert løsning — ikke prakk på funksjoner bedriften ikke trenger. Anbefal om jeg skal legge dem på Lav (690 kr/mnd), Medium (1190 kr/mnd) eller Høy (1990 kr/mnd) avtale basert på de foreslåtte funksjonene).
+Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke Lovable-features løser akkurat DETTE problemet? Anbefal en riktig-dimensjonert løsning — ikke prakk på funksjoner bedriften ikke trenger. Anbefal om jeg skal legge dem på Lav (${TIER_PRICES.Lav} kr/mnd), Medium (${TIER_PRICES.Medium} kr/mnd) eller Høy (${TIER_PRICES["Høy"]} kr/mnd) avtale basert på de foreslåtte funksjonene).
 
 Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pitcher akkurat denne unike løsningen, inkludert '[SETT INN DIN LOVABLE-LENKE HER]').`;
   }
