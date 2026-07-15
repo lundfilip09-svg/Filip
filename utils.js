@@ -771,6 +771,11 @@ const TRANSLATIONS = {
     'biz.copied_toast': 'Prompt kopiert',
     'biz.tier_lav': 'Lav', 'biz.tier_medium': 'Medium', 'biz.tier_hoy': 'Høy', 'biz.tier_custom': 'Egendefinert',
     'biz.status_aktiv': 'Aktiv', 'biz.status_pauset': 'Pauset', 'biz.status_avsluttet': 'Avsluttet',
+    'biz.notes_button': 'Notat', 'biz.print_contract': 'Skriv ut kontrakt',
+    'biz.custom_scope_label': 'Spesifisert leveranse (Omfang til kontrakt)',
+    'biz.autosave_hint': 'Lagres automatisk',
+    'biz.unnamed_customer': 'Kunde uten navn',
+    'biz.popup_blocked': 'Sprettoppvindu ble blokkert — tillat sprettoppvinduer for å skrive ut kontrakten',
   },
   en: {
     // Nav
@@ -1539,6 +1544,11 @@ const TRANSLATIONS = {
     'biz.copied_toast': 'Prompt copied',
     'biz.tier_lav': 'Low', 'biz.tier_medium': 'Medium', 'biz.tier_hoy': 'High', 'biz.tier_custom': 'Custom',
     'biz.status_aktiv': 'Active', 'biz.status_pauset': 'Paused', 'biz.status_avsluttet': 'Ended',
+    'biz.notes_button': 'Note', 'biz.print_contract': 'Print contract',
+    'biz.custom_scope_label': 'Custom scope (contract scope)',
+    'biz.autosave_hint': 'Autosaves as you type',
+    'biz.unnamed_customer': 'Unnamed customer',
+    'biz.popup_blocked': 'Popup blocked — allow popups to print the contract',
   },
 };
 
@@ -2006,6 +2016,9 @@ function applyLang() {
   });
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
   const btn = document.getElementById('langBtn');
   if (btn) btn.textContent = _lang === 'no' ? '🇺🇸' : '🇳🇴';

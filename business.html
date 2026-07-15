@@ -72,7 +72,7 @@
 .biz-table col.col-onetime{width:12%}
 .biz-table col.col-start{width:14%}
 .biz-table col.col-status{width:56px}
-.biz-table col.col-del{width:44px}
+.biz-table col.col-del{width:104px}
 .biz-table td:last-child{padding-left:0;padding-right:14px;text-align:center}
 
 .biz-card-compact{padding:14px 16px}
@@ -126,6 +126,48 @@
 .biz-table .delete-row{background:transparent;border-color:transparent;color:var(--text-tertiary);margin:0 auto}
 .biz-table .delete-row:hover{background:rgba(242,109,109,0.12);border-color:rgba(242,109,109,0.28);color:var(--danger)}
 .biz-table .delete-row svg{pointer-events:none}
+
+/* ── Kunde-handlinger: notat + kontrakt-print ── */
+.cust-actions{display:flex;align-items:center;justify-content:center;gap:2px}
+.cust-actions .btn-icon{
+  width:28px;height:28px;padding:0;font-size:14px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid transparent;color:var(--text-tertiary);
+  border-radius:var(--radius-sm);cursor:pointer;transition:background .12s,border-color .12s,color .12s;
+}
+.cust-actions .btn-icon:hover{background:var(--surface-2);border-color:var(--hairline-soft);color:var(--text-primary)}
+.cust-actions .notes-btn.has-content{color:var(--text-primary)}
+
+/* ── Notat-modal: mørk glassmorphism, gjenbruker eksisterende design-tokens ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;padding:20px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(5,5,6,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.modal-overlay[hidden]{display:none}
+.modal-card{
+  width:100%;max-width:480px;max-height:88vh;overflow:auto;
+  background:var(--surface-1);border:1px solid var(--hairline-soft);border-radius:var(--radius-lg);
+  padding:20px;box-shadow:0 24px 64px rgba(0,0,0,0.5);
+  animation:modalIn .18s cubic-bezier(0.2,0.7,0.2,1) both;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.modal-title{font-size:14px;font-weight:600;color:var(--text-primary)}
+.modal-close{
+  width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--hairline-soft);
+  background:transparent;color:var(--text-tertiary);cursor:pointer;font-size:13px;
+  display:inline-flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
+}
+.modal-close:hover{background:var(--surface-2);color:var(--text-primary)}
+.modal-textarea{
+  width:100%;min-height:96px;resize:vertical;box-sizing:border-box;font-family:inherit;
+  background:var(--surface-2);border:1px solid var(--hairline-soft);border-radius:var(--radius-sm);
+  padding:10px 12px;color:var(--text-primary);font-size:13px;line-height:1.4;
+}
+.modal-textarea:focus{outline:none;border-color:var(--hairline-soft);background:var(--surface-1)}
+.modal-hint{margin-top:4px;font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;text-align:right}
+@media(prefers-reduced-motion: reduce){.modal-card{animation:none}}
 
 @media(max-width:768px){
   .biz-table th:nth-child(2),.biz-table td:nth-child(2){display:none}
@@ -279,6 +321,23 @@
 </div>
 
 </div>
+<div class="modal-overlay" id="notesModalOverlay" hidden>
+<div class="modal-card">
+<div class="modal-head">
+<div class="modal-title" id="notesModalTitle">—</div>
+<button type="button" class="modal-close" data-i18n-title="close" data-i18n-aria="close" aria-label="Lukk">✕</button>
+</div>
+<div class="form-group">
+<label class="form-label" data-i18n="notes">Notater</label>
+<textarea id="customer-notes" class="modal-textarea" rows="4"></textarea>
+</div>
+<div class="form-group">
+<label class="form-label" data-i18n="biz.custom_scope_label">Spesifisert leveranse (Omfang til kontrakt)</label>
+<textarea id="custom-scope" class="modal-textarea" rows="4"></textarea>
+</div>
+<div class="modal-hint" data-i18n="biz.autosave_hint">Lagres automatisk</div>
+</div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -297,6 +356,9 @@
     Medium: 790,
     "Høy": 1490
   };
+
+  const CONTRACT_HOURLY_RATE = 690;
+  let activeModalIndex = null;
 
   const DEFAULT_STATE = {
     customers: [],
@@ -333,7 +395,11 @@
     salesBizName: $("#salesBizName"),
     salesMapsPaste: $("#salesMapsPaste"),
     leadgenType: $("#leadgenType"),
-    leadgenCopyBtn: $("#leadgenCopyBtn")
+    leadgenCopyBtn: $("#leadgenCopyBtn"),
+    notesModalOverlay: $("#notesModalOverlay"),
+    notesModalTitle: $("#notesModalTitle"),
+    customerNotes: $("#customer-notes"),
+    customScope: $("#custom-scope")
   };
 
   function cloneDefaultState() {
@@ -446,7 +512,9 @@
       price: Number(customer.price || (isStandardTier ? TIER_PRICES[tier] : 0)),
       oneTimeFee: Number(customer.oneTimeFee || 0),
       start: customer.start || "",
-      status: customer.status || "Aktiv"
+      status: customer.status || "Aktiv",
+      notes: customer.notes || "",
+      customScope: customer.customScope || ""
     };
   }
 
@@ -495,7 +563,13 @@
           <td>
             <button type="button" class="cust-status-dot ${STATUS_CLASS[customer.status] || "st-active"}" data-status="${escapeHtml(customer.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[customer.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
           </td>
-          <td><button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
+          <td>
+            <div class="cust-actions">
+              <button type="button" class="btn btn-icon notes-btn${(customer.notes || customer.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
+              <button type="button" class="btn btn-icon print-contract-btn" aria-label="${escapeHtml(t("biz.print_contract"))}" title="${escapeHtml(t("biz.print_contract"))}">🖨️</button>
+              <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+            </div>
+          </td>
         </tr>
       `;
     }).join("");
@@ -845,6 +919,145 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     }
   }
 
+  // ── Notat-modal (autosave per kunde, uten Lagre-knapp) ──────────────────
+  function openNotesModal(index) {
+    const customer = normalizeCustomer(state.customers[index]);
+    state.customers[index] = customer;
+    activeModalIndex = index;
+
+    if (el.notesModalTitle) el.notesModalTitle.textContent = customer.name || t("biz.unnamed_customer");
+    if (el.customerNotes) el.customerNotes.value = customer.notes || "";
+    if (el.customScope) el.customScope.value = customer.customScope || "";
+    if (el.notesModalOverlay) el.notesModalOverlay.hidden = false;
+    el.customerNotes?.focus();
+  }
+
+  function closeNotesModal() {
+    if (el.notesModalOverlay) el.notesModalOverlay.hidden = true;
+    activeModalIndex = null;
+  }
+
+  function handleModalNotesInput(event) {
+    if (activeModalIndex === null) return;
+    const customer = normalizeCustomer(state.customers[activeModalIndex]);
+
+    if (event.target === el.customerNotes) customer.notes = el.customerNotes.value;
+    else if (event.target === el.customScope) customer.customScope = el.customScope.value;
+    else return;
+
+    state.customers[activeModalIndex] = customer;
+    saveState();
+
+    const row = el.customerRows?.querySelector(`tr[data-id="${activeModalIndex}"]`);
+    const notesBtn = row?.querySelector(".notes-btn");
+    if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(customer.notes || customer.customScope));
+  }
+
+  // ── Kontrakt-print (nytt vindu, formell, trigger window.print()) ────────
+  function defaultScopeText(tier) {
+    if (tier === "Lav") {
+      return "Kun hosting og drift av eksisterende nettløsning. Ingen endringer, videreutvikling eller nytt innhold er inkludert i denne avtalen.";
+    }
+    return "Utvikling og drift av en komplett, mobilresponsiv nettside bygget på moderne fullstack-arkitektur, tilpasset kundens behov.";
+  }
+
+  function nl2br(value) {
+    return escapeHtml(value).replace(/\n/g, "<br>");
+  }
+
+  function todayNo() {
+    return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
+  }
+
+  function buildContractHtml(customer) {
+    const scopeText = customer.customScope && customer.customScope.trim()
+      ? nl2br(customer.customScope.trim())
+      : escapeHtml(defaultScopeText(customer.tier));
+
+    const priceLine = customer.price > 0
+      ? `<p><strong>Avtalt månedsbeløp:</strong> ${moneyNok(customer.price)}, fakturert forskuddsvis den 1. i hver måned.</p>`
+      : "";
+
+    const oneTimeLine = customer.oneTimeFee > 0
+      ? `<p><strong>Engangsbeløp:</strong> ${moneyNok(customer.oneTimeFee)}.</p>`
+      : "";
+
+    const startLine = customer.start
+      ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(customer.start)}</p>`
+      : "";
+
+    return `<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Kontrakt – ${escapeHtml(customer.name || "Kunde")}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Georgia,'Times New Roman',serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.55;font-size:14px}
+h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
+.sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
+h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
+p{margin:6px 0}
+.parties{display:flex;gap:24px;margin-bottom:8px}
+.parties div{flex:1}
+.sig{display:flex;gap:40px;margin-top:56px}
+.sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
+.warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
+@media print{body{margin:0;padding:0 12px}}
+</style>
+</head>
+<body>
+<h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
+<div class="sub">Utarbeidet ${todayNo()}</div>
+
+<h2>§1 Partene</h2>
+<div class="parties">
+<div><strong>Leverandør</strong><br>[Ditt Firmanavn]<br>[Org.nr / privatperson]<br>[E-post]</div>
+<div><strong>Kunde</strong><br>${escapeHtml(customer.name || "[Kundenavn]")}<br>${escapeHtml(customer.contact || "[Kontaktinfo]")}</div>
+</div>
+
+<h2>§2 Avtaleomfang</h2>
+<p>${scopeText}</p>
+
+<h2>§3 Pris og betalingsbetingelser</h2>
+${priceLine}
+${oneTimeLine}
+<p>Betaling skjer forskuddsvis den 1. i hver måned via e-postfaktura, med 14 dagers betalingsfrist. Ved manglende betaling etter skriftlig varsel deaktiveres nettsiden.</p>
+<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track. Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+
+<h2>§4 Oppsigelse</h2>
+<p>Avtalen kan sies opp av begge parter med 1 måned gjensidig oppsigelsestid, skriftlig.</p>
+
+${startLine}
+
+<div class="sig">
+<div>Sted/dato, Leverandør</div>
+<div>Sted/dato, Kunde</div>
+</div>
+</body>
+</html>`;
+  }
+
+  function printContract(index) {
+    const customer = normalizeCustomer(state.customers[index]);
+    state.customers[index] = customer;
+
+    const win = window.open("", "_blank", "width=860,height=1000");
+    if (!win) {
+      toast(t("biz.popup_blocked"), "err");
+      return;
+    }
+
+    win.document.open();
+    win.document.write(buildContractHtml(customer));
+    win.document.close();
+
+    win.onload = () => {
+      win.focus();
+      win.print();
+    };
+  }
+
   function handleDocumentInput(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
@@ -872,6 +1085,33 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
   }
 
   function handleDocumentClick(event) {
+    const modalCloseButton = event.target.closest(".modal-close");
+    if (modalCloseButton) {
+      closeNotesModal();
+      return;
+    }
+
+    if (event.target === el.notesModalOverlay) {
+      closeNotesModal();
+      return;
+    }
+
+    const notesButton = event.target.closest(".notes-btn");
+    if (notesButton) {
+      const row = notesButton.closest("#customerRows tr");
+      const index = Number(row?.dataset.id);
+      if (Number.isInteger(index)) openNotesModal(index);
+      return;
+    }
+
+    const printButton = event.target.closest(".print-contract-btn");
+    if (printButton) {
+      const row = printButton.closest("#customerRows tr");
+      const index = Number(row?.dataset.id);
+      if (Number.isInteger(index)) printContract(index);
+      return;
+    }
+
     const statusDot = event.target.closest(".cust-status-dot");
     if (statusDot) {
       const order = ["Aktiv", "Pauset", "Avsluttet"];
@@ -937,6 +1177,14 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     document.addEventListener("input", handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && el.notesModalOverlay && !el.notesModalOverlay.hidden) {
+        closeNotesModal();
+      }
+    });
+
+    if (el.customerNotes) el.customerNotes.addEventListener("input", handleModalNotesInput);
+    if (el.customScope) el.customScope.addEventListener("input", handleModalNotesInput);
     document.addEventListener("focusin", (event) => {
       if (event.target.classList && event.target.classList.contains("money-input")) {
         beginMoneyEdit(event.target);
