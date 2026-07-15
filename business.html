@@ -145,7 +145,7 @@
 .biz-table .delete-row:hover{background:rgba(242,109,109,0.12);border-color:rgba(242,109,109,0.28);color:var(--danger)}
 .biz-table .delete-row svg{pointer-events:none}
 
-/* ── Kunde-handlinger: notat + kontrakt-print ── */
+/* ── Kunde-handlinger ── */
 .cust-actions{display:flex;align-items:center;justify-content:center;gap:2px}
 .cust-actions .btn-icon{
   width:28px;height:28px;padding:0;font-size:14px;line-height:1;
@@ -504,16 +504,6 @@
   const LOCAL_STATE_KEY = "business_state_v2";
   const FALLBACK_FX     = 11.5;
 
-  // Prisene skrives over fra pricing_tiers-tabellen etter DB-lasting.
-  // Disse er fallback-verdier som aldri vises direkte i UI.
-  let TIER_PRICES         = { Lav: 690, Medium: 1190, "Høy": 1990 };
-  let CONTRACT_HOURLY_RATE  = 690;
-  let CONTRACT_OVERUSE_RATE  = 1050;
-  let SCENARIO_B_RESTART_FEE = 490;
-
-  // Avtalepart i kontrakt — bytt ut når Frilans Finans-spørsmålet er avklart
-  const AVTALEPART = "[AVTALEPART – AVKLARES]";
-
   const TIER_LABEL_KEYS = {
     Lav: "biz.tier_lav", Medium: "biz.tier_medium",
     "Høy": "biz.tier_hoy", Custom: "biz.tier_custom"
@@ -592,17 +582,21 @@
   }
 
   // ── DB → intern representasjon ─────────────────────────────────────────────
+  function tierPrice(tierName) {
+    const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tierName);
+    return row ? Number(row.pris_nok) : 0;
+  }
+
   function dbToCustomer(row) {
-    const tier = Object.prototype.hasOwnProperty.call(TIER_PRICES, row.tier) ? row.tier : "Lav";
+    const tier = ["Lav", "Medium", "Høy", "Custom"].includes(row.tier) ? row.tier : "Lav";
     const businessModel = BUSINESS_MODEL_ORDER.includes(row.business_model) ? row.business_model : "A";
-    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
     return {
       id:           row.id,
       name:         row.name         || "",
       contact:      row.contact      || "",
       tier,
       businessModel,
-      price:        Number(row.price      ?? (isStandardTier ? TIER_PRICES[tier] : 0)),
+      price:        Number(row.price      ?? tierPrice(tier)),
       oneTimeFee:   Number(row.one_time_fee ?? 0),
       start:        row.start_date   || "",
       status:       row.status       || "Aktiv",
@@ -633,14 +627,13 @@
   }
 
   function normalizeCustomer(c) {
-    const tier = Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier) ? c.tier : "Lav";
+    const tier = ["Lav", "Medium", "Høy", "Custom"].includes(c.tier) ? c.tier : "Lav";
     const businessModel = BUSINESS_MODEL_ORDER.includes(c.businessModel) ? c.businessModel : "A";
-    const isStandardTier = Object.prototype.hasOwnProperty.call(TIER_PRICES, tier);
     return {
       ...c,
       tier,
       businessModel,
-      price:       Number(c.price       ?? (isStandardTier ? TIER_PRICES[tier] : 0)),
+      price:       Number(c.price       ?? tierPrice(tier)),
       oneTimeFee:  Number(c.oneTimeFee  ?? 0),
       name:        c.name       || "",
       contact:     c.contact    || "",
@@ -672,17 +665,6 @@
       .order("versjon", { ascending: false });
     if (error) throw error;
     return data || [];
-  }
-
-  function updatePricingFromDb() {
-    const cLav = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Lav");
-    const cMed = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Medium");
-    const cHoy = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Høy");
-    const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
-    if (cLav) TIER_PRICES.Lav          = Number(cLav.pris_nok);
-    if (cMed) TIER_PRICES.Medium        = Number(cMed.pris_nok);
-    if (cHoy) TIER_PRICES["Høy"]        = Number(cHoy.pris_nok);
-    if (bRow) SCENARIO_B_RESTART_FEE    = Number(bRow.pris_nok);
   }
 
   function renderSalesCards() {
@@ -719,13 +701,15 @@
     }
 
     function priceBlockB(row) {
-      const fee = row ? Number(row.pris_nok) : SCENARIO_B_RESTART_FEE;
+      const fee = row ? Number(row.pris_nok) : 0;
+      const lavRow = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Lav");
+      const hourlyRate = lavRow ? Number(lavRow.pris_nok) : 0;
       return `<div class="sales-price-block">
         <div class="sales-price-row">
           <span class="sales-price-main">${fee}</span>
           <span class="sales-price-unit">${escapeHtml(t("biz.onetime_setup"))}</span>
         </div>
-        <div class="sales-price-note">+ ${CONTRACT_HOURLY_RATE} ${escapeHtml(t("biz.hourly_rate"))} · ${escapeHtml(t("biz.after_90_days"))}</div>
+        <div class="sales-price-note">+ ${hourlyRate} ${escapeHtml(t("biz.hourly_rate"))} · ${escapeHtml(t("biz.after_90_days"))}</div>
       </div>`;
     }
 
@@ -776,7 +760,7 @@
       .from("business_customers")
       .insert([{
         name: "", contact: "", tier: "Lav",
-        business_model: "A", price: TIER_PRICES.Lav,
+        business_model: "A", price: tierPrice("Lav"),
         one_time_fee: 0, start_date: null,
         status: "Aktiv", notes: "", deposit_paid: false,
         bekreftet_dato: null, contract_version: null, custom_scope: ""
@@ -949,7 +933,6 @@
           <td>
             <div class="cust-actions">
               <button type="button" class="btn btn-icon notes-btn${(c.notes || c.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
-              <button type="button" class="btn btn-icon print-contract-btn" aria-label="${escapeHtml(t("biz.print_contract"))}" title="${escapeHtml(t("biz.print_contract"))}">🖨️</button>
               <button type="button" class="btn btn-icon gen-token-btn" aria-label="${escapeHtml(t("biz.generate_token"))}" title="${escapeHtml(t("biz.generate_token"))}">🔗</button>
               <button type="button" class="btn btn-icon bekreftet-btn${c.bekreftedDato ? " is-confirmed" : ""}" data-confirmed="${c.bekreftedDato ? "1" : "0"}" aria-label="${escapeHtml(c.bekreftedDato ? t("biz.confirmed_on") + " " + c.bekreftedDato : t("biz.confirm_contract"))}" title="${escapeHtml(c.bekreftedDato ? t("biz.confirmed_on") + " " + c.bekreftedDato : t("biz.confirm_contract"))}">📋</button>
               <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -993,8 +976,8 @@
     const oneTimeInput = $(".cust-onetime", row);
     c.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
 
-    if (Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
-      c.price = TIER_PRICES[c.tier];
+    if (["Lav", "Medium", "Høy"].includes(c.tier)) {
+      c.price = tierPrice(c.tier);
       if (priceInput && document.activeElement !== priceInput) {
         priceInput.value = formatMoneyInput(c.price);
       }
@@ -1117,207 +1100,6 @@
     const row     = el.customerRows?.querySelector(`tr[data-id="${c.id}"]`);
     const notesBtn = row?.querySelector(".notes-btn");
     if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(c.notes || c.customScope));
-  }
-
-  // ── Kontrakt-print ─────────────────────────────────────────────────────────
-
-  // Fyll ut én gang. Bytt fakturautsteder til pappas ENK om dere går den veien.
-  const LEVERANDOR = {
-    utforende:       "Filip Lund",
-    fakturautsteder: "Frilans Finans Norge AS",
-    orgnr:           "",
-    kontakt:         "f.lund.konsulent@gmail.com"
-  };
-
-  const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
-
-  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
-
-  function getScopeTextC() {
-    return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (690 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (1190 kr/mnd) inkluderes 3 små endringer/mnd; overforbruk utover kvoten faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. For Høy (1990 kr/mnd) inkluderes 1 oppdatering/uke; overforbruk utover dette faktureres med " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva.";
-  }
-
-  function defaultScopeText(c) {
-    if (c.businessModel === "A") return SCOPE_TEXT_A;
-    if (c.businessModel === "B") return SCOPE_TEXT_B;
-    if (c.businessModel === "C") return getScopeTextC();
-    if (c.tier === "Lav") return "Kun hosting og drift av eksisterende nettløsning. Ingen endringer, videreutvikling eller nytt innhold er inkludert i denne avtalen.";
-    return "Utvikling og drift av en komplett, mobilresponsiv nettside bygget på moderne fullstack-arkitektur, tilpasset kundens behov.";
-  }
-
-  function nl2br(value) {
-    return escapeHtml(value).replace(/\n/g, "<br>");
-  }
-
-  function todayNo() {
-    return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
-  }
-
-  // ── §3 betaling — betinget: månedlig (C) vs. engangsleveranse (A/B) ────────
-  function buildPaymentSection(c) {
-    const parts = [];
-    const isMonthly = c.businessModel === "C";
-
-    if (isMonthly) {
-      if (c.price > 0) {
-        parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} eks. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
-      }
-      if (c.oneTimeFee > 0) {
-        parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.oneTimeFee)} eks. mva, fakturert ved oppstart.</p>`);
-      }
-      parts.push(`<p>Ved manglende betaling etter skriftlig purring kan driften av nettsiden midlertidig deaktiveres inntil utestående er gjort opp.</p>`);
-    } else {
-      const total   = c.oneTimeFee > 0 ? c.oneTimeFee : c.price;
-      const deposit = Math.round(total * 0.25 * 100) / 100;
-      if (total > 0) {
-        parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} eks. mva.</p>`);
-        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} eks. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
-      }
-      if (c.businessModel === "B") {
-        parts.push(`<p>Hosting leveres kostnadsfritt på serverløs infrastruktur (Vercel/Netlify). Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
-      }
-    }
-
-    parts.push(`<p><strong>Domene:</strong> Nettsidens domene (f.eks. .no, ca. 199 kr/år) registreres i kundens navn og bekostes av kunden direkte. Domenekostnad er ikke inkludert i prisene over.</p>`);
-    parts.push(`<p>Fakturering skjer gjennom ${escapeHtml(LEVERANDOR.fakturautsteder)}. Merverdiavgift (25 %) kommer i tillegg til alle oppgitte priser iht. gjeldende sats.</p>`);
-    return parts.join("\n");
-  }
-
-  // ── §4 — betinget av businessModel ─────────────────────────────────────────
-  function buildTerminationSection(c) {
-    if (c.businessModel === "C") {
-      return "<p>Avtalen kan sies opp av begge parter med 1 måneds gjensidig oppsigelsestid, skriftlig. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
-    }
-    if (c.businessModel === "A") {
-      return "<p>Etter fullført overføring («Transfer») i Lovable.dev eier kunden løsningen fullt ut, og leverandøren har intet videre drifts- eller vedlikeholdsansvar. Reklamasjon på selve leveransen må meldes skriftlig innen 14 dager etter overlevering.</p>";
-    }
-    return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport eller overføring av løsningen; slik overføring faktureres etter gjeldende timesats.</p>";
-  }
-
-  function buildEmailText(c) {
-    const firstName = (c.name || "").split(" ")[0] || "der";
-    return `Hei ${firstName},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden. Har du spørsmål er det bare å ta kontakt.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
-  }
-
-  function buildContractHtml(c, pricingRow) {
-    const juridiskScope = (c.customScope && c.customScope.trim())
-      ? nl2br(c.customScope.trim())
-      : (pricingRow?.juridisk_scope
-          ? escapeHtml(pricingRow.juridisk_scope)
-          : escapeHtml(defaultScopeText(c)));
-
-    const startLine  = c.start
-      ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(c.start)}</p>` : "";
-    const levOrgLine = LEVERANDOR.orgnr
-      ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
-    const overuseNote = c.businessModel === "C"
-      ? ` Overforbruk på Scenario C-pakken utover inkludert kvote faktureres med <strong>${CONTRACT_OVERUSE_RATE} kr eks. mva per påbegynt time</strong> (dokumentert med tidslogg).`
-      : "";
-
-    const versjon   = pricingRow?.versjon    || 1;
-    const gyldigFra = pricingRow?.gyldig_fra || todayNo();
-    const emailJson = JSON.stringify(buildEmailText(c));
-
-    return `<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="UTF-8">
-<title>Kontrakt – ${escapeHtml(c.name || "Kunde")}</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:Georgia,'Times New Roman',serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.55;font-size:14px}
-h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
-.sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
-h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
-p{margin:6px 0}
-.parties{display:flex;gap:24px;margin-bottom:8px}
-.parties div{flex:1}
-.sig{display:flex;gap:40px;margin-top:56px}
-.sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
-.warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
-.footer-stamp{margin-top:36px;padding-top:10px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}
-.action-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px 0;display:flex;justify-content:center;gap:12px}
-.action-bar button{padding:8px 20px;border:1px solid #999;border-radius:4px;background:#fff;cursor:pointer;font-size:13px;font-family:inherit}
-.action-bar .btn-primary{background:#111;color:#fff;border-color:#111}
-@media print{
-  body{margin:0;padding:0 12px}
-  .action-bar{display:none}
-}
-</style>
-</head>
-<body>
-<h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
-<div class="sub">Utarbeidet ${todayNo()}</div>
-
-<h2>§1 Partene</h2>
-<div class="parties">
-<div><strong>Leverandør</strong><br>${escapeHtml(AVTALEPART)}<br>v/ ${escapeHtml(LEVERANDOR.utforende)}<br>Fakturering: ${escapeHtml(LEVERANDOR.fakturautsteder)}<br>${levOrgLine}${escapeHtml(LEVERANDOR.kontakt)}</div>
-<div><strong>Kunde</strong><br>${escapeHtml(c.name || "[Kundenavn]")}<br>${escapeHtml(c.contact || "[Kontaktinfo]")}</div>
-</div>
-
-<h2>§2 Avtaleomfang</h2>
-<p>${juridiskScope}</p>
-
-<h2>§3 Pris og betalingsbetingelser</h2>
-${buildPaymentSection(c)}
-<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
-
-<h2>§4 Varighet og oppsigelse</h2>
-${buildTerminationSection(c)}
-
-<h2>§5 Ansvarsbegrensning</h2>
-<p>Leverandørens samlede erstatningsansvar under denne avtalen er begrenset til vederlag betalt av kunden i løpet av de siste tre (3) måneder forut for tidspunktet kravet oppstår. Leverandøren er ikke ansvarlig for indirekte tap, herunder tapt omsetning, tapte data, driftsavbrudd eller følgeskader, uansett årsak og uavhengig av om slike tap var påregnelige.</p>
-
-<h2>§6 Hosting og tilgjengelighet</h2>
-<p>Hosting leveres via tredjepart (Cloudflare Pages, Vercel og/eller Netlify). Leverandøren overvåker nettsiden og varsler kunden ved kjente avvik, men inngår ingen forpliktelse om tilgjengelighetsgaranti. Eventuelle krav som følge av utilgjengelighet reguleres av §5.</p>
-
-${startLine}
-
-<div class="sig">
-<div>Sted/dato, Leverandør</div>
-<div>Sted/dato, Kunde</div>
-</div>
-
-<div class="footer-stamp">Vilkårversjon ${versjon} · Gyldig fra ${escapeHtml(String(gyldigFra))} · Utarbeidet ${todayNo()}</div>
-
-<div class="action-bar">
-  <button class="btn-primary" onclick="window.print()">Skriv ut / lagre PDF</button>
-  <button id="copyEmailBtn" onclick="
-    navigator.clipboard.writeText(${emailJson}).then(function(){
-      var b=document.getElementById('copyEmailBtn');
-      b.textContent='Kopiert!';
-      setTimeout(function(){b.textContent='Kopier e-posttekst'},2000);
-    });
-  ">Kopier e-posttekst</button>
-</div>
-</body>
-</html>`;
-  }
-
-  async function printContract(id) {
-    const c = normalizeCustomer(state.customers.find(x => x.id === id) || {});
-
-    // Finn gjeldende prisrad for versjonsstempel og juridisk scope
-    const pricingRow = state.pricingTiers.find(r =>
-      c.businessModel !== "C"
-        ? r.scenario === c.businessModel && r.tier == null
-        : r.scenario === "C" && r.tier === c.tier
-    ) || null;
-
-    const win = window.open("", "_blank", "width=860,height=1000");
-    if (!win) { toast(t("biz.popup_blocked"), "err"); return; }
-    win.document.open();
-    win.document.write(buildContractHtml(c, pricingRow));
-    win.document.close();
-    win.onload = () => { win.focus(); win.print(); };
-
-    // Lagre versjonsnummer på kunderaden
-    const version = pricingRow?.versjon || 1;
-    const idx = state.customers.findIndex(x => x.id === id);
-    if (idx !== -1) {
-      state.customers[idx].contractVersion = version;
-      await updateCustomerInDb(id, { contract_version: version });
-    }
   }
 
   async function generateContractToken(customerId) {
@@ -1548,14 +1330,6 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       const row = notesBtn.closest("#customerRows tr");
       const id  = row?.dataset.id;
       if (id) openNotesModal(id);
-      return;
-    }
-
-    const printBtn = event.target.closest(".print-contract-btn");
-    if (printBtn) {
-      const row = printBtn.closest("#customerRows tr");
-      const id  = row?.dataset.id;
-      if (id) printContract(id);
       return;
     }
 
