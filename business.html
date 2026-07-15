@@ -64,6 +64,17 @@
 .cust-status-dot.st-paused{background:var(--warning)}
 .cust-status-dot.st-ended{background:var(--danger)}
 
+/* Deposit dot: binær grønn/rød — kun A/B-kunder */
+.cust-deposit-dot{
+  width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;padding:0;display:block;margin:0 auto;
+  transition:transform .12s;
+}
+.cust-deposit-dot:hover{transform:scale(1.12)}
+.cust-deposit-dot:active{transform:scale(0.94)}
+.cust-deposit-dot.dp-paid{background:var(--success)}
+.cust-deposit-dot.dp-unpaid{background:var(--danger)}
+
 /* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
 .biz-table col.col-name{width:13%}
 .biz-table col.col-contact{width:19%}
@@ -73,6 +84,7 @@
 .biz-table col.col-onetime{width:11%}
 .biz-table col.col-start{width:12%}
 .biz-table col.col-status{width:56px}
+.biz-table col.col-deposit{width:60px}
 .biz-table col.col-del{width:104px}
 .biz-table td:last-child{padding-left:0;padding-right:14px;text-align:center}
 
@@ -344,7 +356,7 @@
 <col class="col-name"><col class="col-contact"><col class="col-tier">
 <col class="col-bizmodel">
 <col class="col-price"><col class="col-onetime"><col class="col-start">
-<col class="col-status"><col class="col-del">
+<col class="col-status"><col class="col-deposit"><col class="col-del">
 </colgroup>
 <thead>
 <tr>
@@ -356,6 +368,7 @@
 <th data-i18n="biz.onetime">One-time</th>
 <th data-i18n="biz.start">Start</th>
 <th data-i18n="biz.status">Status</th>
+<th data-i18n="biz.deposit">Deposit</th>
 <th></th>
 </tr>
 </thead>
@@ -669,6 +682,7 @@
       start:        row.start_date   || "",
       status:       row.status       || "Aktiv",
       notes:        row.notes        || "",
+      depositPaid:  row.deposit_paid  ?? false,
       customScope:  row.custom_scope || ""
     };
   }
@@ -684,6 +698,7 @@
       start_date:    c.start || null,
       status:        c.status,
       notes:         c.notes,
+      deposit_paid:  c.depositPaid,
       custom_scope:  c.customScope
     };
   }
@@ -703,6 +718,7 @@
       start:       c.start      || "",
       status:      c.status     || "Aktiv",
       notes:       c.notes      || "",
+      depositPaid: c.depositPaid ?? false,
       customScope: c.customScope || ""
     };
   }
@@ -724,7 +740,7 @@
         name: "", contact: "", tier: "Lav",
         business_model: "A", price: TIER_PRICES.Lav,
         one_time_fee: 0, start_date: null,
-        status: "Aktiv", notes: "", custom_scope: ""
+        status: "Aktiv", notes: "", deposit_paid: false, custom_scope: ""
       }])
       .select()
       .single();
@@ -887,6 +903,10 @@
           <td>
             <button type="button" class="cust-status-dot ${STATUS_CLASS[c.status] || "st-active"}" data-status="${escapeHtml(c.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
           </td>
+          <td>${c.businessModel === "C"
+            ? `<span style="display:block;text-align:center;color:var(--text-muted)">—</span>`
+            : `<button type="button" class="cust-deposit-dot ${c.depositPaid ? "dp-paid" : "dp-unpaid"}" data-paid="${c.depositPaid ? "1" : "0"}" aria-label="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}" title="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}"></button>`
+          }</td>
           <td>
             <div class="cust-actions">
               <button type="button" class="btn btn-icon notes-btn${(c.notes || c.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
@@ -924,6 +944,9 @@
 
     const statusDot   = $(".cust-status-dot", row);
     c.status = statusDot?.dataset.status || "Aktiv";
+
+    const depositDot = $(".cust-deposit-dot", row);
+    if (depositDot) c.depositPaid = depositDot.dataset.paid === "1";
 
     const priceInput   = $(".cust-price", row);
     const oneTimeInput = $(".cust-onetime", row);
@@ -1441,6 +1464,20 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       statusDot.setAttribute("aria-label", label);
       statusDot.setAttribute("title", label);
       const row = statusDot.closest("#customerRows tr");
+      if (row) readCustomerRow(row, { defer: false });
+      return;
+    }
+
+    const depositDot = event.target.closest(".cust-deposit-dot");
+    if (depositDot) {
+      const newPaid = depositDot.dataset.paid !== "1";
+      depositDot.dataset.paid = newPaid ? "1" : "0";
+      depositDot.classList.toggle("dp-paid",   newPaid);
+      depositDot.classList.toggle("dp-unpaid", !newPaid);
+      const label = t(newPaid ? "biz.deposit_paid" : "biz.deposit_unpaid");
+      depositDot.setAttribute("aria-label", label);
+      depositDot.setAttribute("title", label);
+      const row = depositDot.closest("#customerRows tr");
       if (row) readCustomerRow(row, { defer: false });
       return;
     }

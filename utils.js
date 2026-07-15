@@ -805,6 +805,7 @@ const TRANSLATIONS = {
     'biz.sc_lav_features': 'Hosting · SSL · oppetid',
     'biz.sc_med_features': 'Alt i Lav + 3 endringer/mnd',
     'biz.sc_hoy_features': 'Alt i Medium + ukentlige oppdateringer',
+    'biz.deposit': 'Forskudd', 'biz.deposit_paid': 'Betalt', 'biz.deposit_unpaid': 'Ubetalt',
   },
   en: {
     // Nav
@@ -1607,6 +1608,7 @@ const TRANSLATIONS = {
     'biz.sc_lav_features': 'Hosting · SSL · uptime',
     'biz.sc_med_features': 'Everything in Low + 3 changes/mo',
     'biz.sc_hoy_features': 'Everything in Medium + weekly updates',
+    'biz.deposit': 'Deposit', 'biz.deposit_paid': 'Paid', 'biz.deposit_unpaid': 'Unpaid',
   },
 };
 
