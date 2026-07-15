@@ -1055,12 +1055,19 @@
   }
 
   // ── Kontrakt-print ─────────────────────────────────────────────────────────
-  // Scenario B: eksplisitt 90-dagersgrense for gjenoppstartsgebyr
+
+  // Fyll ut én gang. Bytt fakturautsteder til pappas ENK om dere går den veien.
+  const LEVERANDOR = {
+    utforende:       "Filip Lund",
+    fakturautsteder: "Frilans Finans Norge AS",
+    orgnr:           "",
+    kontakt:         "filip.lund09@gmail.com"
+  };
+
   const SCOPE_TEXT_B = "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret forfaller ved bestilling.";
 
-  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev avsluttes reklamasjonsperioden, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr eks. mva.";
+  const SCOPE_TEXT_A = "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
 
-  // Scenario C: support-begrensning for Lav gjelder kun nye avtaler (anti-retroaktivitet)
   function getScopeTextC() {
     return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. For Lav-pakken (490 kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva — denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. For Medium (790 kr/mnd) inkluderes 2 små endringer/mnd. For Høy (1490 kr/mnd) inkluderes ukentlige oppdateringer (maks 1/uke).";
   }
@@ -1081,17 +1088,55 @@
     return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
   }
 
+  // ── §3 betaling — betinget: månedlig (C) vs. engangsleveranse (A/B) ────────
+  function buildPaymentSection(c) {
+    const parts = [];
+    const isMonthly = c.businessModel === "C";
+
+    if (isMonthly) {
+      if (c.price > 0) {
+        parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} eks. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
+      }
+      if (c.oneTimeFee > 0) {
+        parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.oneTimeFee)} eks. mva, fakturert ved oppstart.</p>`);
+      }
+      parts.push(`<p>Ved manglende betaling etter skriftlig purring kan driften av nettsiden midlertidig deaktiveres inntil utestående er gjort opp.</p>`);
+    } else {
+      const total   = c.oneTimeFee > 0 ? c.oneTimeFee : c.price;
+      const deposit = Math.round(total * 0.25 * 100) / 100;
+      if (total > 0) {
+        parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} eks. mva.</p>`);
+        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} eks. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+      }
+      if (c.businessModel === "B") {
+        parts.push(`<p>Hosting leveres kostnadsfritt på serverløs infrastruktur (Vercel/Netlify). Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
+      }
+    }
+
+    parts.push(`<p>Fakturering skjer gjennom ${escapeHtml(LEVERANDOR.fakturautsteder)}. Merverdiavgift (25 %) kommer i tillegg til alle oppgitte priser iht. gjeldende sats.</p>`);
+    return parts.join("\n");
+  }
+
+  // ── §4 — betinget av businessModel ─────────────────────────────────────────
+  function buildTerminationSection(c) {
+    if (c.businessModel === "C") {
+      return "<p>Avtalen kan sies opp av begge parter med 1 måneds gjensidig oppsigelsestid, skriftlig. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
+    }
+    if (c.businessModel === "A") {
+      return "<p>Etter fullført overføring («Transfer») i Lovable.dev eier kunden løsningen fullt ut, og leverandøren har intet videre drifts- eller vedlikeholdsansvar. Reklamasjon på selve leveransen må meldes skriftlig innen 14 dager etter overlevering.</p>";
+    }
+    return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport eller overføring av løsningen; slik overføring faktureres etter gjeldende timesats.</p>";
+  }
+
   function buildContractHtml(c) {
     const scopeText = (c.customScope && c.customScope.trim())
       ? nl2br(c.customScope.trim())
       : escapeHtml(defaultScopeText(c));
 
-    const priceLine   = c.price > 0
-      ? `<p><strong>Avtalt månedsbeløp:</strong> ${moneyNok(c.price)}, fakturert forskuddsvis den 1. i hver måned.</p>` : "";
-    const oneTimeLine = c.oneTimeFee > 0
-      ? `<p><strong>Engangsbeløp:</strong> ${moneyNok(c.oneTimeFee)}.</p>` : "";
-    const startLine   = c.start
+    const startLine  = c.start
       ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(c.start)}</p>` : "";
+    const levOrgLine = LEVERANDOR.orgnr
+      ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
 
     return `<!DOCTYPE html>
 <html lang="no">
@@ -1119,7 +1164,7 @@ p{margin:6px 0}
 
 <h2>§1 Partene</h2>
 <div class="parties">
-<div><strong>Leverandør</strong><br>[Ditt Firmanavn]<br>[Org.nr / privatperson]<br>[E-post]</div>
+<div><strong>Leverandør</strong><br>${escapeHtml(LEVERANDOR.utforende)}<br>Fakturering via ${escapeHtml(LEVERANDOR.fakturautsteder)}<br>${levOrgLine}${escapeHtml(LEVERANDOR.kontakt)}</div>
 <div><strong>Kunde</strong><br>${escapeHtml(c.name || "[Kundenavn]")}<br>${escapeHtml(c.contact || "[Kontaktinfo]")}</div>
 </div>
 
@@ -1127,13 +1172,11 @@ p{margin:6px 0}
 <p>${scopeText}</p>
 
 <h2>§3 Pris og betalingsbetingelser</h2>
-${priceLine}
-${oneTimeLine}
-<p>Betaling skjer forskuddsvis den 1. i hver måned via e-postfaktura, med 14 dagers betalingsfrist. Ved manglende betaling etter skriftlig varsel deaktiveres nettsiden.</p>
+${buildPaymentSection(c)}
 <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med vedlagt tidslogg fra Toggl Track. Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
 
-<h2>§4 Oppsigelse</h2>
-<p>Avtalen kan sies opp av begge parter med 1 måned gjensidig oppsigelsestid, skriftlig.</p>
+<h2>§4 Varighet og oppsigelse</h2>
+${buildTerminationSection(c)}
 
 ${startLine}
 
