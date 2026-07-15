@@ -1,6 +1,6 @@
 # CLAUDE.md — Filip's Dashboard
 
-Personlig helse-/treningsdashboard. Vanilla HTML/CSS/JS, Vercel + Supabase.
+Personlig helse-, trenings- og økonomidashboard. Vanilla HTML/CSS/JS, Vercel + Supabase.
 Svar kort og token-effektivt.
 
 ## TERMINAL — VIKTIG!
@@ -78,7 +78,7 @@ deg ferdig — trykk 🇺🇸 og let etter norsk tekst som lekker, og motsatt.
 - `utils.js`: `TRANSLATIONS = { no: {...}, en: {...} }`, `_lang` fra localStorage,
   `t(key, vars)`, `applyLang()` (oppdaterer alle `[data-i18n*]`), `toggleLang()`.
 - Nøkkel-navngiving: `prefiks.navn` per side — `nav.`, `dash.`, `gym.`, `sprint.`,
-  `sovn.`, `gm.`, `kal.`, `tp.`, `ai.`, `login.`, felles uten prefiks (`save`, `cancel`).
+  `sovn.`, `gm.`, `kal.`, `tp.`, `ai.`, `biz.`, `inv.`, `login.`, felles uten prefiks (`save`, `cancel`).
 
 ## Filer (alle .html i rot, deler `utils.js` + `styles.css`)
 - `dashboard.html` — oversikt: søvn, kne, dagens økt, fokus-liste, gjøremål, kalender, ukestripe
@@ -90,7 +90,20 @@ deg ferdig — trykk 🇺🇸 og let etter norsk tekst som lekker, og motsatt.
 - `treningsplan.html` — ukeplan + øktlogg (klikk-for-detalj-drawer)
 - `ai.html` + `api/ai-chat.js` — AI Overseer-chat (Claude Sonnet 4.6), live treningsdata som kontekst
 - `login.html` — Supabase e-post/passord
+- `business.html` — nettside-hustle: kunderegister/regnskap (`side_customers`, migr. 065), prisscenarier A/B/C, kontrakt-print, notat-modal, leadgenerator (Lovable-/kontaktprompt). i18n `biz.`
+- `investments.html` — investeringsjournal (Nordnet): kjøp/salg som lots m/FIFO (migr. 064+066), kurser via `api/quote.js`. i18n `inv.`
+- `treningsdagbok.html` — selvstendig PDF-eksport for trener/fysio. UNNTAK: egne stiler + egne oversettelser, bruker IKKE utils.js-i18n
+- `sw.js` + `manifest.json` — PWA: offline (stale-while-revalidate), `SW_UPDATED` → delt `#toast`, hviletimer-/push-varsler
+- `widgets/` — iPhone Scriptable + Mac SwiftBar, read-only via `api/widget.js`
+- `acwr.js` — treningsbelastning (ACWR)
 - DB: Supabase (Postgres). Migrasjoner i `supabase/migrations/`.
+
+## API (Vercel serverless, Bearer supabase-JWT)
+`ai-chat.js` (AI Overseer, kontekst fra `_lib/context.js`) · `garmin-sync.py` (cron 07:45) · `weekly-summary.js` (ukesrapport NO+EN i ett Anthropic-kall → `weekly_summaries`) · `quote.js` (Yahoo Finance-proxy, Oslo Børs `.OL`) · `push.js` · `widget.js` / `widget-todo-add.js` · `google-calendar.js` / `kalender.js`
+
+## Migrasjoner
+Sjekk neste ledige nummer med `ls supabase/migrations/ | tail -1` før du lager ny —
+interne kommentarer i eldre filer har FEIL nummer (f.eks. 064 sier «053»). Nyeste: 066.
 
 ## ⚠️ Ukeplan-kilder (ikke gjenbruk `training_plan`)
 To lag, ingen andre:
@@ -111,6 +124,7 @@ Lest tre steder som MÅ holdes i sync: `treningsplan.html`, `dashboard.html`,
 ## Kontekst om Filip (for AI-relatert kode)
 17 år, sprinter (100/200m) + styrke, 70kg/187cm, ~6 økter/uke. Patellar tendinopati
 venstre kne (jan 2026). Driver også fotball/basket i USA. Smerteskala 0–10 i alle logger.
+Selger nettsider til lokale bedrifter (business.html) og investerer via Nordnet (investments.html).
 
 ## Generelt
 - Bekreft før sletting/overskriving av filer. Ikke rør filer utenfor denne mappa.
