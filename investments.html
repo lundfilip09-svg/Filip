@@ -617,7 +617,7 @@ function renderMain() {
           </div>`).join('')}
         </div>
         <div class="inv-chart-canvas-wrap" id="invChartWrap">
-          <canvas id="invChartCanvas"></canvas>
+          <canvas id="invChartCanvas" class="chart-fade"></canvas>
         </div>
       </div>
     </div>
@@ -626,11 +626,11 @@ function renderMain() {
 
     <div class="card">
       <div class="inv-tabs">
-        <div class="inv-tab ${_activeTab==='position'?'active':''}" onclick="setTab('position')" data-i18n="inv.tab_position">Posisjon</div>
-        <div class="inv-tab ${_activeTab==='analysis'?'active':''}" onclick="setTab('analysis')" data-i18n="inv.tab_analysis">Analyse</div>
-        <div class="inv-tab ${_activeTab==='journal'?'active':''}" onclick="setTab('journal')" data-i18n="inv.tab_journal">Journal</div>
+        <div class="inv-tab ${_activeTab==='position'?'active':''}" data-tab="position" onclick="setTab('position')" data-i18n="inv.tab_position">Posisjon</div>
+        <div class="inv-tab ${_activeTab==='analysis'?'active':''}" data-tab="analysis" onclick="setTab('analysis')" data-i18n="inv.tab_analysis">Analyse</div>
+        <div class="inv-tab ${_activeTab==='journal'?'active':''}" data-tab="journal" onclick="setTab('journal')" data-i18n="inv.tab_journal">Journal</div>
       </div>
-      <div id="invTabBody"></div>
+      <div id="invTabBody" class="view-fade"></div>
     </div>
   `;
   applyLang();
@@ -731,27 +731,35 @@ function renderPositionTab() {
   `;
 }
 
+let _newestLotId = null;
+
 function renderLotsList() {
   if (!_lots.length) return `<div class="inv-j-empty" data-i18n="inv.lots_empty">Ingen kjøp registrert</div>`;
-  return _lots.map(l => `
-    <div class="inv-lot-item">
+  const html = _lots.map(l => `
+    <div class="inv-lot-item${l.id === _newestLotId ? ' li-enter' : ''}" data-lot-id="${l.id}">
       <div class="inv-lot-main">
         <div class="inv-lot-line1">${Number(l.quantity_remaining)} × ${Number(l.buy_price).toFixed(2)}</div>
         <div class="inv-lot-line2">${fmtDate(l.buy_date)}${Number(l.quantity_remaining) !== Number(l.quantity) ? ` · ${Number(l.quantity_remaining)}/${Number(l.quantity)} <span data-i18n="inv.lot_remaining">gjenstår</span>` : ''}</div>
       </div>
       <button class="inv-lot-del" onclick="deleteLot('${l.id}')" title="${t('inv.delete_lot')}">✕</button>
     </div>`).join('');
+  _newestLotId = null; // engangs — kun rett etter innsetting
+  return html;
 }
+
+let _newestSaleId = null;
 
 function renderSalesList() {
   if (!_sales.length) return `<div class="inv-j-empty" data-i18n="inv.sales_empty">Ingen salg registrert</div>`;
-  return _sales.map(s => `
-    <div class="inv-sale-item">
+  const html = _sales.map(s => `
+    <div class="inv-sale-item${s.id === _newestSaleId ? ' li-enter' : ''}">
       <div class="inv-lot-main">
         <div class="inv-lot-line1">${Number(s.quantity_sold)} × ${Number(s.sell_price).toFixed(2)}</div>
         <div class="inv-lot-line2">${fmtDate(s.sell_date)}</div>
       </div>
     </div>`).join('');
+  _newestSaleId = null;
+  return html;
 }
 
 function fmtDate(d) {
@@ -761,15 +769,31 @@ function fmtDate(d) {
 
 async function deleteLot(id) {
   if (!confirm(t('inv.delete_lot_confirm'))) return;
+  const rowEl = document.querySelector(`.inv-lot-item[data-lot-id="${id}"]`);
+  if (rowEl) {
+    rowEl.classList.add('li-leave');
+    await new Promise(res => {
+      let done = false;
+      const finish = () => { if (done) return; done = true; res(); };
+      rowEl.addEventListener('animationend', finish, { once: true });
+      setTimeout(finish, 340); // fallback — prefers-reduced-motion har ingen animationend
+    });
+  }
   const { error } = await db.from('investment_lots').delete().eq('id', id);
   if (error) { toast(t('inv.err_save'), 'err'); return; }
   await loadLots(_selected.id);
-  await syncInvestmentStatus();
-  renderMain();
+  const statusChanged = await syncInvestmentStatus();
+  if (statusChanged) renderMain(); else refreshStatusRow();
   toast(t('inv.saved'));
 }
 
-function setTab(tab) { _activeTab = tab; renderMain(); }
+function setTab(tab) {
+  _activeTab = tab;
+  document.querySelectorAll('.inv-tab').forEach(elTab => {
+    elTab.classList.toggle('active', elTab.dataset.tab === tab);
+  });
+  renderTabBody();
+}
 
 function renderTabBody() {
   const el = document.getElementById('invTabBody');
@@ -778,6 +802,9 @@ function renderTabBody() {
   else if (_activeTab === 'analysis') { el.innerHTML = renderAnalysisTab(); }
   else { el.innerHTML = renderJournalTab(); }
   applyLang();
+  el.classList.remove('is-swapping');
+  void el.offsetWidth; // restart crossfade-animasjon
+  el.classList.add('is-swapping');
 }
 
 // ── Analysis tab ─────────────────────────────────────────────────────────
@@ -1073,15 +1100,16 @@ async function saveBuy() {
   const quantity = parseFloat(document.getElementById('buyQty').value);
   const commission_buy = parseFloat(document.getElementById('buyCommission').value) || 0;
   if (!buy_date || !buy_price || !quantity) { toast(t('inv.err_fields'), 'err'); return; }
-  const { error } = await db.from('investment_lots').insert({
+  const { data, error } = await db.from('investment_lots').insert({
     investment_id: _selected.id, buy_date, buy_price, quantity, quantity_remaining: quantity, commission_buy,
-  });
+  }).select().single();
   if (error) { toast(t('inv.err_save'), 'err'); return; }
+  _newestLotId = data?.id ?? null;
   await loadLots(_selected.id);
-  await syncInvestmentStatus();
+  const statusChanged = await syncInvestmentStatus();
   await addJournalEntry('buy', t('inv.jt_buy'), `${quantity} @ ${buy_price} (${buy_date})`);
   closeBuyModal();
-  renderMain();
+  if (statusChanged) renderMain(); else refreshStatusRow();
   toast(t('inv.saved'));
 }
 
@@ -1120,16 +1148,17 @@ async function saveSell() {
     const { error } = await db.from('investment_lots').update({ quantity_remaining: u.quantity_remaining }).eq('id', u.id);
     if (error) { toast(t('inv.err_save'), 'err'); return; }
   }
-  const { error: saleErr } = await db.from('investment_sales').insert({
+  const { data: saleData, error: saleErr } = await db.from('investment_sales').insert({
     investment_id: _selected.id, sell_date, sell_price, quantity_sold, commission_sell,
-  });
+  }).select().single();
   if (saleErr) { toast(t('inv.err_save'), 'err'); return; }
+  _newestSaleId = saleData?.id ?? null;
 
   await loadLots(_selected.id);
-  await syncInvestmentStatus();
+  const statusChanged = await syncInvestmentStatus();
   await addJournalEntry('sell', t('inv.jt_sell'), `${quantity_sold} @ ${sell_price} (${sell_date})`);
   closeSellModal();
-  renderMain();
+  if (statusChanged) renderMain(); else refreshStatusRow();
   toast(t('inv.saved'));
 }
 
@@ -1141,13 +1170,14 @@ async function syncInvestmentStatus() {
   if (qty > 0) status = 'open';
   else if (hasSales) status = 'closed';
   const locked = status === 'closed';
-  if (_selected.status === status && _selected.locked === locked) return;
+  if (_selected.status === status && _selected.locked === locked) return false;
   const patch = { status, locked };
   const { error } = await db.from('investments').update(patch).eq('id', _selected.id);
-  if (error) return;
+  if (error) return false;
   Object.assign(_selected, patch);
   const idx = _investments.findIndex(i => i.id === _selected.id);
   if (idx > -1) Object.assign(_investments[idx], patch);
+  return true;
 }
 
 // ── Børs-symbol-mapping ──────────────────────────────────────────────────
@@ -1310,9 +1340,10 @@ function renderChart(points, currency) {
   if (!wrap) return;
   if (!points.length) { renderChartEmpty(); return; }
   if (!document.getElementById('invChartCanvas')) {
-    wrap.innerHTML = `<canvas id="invChartCanvas"></canvas>`;
+    wrap.innerHTML = `<canvas id="invChartCanvas" class="chart-fade"></canvas>`;
   }
-  const ctx = document.getElementById('invChartCanvas').getContext('2d');
+  const canvasEl = document.getElementById('invChartCanvas');
+  const ctx = canvasEl.getContext('2d');
   const labels = points.map(p => new Date(p.t));
   const values = points.map(p => p.c);
   const first = values[0], last = values[values.length - 1];
@@ -1355,6 +1386,7 @@ function renderChart(points, currency) {
       },
     },
   });
+  canvasEl.classList.add('chart-ready');
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
