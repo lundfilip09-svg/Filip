@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nettside-pakker</title>
+<style>
+/* ── Presentasjonsside — ingen nav, ingen kundedata ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface-1:rgba(255,255,255,.04);--surface-2:rgba(255,255,255,.07);
+  --text-primary:#e2e8f0;--text-secondary:#94a3b8;--text-tertiary:#64748b;
+  --success:#4ade80;--warning:#fbbf24;--danger:#f87171;--accent-blue:#3b82f6;
+  --hairline:rgba(255,255,255,.08);--radius:14px;--font-mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+
+/* ── Pakker-visning ── */
+#pakkerView{padding:32px 20px 60px;max-width:1100px;margin:0 auto}
+.ph-hero{text-align:center;margin-bottom:36px}
+.ph-title{font-size:28px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+.ph-sub{font-size:13px;color:var(--text-secondary)}
+.ph-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.ph-grid{grid-template-columns:1fr;gap:14px}}
+
+.sc-card{border-radius:var(--radius);border:1px solid var(--hairline);padding:24px 20px 20px;
+  position:relative;overflow:hidden;background:var(--surface-1);
+  backdrop-filter:blur(16px);display:flex;flex-direction:column;
+  transition:transform .15s,box-shadow .15s}
+.sc-card:hover{transform:translateY(-3px);box-shadow:0 18px 48px rgba(0,0,0,.45)}
+.sc-glow{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.sc-a .sc-glow{background:linear-gradient(140deg,rgba(91,164,245,.08),transparent 52%)}
+.sc-b .sc-glow{background:linear-gradient(140deg,rgba(180,120,255,.08),transparent 52%)}
+.sc-c .sc-glow{background:linear-gradient(140deg,rgba(95,217,154,.08),transparent 52%)}
+.sc-icon{font-size:30px;margin-bottom:12px;line-height:1}
+.sc-badge{display:inline-block;font-size:9px;font-family:var(--font-mono);font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--text-tertiary);
+  background:rgba(255,255,255,.05);border:1px solid var(--hairline);
+  border-radius:4px;padding:2px 8px;margin-bottom:10px}
+.sc-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.sc-desc{font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:16px;flex-shrink:0}
+.sc-price-block{margin-bottom:12px}
+.sc-price-row{display:flex;align-items:baseline;gap:4px}
+.sc-price-main{font-size:36px;font-weight:900;font-family:var(--font-mono);letter-spacing:-.03em;line-height:1}
+.sc-price-main.range{font-size:24px}
+.sc-price-unit{font-size:13px;color:var(--text-tertiary);font-family:var(--font-mono)}
+.sc-price-note{font-size:11px;color:var(--text-tertiary);margin-top:5px;line-height:1.4}
+.sc-divider{height:1px;background:var(--hairline);margin:14px 0}
+.sc-features{list-style:none;display:flex;flex-direction:column;gap:8px;flex:1}
+.sc-features li{font-size:12.5px;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.sc-check{color:var(--success);font-weight:700;flex-shrink:0;margin-top:1px;font-size:13px}
+.sc-warn{color:var(--warning);flex-shrink:0;margin-top:1px;font-size:13px}
+.sc-tier-rows{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.sc-tier-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;background:var(--surface-2);border:1px solid var(--hairline);border-radius:8px}
+.sc-tier-left{display:flex;flex-direction:column;gap:2px}
+.sc-tier-name{font-size:12px;font-weight:700}
+.sc-tier-incl{font-size:10px;color:var(--text-tertiary);line-height:1.35}
+.sc-tier-price{font-size:16px;font-weight:800;font-family:var(--font-mono);white-space:nowrap;flex-shrink:0}
+.ph-footer{text-align:center;margin-top:28px;font-size:11px;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono)}
+
+/* ── Kontrakt-visning ── */
+#kontraktView{display:none;background:#fff;color:#111;min-height:100vh}
+#kontraktContent{font-family:Georgia,'Times New Roman',serif;max-width:760px;
+  margin:0 auto;padding:40px 24px 80px;line-height:1.55;font-size:14px}
+#kontraktContent h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
+#kontraktContent .kc-sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
+#kontraktContent h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
+#kontraktContent p{margin:6px 0}
+#kontraktContent .parties{display:flex;gap:24px;margin-bottom:8px}
+#kontraktContent .parties div{flex:1}
+#kontraktContent .sig{display:flex;gap:40px;margin-top:56px}
+#kontraktContent .sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
+#kontraktContent .warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
+#kontraktContent .footer-stamp{margin-top:36px;padding-top:10px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}
+.kontrakt-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;
+  padding:12px 0;display:flex;justify-content:center;gap:12px}
+.kontrakt-actions button{padding:8px 20px;border:1px solid #999;border-radius:4px;
+  background:#fff;cursor:pointer;font-size:13px;font-family:Georgia,serif}
+.kontrakt-actions .btn-primary{background:#111;color:#fff;border-color:#111}
+
+#errorView{display:none;text-align:center;padding:80px 20px;color:var(--text-secondary)}
+#loadingView{text-align:center;padding:80px 20px;color:var(--text-secondary);font-size:14px}
+
+@media print{
+  #pakkerView{display:none}
+  #kontraktView{display:block!important}
+  .kontrakt-actions{display:none!important}
+  #kontraktContent{padding:0 12px}
+}
+</style>
+</head>
+<body>
+<div id="loadingView">Laster…</div>
+<div id="errorView"></div>
+<div id="pakkerView" style="display:none"></div>
+<div id="kontraktView"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="utils.js"></script>
+<script>
+(async () => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  const view   = params.get("view");
+  const token  = params.get("token");
+
+  function show(id) {
+    ["loadingView","errorView","pakkerView","kontraktView"].forEach(i => {
+      const el = document.getElementById(i);
+      if (el) el.style.display = i === id ? (id === "kontraktView" ? "block" : "block") : "none";
+    });
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function moneyFmt(n) {
+    return Number(n).toLocaleString("nb-NO");
+  }
+
+  // ── getConfig fra utils.js ────────────────────────────────────────────────
+  let db;
+  try {
+    const cfg = await getConfig();
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  } catch (e) {
+    show("errorView");
+    document.getElementById("errorView").textContent = "Konfigurasjonsfeil: " + e.message;
+    return;
+  }
+
+  // ── Pakker-visning ────────────────────────────────────────────────────────
+  if (view === "pakker") {
+    document.title = "Nettside-pakker";
+    const { data: tiers, error } = await db.from("pricing_tiers").select("*").order("scenario");
+    if (error || !tiers) {
+      show("errorView");
+      document.getElementById("errorView").textContent = "Kunne ikke laste pakkedata.";
+      return;
+    }
+
+    const HOURLY = 690; // fallback; always shown as "per time"
+
+    function featHtml(features) {
+      if (!Array.isArray(features)) return "";
+      return `<ul class="sc-features">${features.map(f => {
+        const icon = f.icon === "check" ? "✓" : "⚡";
+        const cls  = f.icon === "check" ? "sc-check" : "sc-warn";
+        const text = f.key ? esc(t(f.key)) : esc(f.tekst || "");
+        return `<li><span class="${cls}">${icon}</span><span>${text}</span></li>`;
+      }).join("")}</ul>`;
+    }
+
+    function priceA(row) {
+      const fra = row?.pris_nok     ? moneyFmt(row.pris_nok)     : "10 000";
+      const til = row?.pris_til_nok ? moneyFmt(row.pris_til_nok) : "20 000";
+      return `<div class="sc-price-block">
+        <div class="sc-price-row"><span class="sc-price-main range">${fra}–${til}</span></div>
+        <div class="sc-price-note">Engangsleveranse · varierer med omfang</div>
+      </div>`;
+    }
+
+    function priceB(row) {
+      const fee = row ? moneyFmt(row.pris_nok) : "490";
+      return `<div class="sc-price-block">
+        <div class="sc-price-row">
+          <span class="sc-price-main">${fee}</span>
+          <span class="sc-price-unit">kr oppstart</span>
+        </div>
+        <div class="sc-price-note">+ ${HOURLY} kr/t · etter 90 dager</div>
+      </div>`;
+    }
+
+    function tierRowsC() {
+      const order    = ["Lav","Medium","Høy"];
+      const inclText = { Lav:"Hosting · SSL · overvåkning", Medium:"Alt i Lav + 3 endr/mnd", "Høy":"Alt i Medium + 1/uke" };
+      const rows = order.map(name => tiers.find(r => r.scenario === "C" && r.tier === name)).filter(Boolean);
+      return `<div class="sc-tier-rows">${rows.map(r =>
+        `<div class="sc-tier-row">
+          <div class="sc-tier-left">
+            <div class="sc-tier-name">${esc(r.tier)}</div>
+            <div class="sc-tier-incl">${esc(inclText[r.tier] || "")}</div>
+          </div>
+          <div class="sc-tier-price">${moneyFmt(r.pris_nok)} <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)">kr/mnd</span></div>
+        </div>`
+      ).join("")}</div>`;
+    }
+
+    const cards = [
+      { sc:"A", cls:"sc-a", icon:"🚀", title:"Prosjektoverføring",
+        desc:"Kunden overtar prosjektet etter godkjent leveranse. Videre arbeid faktureres per time." },
+      { sc:"B", cls:"sc-b", icon:"☁️", title:"Hosting via tredjepart",
+        desc:"Gratis hosting. Ingen månedskostnad. Frie endringer de første 90 dagene, deretter gjenoppstartsgebyr." },
+      { sc:"C", cls:"sc-c", icon:"🛡️", title:"Full Driftsavtale",
+        desc:"Hosting og SSL via Cloudflare Pages. Leverandøren overvåker og varsler ved avvik." }
+    ];
+
+    document.getElementById("pakkerView").innerHTML = `
+      <div class="ph-hero">
+        <div class="ph-title">Nettside-pakker</div>
+        <div class="ph-sub">Lovable.dev · Cloudflare Pages · Vercel · Supabase</div>
+      </div>
+      <div class="ph-grid">${cards.map(c => {
+        const row = tiers.find(r => r.scenario === c.sc && r.tier == null);
+        const priceSection = c.sc === "A" ? priceA(row) : c.sc === "B" ? priceB(row) : tierRowsC();
+        const feats = c.sc !== "C" ? featHtml(row?.features) : "";
+        return `<div class="sc-card ${c.cls}">
+          <div class="sc-glow"></div>
+          <div class="sc-icon">${c.icon}</div>
+          <div class="sc-badge">Scenario ${c.sc}</div>
+          <div class="sc-title">${esc(c.title)}</div>
+          <div class="sc-desc">${esc(c.desc)}</div>
+          ${priceSection}
+          ${c.sc !== "C" ? '<div class="sc-divider"></div>' : ""}
+          ${feats}
+        </div>`;
+      }).join("")}</div>
+      <div class="ph-footer">Alle priser eks. mva · Timesats ${HOURLY} kr/t</div>`;
+    show("pakkerView");
+    return;
+  }
+
+  // ── Kontrakt-visning via token ─────────────────────────────────────────────
+  if (view === "kontrakt" && token) {
+    const AVTALEPART = "[AVTALEPART – AVKLARES]";
+
+    const { data: result, error: rpcErr } = await db.rpc("get_customer_by_token", { p_token: token });
+    if (rpcErr || !result || result.error) {
+      show("errorView");
+      document.getElementById("errorView").innerHTML =
+        `<p style="font-size:20px;margin-bottom:12px">⚠️</p>
+         <p>${esc(result?.error || "Lenken er ugyldig eller utløpt.")}</p>`;
+      return;
+    }
+
+    const c = result;
+    const bm = c.business_model || "A";
+
+    // Hent gjeldende prisrad (anon-lesbar)
+    const { data: tiers } = await db.from("pricing_tiers").select("*");
+    const pricingRow = (tiers || []).find(r =>
+      bm !== "C" ? r.scenario === bm && r.tier == null : r.scenario === "C" && r.tier === c.tier
+    ) || null;
+
+    document.title = `Kontrakt – ${c.name || "Kunde"}`;
+
+    function todayNo() {
+      return new Date().toLocaleDateString("nb-NO",{day:"2-digit",month:"long",year:"numeric"});
+    }
+    function nl2br(s) { return esc(s).replace(/\n/g,"<br>"); }
+    function moneyNok(n) { return Number(n).toLocaleString("nb-NO") + " kr"; }
+
+    const juridiskScope = (c.custom_scope && c.custom_scope.trim())
+      ? nl2br(c.custom_scope.trim())
+      : (pricingRow?.juridisk_scope ? esc(pricingRow.juridisk_scope) : esc(c.notes || ""));
+
+    const versjon   = pricingRow?.versjon    || 1;
+    const gyldigFra = pricingRow?.gyldig_fra || todayNo();
+
+    // §3 Betaling
+    function paymentSection() {
+      const isMonthly = bm === "C";
+      const parts = [];
+      if (isMonthly) {
+        if (c.price > 0) parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} eks. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
+        if (c.one_time_fee > 0) parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.one_time_fee)} eks. mva, fakturert ved oppstart.</p>`);
+        parts.push(`<p>Ved manglende betaling etter skriftlig purring kan driften av nettsiden midlertidig deaktiveres inntil utestående er gjort opp.</p>`);
+      } else {
+        const total   = c.one_time_fee > 0 ? c.one_time_fee : c.price;
+        const deposit = Math.round(total * 0.25 * 100) / 100;
+        if (total > 0) {
+          parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} eks. mva.</p>`);
+          parts.push(`<p><strong>Forskudd:</strong> 25 % (${moneyNok(deposit)} eks. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${bm === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+        }
+        if (bm === "B") parts.push(`<p>Hosting leveres kostnadsfritt via tredjepart. Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
+      }
+      parts.push(`<p><strong>Domene:</strong> Registreres i kundens navn og bekostes av kunden direkte. Ikke inkludert i prisene over.</p>`);
+      parts.push(`<p>Fakturering skjer gjennom Frilans Finans Norge AS. Merverdiavgift (25 %) kommer i tillegg.</p>`);
+      return parts.join("\n");
+    }
+
+    // §4 Oppsigelse
+    function terminationSection() {
+      if (bm === "C") return "<p>Avtalen kan sies opp av begge parter med 1 måneds skriftlig oppsigelsestid. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
+      if (bm === "A") return "<p>Etter fullført overføring i Lovable.dev eier kunden løsningen fullt ut. Reklamasjon må meldes skriftlig innen 14 dager etter overlevering.</p>";
+      return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport; slik overføring faktureres etter gjeldende timesats.</p>";
+    }
+
+    const startLine  = c.start_date ? `<p><strong>Oppstartsdato:</strong> ${esc(c.start_date)}</p>` : "";
+    const overuseNote = bm === "C"
+      ? " Overforbruk utover inkludert kvote faktureres med <strong>1 050 kr eks. mva per påbegynt time</strong> (dokumentert med tidslogg)."
+      : "";
+
+    const emailText = `Hei ${esc((c.name||"").split(" ")[0]||"der")},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
+    const emailJson = JSON.stringify(emailText);
+
+    document.getElementById("kontraktView").innerHTML = `
+      <div id="kontraktContent">
+        <h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
+        <div class="kc-sub">Utarbeidet ${todayNo()}</div>
+
+        <h2>§1 Partene</h2>
+        <div class="parties">
+          <div><strong>Leverandør</strong><br>${esc(AVTALEPART)}<br>v/ Filip Lund<br>Fakturering: Frilans Finans Norge AS<br>f.lund.konsulent@gmail.com</div>
+          <div><strong>Kunde</strong><br>${esc(c.name||"[Kundenavn]")}<br>${esc(c.contact||"[Kontaktinfo]")}</div>
+        </div>
+
+        <h2>§2 Avtaleomfang</h2>
+        <p>${juridiskScope}</p>
+
+        <h2>§3 Pris og betalingsbetingelser</h2>
+        ${paymentSection()}
+        <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>690 kr eks. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+
+        <h2>§4 Varighet og oppsigelse</h2>
+        ${terminationSection()}
+
+        <h2>§5 Ansvarsbegrensning</h2>
+        <p>Leverandørens samlede erstatningsansvar under denne avtalen er begrenset til vederlag betalt av kunden i løpet av de siste tre (3) måneder forut for tidspunktet kravet oppstår. Leverandøren er ikke ansvarlig for indirekte tap, herunder tapt omsetning, tapte data, driftsavbrudd eller følgeskader, uansett årsak og uavhengig av om slike tap var påregnelige.</p>
+
+        <h2>§6 Hosting og tilgjengelighet</h2>
+        <p>Hosting leveres via tredjepart (Cloudflare Pages, Vercel og/eller Netlify). Leverandøren overvåker nettsiden og varsler kunden ved kjente avvik, men inngår ingen forpliktelse om tilgjengelighetsgaranti. Eventuelle krav som følge av utilgjengelighet reguleres av §5.</p>
+
+        ${startLine}
+
+        <div class="sig">
+          <div>Sted/dato, Leverandør</div>
+          <div>Sted/dato, Kunde</div>
+        </div>
+
+        <div class="footer-stamp">Vilkårversjon ${versjon} · Gyldig fra ${esc(String(gyldigFra))} · Utarbeidet ${todayNo()}</div>
+      </div>
+
+      <div class="kontrakt-actions">
+        <button class="btn-primary" onclick="window.print()">Skriv ut / lagre PDF</button>
+        <button id="copyEmailBtn" onclick="
+          navigator.clipboard.writeText(${emailJson}).then(function(){
+            var b=document.getElementById('copyEmailBtn');
+            b.textContent='Kopiert!';
+            setTimeout(function(){b.textContent='Kopier e-posttekst'},2000);
+          });
+        ">Kopier e-posttekst</button>
+      </div>`;
+    show("kontraktView");
+    return;
+  }
+
+  // Ukjent visning
+  show("errorView");
+  document.getElementById("errorView").textContent = "Ukjent visning. Bruk ?view=pakker eller ?view=kontrakt&token=…";
+})();
+</script>
+</body>
+</html>
