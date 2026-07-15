@@ -407,12 +407,23 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  function formatMoneyInputLive(inputEl) {
-    const caretFromEnd = inputEl.value.length - (inputEl.selectionEnd ?? inputEl.value.length);
-    const value = parseMoneyInput(inputEl.value);
-    inputEl.value = formatMoneyInput(value);
-    const pos = Math.max(0, inputEl.value.length - caretFromEnd);
-    inputEl.setSelectionRange(pos, pos);
+  // Rått, redigerbart tall uten "kr"/tusenskille – vises mens feltet er i fokus
+  // slik at backspace/slett fungerer overalt i feltet, ikke bare på tallet.
+  function plainMoneyValue(value) {
+    return Number(value || 0).toLocaleString("nb-NO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: false
+    });
+  }
+
+  function beginMoneyEdit(inputEl) {
+    inputEl.value = plainMoneyValue(parseMoneyInput(inputEl.value));
+    inputEl.select();
+  }
+
+  function endMoneyEdit(inputEl) {
+    inputEl.value = formatMoneyInput(parseMoneyInput(inputEl.value));
   }
 
   function escapeHtml(value) {
@@ -584,7 +595,9 @@
 
     if (Object.prototype.hasOwnProperty.call(TIER_PRICES, existing.tier)) {
       existing.price = TIER_PRICES[existing.tier];
-      if (priceInput) priceInput.value = formatMoneyInput(existing.price);
+      if (priceInput && document.activeElement !== priceInput) {
+        priceInput.value = formatMoneyInput(existing.price);
+      }
     } else {
       existing.price = parseMoneyInput(priceInput?.value);
     }
@@ -835,9 +848,6 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
   function handleDocumentInput(event) {
     const row = event.target.closest("#customerRows tr");
     if (row) {
-      if (event.target.classList.contains("money-input")) {
-        formatMoneyInputLive(event.target);
-      }
       readCustomerRow(row, { defer: true, nameChanged: event.target.classList.contains("cust-name") });
       return;
     }
@@ -927,6 +937,16 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     document.addEventListener("input", handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("focusin", (event) => {
+      if (event.target.classList && event.target.classList.contains("money-input")) {
+        beginMoneyEdit(event.target);
+      }
+    });
+    document.addEventListener("focusout", (event) => {
+      if (event.target.classList && event.target.classList.contains("money-input")) {
+        endMoneyEdit(event.target);
+      }
+    });
 
     // Sikre at debounced lagring/dropdown-rebuild rekker å kjøre selv om
     // brukeren navigerer bort eller bytter app rett etter å ha tastet.
