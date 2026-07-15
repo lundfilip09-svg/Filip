@@ -781,6 +781,13 @@ const TRANSLATIONS = {
     'biz.autosave_hint': 'Lagres automatisk',
     'biz.unnamed_customer': 'Kunde uten navn',
     'biz.popup_blocked': 'Sprettoppvindu ble blokkert — tillat sprettoppvinduer for å skrive ut kontrakten',
+    'biz.sync_error': 'Synkronisering feilet',
+    'biz.accounting_tab': 'Regnskap', 'biz.pricing_tab': 'Produkter & priser',
+    'biz.scenario_a': 'Scenario A', 'biz.scenario_b': 'Scenario B', 'biz.scenario_c': 'Scenario C',
+    'biz.hourly_rate': 'kr/t', 'biz.onetime_setup': 'kr oppstart', 'biz.per_month': 'kr/mnd',
+    'biz.scenario_a_desc': 'Kunden overtar prosjektet selv etter godkjent leveranse. Videre arbeid faktureres per time.',
+    'biz.scenario_b_desc': 'Gratis serverløs hosting. Første 90 dager uten oppstartsgebyr ved endringer, deretter 490 kr per forespørsel.',
+    'biz.scenario_c_desc': 'Full driftsavtale med hosting, SSL og oppetid. Medium/Høy inkluderer faste endringer per måned.',
   },
   en: {
     // Nav
@@ -1559,6 +1566,13 @@ const TRANSLATIONS = {
     'biz.autosave_hint': 'Autosaves as you type',
     'biz.unnamed_customer': 'Unnamed customer',
     'biz.popup_blocked': 'Popup blocked — allow popups to print the contract',
+    'biz.sync_error': 'Sync failed',
+    'biz.accounting_tab': 'Accounting', 'biz.pricing_tab': 'Products & pricing',
+    'biz.scenario_a': 'Scenario A', 'biz.scenario_b': 'Scenario B', 'biz.scenario_c': 'Scenario C',
+    'biz.hourly_rate': 'kr/hr', 'biz.onetime_setup': 'kr setup', 'biz.per_month': 'kr/mo',
+    'biz.scenario_a_desc': 'Customer takes over the project themselves after approved delivery. Further work billed hourly.',
+    'biz.scenario_b_desc': 'Free serverless hosting. No setup fee for changes within the first 90 days, then 490 kr per request.',
+    'biz.scenario_c_desc': 'Full service agreement with hosting, SSL and uptime. Medium/High includes fixed monthly changes.',
   },
 };
 
