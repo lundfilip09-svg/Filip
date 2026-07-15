@@ -1113,6 +1113,7 @@
       }
     }
 
+    parts.push(`<p><strong>Domene:</strong> Nettsidens domene (f.eks. .no, ca. 199 kr/år) registreres i kundens navn og bekostes av kunden direkte. Domenekostnad er ikke inkludert i prisene over.</p>`);
     parts.push(`<p>Fakturering skjer gjennom ${escapeHtml(LEVERANDOR.fakturautsteder)}. Merverdiavgift (25 %) kommer i tillegg til alle oppgitte priser iht. gjeldende sats.</p>`);
     return parts.join("\n");
   }
@@ -1209,17 +1210,17 @@ Finn 10 uavhengige, lokale bedrifter i ${city} innenfor bransjen ${industry}. Fo
 Prioriter bedrifter som:
 • Ikke har egen nettside (eller kun lenker til en Facebook-side)
 • Har en utdatert nettside som fungerer dårlig på mobil
-• Har sterke Google-anmeldelser og trofaste kunder, men mangler digital styring
-• Taper penger på logistikk (f.eks. blir fort utsolgt, eller opplever kaos med bestillinger)
+• Har sterke Google-anmeldelser og trofaste kunder, men svak digital tilstedeværelse
+• Taper kunder eller henvendelser på grunn av en dårlig nettside — enten ved lav konvertering (folk finner dem ikke, booker ikke, ringer ikke), eller ved logistikk-kaos (blir fort utsolgt, rot i bestillinger)
 
 For hver bedrift, oppgi nøyaktig:
 * Bedriftens navn
 * Bydel/Område (f.eks. Salhus, Åsane, Sentrum)
 * Nettside-status (F.eks. 'Ingen nettside', 'Kun Facebook' eller URL)
 * Google-rating og antall anmeldelser
-* Hovedproblem (Hvorfor de er sårbare digitalt)
-* Konkret løsning (Hva en ny nettside skal fikse for dem, f.eks. forhåndsbestilling)
-* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (690 kr/mnd), Middels (1190 kr/mnd) eller Høy (1990 kr/mnd), inkludert eventuelt engangsbeløp for oppsett, basert på hvor mye logistikk/bestilling de har. Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
+* Hovedproblem (den viktigste digitale svakheten — konvertering, synlighet, booking eller logistikk)
+* Konkret løsning (Hva en ny nettside skal fikse for dem, f.eks. tydelig booking, kontakt-/tilbudsskjema, forhåndsbestilling, eller ganske enkelt en profesjonell side som konverterer besøkende til kunder)
+* Foreslått abonnementsnivå: Estimer primært om de bør ligge på Lav (690 kr/mnd), Middels (1190 kr/mnd) eller Høy (1990 kr/mnd), inkludert eventuelt engangsbeløp for oppsett — basert på hvor mye funksjonalitet de faktisk trenger (ren konverteringsside = Lav; noe booking eller jevnlige endringer = Medium; fullt bestillingssystem eller ukentlige oppdateringer = Høy). Passer ingen av nivåene, foreslå Egendefinert med konkret beløp og betalingsform (f.eks. "200 kr/mnd + 1000 kr engangsbeløp" for en veldig liten aktør).
 
 Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
@@ -1235,11 +1236,17 @@ Here is the raw data:
 
 First, extract and infer everything possible from the raw data above: business category, phone number, website status, address and local area, opening hours, services/products/specialties, and recurring themes from the reviews (e.g. service quality, speed, trust, friendliness, atmosphere, results, convenience, pricing, reliability). Do not invent specific facts like phone numbers, addresses, ratings, or opening hours that are not present in the raw data — if something is missing, make a sensible assumption from context instead.
 
+VIKTIGST — TILPASS TIL BEDRIFTSTYPE: Avgjør først bedriftens type ut fra rådataene, og bygg siden rundt ÉN primær handling som passer akkurat dem:
+- Servering/mat (bakeri, kafé, restaurant): meny «Dagens utvalg» + forhåndsbestilling.
+- Tjeneste med timer (frisør, klinikk, verksted, PT o.l.): tydelig timebestilling ELLER et kontakt-/tilbudsskjema.
+- Andre bedrifter: en ren, konverterende side med tydelig kontakt og call-to-action (ring / book / be om tilbud).
+IKKE bygg et meny- eller bestillingssystem for en bedrift som ikke er en serveringsbedrift. Reglene nedenfor gjelder KUN de seksjonene som faktisk passer denne bedriften — hopp over dem som ikke gjør det.
+
 Your output must be a master-prompt for Lovable that instructs it to build a site with these exact parameters:
 
 1. INGEN ANMELDELSER: IKKE inkluder noen "Testimonials"-seksjon, og IKKE nevn eksakte Google-ratings eller antall anmeldelser noe sted i teksten.
 
-2. SMART MENY-LOGIKK ("Dagens utvalg"): Meny-seksjonen skal hete "Dagens utvalg". Hvis konkrete produkter er oppgitt i rådataene, vis dem i en ren, minimalistisk liste. Hvis ingen produkter er oppgitt, generer tomme, profesjonelle plassholdere (f.eks. "Produktnavn", "Pris kr --,-").
+2. SMART MENY-LOGIKK ("Dagens utvalg") — KUN for serveringsbedrifter: Meny-seksjonen skal hete "Dagens utvalg". Hvis konkrete produkter er oppgitt i rådataene, vis dem i en ren, minimalistisk liste. Hvis ingen produkter er oppgitt, generer tomme, profesjonelle plassholdere (f.eks. "Produktnavn", "Pris kr --,-").
 
 3. PRODUKTKORT-MINIMALISME: Hvert produktkort skal ha kun én tittel, én kort beskrivelse og én pris. IKKE bruk doble titler eller repeterende bransje-kategorier over produktnavnet (f.eks. IKKE skriv "Brød" som egen etikett rett over "Ekte Surdeigsbrød").
 
@@ -1247,11 +1254,11 @@ Your output must be a master-prompt for Lovable that instructs it to build a sit
 
 5. BILDER UTEN AI-PLASTIKK: IKKE generer falske, urealistiske AI-bilder av produkter. Alle produktbilder skal være stilrene, grå bilde-plassholdere med et nøytralt ikon som passer bransjen. Bilde-stiene i koden skal peke til en lokal mappe (f.eks. src="images/produkt1.jpg") slik at de enkelt kan byttes ut senere.
 
-6. OBLIGATORISK SKJEMA-VERIFISERING: Bestillings/bookingskjemaet SKAL inneholde separate, tydelige input-felter for 'Fullt navn', 'E-postadresse', 'Mobilnummer' og 'Hentedato'. ALLE disse feltene skal være strengt obligatoriske (required i koden). Rett under eller ved siden av innsendingsknappen skal det ligge en synlig hjelpetekst på norsk: "⚠️ Alle bestillinger må verifiseres via SMS eller telefon før de er gyldige for å unngå tullebestillinger."
+6. OBLIGATORISK SKJEMA-VERIFISERING — dersom siden har et bestillings-, booking- eller kontaktskjema: Skjemaet SKAL inneholde separate, tydelige, strengt obligatoriske (required) felter for 'Fullt navn', 'E-postadresse' og 'Mobilnummer'. Legg til 'Hentedato' KUN ved forhåndsbestilling, eller 'Ønsket dato/tid' ved timebestilling. Ved bestilling/booking skal det rett under eller ved siden av innsendingsknappen ligge en synlig hjelpetekst på norsk: "⚠️ Alle bestillinger må verifiseres via SMS eller telefon før de er gyldige for å unngå tullebestillinger." (Utelat denne SMS-teksten for et rent kontaktskjema.)
 
 7. MIKROTEKST OG LOGIKK: Hold alle hjelpetekster og knapper 100 % profesjonelle og jordnære. Forby AI-en å generere kunstige eller "morsomme" metaforer (som f.eks. å skrive at de ansatte er i ovnen eller lignende AI-merkeligheter).
 
-8. SKJEMA-BEKREFTELSE (SUKSESS-TILSTAND): Instruer Lovable til å bygge en innebygd suksess-tilstand for bestillingsskjemaet. Når brukeren trykker på innsendingsknappen, skal skjemaet skjules og erstattes av en ren, tillitvekkende takkemelding på norsk (f.eks. "Takk! Din bestilling er mottatt. Du vil få en SMS-bekreftelse innen kort tid").
+8. SKJEMA-BEKREFTELSE (SUKSESS-TILSTAND): Instruer Lovable til å bygge en innebygd suksess-tilstand for skjemaet (bestilling, booking eller kontakt). Når brukeren trykker på innsendingsknappen, skal skjemaet skjules og erstattes av en ren, tillitvekkende takkemelding på norsk, tilpasset handlingen (f.eks. "Takk! Din bestilling er mottatt. Du vil få en SMS-bekreftelse innen kort tid", eller "Takk! Vi har mottatt henvendelsen din og svarer så snart vi kan").
 
 Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
@@ -1267,9 +1274,9 @@ Oppgaven din er å analysere denne bedriften for et potensielt salg:
 
 Undersøk og vurder Lovables fulle spekter av funksjoner opp mot dataene over, og generer en detaljert 3-trinns strategi på norsk (Bokmål):
 
-Del 1: Sårbarhetsanalyse (Finn digitale mangler og logistikkproblemer).
+Del 1: Sårbarhetsanalyse (Finn de digitale svakhetene — svak konvertering/synlighet, mangel på booking, ELLER logistikkproblemer. Identifiser det ÉNE viktigste problemet som koster bedriften kunder).
 
-Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke spesifikke Lovable-features vil gi akkurat denne bedriften størst verdi? Anbefal om jeg skal legge dem på Lav (690 kr/mnd), Medium (1190 kr/mnd) eller Høy (1990 kr/mnd) avtale basert på de foreslåtte funksjonene).
+Del 2: Skreddersydd Lovable-løsning & Pris (Hvilke Lovable-features løser akkurat DETTE problemet? Anbefal en riktig-dimensjonert løsning — ikke prakk på funksjoner bedriften ikke trenger. Anbefal om jeg skal legge dem på Lav (690 kr/mnd), Medium (1190 kr/mnd) eller Høy (1990 kr/mnd) avtale basert på de foreslåtte funksjonene).
 
 Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pitcher akkurat denne unike løsningen, inkludert '[SETT INN DIN LOVABLE-LENKE HER]').`;
   }
