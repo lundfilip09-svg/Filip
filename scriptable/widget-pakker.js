@@ -5,17 +5,28 @@
 // ── Statiske pakkedata (sync med business.html TIER_PRICES + sales-cards) ──
 const PAKKER = [
   {
-    scenario: "A",
-    tittel: "Prosjektoverføring",
-    type: "Engangsleveranse",
-    pris: null, // engangspris, varierer
-    features: [
-      "Komplett nettside etter dine krav",
-      "Skriftlig godkjenning før overføring",
-      "Kunden eier kildekoden 100%",
-      "Fremtidige endringer: 690 kr/t",
-    ],
-    farge: "#3b82f6",
+    scenario: "A — Lav",
+    tittel: "Full Driftsavtale",
+    type: "690 kr/mnd",
+    pris: 690,
+    features: ["Hosting · SSL · oppetid"],
+    farge: "#10b981",
+  },
+  {
+    scenario: "A — Medium",
+    tittel: "Full Driftsavtale",
+    type: "1 190 kr/mnd",
+    pris: 1190,
+    features: ["Alt i Lav + 3 endringer/mnd", "Overforbruk: 890 kr/t"],
+    farge: "#10b981",
+  },
+  {
+    scenario: "A — Høy",
+    tittel: "Full Driftsavtale",
+    type: "1 990 kr/mnd",
+    pris: 1990,
+    features: ["Alt i Medium + ukentlige oppdateringer", "Overforbruk: 890 kr/t"],
+    farge: "#10b981",
   },
   {
     scenario: "B",
@@ -26,37 +37,26 @@ const PAKKER = [
       "Gratis hosting på Vercel / Netlify",
       "SSL-sertifikat + tilpasset domene",
       "Ingen månedskostnad",
-      "Endringer etter 90 dager: 490 kr oppstart + 690 kr/t",
+      "Endringer etter 90 dager: 490 kr oppstart + 890 kr/t",
     ],
     farge: "#8b5cf6",
   },
   {
-    scenario: "C — Lav",
-    tittel: "Full Driftsavtale",
-    type: "690 kr/mnd",
-    pris: 690,
-    features: ["Hosting · SSL · oppetid"],
-    farge: "#10b981",
-  },
-  {
-    scenario: "C — Medium",
-    tittel: "Full Driftsavtale",
-    type: "1 190 kr/mnd",
-    pris: 1190,
-    features: ["Alt i Lav + 3 endringer/mnd", "Overforbruk: 1 050 kr/t"],
-    farge: "#10b981",
-  },
-  {
-    scenario: "C — Høy",
-    tittel: "Full Driftsavtale",
-    type: "1 990 kr/mnd",
-    pris: 1990,
-    features: ["Alt i Medium + ukentlige oppdateringer", "Overforbruk: 1 050 kr/t"],
-    farge: "#10b981",
+    scenario: "C",
+    tittel: "Prosjektoverføring",
+    type: "Engangsleveranse",
+    pris: null, // engangspris, varierer
+    features: [
+      "Komplett nettside etter dine krav",
+      "Skriftlig godkjenning før overføring",
+      "Kunden eier kildekoden 100%",
+      "Fremtidige endringer: 890 kr/t",
+    ],
+    farge: "#3b82f6",
   },
 ];
 
-const NOTE = "Alle priser eks. mva · Timesats 690 kr/t";
+const NOTE = "MVA-fritt (Privat frilansfaktura) · Timesats 890 kr/t";
 
 function buildWidget(size) {
   const w = new ListWidget();
