@@ -16,11 +16,33 @@
 <style>
 /* Business page — reuses .card/.metric-tile/.badge/.toast/.exercise-row tokens
    from styles.css. Rules below only add what's genuinely page-specific. */
-.biz-metrics .metric-tile{min-height:76px}
 .biz-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .biz-section-head .section-title{margin-bottom:0}
 .biz-warning{margin-bottom:14px}
 .biz-card-compact{padding-bottom:18px}
+
+/* KPI-rad: reuse metric-tile tokens; hero-tile større font */
+.biz-kpi-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:860px){.biz-kpi-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.biz-kpi-row{grid-template-columns:1fr}}
+.biz-kpi-hero .metric-val{font-size:32px;letter-spacing:-.03em}
+.biz-kpi-plan-wrap{margin-top:6px}
+.biz-kpi-plan-select{
+  font-size:11px;background:transparent;border:1px solid var(--hairline-soft);
+  border-radius:var(--radius-sm);padding:3px 20px 3px 6px;color:var(--text-secondary);
+  cursor:pointer;max-width:100%;box-sizing:border-box;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8f9c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 6px center;
+}
+
+/* Deposit-alert-stripe */
+.biz-deposit-alert{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 14px;margin-bottom:12px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);
+  border-radius:var(--radius-lg);font-size:12.5px;color:var(--text-secondary);
+}
 
 .table-wrap{overflow:auto;border:1px solid var(--hairline-soft);border-radius:var(--radius-lg)}
 .biz-table{width:100%;border-collapse:collapse;min-width:900px;table-layout:fixed}
@@ -301,33 +323,62 @@
 ═══════════════════════════════════════════════════════════ -->
 <div id="accountingView">
 
+<!-- KPI-rad — ingen kortomslag, ingen tittel -->
+<div class="biz-kpi-row">
+<div class="metric-tile biz-kpi-hero">
+<div class="metric-lbl" data-i18n="biz.mrr">MRR</div>
+<div class="metric-val success" id="mrrMetric">—</div>
+<div class="metric-unit" data-i18n="biz.per_month">kr/mnd</div>
+</div>
+<div class="metric-tile">
+<div class="metric-lbl" data-i18n="biz.onetime_year">Engang i år</div>
+<div class="metric-val" id="onetimeYearMetric">—</div>
+</div>
+<div class="metric-tile">
+<div class="metric-lbl" data-i18n="biz.monthly_cost">Månedskostnad</div>
+<div class="metric-val" id="costMetric">—</div>
+<div class="biz-kpi-plan-wrap">
+<select id="lovablePlan" class="biz-kpi-plan-select">
+<option value="0">Lovable Free (€0)</option>
+<optgroup label="Pro">
+<option value="25">100 cr (€25)</option>
+<option value="50">200 cr (€50)</option>
+<option value="100">400 cr (€100)</option>
+<option value="200">800 cr (€200)</option>
+<option value="294">1200 cr (€294)</option>
+<option value="480">2000 cr (€480)</option>
+<option value="705">3000 cr (€705)</option>
+<option value="920">4000 cr (€920)</option>
+<option value="1125">5000 cr (€1125)</option>
+</optgroup>
+<optgroup label="Business">
+<option value="50">100 cr (€50)</option>
+<option value="100">200 cr (€100)</option>
+<option value="200">400 cr (€200)</option>
+<option value="400">800 cr (€400)</option>
+<option value="588">1200 cr (€588)</option>
+<option value="960">2000 cr (€960)</option>
+<option value="1410">3000 cr (€1410)</option>
+<option value="1840">4000 cr (€1840)</option>
+<option value="2250">5000 cr (€2250)</option>
+</optgroup>
+</select>
+</div>
+</div>
+<div class="metric-tile">
+<div class="metric-lbl" data-i18n="biz.monthly_result">Månedsresultat</div>
+<div class="metric-val" id="resultMetric">—</div>
+</div>
+</div>
+
+<!-- Utestående depositum-varsling -->
+<div id="depositAlert" class="biz-deposit-alert" hidden>
+<span id="depositAlertText"></span>
+<button type="button" id="depositAlertFilter" class="btn btn-sm" data-i18n="biz.deposit_show">Vis dem →</button>
+</div>
+
+<!-- Kunde-tabell -->
 <div class="card">
-<div class="section-title" data-i18n="biz.accounting">Business Command Center</div>
-
-<div class="grid-4 biz-metrics">
-<div class="metric-tile">
-<div class="metric-lbl" data-i18n="biz.revenue">Revenue</div>
-<div class="metric-val success" id="revMetric">0 NOK</div>
-</div>
-
-<div class="metric-tile">
-<div class="metric-lbl" data-i18n="biz.onetime_revenue">One-time revenue</div>
-<div class="metric-val success" id="oneTimeMetric">0 NOK</div>
-</div>
-
-<div class="metric-tile">
-<div class="metric-lbl" data-i18n="biz.expense">Expense</div>
-<div class="metric-val danger" id="expMetric">0 NOK</div>
-</div>
-
-<div class="metric-tile">
-<div class="metric-lbl" data-i18n="biz.profit">Profit</div>
-<div class="metric-val" id="profitMetric">0 NOK</div>
-</div>
-</div>
-
-<div class="divider"></div>
-
 <div class="biz-section-head">
 <div class="section-title" data-i18n="biz.customers">Customers</div>
 <button id="addCustomer" class="btn btn-primary btn-sm" data-i18n="add">Add</button>
@@ -357,43 +408,6 @@
 </thead>
 <tbody id="customerRows"></tbody>
 </table>
-</div>
-</div>
-
-<div class="card biz-card-compact">
-<div class="section-title" data-i18n="biz.lovable">Lovable</div>
-
-<div class="biz-lovable-row">
-<div class="form-group">
-<label class="form-label" data-i18n="biz.plan">Plan</label>
-<select id="lovablePlan">
-<option value="0">Free (€0)</option>
-<optgroup label="Pro">
-<option value="25">100 credits (€25)</option>
-<option value="50">200 credits (€50)</option>
-<option value="100">400 credits (€100)</option>
-<option value="200">800 credits (€200)</option>
-<option value="294">1200 credits (€294)</option>
-<option value="480">2000 credits (€480)</option>
-<option value="705">3000 credits (€705)</option>
-<option value="920">4000 credits (€920)</option>
-<option value="1125">5000 credits (€1125)</option>
-</optgroup>
-<optgroup label="Business">
-<option value="50">100 credits (€50)</option>
-<option value="100">200 credits (€100)</option>
-<option value="200">400 credits (€200)</option>
-<option value="400">800 credits (€400)</option>
-<option value="588">1200 credits (€588)</option>
-<option value="960">2000 credits (€960)</option>
-<option value="1410">3000 credits (€1410)</option>
-<option value="1840">4000 credits (€1840)</option>
-<option value="2250">5000 credits (€2250)</option>
-</optgroup>
-</select>
-</div>
-
-<div id="fxInfo" class="biz-fx"></div>
 </div>
 </div>
 
@@ -524,12 +538,14 @@
   const el = {
     customerRows:       $("#customerRows"),
     addCustomer:        $("#addCustomer"),
-    revMetric:          $("#revMetric"),
-    oneTimeMetric:      $("#oneTimeMetric"),
-    expMetric:          $("#expMetric"),
-    profitMetric:       $("#profitMetric"),
+    mrrMetric:          $("#mrrMetric"),
+    onetimeYearMetric:  $("#onetimeYearMetric"),
+    costMetric:         $("#costMetric"),
+    resultMetric:       $("#resultMetric"),
     lovablePlan:        $("#lovablePlan"),
-    fxInfo:             $("#fxInfo"),
+    depositAlert:       $("#depositAlert"),
+    depositAlertText:   $("#depositAlertText"),
+    depositAlertFilter: $("#depositAlertFilter"),
     city:               $("#city"),
     industry:           $("#industry"),
     lbBizName:          $("#lbBizName"),
@@ -856,28 +872,40 @@
     return Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
   }
 
-  function renderFxInfo() {
-    if (!el.fxInfo) return;
-    const eur = Number(state.lovablePlan || 0);
-    const nok = eur * Number(state.fx.rate || FALLBACK_FX);
-    el.fxInfo.innerHTML = `<div class="biz-fx-lbl">${escapeHtml(t("biz.cost_nok"))}</div><div class="metric-val">${moneyNok(nok)}</div>`;
-  }
-
   function renderMetrics() {
-    const revenue = revenueNok();
-    const oneTime = oneTimeRevenueNok();
-    const expense = expenseNok();
-    const profit  = revenue - expense;
+    const mrr      = revenueNok();
+    const thisYear = new Date().getFullYear();
+    const onetimeYear = state.customers.reduce((s, c) => {
+      const yr = c.startDate ? new Date(c.startDate).getFullYear() : null;
+      return yr === thisYear ? s + Number(c.oneTimeFee || 0) : s;
+    }, 0);
+    const cost   = expenseNok();
+    const result = mrr - cost;
 
-    if (el.revMetric)      el.revMetric.textContent     = moneyNok(revenue);
-    if (el.oneTimeMetric)  el.oneTimeMetric.textContent  = moneyNok(oneTime);
-    if (el.expMetric)      el.expMetric.textContent      = moneyNok(expense);
-    if (el.profitMetric) {
-      el.profitMetric.textContent = moneyNok(profit);
-      el.profitMetric.className   = `metric-val ${profit >= 0 ? "success" : "danger"}`;
+    if (el.mrrMetric)         el.mrrMetric.textContent         = moneyNok(mrr);
+    if (el.onetimeYearMetric) el.onetimeYearMetric.textContent = moneyNok(onetimeYear);
+    if (el.costMetric)        el.costMetric.textContent        = moneyNok(cost);
+    if (el.resultMetric) {
+      el.resultMetric.textContent  = moneyNok(result);
+      el.resultMetric.className    = `metric-val ${result >= 0 ? "success" : "danger"}`;
     }
 
-    renderFxInfo();
+    renderDepositAlert();
+  }
+
+  function renderDepositAlert() {
+    const owed = state.customers.filter(c => c.status === "Kontrakt" && !c.depositPaid);
+    const total = owed.reduce((s, c) => s + Number(c.price || 0), 0);
+    if (!el.depositAlert) return;
+    if (owed.length === 0) {
+      el.depositAlert.hidden = true;
+      return;
+    }
+    el.depositAlert.hidden = false;
+    if (el.depositAlertText) {
+      el.depositAlertText.textContent = t("biz.deposit_outstanding") +
+        `: ${owed.length} × — ${moneyNok(total)}`;
+    }
   }
 
   // ── Render kunderad ────────────────────────────────────────────────────────
@@ -1651,6 +1679,17 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     initTabs();
 
     if (el.addCustomer) el.addCustomer.addEventListener("click", addCustomer);
+
+    if (el.depositAlertFilter) {
+      el.depositAlertFilter.addEventListener("click", () => {
+        // Show only Kontrakt customers with unpaid deposit
+        el.customerRows && el.customerRows.querySelectorAll("tr").forEach(tr => {
+          const id   = tr.dataset.id;
+          const c    = state.customers.find(x => x.id === id);
+          tr.hidden  = !(c && c.status === "Kontrakt" && !c.depositPaid);
+        });
+      });
+    }
     if (el.leadgenType)  el.leadgenType.addEventListener("change", syncLeadgenFields);
     syncLeadgenFields();
 
