@@ -9,25 +9,37 @@ const PAKKER = [
   {
     scenario: "A — Lav",
     tittel: "Full Driftsavtale",
-    type: "690 kr/mnd",
-    pris: 690,
-    features: ["Hosting · SSL · oppetid"],
+    type: "790 kr/mnd",
+    pris: 790,
+    features: [
+      "Oppstart 10 000–50 000 kr (25 % forskudd)",
+      "Hosting · SSL · oppetid",
+      "0 innholdsendringer inkl. — support 790 kr/t",
+    ],
     farge: "#10b981",
   },
   {
     scenario: "A — Medium",
     tittel: "Full Driftsavtale",
-    type: "1 190 kr/mnd",
-    pris: 1190,
-    features: ["Alt i Lav + 3 endringer/mnd", "Overforbruk: 890 kr/t"],
+    type: "1 690 kr/mnd",
+    pris: 1690,
+    features: [
+      "Oppstart 10 000–50 000 kr (25 % forskudd)",
+      "Alt i Lav + maks 2 mikroendringer/mnd",
+      "Overforbruk: 790 kr/t",
+    ],
     farge: "#10b981",
   },
   {
     scenario: "A — Høy",
     tittel: "Full Driftsavtale",
-    type: "1 990 kr/mnd",
-    pris: 1990,
-    features: ["Alt i Medium + ukentlige oppdateringer", "Overforbruk: 890 kr/t"],
+    type: "2 190 kr/mnd",
+    pris: 2190,
+    features: [
+      "Oppstart 10 000–50 000 kr (25 % forskudd)",
+      "Alt i Medium + ukentlige justeringer (maks 1 økt/uke)",
+      "Overforbruk: 790 kr/t",
+    ],
     farge: "#10b981",
   },
   {
@@ -36,29 +48,29 @@ const PAKKER = [
     type: "Engangsleveranse",
     pris: null,
     features: [
-      "Gratis hosting på Vercel / Netlify",
+      "Bygd i Lovable → nedlastet til Cloudflare Pages",
       "SSL-sertifikat + tilpasset domene",
-      "Ingen månedskostnad",
-      "Endringer etter 90 dager: 490 kr oppstart + 890 kr/t",
+      "Ingen månedskostnad, ingen kodetilgang for kunde",
+      "Reaktivering etter 90+ dager: 490 kr + 790 kr/t",
     ],
     farge: "#8b5cf6",
   },
   {
-    scenario: "C",
+    scenario: "C — på vent",
     tittel: "Prosjektoverføring",
-    type: "Engangsleveranse",
-    pris: null, // engangspris, varierer
+    type: "50 000–100 000 kr (avventes)",
+    pris: null, // engangspris, varierer — fokuser salg på A/B inntil videre
     features: [
-      "Komplett nettside etter dine krav",
+      "Engangs 50 000–100 000 kr (25 % forskudd)",
+      "Overføres til kundens egen Lovable-konto",
       "Skriftlig godkjenning før overføring",
-      "Kunden eier kildekoden 100%",
-      "Fremtidige endringer: 890 kr/t",
+      "Support etter overføring: 790 kr/t",
     ],
     farge: "#3b82f6",
   },
 ];
 
-const NOTE = "MVA-fritt (Privat frilansfaktura) · Timesats 890 kr/t";
+const NOTE = "MVA-fritt (Privat frilansfaktura) · Timesats 790 kr/t · A: 1 mnd gjensidig oppsigelse";
 
 // ── Home screen-widget: alltid full (large) oversikt ──
 function buildWidget() {
