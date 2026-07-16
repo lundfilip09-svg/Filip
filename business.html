@@ -219,92 +219,70 @@
 .biz-tab.active{color:var(--text-primary);border-bottom-color:var(--accent-blue)}
 .biz-tab:hover:not(.active){color:var(--text-secondary)}
 
-/* ── Salgspresentasjon — mørk glassmorphism ── */
-.sales-hero{text-align:center;padding:28px 12px 22px}
-.sales-hero-title{
-  font-size:24px;font-weight:800;color:var(--text-primary);
-  letter-spacing:-.025em;margin-bottom:8px;
+/* ── Prisstruktur (intern admin) ── */
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;
 }
-.sales-hero-sub{font-size:13px;color:var(--text-secondary);line-height:1.5}
+@media(max-width:780px){.pricing-grid{grid-template-columns:1fr;gap:10px}}
 
-.sales-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;
-}
-@media(max-width:860px){.sales-grid{grid-template-columns:1fr;gap:14px}}
-
-.sales-card{
+.pricing-panel{
   border-radius:var(--radius-lg);border:1px solid var(--hairline-soft);
-  padding:22px 20px 20px;position:relative;overflow:hidden;
-  background:rgba(255,255,255,.025);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  transition:transform .15s,box-shadow .15s;
+  padding:14px 16px;background:var(--surface-1);
   display:flex;flex-direction:column;
 }
-.sales-card:hover{transform:translateY(-3px);box-shadow:0 18px 48px rgba(0,0,0,.42)}
 
-.sales-card-glow{
-  position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-}
-.scenario-a .sales-card-glow{background:linear-gradient(140deg,rgba(91,164,245,.07),transparent 52%)}
-.scenario-b .sales-card-glow{background:linear-gradient(140deg,rgba(180,120,255,.07),transparent 52%)}
-.scenario-c .sales-card-glow{background:linear-gradient(140deg,rgba(95,217,154,.07),transparent 52%)}
-
-.sales-card-icon{font-size:28px;margin-bottom:10px;line-height:1}
-.sales-card-badge{
+.pricing-sc-tag{
   display:inline-block;font-size:9px;font-family:var(--font-mono);font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;color:var(--text-tertiary);
-  background:var(--surface-1);border:1px solid var(--hairline-soft);
-  border-radius:4px;padding:2px 8px;margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);
+  border:1px solid var(--hairline-soft);border-radius:3px;
+  padding:2px 7px;margin-bottom:6px;
 }
-.sales-card-title{font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
-.sales-card-desc{
-  font-size:12px;color:var(--text-secondary);line-height:1.55;margin-bottom:16px;
-  flex-shrink:0;
+.pricing-sc-name{font-size:13px;font-weight:700;color:var(--text-primary)}
+.pricing-sc-sub{
+  font-size:11px;color:var(--text-secondary);margin-top:3px;
+  line-height:1.4;margin-bottom:11px;
 }
 
-.sales-price-block{margin-bottom:12px}
-.sales-price-row{display:flex;align-items:baseline;gap:4px}
-.sales-price-main{
-  font-size:40px;font-weight:900;font-family:var(--font-mono);
-  color:var(--text-primary);line-height:1;letter-spacing:-.03em;
+.pricing-price-block{margin-bottom:8px}
+.pricing-price{
+  font-size:20px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-primary);line-height:1.1;
 }
-.sales-price-unit{font-size:14px;color:var(--text-tertiary);font-family:var(--font-mono)}
-.sales-price-note{font-size:11px;color:var(--text-tertiary);margin-top:5px;line-height:1.4}
+.pricing-price-unit,.pricing-price-note{
+  font-size:11px;color:var(--text-tertiary);margin-top:3px;line-height:1.4;
+}
 
-.sales-divider{height:1px;background:var(--hairline-soft);margin:14px 0}
+.pricing-divider{height:1px;background:var(--hairline-soft);margin:10px 0 8px}
 
-.sales-features{
+.pricing-features{
   list-style:none;padding:0;margin:0;
-  display:flex;flex-direction:column;gap:8px;
-  flex:1;
+  display:flex;flex-direction:column;gap:5px;flex:1;
 }
-.sales-features li{
-  font-size:12.5px;color:var(--text-secondary);
-  display:flex;gap:8px;align-items:flex-start;line-height:1.45;
+.pricing-features li{
+  font-size:11.5px;color:var(--text-secondary);
+  display:flex;gap:6px;align-items:flex-start;line-height:1.4;
 }
-.sales-features li .sf-check{color:var(--success);font-weight:700;flex-shrink:0;margin-top:1px;font-size:13px}
-.sales-features li .sf-warn{color:var(--warning);flex-shrink:0;margin-top:1px;font-size:13px}
+.pf-check{color:var(--success);font-weight:700;flex-shrink:0;font-size:11px;margin-top:1px}
+.pf-warn{color:var(--warning);flex-shrink:0;font-size:11px;margin-top:1px}
 
-/* Scenario C: tiers-tabell inne i kortet */
-.sales-tier-rows{display:flex;flex-direction:column;gap:7px;margin-top:4px}
-.sales-tier-row{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:9px 12px;
-  background:var(--surface-1);border:1px solid var(--hairline-soft);
-  border-radius:var(--radius-sm);
+/* Scenario C: tier-rader */
+.pricing-tiers{display:flex;flex-direction:column;gap:5px;flex:1}
+.pricing-tier-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 10px;
+  border:1px solid var(--hairline-soft);border-radius:var(--radius-sm);
 }
-.sales-tier-left{display:flex;flex-direction:column;gap:2px}
-.sales-tier-name{font-size:12px;font-weight:700;color:var(--text-primary)}
-.sales-tier-incl{font-size:10px;color:var(--text-tertiary);line-height:1.35}
-.sales-tier-price{
-  font-size:16px;font-weight:800;font-family:var(--font-mono);
-  color:var(--text-primary);white-space:nowrap;flex-shrink:0;
+.pricing-tier-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.pricing-tier-incl{font-size:10px;color:var(--text-tertiary);margin-top:1px}
+.pricing-tier-price{
+  font-size:14px;font-weight:700;font-family:var(--font-mono);
+  color:var(--text-primary);white-space:nowrap;
 }
 
-.sales-footer-note{
-  text-align:center;padding:10px 0 6px;
+.pricing-footer{
   font-size:11px;color:var(--text-tertiary);
-  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;
+  border-top:1px solid var(--hairline-soft);
+  padding-top:10px;font-family:var(--font-mono);
 }
 </style>
 </head>
@@ -458,19 +436,16 @@
 </div><!-- /accountingView -->
 
 <!-- ══════════════════════════════════════════════════════════
-     SALGSPRESENTASJON
+     PRISSTRUKTUR
 ═══════════════════════════════════════════════════════════ -->
 <div id="pricingView" hidden>
-
-<div class="sales-hero">
-  <div class="sales-hero-title" data-i18n="biz.sales_page_title">Nettside-pakker</div>
-  <div class="sales-hero-sub">Lovable.dev · Vercel · Supabase</div>
+<div class="card">
+<div class="biz-section-head">
+  <div class="section-title" data-i18n="biz.pricing_tab">Produkter &amp; priser</div>
 </div>
-
-<div id="salesGrid" class="sales-grid"></div>
-
-<div id="salesFooterNote" class="sales-footer-note" data-i18n="biz.sales_price_note">Alle priser eks. mva. · Timesats 690 kr/t</div>
-
+<div id="salesGrid"></div>
+<div id="salesFooterNote" class="pricing-footer" data-i18n="biz.sales_price_note">Alle priser eks. mva. · Timesats 690 kr/t</div>
+</div>
 </div><!-- /pricingView -->
 
 </div><!-- /page -->
@@ -689,89 +664,80 @@
   }
 
   function renderSalesCards() {
-    const grid       = document.getElementById("salesGrid");
-    const footerNote = document.getElementById("salesFooterNote");
+    const grid = document.getElementById("salesGrid");
     if (!grid) return;
 
     if (!state.pricingTiers.length) {
-      grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--text-tertiary);padding:20px">${escapeHtml(t("loading"))}</p>`;
+      grid.innerHTML = `<p style="color:var(--text-tertiary);padding:12px 0;font-size:13px">${escapeHtml(t("loading"))}</p>`;
       return;
     }
 
     function featuresHtml(features) {
       if (!Array.isArray(features) || !features.length) return "";
-      return `<ul class="sales-features">${
+      return `<ul class="pricing-features">${
         features.map(f => {
-          const icon = f.icon === "check" ? "✓" : "⚡";
-          const cls  = f.icon === "check" ? "sf-check" : "sf-warn";
+          const icon = f.icon === "check" ? "\u2713" : "\u26a1";
+          const cls  = f.icon === "check" ? "pf-check" : "pf-warn";
           const text = f.key ? escapeHtml(t(f.key)) : escapeHtml(f.tekst || "");
           return `<li><span class="${cls}">${icon}</span><span>${text}</span></li>`;
         }).join("")
       }</ul>`;
     }
 
-    function priceBlockA(row) {
-      const fra = row && row.pris_nok     ? Number(row.pris_nok).toLocaleString("nb-NO")     : "10 000";
-      const til = row && row.pris_til_nok ? Number(row.pris_til_nok).toLocaleString("nb-NO") : "20 000";
-      return `<div class="sales-price-block">
-        <div class="sales-price-row">
-          <span class="sales-price-main" style="font-size:28px">${fra}–${til}</span>
-        </div>
-        <div class="sales-price-note" data-i18n="biz.onetime_delivery">${escapeHtml(t("biz.onetime_delivery"))}</div>
-      </div>`;
+    function panelBodyA(row) {
+      const fra = row?.pris_nok     ? Number(row.pris_nok).toLocaleString("nb-NO")     : "10\u202f000";
+      const til = row?.pris_til_nok ? Number(row.pris_til_nok).toLocaleString("nb-NO") : "20\u202f000";
+      return `<div class="pricing-price-block">
+        <div class="pricing-price" style="font-size:18px">${fra}\u2013${til} kr</div>
+        <div class="pricing-price-unit" data-i18n="biz.onetime_delivery">${escapeHtml(t("biz.onetime_delivery"))}</div>
+      </div>
+      <div class="pricing-divider"></div>
+      ${featuresHtml(row?.features)}`;
     }
 
-    function priceBlockB(row) {
+    function panelBodyB(row) {
       const fee = row ? Number(row.pris_nok) : 0;
-      return `<div class="sales-price-block">
-        <div class="sales-price-row">
-          <span class="sales-price-main">${fee}</span>
-          <span class="sales-price-unit">${escapeHtml(t("biz.onetime_setup"))}</span>
-        </div>
-        <div class="sales-price-note">+ ${CONTRACT_HOURLY_RATE} ${escapeHtml(t("biz.hourly_rate"))} · ${escapeHtml(t("biz.after_90_days"))}</div>
-      </div>`;
+      return `<div class="pricing-price-block">
+        <div class="pricing-price">${fee} kr</div>
+        <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
+        <div class="pricing-price-note">+ ${CONTRACT_HOURLY_RATE} ${escapeHtml(t("biz.hourly_rate"))} \u00b7 ${escapeHtml(t("biz.after_90_days"))}</div>
+      </div>
+      <div class="pricing-divider"></div>
+      ${featuresHtml(row?.features)}`;
     }
 
-    function tierRowsC() {
-      const tierOrder = ["Lav", "Medium", "Høy"];
-      const inclKeys  = { Lav: "biz.sc_lav_features", Medium: "biz.sc_med_features", "Høy": "biz.sc_hoy_features" };
+    function panelBodyC() {
+      const tierOrder = ["Lav", "Medium", "H\u00f8y"];
+      const inclKeys  = { Lav: "biz.sc_lav_features", Medium: "biz.sc_med_features", "H\u00f8y": "biz.sc_hoy_features" };
       const rows = tierOrder
         .map(name => state.pricingTiers.find(r => r.scenario === "C" && r.tier === name))
         .filter(Boolean);
-      return `<div class="sales-tier-rows">${
-        rows.map(r => `<div class="sales-tier-row">
-          <div class="sales-tier-left">
-            <div class="sales-tier-name">${escapeHtml(r.tier)}</div>
-            <div class="sales-tier-incl">${escapeHtml(t(inclKeys[r.tier] || ""))}</div>
+      return `<div class="pricing-tiers">${
+        rows.map(r => `<div class="pricing-tier-row">
+          <div>
+            <div class="pricing-tier-name">${escapeHtml(r.tier)}</div>
+            <div class="pricing-tier-incl">${escapeHtml(t(inclKeys[r.tier] || ""))}</div>
           </div>
-          <div class="sales-tier-price">${Number(r.pris_nok).toLocaleString("nb-NO")} <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)">${escapeHtml(t("biz.per_month"))}</span></div>
+          <div class="pricing-tier-price">${Number(r.pris_nok).toLocaleString("nb-NO")} <span style="font-size:10px;font-weight:400;color:var(--text-tertiary)">${escapeHtml(t("biz.per_month"))}</span></div>
         </div>`).join("")
       }</div>`;
     }
 
-    const CARD_CFG = [
-      { sc:"A", cls:"scenario-a", icon:"🚀", badge:"biz.scenario_a", title:"biz.sa_title", desc:"biz.scenario_a_desc" },
-      { sc:"B", cls:"scenario-b", icon:"☁️", badge:"biz.scenario_b", title:"biz.sb_title", desc:"biz.scenario_b_desc" },
-      { sc:"C", cls:"scenario-c", icon:"🛡️", badge:"biz.scenario_c", title:"biz.sc_title", desc:"biz.scenario_c_desc" }
+    const PANEL_CFG = [
+      { sc:"A", badge:"biz.scenario_a", title:"biz.sa_title", sub:"biz.scenario_a_desc", body: row => panelBodyA(row) },
+      { sc:"B", badge:"biz.scenario_b", title:"biz.sb_title", sub:"biz.scenario_b_desc", body: row => panelBodyB(row) },
+      { sc:"C", badge:"biz.scenario_c", title:"biz.sc_title", sub:"biz.scenario_c_desc", body: ()  => panelBodyC()   }
     ];
 
-    grid.innerHTML = CARD_CFG.map(cfg => {
+    grid.innerHTML = `<div class="pricing-grid">${PANEL_CFG.map(cfg => {
       const row = state.pricingTiers.find(r => r.scenario === cfg.sc && r.tier == null);
-      const priceSection = cfg.sc === "A" ? priceBlockA(row)
-        : cfg.sc === "B" ? priceBlockB(row)
-        : tierRowsC();
-      const feats = cfg.sc !== "C" ? featuresHtml(row?.features) : "";
-      return `<div class="sales-card ${cfg.cls}">
-        <div class="sales-card-glow"></div>
-        <div class="sales-card-icon">${cfg.icon}</div>
-        <div class="sales-card-badge">${escapeHtml(t(cfg.badge))}</div>
-        <div class="sales-card-title">${escapeHtml(t(cfg.title))}</div>
-        <div class="sales-card-desc">${escapeHtml(t(cfg.desc))}</div>
-        ${priceSection}
-        ${cfg.sc !== "C" ? '<div class="sales-divider"></div>' : ""}
-        ${feats}
+      return `<div class="pricing-panel">
+        <div class="pricing-sc-tag">${escapeHtml(t(cfg.badge))}</div>
+        <div class="pricing-sc-name">${escapeHtml(t(cfg.title))}</div>
+        <div class="pricing-sc-sub">${escapeHtml(t(cfg.sub))}</div>
+        ${cfg.body(row)}
       </div>`;
-    }).join("");
+    }).join("")}</div>`;
   }
 
   async function addCustomerToDb() {
