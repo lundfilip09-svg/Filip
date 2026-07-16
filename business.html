@@ -72,8 +72,6 @@
   width:30px;height:30px;padding:0;
   display:inline-flex;align-items:center;justify-content:center;
 }
-.biz-table .cust-price,.biz-table .cust-onetime{padding-left:6px;padding-right:6px;font-size:12px}
-
 /* Status: kun farge, ingen tekst — liten klikkbar prikk som bytter grønn/gul/rød */
 .cust-status-dot{
   width:22px;height:22px;border-radius:50%;border:2px solid transparent;
@@ -309,6 +307,57 @@
   border-top:1px solid var(--hairline-soft);
   padding-top:10px;font-family:var(--font-mono);
 }
+
+/* ── Detalj-panel ── */
+.cust-panel{
+  position:fixed;top:0;right:0;bottom:0;width:360px;
+  background:var(--surface);border-left:1px solid var(--hairline);
+  overflow-y:auto;z-index:900;padding:20px 18px 40px;
+  box-shadow:-4px 0 24px rgba(0,0,0,.35);
+}
+@media(max-width:520px){.cust-panel{width:100%;left:0;border-left:none}}
+.panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.panel-name{font-size:15px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-section{
+  margin-top:20px;padding-top:14px;
+  border-top:1px solid var(--hairline-soft);
+}
+.panel-section:first-of-type{border-top:none;margin-top:0}
+.panel-section-title{
+  font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-tertiary);margin-bottom:10px;
+}
+.panel-cta-wrap{margin-bottom:4px}
+.panel-cta-wrap .btn{width:100%;justify-content:center;font-size:13px;padding:9px 0}
+.panel-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.panel-actions .btn{font-size:11.5px}
+.panel-danger-zone .panel-section-title{color:var(--danger)}
+
+/* ── Kunderader — lese-modus ── */
+.cust-row{cursor:pointer}
+.cust-row:hover td{background:var(--surface-hover)}
+.cust-row.panel-open td{background:rgba(91,164,245,.06)}
+.biz-status-pill{
+  display:inline-block;padding:2px 7px;border-radius:10px;
+  font-size:10.5px;font-weight:600;letter-spacing:.01em;
+  vertical-align:middle;
+}
+.biz-status-pill.st-lead{background:rgba(91,164,245,.15);color:var(--accent-blue)}
+.biz-status-pill.st-tilbud{background:rgba(192,132,252,.15);color:#C084FC}
+.biz-status-pill.st-kontrakt{background:rgba(232,182,87,.15);color:var(--warning)}
+.biz-status-pill.st-active{background:rgba(95,217,154,.15);color:var(--success)}
+.biz-status-pill.st-paused{background:rgba(148,163,184,.15);color:#94A3B8}
+.biz-status-pill.st-ended{background:rgba(242,109,109,.15);color:var(--danger)}
+.biz-tier-badge{
+  display:inline-block;margin-left:5px;padding:2px 6px;border-radius:6px;
+  font-size:10px;font-weight:600;
+  background:var(--surface-alt);color:var(--text-tertiary);
+  vertical-align:middle;
+}
+.col-pills{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -391,22 +440,14 @@
 <div class="table-wrap">
 <table class="biz-table">
 <colgroup>
-<col class="col-name"><col class="col-contact"><col class="col-tier">
-<col class="col-bizmodel">
-<col class="col-price"><col class="col-onetime"><col class="col-start">
-<col class="col-status"><col class="col-deposit"><col class="col-del">
+<col class="col-name"><col class="col-pills"><col class="col-price"><col class="col-deposit"><col class="col-del">
 </colgroup>
 <thead>
 <tr>
 <th data-i18n="biz.customer">Customer</th>
-<th data-i18n="biz.contact">Contact</th>
-<th data-i18n="biz.tier">Tier</th>
-<th data-i18n="biz.business_model">Business model</th>
-<th data-i18n="biz.price">Price</th>
-<th data-i18n="biz.onetime">One-time</th>
-<th data-i18n="biz.start">Start</th>
 <th data-i18n="biz.status">Status</th>
-<th data-i18n="biz.deposit">Deposit</th>
+<th data-i18n="biz.price">Pris/mnd</th>
+<th data-i18n="biz.deposit">Dep.</th>
 <th></th>
 </tr>
 </thead>
@@ -416,6 +457,104 @@
 </div>
 
 </div><!-- /accountingView -->
+
+<!-- ══════════════════════════════════════════════════════════
+     DETALJ-PANEL (høyre side, vises ved rad-klikk)
+═══════════════════════════════════════════════════════════ -->
+<div id="custPanel" class="cust-panel" hidden>
+<div class="panel-header">
+  <span id="panelName" class="panel-name"></span>
+  <button type="button" id="panelClose" class="btn btn-icon" data-i18n-title="biz.close_panel" title="Lukk">✕</button>
+</div>
+
+<div id="panelCtaWrap" class="panel-cta-wrap"></div>
+
+<div class="panel-section">
+  <div class="panel-section-title" data-i18n="biz.avtale">Avtale</div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.customer">Kunde</label>
+    <input id="pName" class="form-control" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.contact">Kontakt</label>
+    <input id="pContact" class="form-control" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.business_model">Modell</label>
+    <select id="pBizModel" class="form-control">
+      <option value="A">Scenario A</option>
+      <option value="B">Scenario B</option>
+      <option value="C">Scenario C</option>
+      <option value="Custom">Custom</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.tier">Tier</label>
+    <select id="pTier" class="form-control">
+      <option value="Lav">Lav</option>
+      <option value="Medium">Medium</option>
+      <option value="Høy">Høy</option>
+      <option value="Custom">Custom</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.status">Status</label>
+    <select id="pStatus" class="form-control">
+      <option value="Lead">Lead</option>
+      <option value="Tilbud">Tilbud</option>
+      <option value="Kontrakt">Kontrakt</option>
+      <option value="Aktiv">Aktiv</option>
+      <option value="Pauset">Pauset</option>
+      <option value="Avsluttet">Avsluttet</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.startdato">Startdato</label>
+    <input type="date" id="pStartDate" class="form-control">
+  </div>
+</div>
+
+<div class="panel-section">
+  <div class="panel-section-title" data-i18n="biz.kontrakt_betaling">Kontrakt & betaling</div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.price">Månedspris (kr)</label>
+    <input type="text" inputmode="decimal" id="pPrice" class="form-control money-input">
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.onetime">Engangsgebyr (kr)</label>
+    <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.deposit">Depositum betalt</label>
+    <input type="checkbox" id="pDepositPaid" style="width:auto;margin-top:6px">
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.bekreftet_dato">Bekreftet dato</label>
+    <input type="date" id="pBekreftedDato" class="form-control">
+  </div>
+  <div class="panel-actions">
+    <button type="button" id="pPrintContract" class="btn btn-sm" data-i18n="biz.print_contract">Skriv ut kontrakt</button>
+    <button type="button" id="pGenToken" class="btn btn-sm" data-i18n="biz.generate_token">Kopier kontraktlenke</button>
+  </div>
+</div>
+
+<div class="panel-section">
+  <div class="panel-section-title" data-i18n="biz.notes_button">Notat</div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.custom_scope_label">Spesifisert leveranse</label>
+    <textarea id="pCustomScope" class="form-control" rows="3"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label" data-i18n="biz.notes_button">Notat</label>
+    <textarea id="pNotes" class="form-control" rows="4"></textarea>
+  </div>
+</div>
+
+<div class="panel-section panel-danger-zone">
+  <div class="panel-section-title" data-i18n="biz.faresone">Faresone</div>
+  <button type="button" id="pDeleteCustomer" class="btn btn-sm" style="background:rgba(242,109,109,.12);color:var(--danger);border-color:rgba(242,109,109,.3)" data-i18n="biz.delete_customer">Slett kunde</button>
+</div>
+</div><!-- /custPanel -->
 
 <!-- ══════════════════════════════════════════════════════════
      LEAD GENERATOR
@@ -536,6 +675,7 @@
     pricingTiers: [],
     fx:          { rate: FALLBACK_FX, updatedAt: null },
     lovablePlan: "0",
+    panelId:     null, // UUID for currently open detail panel
     inputs: {
       city: "", industry: "",
       lbBizName: "", lbMapsPaste: "",
@@ -544,7 +684,7 @@
   };
 
   let db = null;
-  let activeModalId = null; // UUID-streng for åpen notat-modal
+  let activeModalId = null;
 
   // ── DOM-referanser ──────────────────────────────────────────────────────────
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -560,6 +700,25 @@
     depositAlert:       $("#depositAlert"),
     depositAlertText:   $("#depositAlertText"),
     depositAlertFilter: $("#depositAlertFilter"),
+    custPanel:          $("#custPanel"),
+    panelName:          $("#panelName"),
+    panelClose:         $("#panelClose"),
+    panelCtaWrap:       $("#panelCtaWrap"),
+    pName:              $("#pName"),
+    pContact:           $("#pContact"),
+    pBizModel:          $("#pBizModel"),
+    pTier:              $("#pTier"),
+    pStatus:            $("#pStatus"),
+    pStartDate:         $("#pStartDate"),
+    pPrice:             $("#pPrice"),
+    pOnetime:           $("#pOnetime"),
+    pDepositPaid:       $("#pDepositPaid"),
+    pBekreftedDato:     $("#pBekreftedDato"),
+    pPrintContract:     $("#pPrintContract"),
+    pGenToken:          $("#pGenToken"),
+    pCustomScope:       $("#pCustomScope"),
+    pNotes:             $("#pNotes"),
+    pDeleteCustomer:    $("#pDeleteCustomer"),
     city:               $("#city"),
     industry:           $("#industry"),
     lbBizName:          $("#lbBizName"),
@@ -704,72 +863,45 @@
       return;
     }
 
-    function featuresHtml(features) {
-      if (!Array.isArray(features) || !features.length) return "";
-      return `<ul class="pricing-features">${
-        features.map(f => {
-          const icon = f.icon === "check" ? "\u2713" : "\u26a1";
-          const cls  = f.icon === "check" ? "pf-check" : "pf-warn";
-          const text = f.key ? escapeHtml(t(f.key)) : escapeHtml(f.tekst || "");
-          return `<li><span class="${cls}">${icon}</span><span>${text}</span></li>`;
-        }).join("")
-      }</ul>`;
-    }
+    const lovableNok   = Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
+    const activeN      = Math.max(1, activeCustomers().length);
+    const lovableShare = lovableNok / activeN; // per-kunde andel av Lovable-kostnad
 
-    function panelBodyA(row) {
-      const fra = row?.pris_nok     ? Number(row.pris_nok).toLocaleString("nb-NO")     : "10\u202f000";
-      const til = row?.pris_til_nok ? Number(row.pris_til_nok).toLocaleString("nb-NO") : "20\u202f000";
-      return `<div class="pricing-price-block">
-        <div class="pricing-price" style="font-size:18px">${fra}\u2013${til} kr</div>
-        <div class="pricing-price-unit" data-i18n="biz.onetime_delivery">${escapeHtml(t("biz.onetime_delivery"))}</div>
-      </div>
-      <div class="pricing-divider"></div>
-      ${featuresHtml(row?.features)}`;
-    }
-
-    function panelBodyB(row) {
-      const fee = row ? Number(row.pris_nok) : 0;
-      return `<div class="pricing-price-block">
-        <div class="pricing-price">${fee} kr</div>
-        <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
-        <div class="pricing-price-note">+ ${CONTRACT_HOURLY_RATE} ${escapeHtml(t("biz.hourly_rate"))} \u00b7 ${escapeHtml(t("biz.after_90_days"))}</div>
-      </div>
-      <div class="pricing-divider"></div>
-      ${featuresHtml(row?.features)}`;
-    }
-
-    function panelBodyC() {
-      const tierOrder = ["Lav", "Medium", "H\u00f8y"];
-      const inclKeys  = { Lav: "biz.sc_lav_features", Medium: "biz.sc_med_features", "H\u00f8y": "biz.sc_hoy_features" };
-      const rows = tierOrder
-        .map(name => state.pricingTiers.find(r => r.scenario === "C" && r.tier === name))
-        .filter(Boolean);
-      return `<div class="pricing-tiers">${
-        rows.map(r => `<div class="pricing-tier-row">
-          <div>
-            <div class="pricing-tier-name">${escapeHtml(r.tier)}</div>
-            <div class="pricing-tier-incl">${escapeHtml(t(inclKeys[r.tier] || ""))}</div>
-          </div>
-          <div class="pricing-tier-price">${Number(r.pris_nok).toLocaleString("nb-NO")} <span style="font-size:10px;font-weight:400;color:var(--text-tertiary)">${escapeHtml(t("biz.per_month"))}</span></div>
-        </div>`).join("")
-      }</div>`;
-    }
-
-    const PANEL_CFG = [
-      { sc:"A", badge:"biz.scenario_a", title:"biz.sa_title", sub:"biz.scenario_a_desc", body: row => panelBodyA(row) },
-      { sc:"B", badge:"biz.scenario_b", title:"biz.sb_title", sub:"biz.scenario_b_desc", body: row => panelBodyB(row) },
-      { sc:"C", badge:"biz.scenario_c", title:"biz.sc_title", sub:"biz.scenario_c_desc", body: ()  => panelBodyC()   }
+    const TABLE_ROWS = [
+      ...["A","B"].map(sc => {
+        const row = state.pricingTiers.find(r => r.scenario === sc && r.tier == null);
+        const pris = row ? Number(row.pris_nok) : 0;
+        return { scenario: `Scenario ${sc}`, tier: "\u2014", pris, enhet: t("biz.onetime_setup"), margin: pris };
+      }),
+      ...["Lav","Medium","H\u00f8y"].map(tier => {
+        const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tier);
+        const pris = row ? Number(row.pris_nok) : 0;
+        return { scenario: "Scenario C", tier, pris, enhet: t("biz.per_month"), margin: pris - lovableShare };
+      })
     ];
 
-    grid.innerHTML = `<div class="pricing-grid">${PANEL_CFG.map(cfg => {
-      const row = state.pricingTiers.find(r => r.scenario === cfg.sc && r.tier == null);
-      return `<div class="pricing-panel">
-        <div class="pricing-sc-tag">${escapeHtml(t(cfg.badge))}</div>
-        <div class="pricing-sc-name">${escapeHtml(t(cfg.title))}</div>
-        <div class="pricing-sc-sub">${escapeHtml(t(cfg.sub))}</div>
-        ${cfg.body(row)}
-      </div>`;
-    }).join("")}</div>`;
+    const fmtMargin = m => {
+      const cls = m >= 0 ? "success" : "danger";
+      return `<span style="color:var(--${cls})">${moneyNok(Math.round(m))}</span>`;
+    };
+
+    grid.innerHTML = `<table class="biz-table pricing-admin-table">
+      <thead><tr>
+        <th>Scenario</th>
+        <th data-i18n="biz.tier">Tier</th>
+        <th data-i18n="biz.price">Pris</th>
+        <th data-i18n="biz.unit">Enhet</th>
+        <th data-i18n="biz.margin">Margin *</th>
+      </tr></thead>
+      <tbody>${TABLE_ROWS.map(r => `<tr>
+        <td>${escapeHtml(r.scenario)}</td>
+        <td>${escapeHtml(r.tier)}</td>
+        <td style="font-weight:600">${moneyNok(r.pris)}</td>
+        <td style="color:var(--text-tertiary);font-size:11.5px">${escapeHtml(r.enhet)}</td>
+        <td>${fmtMargin(r.margin)}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    <p class="pricing-footer" style="margin-top:8px">* ${escapeHtml(t("biz.margin"))} = pris \u2212 Lovable (${moneyNok(Math.round(lovableNok))}/mnd \u00f7 ${activeN} kunder). ${escapeHtml(t("biz.gross"))}: eks. mva.</p>`;
   }
 
   async function addCustomerToDb() {
@@ -924,52 +1056,33 @@
     }
   }
 
-  // ── Render kunderad ────────────────────────────────────────────────────────
+  // ── Render kundeoversikt (lese-modus) ─────────────────────────────────────
   function renderCustomers({ animateNew = false } = {}) {
     if (!el.customerRows) return;
 
     el.customerRows.innerHTML = state.customers.map(rawC => {
       const c = normalizeCustomer(rawC);
-      // Oppdater in-place for å holde state synkronisert
       const idx = state.customers.findIndex(x => x.id === rawC.id);
       if (idx !== -1) state.customers[idx] = c;
 
+      const stCls  = STATUS_CLASS[c.status] || "st-active";
+      const stLbl  = t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv);
+      const isOpen = state.panelId === c.id;
+
       return `
-        <tr data-id="${escapeHtml(c.id)}">
-          <td><input class="cust-name" value="${escapeHtml(c.name)}" autocomplete="off"></td>
-          <td><input class="cust-contact" value="${escapeHtml(c.contact)}" autocomplete="off"></td>
-          <td>
-            <select class="cust-tier">
-              ${["Lav", "Medium", "Høy", "Custom"].map(tier =>
-                `<option value="${escapeHtml(tier)}" ${c.tier === tier ? "selected" : ""}>${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</option>`
-              ).join("")}
-            </select>
+        <tr data-id="${escapeHtml(c.id)}" class="cust-row${isOpen ? " panel-open" : ""}">
+          <td class="col-name">${escapeHtml(c.name || t("biz.unnamed_customer"))}</td>
+          <td class="col-pills">
+            <span class="biz-status-pill ${stCls}">${escapeHtml(stLbl)}</span>
+            <span class="biz-tier-badge">${escapeHtml(c.tier)}</span>
           </td>
-          <td>
-            <select class="cust-bizmodel">
-              ${BUSINESS_MODEL_ORDER.map(bm =>
-                `<option value="${escapeHtml(bm)}" ${c.businessModel === bm ? "selected" : ""}>${escapeHtml(t(BUSINESS_MODEL_LABEL_KEYS[bm]))}</option>`
-              ).join("")}
-            </select>
-          </td>
-          <td><input type="text" inputmode="decimal" class="cust-price money-input" value="${formatMoneyInput(c.price)}"></td>
-          <td><input type="text" inputmode="decimal" class="cust-onetime money-input" value="${formatMoneyInput(c.oneTimeFee)}"></td>
-          <td><input type="date" class="cust-date" value="${escapeHtml(c.start)}"></td>
-          <td>
-            <button type="button" class="cust-status-dot ${STATUS_CLASS[c.status] || "st-active"}" data-status="${escapeHtml(c.status)}" aria-label="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}" title="${escapeHtml(t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv))}"></button>
-          </td>
-          <td>${c.businessModel === "C"
-            ? `<span style="display:block;text-align:center;color:var(--text-muted)">—</span>`
+          <td class="col-price">${c.price ? moneyNok(c.price) : "—"}</td>
+          <td class="col-deposit">${c.businessModel === "C"
+            ? `<span style="color:var(--text-tertiary)">—</span>`
             : `<button type="button" class="cust-deposit-dot ${c.depositPaid ? "dp-paid" : "dp-unpaid"}" data-paid="${c.depositPaid ? "1" : "0"}" aria-label="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}" title="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}"></button>`
           }</td>
-          <td>
-            <div class="cust-actions">
-              <button type="button" class="btn btn-icon notes-btn${(c.notes || c.customScope) ? " has-content" : ""}" aria-label="${escapeHtml(t("biz.notes_button"))}" title="${escapeHtml(t("biz.notes_button"))}">📝</button>
-              <button type="button" class="btn btn-icon print-contract-btn" aria-label="${escapeHtml(t("biz.print_contract"))}" title="${escapeHtml(t("biz.print_contract"))}">🖨️</button>
-              <button type="button" class="btn btn-icon gen-token-btn" aria-label="${escapeHtml(t("biz.generate_token"))}" title="${escapeHtml(t("biz.generate_token"))}">🔗</button>
-              <button type="button" class="btn btn-icon bekreftet-btn${c.bekreftedDato ? " is-confirmed" : ""}" data-confirmed="${c.bekreftedDato ? "1" : "0"}" aria-label="${escapeHtml(c.bekreftedDato ? t("biz.confirmed_on") + " " + c.bekreftedDato : t("biz.confirm_contract"))}" title="${escapeHtml(c.bekreftedDato ? t("biz.confirmed_on") + " " + c.bekreftedDato : t("biz.confirm_contract"))}">📋</button>
-              <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-            </div>
+          <td class="col-del">
+            <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           </td>
         </tr>`;
     }).join("");
@@ -981,45 +1094,100 @@
     renderMetrics();
   }
 
-  // ── Lese rad og planlegge DB-oppdatering ───────────────────────────────────
-  let _pendingNameChanged = false;
+  // ── Detalj-panel ───────────────────────────────────────────────────────────
   let _nameRebuildTimer = null;
 
-  function readCustomerRow(row, { defer = false, nameChanged = false } = {}) {
-    const id  = row.dataset.id;
+  function openPanel(id) {
+    const c = state.customers.find(x => x.id === id);
+    if (!c) return;
+    state.panelId = id;
+    renderPanel(c);
+    if (el.custPanel) el.custPanel.hidden = false;
+    el.customerRows?.querySelectorAll(".cust-row").forEach(tr => {
+      tr.classList.toggle("panel-open", tr.dataset.id === id);
+    });
+  }
+
+  function closePanel() {
+    state.panelId = null;
+    if (el.custPanel) el.custPanel.hidden = true;
+    el.customerRows?.querySelectorAll(".cust-row").forEach(tr => tr.classList.remove("panel-open"));
+  }
+
+  function renderPanel(c) {
+    if (el.panelName) el.panelName.textContent = c.name || t("biz.unnamed_customer");
+
+    if (el.pName)         el.pName.value         = c.name       || "";
+    if (el.pContact)      el.pContact.value       = c.contact    || "";
+    if (el.pBizModel)     el.pBizModel.value      = c.businessModel || "A";
+    if (el.pTier)         el.pTier.value          = c.tier       || "Lav";
+    if (el.pStatus)       el.pStatus.value        = c.status     || "Lead";
+    if (el.pStartDate)    el.pStartDate.value     = c.start      || "";
+    if (el.pPrice)        el.pPrice.value         = formatMoneyInput(c.price);
+    if (el.pOnetime)      el.pOnetime.value       = formatMoneyInput(c.oneTimeFee);
+    if (el.pDepositPaid)  el.pDepositPaid.checked = Boolean(c.depositPaid);
+    if (el.pBekreftedDato) el.pBekreftedDato.value = c.bekreftedDato || "";
+    if (el.pCustomScope)  el.pCustomScope.value   = c.customScope || "";
+    if (el.pNotes)        el.pNotes.value         = c.notes      || "";
+
+    renderPanelCta(c);
+  }
+
+  function renderPanelCta(c) {
+    if (!el.panelCtaWrap) return;
+    const CTA_MAP = {
+      Kontrakt: { key: "biz.panel_cta_kontrakt", next: "Aktiv" },
+      Pauset:   { key: "biz.panel_cta_pauset",   next: "Aktiv" }
+    };
+    const cta = CTA_MAP[c.status];
+    if (!cta) { el.panelCtaWrap.innerHTML = ""; return; }
+    el.panelCtaWrap.innerHTML =
+      `<button type="button" class="btn btn-primary" id="_panelCta">${escapeHtml(t(cta.key))}</button>`;
+    const btn = $("#_panelCta");
+    if (btn) btn.addEventListener("click", () => {
+      const idx = state.customers.findIndex(x => x.id === state.panelId);
+      if (idx === -1) return;
+      state.customers[idx].status = cta.next;
+      if (el.pStatus) el.pStatus.value = cta.next;
+      renderPanelCta(state.customers[idx]);
+      scheduleDbUpdate(state.customers[idx], false);
+      renderCustomers();
+    });
+  }
+
+  function readPanelFields({ defer = false, nameChanged = false } = {}) {
+    const id = state.panelId;
+    if (!id) return;
     const idx = state.customers.findIndex(c => c.id === id);
     if (idx === -1) return;
 
     const c = normalizeCustomer(state.customers[idx]);
 
-    c.name    = $(".cust-name", row)?.value    || "";
-    c.contact = $(".cust-contact", row)?.value || "";
-    c.tier    = $(".cust-tier", row)?.value    || "Lav";
-    c.businessModel = BUSINESS_MODEL_ORDER.includes($(".cust-bizmodel", row)?.value)
-      ? $(".cust-bizmodel", row).value : "A";
-    c.start  = $(".cust-date", row)?.value || "";
-
-    const statusDot   = $(".cust-status-dot", row);
-    c.status = statusDot?.dataset.status || "Lead";
-
-    const depositDot = $(".cust-deposit-dot", row);
-    if (depositDot) c.depositPaid = depositDot.dataset.paid === "1";
-
-    const priceInput   = $(".cust-price", row);
-    const oneTimeInput = $(".cust-onetime", row);
-    c.oneTimeFee = parseMoneyInput(oneTimeInput?.value);
+    c.name          = el.pName?.value           || "";
+    c.contact       = el.pContact?.value        || "";
+    c.businessModel = BUSINESS_MODEL_ORDER.includes(el.pBizModel?.value) ? el.pBizModel.value : "A";
+    c.tier          = el.pTier?.value           || "Lav";
+    c.status        = el.pStatus?.value         || "Lead";
+    c.start         = el.pStartDate?.value      || "";
+    c.oneTimeFee    = parseMoneyInput(el.pOnetime?.value);
+    c.depositPaid   = Boolean(el.pDepositPaid?.checked);
+    c.bekreftedDato = el.pBekreftedDato?.value  || null;
+    c.customScope   = el.pCustomScope?.value    || "";
+    c.notes         = el.pNotes?.value          || "";
 
     if (c.businessModel === "C" && Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
       c.price = TIER_PRICES[c.tier];
-      if (priceInput && document.activeElement !== priceInput) {
-        priceInput.value = formatMoneyInput(c.price);
+      if (el.pPrice && document.activeElement !== el.pPrice) {
+        el.pPrice.value = formatMoneyInput(c.price);
       }
     } else {
-      c.price = parseMoneyInput(priceInput?.value);
+      c.price = parseMoneyInput(el.pPrice?.value);
     }
 
+    if (el.panelName) el.panelName.textContent = c.name || t("biz.unnamed_customer");
     state.customers[idx] = c;
     renderMetrics();
+    renderCustomers();
 
     scheduleDbUpdate(c, !defer);
 
@@ -1068,6 +1236,7 @@
       state.customers.push(newC);
       renderCustomers({ animateNew: true });
       populateBusinessDropdown();
+      openPanel(newC.id);
     } catch {
       toast(t("biz.sync_error"), "err");
     }
@@ -1091,6 +1260,7 @@
         toast(t("biz.sync_error"), "err");
       }
       state.customers = state.customers.filter(c => c.id !== id);
+      if (state.panelId === id) closePanel();
       renderCustomers();
       populateBusinessDropdown();
     };
@@ -1540,12 +1710,9 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
 
   // ── Event-handlers ─────────────────────────────────────────────────────────
   function handleDocumentInput(event) {
-    const row = event.target.closest("#customerRows tr");
-    if (row) {
-      readCustomerRow(row, {
-        defer: true,
-        nameChanged: event.target.classList.contains("cust-name")
-      });
+    // Panel-felt: live autosave on input (debounced via scheduleDbUpdate)
+    if (el.custPanel && el.custPanel.contains(event.target)) {
+      readPanelFields({ defer: true, nameChanged: event.target === el.pName });
       return;
     }
     if (el.notesModalOverlay && !el.notesModalOverlay.hidden) {
@@ -1556,12 +1723,9 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
   }
 
   function handleDocumentChange(event) {
-    const row = event.target.closest("#customerRows tr");
-    if (row) {
-      readCustomerRow(row, {
-        defer: false,
-        nameChanged: event.target.classList.contains("cust-name")
-      });
+    // Panel-felt: debounced save
+    if (el.custPanel && el.custPanel.contains(event.target)) {
+      readPanelFields({ nameChanged: event.target === el.pName });
       return;
     }
     if (event.target === el.lovablePlan) {
@@ -1577,36 +1741,10 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       closeNotesModal(); return;
     }
 
-    const notesBtn = event.target.closest(".notes-btn");
-    if (notesBtn) {
-      const row = notesBtn.closest("#customerRows tr");
-      const id  = row?.dataset.id;
-      if (id) openNotesModal(id);
-      return;
-    }
+    // Panel lukk
+    if (event.target.closest("#panelClose")) { closePanel(); return; }
 
-    const printBtn = event.target.closest(".print-contract-btn");
-    if (printBtn) {
-      const row = printBtn.closest("#customerRows tr");
-      const id  = row?.dataset.id;
-      if (id) printContract(id);
-      return;
-    }
-
-    const statusDot = event.target.closest(".cust-status-dot");
-    if (statusDot) {
-      const next  = STATUS_ORDER[(STATUS_ORDER.indexOf(statusDot.dataset.status) + 1) % STATUS_ORDER.length];
-      statusDot.dataset.status = next;
-      statusDot.classList.remove(...Object.values(STATUS_CLASS));
-      statusDot.classList.add(STATUS_CLASS[next] || "st-active");
-      const label = t(STATUS_LABEL_KEYS[next] || STATUS_LABEL_KEYS.Aktiv);
-      statusDot.setAttribute("aria-label", label);
-      statusDot.setAttribute("title", label);
-      const row = statusDot.closest("#customerRows tr");
-      if (row) readCustomerRow(row, { defer: false });
-      return;
-    }
-
+    // Deposit dot i tabell — quick toggle
     const depositDot = event.target.closest(".cust-deposit-dot");
     if (depositDot) {
       const newPaid = depositDot.dataset.paid !== "1";
@@ -1617,41 +1755,35 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       depositDot.setAttribute("aria-label", label);
       depositDot.setAttribute("title", label);
       const row = depositDot.closest("#customerRows tr");
-      if (row) readCustomerRow(row, { defer: false });
-      return;
-    }
-
-    const tokenBtn = event.target.closest(".gen-token-btn");
-    if (tokenBtn) {
-      const row = tokenBtn.closest("#customerRows tr");
-      if (row?.dataset.id) generateContractToken(row.dataset.id);
-      return;
-    }
-
-    const bekreftetBtn = event.target.closest(".bekreftet-btn");
-    if (bekreftetBtn) {
-      const wasConfirmed = bekreftetBtn.dataset.confirmed === "1";
-      const newDate = wasConfirmed ? null : new Date().toISOString().slice(0, 10);
-      bekreftetBtn.dataset.confirmed = newDate ? "1" : "0";
-      bekreftetBtn.classList.toggle("is-confirmed", Boolean(newDate));
-      const label = newDate
-        ? `${t("biz.confirmed_on")} ${newDate}`
-        : t("biz.confirm_contract");
-      bekreftetBtn.setAttribute("aria-label", label);
-      bekreftetBtn.setAttribute("title", label);
-      const row = bekreftetBtn.closest("#customerRows tr");
       if (row?.dataset.id) {
         const idx = state.customers.findIndex(c => c.id === row.dataset.id);
         if (idx !== -1) {
-          state.customers[idx].bekreftedDato = newDate;
+          state.customers[idx].depositPaid = newPaid;
           scheduleDbUpdate(state.customers[idx], false);
+          renderMetrics();
+          // Sync panel if open on same customer
+          if (state.panelId === row.dataset.id && el.pDepositPaid) {
+            el.pDepositPaid.checked = newPaid;
+          }
         }
       }
       return;
     }
 
+    // Slett-knapp i tabell
     const delBtn = event.target.closest(".delete-row");
     if (delBtn) { deleteCustomer(delBtn); return; }
+
+    // Rad-klikk → åpne panel (ikke depot/slett)
+    const custRow = event.target.closest(".cust-row");
+    if (custRow && custRow.dataset.id) {
+      if (state.panelId === custRow.dataset.id) {
+        closePanel();
+      } else {
+        openPanel(custRow.dataset.id);
+      }
+      return;
+    }
 
     const copyBtn = event.target.closest(".copy-btn");
     if (copyBtn) copyFromButton(copyBtn);
@@ -1713,11 +1845,6 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     document.addEventListener("input",  handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click",  handleDocumentClick);
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && el.notesModalOverlay && !el.notesModalOverlay.hidden) {
-        closeNotesModal();
-      }
-    });
 
     document.addEventListener("focusin", event => {
       if (event.target.classList?.contains("money-input")) beginMoneyEdit(event.target);
@@ -1747,6 +1874,34 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
         }
       });
     }
+
+    // Panel-knapper
+    if (el.pPrintContract) el.pPrintContract.addEventListener("click", () => {
+      if (state.panelId) printContract(state.panelId);
+    });
+    if (el.pGenToken) el.pGenToken.addEventListener("click", () => {
+      if (state.panelId) generateContractToken(state.panelId);
+    });
+    if (el.pDeleteCustomer) el.pDeleteCustomer.addEventListener("click", async () => {
+      const id = state.panelId;
+      if (!id) return;
+      closePanel();
+      try {
+        await deleteCustomerFromDb(id);
+        state.customers = state.customers.filter(c => c.id !== id);
+        renderCustomers();
+        populateBusinessDropdown();
+      } catch {
+        toast(t("biz.sync_error"), "err");
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        if (el.notesModalOverlay && !el.notesModalOverlay.hidden) closeNotesModal();
+        else if (el.custPanel && !el.custPanel.hidden) closePanel();
+      }
+    });
 
     // Flush ev. pending DB-skrivinger ved navigering bort / app i bakgrunn
     window.addEventListener("beforeunload", flushPendingDbUpdates);
