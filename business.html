@@ -309,12 +309,22 @@
 }
 
 /* ── Detalj-panel ── */
+.panel-backdrop{
+  position:fixed;inset:0;z-index:890;
+  background:rgba(5,5,6,0.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  animation:backdropIn .18s ease both;
+}
+.panel-backdrop[hidden]{display:none}
+@keyframes backdropIn{from{opacity:0}to{opacity:1}}
 .cust-panel{
   position:fixed;top:0;right:0;bottom:0;width:360px;
-  background:var(--surface);border-left:1px solid var(--hairline);
+  background:var(--surface-1);border-left:1px solid var(--hairline);
   overflow-y:auto;z-index:900;padding:20px 18px 40px;
-  box-shadow:-4px 0 24px rgba(0,0,0,.35);
+  box-shadow:-12px 0 40px rgba(0,0,0,.55);
+  animation:panelIn .2s cubic-bezier(0.2,0.7,0.2,1) both;
 }
+@keyframes panelIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(prefers-reduced-motion: reduce){.cust-panel,.panel-backdrop{animation:none}}
 @media(max-width:520px){.cust-panel{width:100%;left:0;border-left:none}}
 .panel-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -338,8 +348,9 @@
 
 /* ── Kunderader — lese-modus ── */
 .cust-row{cursor:pointer}
-.cust-row:hover td{background:var(--surface-hover)}
-.cust-row.panel-open td{background:rgba(91,164,245,.06)}
+.cust-row:hover td{background:var(--surface-2)}
+.cust-row.panel-open td{background:rgba(91,164,245,.08)}
+.cust-row.panel-open td:first-child{box-shadow:inset 3px 0 0 var(--accent-blue)}
 .biz-status-pill{
   display:inline-block;padding:2px 7px;border-radius:10px;
   font-size:10.5px;font-weight:600;letter-spacing:.01em;
@@ -354,7 +365,7 @@
 .biz-tier-badge{
   display:inline-block;margin-left:5px;padding:2px 6px;border-radius:6px;
   font-size:10px;font-weight:600;
-  background:var(--surface-alt);color:var(--text-tertiary);
+  background:var(--surface-2);color:var(--text-tertiary);
   vertical-align:middle;
 }
 .col-pills{white-space:nowrap}
@@ -461,6 +472,7 @@
 <!-- ══════════════════════════════════════════════════════════
      DETALJ-PANEL (høyre side, vises ved rad-klikk)
 ═══════════════════════════════════════════════════════════ -->
+<div id="custPanelBackdrop" class="panel-backdrop" hidden></div>
 <div id="custPanel" class="cust-panel" hidden>
 <div class="panel-header">
   <span id="panelName" class="panel-name"></span>
@@ -606,7 +618,7 @@
   <div class="section-title" data-i18n="biz.pricing_tab">Produkter &amp; priser</div>
 </div>
 <div id="salesGrid"></div>
-<div id="salesFooterNote" class="pricing-footer" data-i18n="biz.sales_price_note">Alle priser eks. mva. · Timesats 690 kr/t</div>
+<div id="salesFooterNote" class="pricing-footer" data-i18n="biz.sales_price_note">Alle priser inkl. mva. · Timesats 690 kr/t</div>
 </div>
 </div><!-- /pricingView -->
 
@@ -701,6 +713,7 @@
     depositAlertText:   $("#depositAlertText"),
     depositAlertFilter: $("#depositAlertFilter"),
     custPanel:          $("#custPanel"),
+    custPanelBackdrop:  $("#custPanelBackdrop"),
     panelName:          $("#panelName"),
     panelClose:         $("#panelClose"),
     panelCtaWrap:       $("#panelCtaWrap"),
@@ -901,7 +914,7 @@
         <td>${fmtMargin(r.margin)}</td>
       </tr>`).join("")}</tbody>
     </table>
-    <p class="pricing-footer" style="margin-top:8px">* ${escapeHtml(t("biz.margin"))} = pris \u2212 Lovable (${moneyNok(Math.round(lovableNok))}/mnd \u00f7 ${activeN} kunder). ${escapeHtml(t("biz.gross"))}: eks. mva.</p>`;
+    <p class="pricing-footer" style="margin-top:8px">* ${escapeHtml(t("biz.margin"))} = pris \u2212 Lovable (${moneyNok(Math.round(lovableNok))}/mnd \u00f7 ${activeN} kunder). ${escapeHtml(t("biz.gross"))}: inkl. mva.</p>`;
   }
 
   async function addCustomerToDb() {
@@ -1024,7 +1037,7 @@
     const mrr      = revenueNok();
     const thisYear = new Date().getFullYear();
     const onetimeYear = state.customers.reduce((s, c) => {
-      const yr = c.startDate ? new Date(c.startDate).getFullYear() : null;
+      const yr = c.start ? new Date(c.start).getFullYear() : null;
       return yr === thisYear ? s + Number(c.oneTimeFee || 0) : s;
     }, 0);
     const cost   = expenseNok();
@@ -1103,6 +1116,7 @@
     state.panelId = id;
     renderPanel(c);
     if (el.custPanel) el.custPanel.hidden = false;
+    if (el.custPanelBackdrop) el.custPanelBackdrop.hidden = false;
     el.customerRows?.querySelectorAll(".cust-row").forEach(tr => {
       tr.classList.toggle("panel-open", tr.dataset.id === id);
     });
@@ -1111,6 +1125,7 @@
   function closePanel() {
     state.panelId = null;
     if (el.custPanel) el.custPanel.hidden = true;
+    if (el.custPanelBackdrop) el.custPanelBackdrop.hidden = true;
     el.customerRows?.querySelectorAll(".cust-row").forEach(tr => tr.classList.remove("panel-open"));
   }
 
@@ -1316,11 +1331,11 @@
   };
 
   function getScopeTextA() {
-    return "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva.";
+    return "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva.";
   }
 
   function getScopeTextB() {
-    return "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr eks. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
+    return "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr inkl. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
   }
 
   function getScopeTextC() {
@@ -1329,12 +1344,12 @@
     const hoyPris = TIER_PRICES["Høy"];
     return "Leveransen omfatter løpende drift og hosting av nettsiden på leverandørens infrastruktur. " +
       "For Lav-pakken (" + lavPris + " kr/mnd) dekkes utelukkende serverleie, SSL og oppetid. " +
-      "Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t eks. mva " +
+      "Teknisk support eller innholdsendringer er ikke inkludert i Lav-pakken og faktureres med ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva " +
       "— denne begrensningen gjelder utelukkende for nye avtaler inngått etter " + todayNo() + ", og er ikke retroaktivt gjeldende for kunder med eldre avtaler. " +
       "For Medium-pakken (" + medPris + " kr/mnd) inkluderes 3 endringer per måned; " +
-      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. " +
+      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t inkl. mva. " +
       "For Høy-pakken (" + hoyPris + " kr/mnd) inkluderes 1 oppdatering per uke; " +
-      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t eks. mva. " +
+      "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t inkl. mva. " +
       "Overforbrukstillegget er høyere enn ordinær timesats (" + CONTRACT_HOURLY_RATE + " kr/t) fordi arbeidet skjer utenfor planlagt kapasitet og på kort varsel. " +
       "Tillegget er videre ment å synliggjøre verdien av å oppgradere abonnementet fremfor gjentatt overforbruk av inkludert kvote.";
   }
@@ -1362,18 +1377,18 @@
 
     if (isMonthly) {
       if (c.price > 0) {
-        parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} eks. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
+        parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} inkl. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
       }
       if (c.oneTimeFee > 0) {
-        parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.oneTimeFee)} eks. mva, fakturert ved oppstart.</p>`);
+        parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.oneTimeFee)} inkl. mva, fakturert ved oppstart.</p>`);
       }
       parts.push(`<p>Ved manglende betaling etter skriftlig purring kan driften av nettsiden midlertidig deaktiveres inntil utestående er gjort opp.</p>`);
     } else {
       const total   = c.oneTimeFee > 0 ? c.oneTimeFee : c.price;
       const deposit = Math.round(total * 0.25 * 100) / 100;
       if (total > 0) {
-        parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} eks. mva.</p>`);
-        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} eks. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+        parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} inkl. mva.</p>`);
+        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
       }
       if (c.businessModel === "B") {
         parts.push(`<p>Hosting leveres kostnadsfritt på serverløs infrastruktur (Vercel/Netlify). Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
@@ -1381,7 +1396,7 @@
     }
 
     parts.push(`<p><strong>Domene:</strong> Nettsidens domene (f.eks. .no, ca. 199 kr/år) registreres i kundens navn og bekostes av kunden direkte. Domenekostnad er ikke inkludert i prisene over.</p>`);
-    parts.push(`<p>Fakturering skjer gjennom ${escapeHtml(LEVERANDOR.fakturautsteder)}. Merverdiavgift (25 %) kommer i tillegg til alle oppgitte priser iht. gjeldende sats.</p>`);
+    parts.push(`<p>Fakturering skjer gjennom ${escapeHtml(LEVERANDOR.fakturautsteder)}. Alle oppgitte priser er inklusive eventuell merverdiavgift (25 %) iht. gjeldende sats.</p>`);
     return parts.join("\n");
   }
 
@@ -1413,7 +1428,7 @@
     const levOrgLine = LEVERANDOR.orgnr
       ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
     const overuseNote = c.businessModel === "C"
-      ? ` For Scenario C-kunder gjelder i tillegg et overforbrukstillegg på <strong>${CONTRACT_OVERUSE_RATE} kr/t eks. mva per påbegynt time</strong> for arbeid utover inkludert kvote (dokumentert med tidslogg). Se §2 for detaljer.`
+      ? ` For Scenario C-kunder gjelder i tillegg et overforbrukstillegg på <strong>${CONTRACT_OVERUSE_RATE} kr/t inkl. mva per påbegynt time</strong> for arbeid utover inkludert kvote (dokumentert med tidslogg). Se §2 for detaljer.`
       : "";
 
     const versjon   = pricingRow?.versjon    || 1;
@@ -1462,7 +1477,7 @@ p{margin:6px 0}
 
 <h2>§3 Pris og betalingsbetingelser</h2>
 ${buildPaymentSection(c)}
-<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr eks. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr inkl. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
 
 <h2>§4 Varighet og oppsigelse</h2>
 ${buildTerminationSection(c)}
@@ -1743,6 +1758,7 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
 
     // Panel lukk
     if (event.target.closest("#panelClose")) { closePanel(); return; }
+    if (event.target === el.custPanelBackdrop) { closePanel(); return; }
 
     // Deposit dot i tabell — quick toggle
     const depositDot = event.target.closest(".cust-deposit-dot");

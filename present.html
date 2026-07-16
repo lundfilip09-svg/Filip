@@ -219,7 +219,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
           ${feats}
         </div>`;
       }).join("")}</div>
-      <div class="ph-footer">Alle priser eks. mva · Timesats ${HOURLY} kr/t</div>`;
+      <div class="ph-footer">Alle priser inkl. mva · Timesats ${HOURLY} kr/t</div>`;
     show("pakkerView");
     return;
   }
@@ -266,20 +266,20 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       const isMonthly = bm === "C";
       const parts = [];
       if (isMonthly) {
-        if (c.price > 0) parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} eks. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
-        if (c.one_time_fee > 0) parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.one_time_fee)} eks. mva, fakturert ved oppstart.</p>`);
+        if (c.price > 0) parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} inkl. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
+        if (c.one_time_fee > 0) parts.push(`<p><strong>Engangsbeløp for oppsett:</strong> ${moneyNok(c.one_time_fee)} inkl. mva, fakturert ved oppstart.</p>`);
         parts.push(`<p>Ved manglende betaling etter skriftlig purring kan driften av nettsiden midlertidig deaktiveres inntil utestående er gjort opp.</p>`);
       } else {
         const total   = c.one_time_fee > 0 ? c.one_time_fee : c.price;
         const deposit = Math.round(total * 0.25 * 100) / 100;
         if (total > 0) {
-          parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} eks. mva.</p>`);
-          parts.push(`<p><strong>Forskudd:</strong> 25 % (${moneyNok(deposit)} eks. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${bm === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+          parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} inkl. mva.</p>`);
+          parts.push(`<p><strong>Forskudd:</strong> 25 % (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${bm === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
         }
         if (bm === "B") parts.push(`<p>Hosting leveres kostnadsfritt via tredjepart. Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
       }
       parts.push(`<p><strong>Domene:</strong> Registreres i kundens navn og bekostes av kunden direkte. Ikke inkludert i prisene over.</p>`);
-      parts.push(`<p>Fakturering skjer gjennom Frilans Finans Norge AS. Merverdiavgift (25 %) kommer i tillegg.</p>`);
+      parts.push(`<p>Fakturering skjer gjennom Frilans Finans Norge AS. Alle oppgitte priser er inklusive eventuell merverdiavgift (25 %).</p>`);
       return parts.join("\n");
     }
 
@@ -292,7 +292,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
     const startLine  = c.start_date ? `<p><strong>Oppstartsdato:</strong> ${esc(c.start_date)}</p>` : "";
     const overuseNote = bm === "C"
-      ? " For arbeid utover inkludert kvote gjelder et overforbrukstillegg på <strong>1 050 kr/t eks. mva per påbegynt time</strong> (dokumentert med tidslogg). Se §2."
+      ? " For arbeid utover inkludert kvote gjelder et overforbrukstillegg på <strong>1 050 kr/t inkl. mva per påbegynt time</strong> (dokumentert med tidslogg). Se §2."
       : "";
 
     const emailText = `Hei ${esc((c.name||"").split(" ")[0]||"der")},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
@@ -314,7 +314,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
         <h2>§3 Pris og betalingsbetingelser</h2>
         ${paymentSection()}
-        <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>690 kr eks. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+        <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>690 kr inkl. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
 
         <h2>§4 Varighet og oppsigelse</h2>
         ${terminationSection()}
