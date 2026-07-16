@@ -45,9 +45,16 @@
 }
 
 .table-wrap{overflow:auto;border:1px solid var(--hairline-soft);border-radius:var(--radius-lg)}
-.biz-table{width:100%;border-collapse:collapse;min-width:900px;table-layout:fixed}
-.biz-table th,.biz-table td{padding:12px 10px;border-bottom:1px solid var(--hairline-soft);white-space:nowrap;overflow:hidden;vertical-align:middle}
+.biz-table{width:100%;border-collapse:collapse;min-width:560px;table-layout:fixed}
+.biz-table th,.biz-table td{padding:12px 12px;border-bottom:1px solid var(--hairline-soft);white-space:nowrap;overflow:hidden;vertical-align:middle}
 .biz-table th{font-size:9px;color:var(--text-tertiary);font-family:var(--font-mono);font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;background:var(--surface-1)}
+/* Navn + kontakt stablet i første kolonne */
+.cust-name{font-weight:600;font-size:13px;color:var(--text-primary);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cust-contact{font-size:11px;color:var(--text-tertiary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Pris høyrejustert i mono for enkel skanning */
+.biz-table th.th-price{text-align:right}
+.biz-table td.col-price{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;text-align:right;color:var(--text-primary)}
+.biz-table th.th-center{text-align:center}
 .biz-table tbody tr{transition:background .12s}
 .biz-table tbody tr:hover{background:var(--surface-2)}
 .biz-table tr:last-child td{border-bottom:0}
@@ -98,18 +105,14 @@
 .cust-deposit-dot.dp-paid{background:var(--success)}
 .cust-deposit-dot.dp-unpaid{background:var(--danger)}
 
-/* Kolonnebredder: Kunde/Kontakt får mer plass, Pris/Engangsbeløp mindre */
-.biz-table col.col-name{width:13%}
-.biz-table col.col-contact{width:19%}
-.biz-table col.col-tier{width:10%}
-.biz-table col.col-bizmodel{width:17%}
-.biz-table col.col-price{width:10%}
-.biz-table col.col-onetime{width:11%}
-.biz-table col.col-start{width:12%}
-.biz-table col.col-status{width:56px}
-.biz-table col.col-deposit{width:60px}
-.biz-table col.col-del{width:104px}
+/* Kolonnebredder for kundetabellen (Kunde · Status · Pris · Dep. · Slett) */
+.biz-table col.col-name{width:auto}
+.biz-table col.col-pills{width:32%}
+.biz-table col.col-price{width:130px}
+.biz-table col.col-deposit{width:64px}
+.biz-table col.col-del{width:60px}
 .biz-table td:last-child{padding-left:0;padding-right:14px;text-align:center}
+.biz-table td.col-deposit{text-align:center}
 
 .biz-card-compact{padding:14px 16px}
 
@@ -307,6 +310,20 @@
   border-top:1px solid var(--hairline-soft);
   padding-top:10px;font-family:var(--font-mono);
 }
+/* Kort-hjelpere for prisstruktur */
+.pricing-panel{transition:border-color .14s,background .14s}
+.pricing-panel:hover{border-color:var(--hairline);background:var(--surface-2)}
+.pricing-panel.is-featured{border-color:rgba(91,164,245,.35)}
+.pricing-price-suffix{font-size:12px;font-weight:600;color:var(--text-tertiary);font-family:var(--font-sans);margin-left:2px}
+.pricing-margin{
+  margin-top:auto;padding-top:10px;
+  font-size:10.5px;font-family:var(--font-mono);color:var(--text-tertiary);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.pricing-margin strong{font-weight:700}
+.pricing-tier-row .pricing-tier-price small{
+  font-size:10px;font-weight:600;color:var(--text-tertiary);margin-left:1px;
+}
 
 /* ── Detalj-panel ── */
 .panel-backdrop{
@@ -342,9 +359,25 @@
 }
 .panel-cta-wrap{margin-bottom:4px}
 .panel-cta-wrap .btn{width:100%;justify-content:center;font-size:13px;padding:9px 0}
-.panel-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.panel-actions .btn{font-size:11.5px}
+.panel-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.panel-actions .btn{font-size:11.5px;flex:1;justify-content:center}
 .panel-danger-zone .panel-section-title{color:var(--danger)}
+/* Jevn avstand + to-kolonners rader i panelet */
+.cust-panel .form-group{margin-bottom:13px}
+.cust-panel .form-group:last-child{margin-bottom:0}
+.cust-panel .form-row{display:flex;gap:10px}
+.cust-panel .form-row .form-group{flex:1;min-width:0}
+/* Depositum-bryter som egen rad */
+.panel-check-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 13px;margin-bottom:13px;
+  background:var(--surface-2);border:1px solid var(--hairline-soft);border-radius:var(--radius-md);
+}
+.panel-check-row .form-label{margin:0;color:var(--text-secondary);font-size:12px}
+.panel-check-row input[type="checkbox"]{
+  width:18px;height:18px;flex-shrink:0;margin:0;
+  accent-color:var(--accent-blue);cursor:pointer;
+}
 
 /* ── Kunderader — lese-modus ── */
 .cust-row{cursor:pointer}
@@ -457,8 +490,8 @@
 <tr>
 <th data-i18n="biz.customer">Customer</th>
 <th data-i18n="biz.status">Status</th>
-<th data-i18n="biz.price">Pris/mnd</th>
-<th data-i18n="biz.deposit">Dep.</th>
+<th class="th-price" data-i18n="biz.price">Pris/mnd</th>
+<th class="th-center" data-i18n="biz.deposit">Dep.</th>
 <th></th>
 </tr>
 </thead>
@@ -528,17 +561,19 @@
 
 <div class="panel-section">
   <div class="panel-section-title" data-i18n="biz.kontrakt_betaling">Kontrakt & betaling</div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.price">Månedspris (kr)</label>
-    <input type="text" inputmode="decimal" id="pPrice" class="form-control money-input">
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" data-i18n="biz.price">Månedspris (kr)</label>
+      <input type="text" inputmode="decimal" id="pPrice" class="form-control money-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="biz.onetime">Engangsgebyr (kr)</label>
+      <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
+    </div>
   </div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.onetime">Engangsgebyr (kr)</label>
-    <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
-  </div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.deposit">Depositum betalt</label>
-    <input type="checkbox" id="pDepositPaid" style="width:auto;margin-top:6px">
+  <div class="panel-check-row">
+    <label class="form-label" for="pDepositPaid" data-i18n="biz.deposit">Depositum betalt</label>
+    <input type="checkbox" id="pDepositPaid">
   </div>
   <div class="form-group">
     <label class="form-label" data-i18n="biz.bekreftet_dato">Bekreftet dato</label>
@@ -570,7 +605,7 @@
 
 <!-- ══════════════════════════════════════════════════════════
      LEAD GENERATOR
-═══════════════════════════════════════════════════════════ -->
+═══════��═══════════════════════════════════════════════════ -->
 <div id="leadsView" hidden>
 <div class="card">
 <div class="section-title" data-i18n="biz.leadgen">Lead Generator</div>
@@ -880,41 +915,59 @@
     const activeN      = Math.max(1, activeCustomers().length);
     const lovableShare = lovableNok / activeN; // per-kunde andel av Lovable-kostnad
 
-    const TABLE_ROWS = [
-      ...["A","B"].map(sc => {
-        const row = state.pricingTiers.find(r => r.scenario === sc && r.tier == null);
-        const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: `Scenario ${sc}`, tier: "\u2014", pris, enhet: t("biz.onetime_setup"), margin: pris };
-      }),
-      ...["Lav","Medium","H\u00f8y"].map(tier => {
-        const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tier);
-        const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: "Scenario C", tier, pris, enhet: t("biz.per_month"), margin: pris - lovableShare };
-      })
-    ];
-
-    const fmtMargin = m => {
+    const priceOf = (sc, tier = null) => {
+      const row = state.pricingTiers.find(r => r.scenario === sc && r.tier == tier);
+      return row ? Number(row.pris_nok) : 0;
+    };
+    const marginTag = m => {
       const cls = m >= 0 ? "success" : "danger";
-      return `<span style="color:var(--${cls})">${moneyNok(Math.round(m))}</span>`;
+      return `<strong style="color:var(--${cls})">${moneyNok(Math.round(m))}</strong>`;
     };
 
-    grid.innerHTML = `<table class="biz-table pricing-admin-table">
-      <thead><tr>
-        <th>Scenario</th>
-        <th data-i18n="biz.tier">Tier</th>
-        <th data-i18n="biz.price">Pris</th>
-        <th data-i18n="biz.unit">Enhet</th>
-        <th data-i18n="biz.margin">Margin *</th>
-      </tr></thead>
-      <tbody>${TABLE_ROWS.map(r => `<tr>
-        <td>${escapeHtml(r.scenario)}</td>
-        <td>${escapeHtml(r.tier)}</td>
-        <td style="font-weight:600">${moneyNok(r.pris)}</td>
-        <td style="color:var(--text-tertiary);font-size:11.5px">${escapeHtml(r.enhet)}</td>
-        <td>${fmtMargin(r.margin)}</td>
-      </tr>`).join("")}</tbody>
-    </table>
-    <p class="pricing-footer" style="margin-top:8px">* ${escapeHtml(t("biz.margin"))} = pris \u2212 Lovable (${moneyNok(Math.round(lovableNok))}/mnd \u00f7 ${activeN} kunder). ${escapeHtml(t("biz.gross"))}: inkl. mva.</p>`;
+    const setupLbl  = t("biz.onetime_setup");
+    const perMonth  = t("biz.per_month");
+    const marginLbl = t("biz.margin");
+
+    // Scenario A/B: engangsleveranse
+    const oneOffCard = (sc, nameKey) => {
+      const pris = priceOf(sc);
+      return `
+        <div class="pricing-panel">
+          <span class="pricing-sc-tag">Scenario ${sc}</span>
+          <div class="pricing-sc-name">${escapeHtml(t(nameKey))}</div>
+          <div class="pricing-sc-sub">${escapeHtml(setupLbl)}</div>
+          <div class="pricing-price-block">
+            <div class="pricing-price">${moneyNok(pris)}</div>
+          </div>
+          <div class="pricing-margin">
+            <span>${escapeHtml(marginLbl)}</span>${marginTag(pris)}
+          </div>
+        </div>`;
+    };
+
+    // Scenario C: løpende abonnement i tre nivåer
+    const cTiers = ["Lav","Medium","H\u00f8y"].map(tier => {
+      const pris = priceOf("C", tier);
+      return `<div class="pricing-tier-row">
+        <div>
+          <div class="pricing-tier-name">${escapeHtml(t(TIER_LABEL_KEYS[tier] || tier))}</div>
+          <div class="pricing-tier-incl">${escapeHtml(marginLbl)} ${moneyNok(Math.round(pris - lovableShare))}</div>
+        </div>
+        <div class="pricing-tier-price">${moneyNok(pris)}<small>/mnd</small></div>
+      </div>`;
+    }).join("");
+
+    grid.className = "pricing-grid";
+    grid.innerHTML = `
+      ${oneOffCard("A", BUSINESS_MODEL_LABEL_KEYS.A)}
+      ${oneOffCard("B", BUSINESS_MODEL_LABEL_KEYS.B)}
+      <div class="pricing-panel is-featured">
+        <span class="pricing-sc-tag">Scenario C</span>
+        <div class="pricing-sc-name">${escapeHtml(t(BUSINESS_MODEL_LABEL_KEYS.C))}</div>
+        <div class="pricing-sc-sub">${escapeHtml(perMonth)}</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-tiers">${cTiers}</div>
+      </div>`;
   }
 
   async function addCustomerToDb() {
@@ -1084,7 +1137,10 @@
 
       return `
         <tr data-id="${escapeHtml(c.id)}" class="cust-row${isOpen ? " panel-open" : ""}">
-          <td class="col-name">${escapeHtml(c.name || t("biz.unnamed_customer"))}</td>
+          <td class="col-name">
+            <div class="cust-name">${escapeHtml(c.name || t("biz.unnamed_customer"))}</div>
+            ${c.contact ? `<div class="cust-contact">${escapeHtml(c.contact)}</div>` : ""}
+          </td>
           <td class="col-pills">
             <span class="biz-status-pill ${stCls}">${escapeHtml(stLbl)}</span>
             <span class="biz-tier-badge">${escapeHtml(c.tier)}</span>
