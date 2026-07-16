@@ -57,7 +57,13 @@
       "Bash(node --check /Users/09fillun/Dev/Dashboard/sprint.html)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/gym.html)",
       "Bash(node --check /Users/09fillun/Dev/Dashboard/api/_lib/context.js)",
-      "Bash(node --check /Users/09fillun/Dev/Dashboard/treningsplan.html)"
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/treningsplan.html)",
+      "Bash(node --check /Users/09fillun/Dev/Dashboard/business.html)",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('/Users/09fillun/Dev/Dashboard/utils.js','utf8'\\);const o=s.indexOf\\('{',s.indexOf\\('const TRANSLATIONS'\\)\\);let d=0,e=-1;for\\(let i=o;i<s.length;i++\\){if\\(s[i]=='{'\\)d++;if\\(s[i]=='}'\\){d--;if\\(!d\\){e=i;break;}}}const T=eval\\('\\('+s.slice\\(o,e+1\\)+'\\)'\\);console.log\\('no',Object.keys\\(T.no\\).length,'en',Object.keys\\(T.en\\).length\\)\")",
+      "Bash(node --check /tmp/biz_check.js)",
+      "Bash(node --check /tmp/present_check.js)",
+      "Bash(python3)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
