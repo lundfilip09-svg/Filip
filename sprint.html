@@ -1408,11 +1408,13 @@ function toggleSprintDetail(date) {
 }
 
 async function saveHistField(date, field, valueStr) {
+  // valueStr kommer enten som streng (fra tekstfelt) eller number/null (fra
+  // painMeterHTML sin painMeterValue(id) — null = eksplisitt fjernet).
   let value;
+  const s = String(valueStr ?? '').trim();
   if (field === 'notes') {
-    value = valueStr.trim() || null;
+    value = s || null;
   } else {
-    const s = valueStr.trim();
     if (s === '') { value = null; }
     else {
       const n = Number(s);
@@ -1442,7 +1444,9 @@ async function saveHistField(date, field, valueStr) {
 // Per-skade smerte-redigering i historikk → injury_pain (kne-skaden faller tilbake
 // til sprint_log.knee_* ved første redigering hvis ingen injury_pain-rad finnes).
 async function saveHistInjuryPain(injId, date, sessionType, field, valueStr) {
-  const s = valueStr.trim();
+  // valueStr kommer enten som streng (fra tekstfelt) eller number/null (fra
+  // painMeterHTML sin painMeterValue(id) — null = eksplisitt fjernet).
+  const s = String(valueStr ?? '').trim();
   let numVal;
   if (s === '') numVal = null;
   else {

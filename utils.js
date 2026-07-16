@@ -2332,7 +2332,7 @@ function painMeterHTML(id, value = null, opts = {}) {
   for (let i = 0; i <= 10; i++) {
     const fill = touched && i <= v;
     const sty = fill ? ` style="background:${col};border-color:${col}"` : '';
-    const onset = opts.onset ? (';' + opts.onset.replace(/\$v/g, i)) : '';
+    const onset = opts.onset ? (';' + opts.onset.replace(/\$v/g, `painMeterValue('${id}')`)) : '';
     segs += `<button type="button" class="pain-seg${fill ? ' fill' : ''}" data-i="${i}"${sty}`
       + ` aria-label="${i}" onclick="painMeterSet('${id}',${i})${onset}"></button>`;
   }
