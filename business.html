@@ -317,7 +317,7 @@
 .panel-backdrop[hidden]{display:none}
 @keyframes backdropIn{from{opacity:0}to{opacity:1}}
 .cust-panel{
-  position:fixed;top:0;right:0;bottom:0;width:360px;
+  position:fixed;top:44px;right:0;bottom:0;width:360px;
   background:var(--surface-1);border-left:1px solid var(--hairline);
   overflow-y:auto;z-index:900;padding:20px 18px 40px;
   box-shadow:-12px 0 40px rgba(0,0,0,.55);
@@ -435,11 +435,7 @@
 </div>
 </div>
 
-<!-- Utestående depositum-varsling -->
-<div id="depositAlert" class="biz-deposit-alert" hidden>
-<span id="depositAlertText"></span>
-<button type="button" id="depositAlertFilter" class="btn btn-sm" data-i18n="biz.deposit_show">Vis dem →</button>
-</div>
+<!-- Utestående depositum-varsling fjernet -->
 
 <!-- Kunde-tabell -->
 <div class="card">
@@ -545,17 +541,12 @@
     <input type="date" id="pBekreftedDato" class="form-control">
   </div>
   <div class="panel-actions">
-    <button type="button" id="pPrintContract" class="btn btn-sm" data-i18n="biz.print_contract">Skriv ut kontrakt</button>
     <button type="button" id="pGenToken" class="btn btn-sm" data-i18n="biz.generate_token">Kopier kontraktlenke</button>
   </div>
 </div>
 
 <div class="panel-section">
   <div class="panel-section-title" data-i18n="biz.notes_button">Notat</div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.custom_scope_label">Spesifisert leveranse</label>
-    <textarea id="pCustomScope" class="form-control" rows="3"></textarea>
-  </div>
   <div class="form-group">
     <label class="form-label" data-i18n="biz.notes_button">Notat</label>
     <textarea id="pNotes" class="form-control" rows="4"></textarea>
@@ -633,10 +624,6 @@
 <div class="form-group">
 <label class="form-label" data-i18n="notes">Notater</label>
 <textarea id="customer-notes" class="modal-textarea" rows="4"></textarea>
-</div>
-<div class="form-group">
-<label class="form-label" data-i18n="biz.custom_scope_label">Spesifisert leveranse (Omfang til kontrakt)</label>
-<textarea id="custom-scope" class="modal-textarea" rows="4"></textarea>
 </div>
 <div class="modal-hint" data-i18n="biz.autosave_hint">Lagres automatisk</div>
 </div>
@@ -889,14 +876,9 @@
       ...["Lav","Medium","H\u00f8y"].map(tier => {
         const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tier);
         const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: "Scenario C", tier, pris, enhet: t("biz.per_month"), margin: pris - lovableShare };
+        return { scenario: "Scenario C", tier, pris, enhet: t("biz.per_month") };
       })
     ];
-
-    const fmtMargin = m => {
-      const cls = m >= 0 ? "success" : "danger";
-      return `<span style="color:var(--${cls})">${moneyNok(Math.round(m))}</span>`;
-    };
 
     grid.innerHTML = `<table class="biz-table pricing-admin-table">
       <thead><tr>
@@ -904,17 +886,15 @@
         <th data-i18n="biz.tier">Tier</th>
         <th data-i18n="biz.price">Pris</th>
         <th data-i18n="biz.unit">Enhet</th>
-        <th data-i18n="biz.margin">Margin *</th>
       </tr></thead>
       <tbody>${TABLE_ROWS.map(r => `<tr>
         <td>${escapeHtml(r.scenario)}</td>
         <td>${escapeHtml(r.tier)}</td>
         <td style="font-weight:600">${moneyNok(r.pris)}</td>
         <td style="color:var(--text-tertiary);font-size:11.5px">${escapeHtml(r.enhet)}</td>
-        <td>${fmtMargin(r.margin)}</td>
       </tr>`).join("")}</tbody>
     </table>
-    <p class="pricing-footer" style="margin-top:8px">* ${escapeHtml(t("biz.margin"))} = pris \u2212 Lovable (${moneyNok(Math.round(lovableNok))}/mnd \u00f7 ${activeN} kunder). ${escapeHtml(t("biz.gross"))}: inkl. mva.</p>`;
+`;
   }
 
   async function addCustomerToDb() {

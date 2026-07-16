@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
   function show(id) {
     ["loadingView","errorView","pakkerView","kontraktView"].forEach(i => {
       const el = document.getElementById(i);
-      if (el) el.style.display = i === id ? (id === "kontraktView" ? "block" : "block") : "none";
+      if (el) el.style.display = i === id ? "block" : "none";
     });
   }
 
@@ -295,8 +295,9 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       ? " For arbeid utover inkludert kvote gjelder et overforbrukstillegg på <strong>1 050 kr/t inkl. mva per påbegynt time</strong> (dokumentert med tidslogg). Se §2."
       : "";
 
-    const emailText = `Hei ${esc((c.name||"").split(" ")[0]||"der")},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
-    const emailJson = JSON.stringify(emailText);
+    // FIKS: bruk window._emailText istedet for å embedde JSON direkte i onclick-attributt
+    // (JSON.stringify produserer "..." med anførselstegn som bryter onclick="...")
+    window._emailText = `Hei ${(c.name||"").split(" ")[0]||"der"},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
 
     document.getElementById("kontraktView").innerHTML = `
       <div id="kontraktContent">
@@ -338,10 +339,13 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       <div class="kontrakt-actions">
         <button class="btn-primary" onclick="window.print()">Skriv ut / lagre PDF</button>
         <button id="copyEmailBtn" onclick="
-          navigator.clipboard.writeText(${emailJson}).then(function(){
+          navigator.clipboard.writeText(window._emailText).then(function(){
             var b=document.getElementById('copyEmailBtn');
             b.textContent='Kopiert!';
             setTimeout(function(){b.textContent='Kopier e-posttekst'},2000);
+          }).catch(function(){
+            var b=document.getElementById('copyEmailBtn');
+            b.textContent='Klikk og hold for å kopiere';
           });
         ">Kopier e-posttekst</button>
       </div>`;
