@@ -82,8 +82,11 @@
 }
 .cust-status-dot:hover{transform:scale(1.12)}
 .cust-status-dot:active{transform:scale(0.94)}
+.cust-status-dot.st-lead{background:var(--accent-blue)}
+.cust-status-dot.st-tilbud{background:#C084FC}
+.cust-status-dot.st-kontrakt{background:var(--warning)}
 .cust-status-dot.st-active{background:var(--success)}
-.cust-status-dot.st-paused{background:var(--warning)}
+.cust-status-dot.st-paused{background:#94A3B8}
 .cust-status-dot.st-ended{background:var(--danger)}
 
 /* Deposit dot: binær grønn/rød — kun A/B-kunder */
@@ -314,8 +317,9 @@
 
 <!-- ── Tab-veksler ── -->
 <div class="biz-tab-bar">
-  <button id="tabAccounting" class="biz-tab active" data-i18n="biz.accounting_tab">Regnskap</button>
-  <button id="tabPricing" class="biz-tab" data-i18n="biz.pricing_tab">Produkter &amp; priser</button>
+  <button id="tabAccounting" class="biz-tab active" data-i18n="biz.accounting_tab">Kunder</button>
+  <button id="tabLeads" class="biz-tab" data-i18n="biz.leads_tab">Leads</button>
+  <button id="tabPricing" class="biz-tab" data-i18n="biz.pricing_tab">Priser</button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -411,6 +415,12 @@
 </div>
 </div>
 
+</div><!-- /accountingView -->
+
+<!-- ══════════════════════════════════════════════════════════
+     LEAD GENERATOR
+═══════════════════════════════════════════════════════════ -->
+<div id="leadsView" hidden>
 <div class="card">
 <div class="section-title" data-i18n="biz.leadgen">Lead Generator</div>
 
@@ -446,8 +456,7 @@
 
 <button id="leadgenCopyBtn" class="btn btn-primary copy-btn" data-prompt="research" data-i18n="biz.copy">Copy</button>
 </div>
-
-</div><!-- /accountingView -->
+</div><!-- /leadsView -->
 
 <!-- ══════════════════════════════════════════════════════════
      PRISSTRUKTUR
@@ -511,8 +520,13 @@
   const BUSINESS_MODEL_LABEL_KEYS = {
     A: "biz.bm_a", B: "biz.bm_b", C: "biz.bm_c", Custom: "biz.bm_custom"
   };
-  const STATUS_CLASS = { Aktiv: "st-active", Pauset: "st-paused", Avsluttet: "st-ended" };
+  const STATUS_ORDER = ["Lead", "Tilbud", "Kontrakt", "Aktiv", "Pauset", "Avsluttet"];
+  const STATUS_CLASS = {
+    Lead: "st-lead", Tilbud: "st-tilbud", Kontrakt: "st-kontrakt",
+    Aktiv: "st-active", Pauset: "st-paused", Avsluttet: "st-ended"
+  };
   const STATUS_LABEL_KEYS = {
+    Lead: "biz.status_lead", Tilbud: "biz.status_tilbud", Kontrakt: "biz.status_kontrakt",
     Aktiv: "biz.status_aktiv", Pauset: "biz.status_pauset", Avsluttet: "biz.status_avsluttet"
   };
 
@@ -559,8 +573,10 @@
     customerNotes:      $("#customer-notes"),
     customScope:        $("#custom-scope"),
     tabAccounting:      $("#tabAccounting"),
+    tabLeads:           $("#tabLeads"),
     tabPricing:         $("#tabPricing"),
     accountingView:     $("#accountingView"),
+    leadsView:          $("#leadsView"),
     pricingView:        $("#pricingView")
   };
 
@@ -600,7 +616,7 @@
       price:        Number(row.price      ?? tierPrice(tier)),
       oneTimeFee:   Number(row.one_time_fee ?? 0),
       start:        row.start_date   || "",
-      status:       row.status       || "Aktiv",
+      status:       row.status       || "Lead",
       notes:           row.notes           || "",
       depositPaid:     row.deposit_paid     ?? false,
       bekreftedDato:   row.bekreftet_dato   || null,
@@ -639,7 +655,7 @@
       name:        c.name       || "",
       contact:     c.contact    || "",
       start:       c.start      || "",
-      status:      c.status     || "Aktiv",
+      status:      c.status     || "Lead",
       notes:           c.notes           || "",
       depositPaid:     c.depositPaid     ?? false,
       bekreftedDato:   c.bekreftedDato   ?? null,
@@ -763,7 +779,7 @@
         name: "", contact: "", tier: "Lav",
         business_model: "A", price: 0,
         one_time_fee: 0, start_date: null,
-        status: "Aktiv", notes: "", deposit_paid: false,
+        status: "Lead", notes: "", deposit_paid: false,
         bekreftet_dato: null, contract_version: null, custom_scope: ""
       }])
       .select()
@@ -984,7 +1000,7 @@
     c.start  = $(".cust-date", row)?.value || "";
 
     const statusDot   = $(".cust-status-dot", row);
-    c.status = statusDot?.dataset.status || "Aktiv";
+    c.status = statusDot?.dataset.status || "Lead";
 
     const depositDot = $(".cust-deposit-dot", row);
     if (depositDot) c.depositPaid = depositDot.dataset.paid === "1";
@@ -1485,16 +1501,18 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     }
   }
 
-  // ── Tab-veksler ────────────────────────────────────────────────────────────
+  // ── Segment-kontroll (Kunder | Leads | Priser) ────────────────────────────
   function initTabs() {
     function switchTab(which) {
-      const isAccounting = which === "accounting";
-      el.tabAccounting?.classList.toggle("active", isAccounting);
-      el.tabPricing?.classList.toggle("active", !isAccounting);
-      if (el.accountingView) el.accountingView.hidden = !isAccounting;
-      if (el.pricingView)    el.pricingView.hidden    =  isAccounting;
+      el.tabAccounting?.classList.toggle("active", which === "accounting");
+      el.tabLeads?.classList.toggle("active",      which === "leads");
+      el.tabPricing?.classList.toggle("active",    which === "pricing");
+      if (el.accountingView) el.accountingView.hidden = which !== "accounting";
+      if (el.leadsView)      el.leadsView.hidden      = which !== "leads";
+      if (el.pricingView)    el.pricingView.hidden    = which !== "pricing";
     }
     el.tabAccounting?.addEventListener("click", () => switchTab("accounting"));
+    el.tabLeads?.addEventListener("click",      () => switchTab("leads"));
     el.tabPricing?.addEventListener("click",    () => switchTab("pricing"));
   }
 
@@ -1577,10 +1595,9 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
 
     const statusDot = event.target.closest(".cust-status-dot");
     if (statusDot) {
-      const order = ["Aktiv", "Pauset", "Avsluttet"];
-      const next  = order[(order.indexOf(statusDot.dataset.status) + 1) % order.length];
+      const next  = STATUS_ORDER[(STATUS_ORDER.indexOf(statusDot.dataset.status) + 1) % STATUS_ORDER.length];
       statusDot.dataset.status = next;
-      statusDot.classList.remove("st-active", "st-paused", "st-ended");
+      statusDot.classList.remove(...Object.values(STATUS_CLASS));
       statusDot.classList.add(STATUS_CLASS[next] || "st-active");
       const label = t(STATUS_LABEL_KEYS[next] || STATUS_LABEL_KEYS.Aktiv);
       statusDot.setAttribute("aria-label", label);
