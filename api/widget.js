@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     // health_data limit=7 → rad [0] = siste natt, rad [1] = forrige loggførte
     // natt ("i går"), alle 7 brukes til søvn-historikk-stolpene (Large-widget).
     const [sleepRows, kneeRows, todoRows, gymLoad, sprintLoad, actLoad, weeklyRows,
-           gymPrev, sprintPrev, actPrev, injuriesRows] =
+           gymPrev, sprintPrev, actPrev, injuriesRows, businessRows] =
       await Promise.all([
         sb('health_data?select=date,sleep_score,sleep_hours,hrv,rhr,deep_sleep_minutes,light_sleep_minutes,rem_sleep_minutes,awake_minutes,sleep_start,sleep_end&order=date.desc&limit=7', cfg),
         sb('knee_pain?select=date,session_type,before_score,during_score,after_score,day_after_score&order=date.desc&limit=2', cfg),
@@ -107,6 +107,7 @@ export default async function handler(req, res) {
         sb(`sprint_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
         sb(`activity_log?select=date,rpe,duration_min&date=gte.${cutoff14}&date=lte.${cutoff8}&order=date.desc`, cfg),
         sb('injuries?select=id,body_part,side,status,severity&severity=eq.severe&status=in.(active,improving)&order=updated_at.desc&limit=10', cfg),
+        sb('business_customers?select=name,price,tier,business_model,status,deposit_paid&status=eq.Aktiv', cfg),
       ]);
 
     // Phase 2: injury_pain for severe injuries (needs IDs from phase 1).
@@ -163,6 +164,16 @@ export default async function handler(req, res) {
     const kneePrevOut = kneeIpPrev
       ? { worst_score: worstKnee(kneeIpPrev) }
       : kneePrev ? { worst_score: worstKnee(kneePrev) } : null;
+
+    // business: forskudd-teller (A/B, ubetalt) + MRR-liste (C, aktive abonnement).
+    const bizRows = Array.isArray(businessRows) ? businessRows : [];
+    const unpaidDeposits = bizRows.filter(
+      (r) => (r.business_model === 'A' || r.business_model === 'B') && r.deposit_paid === false
+    ).length;
+    const subscriptions = bizRows
+      .filter((r) => r.business_model === 'C')
+      .map((r) => ({ name: r.name, price: r.price, tier: r.tier }));
+    const mrr = subscriptions.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
 
     const last7load = [
       ...(gymLoad || []).map(r => loadRow(r, 'session_type', 'gym')),
@@ -234,6 +245,12 @@ export default async function handler(req, res) {
         week_start: weekly.week_start,
         summary_no: weekly.content_no,
         summary_en: weekly.content_en,
+      },
+      // business: forskudd (ubetalt-teller A/B) + MRR (aktive C-abonnement).
+      business: {
+        unpaid_deposits: unpaidDeposits,
+        mrr,
+        subscriptions,
       },
     });
   } catch (e) {

@@ -1,32 +1,20 @@
 // widget-mrr.js — Medium widget, Home Screen
 // Viser MRR (sum av price for aktive Scenario C-kunder) + liste per kunde.
 //
-// Oppsett (kjør én gang i Scriptable):
-//   Keychain.set("sb_url",  "https://<din-prosjekt>.supabase.co")
-//   Keychain.set("sb_anon", "<din-anon-nøkkel>")
+// Henter data via /api/widget (samme proxy som de andre widgetene) —
+// bruker service_role server-side, så anon-nøkkelen trengs ikke og RLS
+// (som stenger anon ute på business_customers) er ikke et problem her.
 
-const BASE_URL = Keychain.get("sb_url");
-const ANON_KEY = Keychain.get("sb_anon");
+const BASE  = "https://filip-vita.vercel.app";
+const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
+const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
 
 async function fetchMrrData() {
-  const url =
-    BASE_URL +
-    "/rest/v1/business_customers" +
-    "?select=name,price,tier,business_model,status" +
-    "&status=eq.Aktiv";
-
-  const req = new Request(url);
-  req.headers = {
-    apikey: ANON_KEY,
-    Authorization: "Bearer " + ANON_KEY,
-  };
-
+  const req = new Request(API);
+  req.timeoutInterval = 12;
   const data = await req.loadJSON();
-  if (!Array.isArray(data)) return null;
-
-  const subscriptions = data.filter((r) => r.business_model === "C");
-  const mrr = subscriptions.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
-  return { mrr, subscriptions };
+  if (!data || data.error || !data.business) return null;
+  return { mrr: data.business.mrr, subscriptions: data.business.subscriptions || [] };
 }
 
 function tierLabel(tier) {
@@ -36,10 +24,11 @@ function tierLabel(tier) {
   return tier || "—";
 }
 
-async function buildWidget(result) {
+function buildWidget(result) {
   const w = new ListWidget();
   w.backgroundColor = new Color("#1a1a1a");
   w.setPadding(12, 14, 12, 14);
+  w.url = `${BASE}/business.html`;
 
   if (!result) {
     const err = w.addText("⚠️ Feil ved henting");
@@ -101,8 +90,13 @@ async function buildWidget(result) {
   return w;
 }
 
-const result = await fetchMrrData();
-const widget = await buildWidget(result);
+let result;
+try {
+  result = await fetchMrrData();
+} catch (e) {
+  result = null;
+}
+const widget = buildWidget(result);
 
 if (config.runsInWidget) {
   Script.setWidget(widget);

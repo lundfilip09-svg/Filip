@@ -2,37 +2,26 @@
 // Viser antall ubetalte forskudd for Scenario A/B-kunder.
 // Grønn hake = 0 ubetalte. Rødt tall = antall ubetalte.
 //
-// Oppsett (kjør én gang i Scriptable):
-//   Keychain.set("sb_url",  "https://<din-prosjekt>.supabase.co")
-//   Keychain.set("sb_anon", "<din-anon-nøkkel>")
+// Henter data via /api/widget (samme proxy som de andre widgetene) —
+// bruker service_role server-side, så anon-nøkkelen trengs ikke og RLS
+// (som stenger anon ute på business_customers) er ikke et problem her.
 
-const BASE_URL = Keychain.get("sb_url");
-const ANON_KEY = Keychain.get("sb_anon");
+const BASE  = "https://filip-vita.vercel.app";
+const TOKEN = "fc30c9a6442f64e4272c86b7d92ba12d50a49e8ee8a6ea7dd1876a684dd4cac5";
+const API   = `${BASE}/api/widget?token=${encodeURIComponent(TOKEN)}`;
 
 async function fetchUnpaidCount() {
-  const url =
-    BASE_URL +
-    "/rest/v1/business_customers" +
-    "?select=id,deposit_paid,business_model" +
-    "&business_model=in.(A,B)" +
-    "&status=eq.Aktiv";
-
-  const req = new Request(url);
-  req.headers = {
-    apikey: ANON_KEY,
-    Authorization: "Bearer " + ANON_KEY,
-  };
-
+  const req = new Request(API);
+  req.timeoutInterval = 12;
   const data = await req.loadJSON();
-  return Array.isArray(data)
-    ? data.filter((r) => r.deposit_paid === false).length
-    : null;
+  if (!data || data.error || !data.business) return null;
+  return data.business.unpaid_deposits;
 }
 
-async function buildWidget(unpaid) {
+function buildWidget(unpaid) {
   const w = new ListWidget();
   w.backgroundColor = new Color("#1a1a1a");
-  w.url = BASE_URL.replace(".supabase.co", "") + "/business.html"; // best-effort
+  w.url = `${BASE}/business.html`;
 
   if (unpaid === null) {
     const err = w.addText("⚠️ Feil");
@@ -67,8 +56,13 @@ async function buildWidget(unpaid) {
   return w;
 }
 
-const unpaid = await fetchUnpaidCount();
-const widget = await buildWidget(unpaid);
+let unpaid;
+try {
+  unpaid = await fetchUnpaidCount();
+} catch (e) {
+  unpaid = null;
+}
+const widget = buildWidget(unpaid);
 
 if (config.runsInWidget) {
   Script.setWidget(widget);
