@@ -108,6 +108,27 @@
 .biz-table col.col-del{width:104px}
 .biz-table td:last-child{padding-left:0;padding-right:14px;text-align:center}
 
+/* ── CRM-tabell: kunde primær, pris nedtonet ── */
+.biz-table--crm col.col-name{width:auto}
+.biz-table--crm col.col-onetime-new{width:110px}
+.biz-table--crm col.col-mrr-new{width:100px}
+.biz-table--crm .col-name,
+.biz-table--crm .col-pills,
+.biz-table--crm .col-onetime-new,
+.biz-table--crm .col-mrr-new{white-space:normal}
+.cust-name-primary{
+  font-size:14px;font-weight:650;color:var(--text-primary);letter-spacing:-.01em;
+}
+.cust-onetime-val,.cust-mrr-val{
+  font-size:12.5px;font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums;
+}
+.cust-mrr-val{color:var(--success)}
+.cust-cell-empty{color:var(--text-tertiary);font-size:12.5px}
+.biz-table--crm .biz-tier-badge{
+  background:transparent;border:1px solid var(--hairline-soft);color:var(--text-secondary);
+  font-family:var(--font-mono);font-size:9.5px;
+}
+
 .biz-card-compact{padding:14px 16px}
 
 /* Bekreft-knapp: grønn når avtale er bekreftet */
@@ -208,7 +229,7 @@
 @media(prefers-reduced-motion: reduce){.modal-card{animation:none}}
 
 @media(max-width:768px){
-  .biz-table th:nth-child(2),.biz-table td:nth-child(2){display:none}
+  .biz-table--crm th:nth-child(3),.biz-table--crm td.col-onetime-new{display:none}
 }
 
 /* ── Animasjoner: rad inn/ut + leadgen-felt-bytte ── */
@@ -327,7 +348,24 @@
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:14px;
 }
-.panel-name{font-size:15px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-header--rich{align-items:flex-start}
+.panel-header-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.panel-header-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.panel-name{font-size:16px;font-weight:700;color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+
+/* ── Panel: felt side ved side, økonomi-blokk ── */
+.panel-field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.panel-field-row .form-group{margin-bottom:0}
+.panel-econ-block{
+  border:1px solid var(--hairline-soft);border-radius:var(--radius-sm);
+  padding:10px 12px;margin-bottom:10px;background:var(--surface-2);
+}
+.panel-econ-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.panel-econ-row + .panel-econ-row{margin-top:8px;padding-top:8px;border-top:1px solid var(--hairline-soft)}
+.panel-econ-lbl{font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.panel-econ-input{margin-bottom:0;flex:0 0 auto;width:130px}
+.panel-econ-input .form-control{text-align:right;font-weight:700;font-family:var(--font-mono);font-size:13px}
+.panel-econ-block[hidden]{display:none}
 .panel-section{
   margin-top:20px;padding-top:14px;
   border-top:1px solid var(--hairline-soft);
@@ -442,15 +480,16 @@
 </div>
 
 <div class="table-wrap">
-<table class="biz-table">
+<table class="biz-table biz-table--crm">
 <colgroup>
-<col class="col-name"><col class="col-pills"><col class="col-price"><col class="col-deposit"><col class="col-del">
+<col class="col-name"><col class="col-pills"><col class="col-onetime-new"><col class="col-mrr-new"><col class="col-deposit"><col class="col-del">
 </colgroup>
 <thead>
 <tr>
 <th data-i18n="biz.customer">Customer</th>
 <th data-i18n="biz.status">Status</th>
-<th data-i18n="biz.price">Pris/mnd</th>
+<th data-i18n="biz.onetime">Engangskjøp</th>
+<th data-i18n="biz.mrr">MRR</th>
 <th data-i18n="biz.deposit">Dep.</th>
 <th></th>
 </tr>
@@ -467,15 +506,18 @@
 ═══════════════════════════════════════════════════════════ -->
 <div id="custPanelBackdrop" class="panel-backdrop" hidden></div>
 <div id="custPanel" class="cust-panel" hidden>
-<div class="panel-header">
-  <span id="panelName" class="panel-name"></span>
+<div class="panel-header panel-header--rich">
+  <div class="panel-header-main">
+    <span id="panelName" class="panel-name"></span>
+    <div id="panelHeaderTags" class="panel-header-tags"></div>
+  </div>
   <button type="button" id="panelClose" class="btn btn-icon" data-i18n-title="biz.close_panel" title="Lukk">✕</button>
 </div>
 
 <div id="panelCtaWrap" class="panel-cta-wrap"></div>
 
 <div class="panel-section">
-  <div class="panel-section-title" data-i18n="biz.avtale">Avtale</div>
+  <div class="panel-section-title" data-i18n="biz.profil">Profil</div>
   <div class="form-group">
     <label class="form-label" data-i18n="biz.customer">Kunde</label>
     <input id="pName" class="form-control" autocomplete="off">
@@ -484,16 +526,29 @@
     <label class="form-label" data-i18n="biz.contact">Kontakt</label>
     <input id="pContact" class="form-control" autocomplete="off">
   </div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.business_model">Modell</label>
-    <select id="pBizModel" class="form-control">
-      <option value="A">Scenario A</option>
-      <option value="B">Scenario B</option>
-      <option value="C">Scenario C</option>
-      <option value="Custom">Custom</option>
-    </select>
+  <div class="panel-field-row">
+    <div class="form-group">
+      <label class="form-label" data-i18n="biz.business_model">Modell</label>
+      <select id="pBizModel" class="form-control">
+        <option value="A">Scenario A</option>
+        <option value="B">Scenario B</option>
+        <option value="C">Scenario C</option>
+        <option value="Custom">Custom</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="biz.status">Status</label>
+      <select id="pStatus" class="form-control">
+        <option value="Lead">Lead</option>
+        <option value="Tilbud">Tilbud</option>
+        <option value="Kontrakt">Kontrakt</option>
+        <option value="Aktiv">Aktiv</option>
+        <option value="Pauset">Pauset</option>
+        <option value="Avsluttet">Avsluttet</option>
+      </select>
+    </div>
   </div>
-  <div class="form-group">
+  <div id="pTierGroup" class="form-group">
     <label class="form-label" data-i18n="biz.tier">Tier</label>
     <select id="pTier" class="form-control">
       <option value="Lav">Lav</option>
@@ -503,37 +558,36 @@
     </select>
   </div>
   <div class="form-group">
-    <label class="form-label" data-i18n="biz.status">Status</label>
-    <select id="pStatus" class="form-control">
-      <option value="Lead">Lead</option>
-      <option value="Tilbud">Tilbud</option>
-      <option value="Kontrakt">Kontrakt</option>
-      <option value="Aktiv">Aktiv</option>
-      <option value="Pauset">Pauset</option>
-      <option value="Avsluttet">Avsluttet</option>
-    </select>
-  </div>
-  <div class="form-group">
     <label class="form-label" data-i18n="biz.startdato">Startdato</label>
     <input type="date" id="pStartDate" class="form-control">
   </div>
 </div>
 
 <div class="panel-section">
-  <div class="panel-section-title" data-i18n="biz.kontrakt_betaling">Kontrakt & betaling</div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.price">Månedspris (kr)</label>
-    <input type="text" inputmode="decimal" id="pPrice" class="form-control money-input">
+  <div class="panel-section-title" data-i18n="biz.kontrakt_betaling">Økonomi</div>
+
+  <div id="pEconomySubscription" class="panel-econ-block">
+    <div class="panel-econ-row">
+      <span class="panel-econ-lbl" data-i18n="biz.mrr">MRR</span>
+      <div class="form-group panel-econ-input">
+        <input type="text" inputmode="decimal" id="pPrice" class="form-control money-input">
+      </div>
+    </div>
   </div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.onetime">Engangsgebyr (kr)</label>
-    <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
-  </div>
-  <div class="form-group">
-    <label class="form-label" data-i18n="biz.deposit">Depositum betalt</label>
-    <div class="panel-deposit-row">
-      <button type="button" id="pDepositPaid" class="cust-deposit-dot dp-unpaid" data-paid="0" aria-pressed="false"></button>
-      <span id="pDepositLabel" class="panel-deposit-label" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
+
+  <div id="pEconomyOnetime" class="panel-econ-block">
+    <div class="panel-econ-row">
+      <span class="panel-econ-lbl" data-i18n="biz.onetime">Engangsbeløp</span>
+      <div class="form-group panel-econ-input">
+        <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
+      </div>
+    </div>
+    <div class="panel-econ-row">
+      <span class="panel-econ-lbl" data-i18n="biz.deposit">Forskudd</span>
+      <div class="panel-deposit-row">
+        <button type="button" id="pDepositPaid" class="cust-deposit-dot dp-unpaid" data-paid="0" aria-pressed="false"></button>
+        <span id="pDepositLabel" class="panel-deposit-label" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
+      </div>
     </div>
   </div>
   <div class="form-group">
@@ -642,9 +696,9 @@
 
   // Priser skrives over fra pricing_tiers etter DB-lasting (updatePricingFromDb).
   // Disse er fallback-verdier som sikrer at siden ikke krasjer før data er hentet.
-  let TIER_PRICES          = { Lav: 690, Medium: 1190, "Høy": 1990 };
-  let CONTRACT_HOURLY_RATE  = 690;   // Ordinær timesats (alle scenarioer)
-  let CONTRACT_OVERUSE_RATE  = 1050; // Overforbrukstillegg (kun Scenario C Medium/Høy)
+  let TIER_PRICES          = { Lav: 790, Medium: 1690, "Høy": 2190 };
+  let CONTRACT_HOURLY_RATE  = 790;   // Ordinær timesats (alle scenarioer)
+  let CONTRACT_OVERUSE_RATE  = 1050; // Overforbrukstillegg (kun Scenario A Medium/Høy)
   let SCENARIO_B_RESTART_FEE = 490;  // Gjenoppstartsgebyr Scenario B (avledes fra DB)
 
   // Avtalepart i kontrakt — oppdater når Frilans Finans-spørsmålet er avklart
@@ -701,6 +755,10 @@
     panelName:          $("#panelName"),
     panelClose:         $("#panelClose"),
     panelCtaWrap:       $("#panelCtaWrap"),
+    panelHeaderTags:    $("#panelHeaderTags"),
+    pTierGroup:         $("#pTierGroup"),
+    pEconomySubscription: $("#pEconomySubscription"),
+    pEconomyOnetime:      $("#pEconomyOnetime"),
     pName:              $("#pName"),
     pContact:           $("#pContact"),
     pBizModel:          $("#pBizModel"),
@@ -753,7 +811,7 @@
 
   // ── DB → intern representasjon ─────────────────────────────────────────────
   function tierPrice(tierName) {
-    const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tierName);
+    const row = state.pricingTiers.find(r => r.scenario === "A" && r.tier === tierName);
     return row ? Number(row.pris_nok) : 0;
   }
 
@@ -838,13 +896,13 @@
   }
 
   function updatePricingFromDb() {
-    const cLav = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Lav");
-    const cMed = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Medium");
-    const cHoy = state.pricingTiers.find(r => r.scenario === "C" && r.tier === "Høy");
+    const aLav = state.pricingTiers.find(r => r.scenario === "A" && r.tier === "Lav");
+    const aMed = state.pricingTiers.find(r => r.scenario === "A" && r.tier === "Medium");
+    const aHoy = state.pricingTiers.find(r => r.scenario === "A" && r.tier === "Høy");
     const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
-    if (cLav) TIER_PRICES.Lav          = Number(cLav.pris_nok);
-    if (cMed) TIER_PRICES.Medium        = Number(cMed.pris_nok);
-    if (cHoy) TIER_PRICES["Høy"]        = Number(cHoy.pris_nok);
+    if (aLav) TIER_PRICES.Lav          = Number(aLav.pris_nok);
+    if (aMed) TIER_PRICES.Medium        = Number(aMed.pris_nok);
+    if (aHoy) TIER_PRICES["Høy"]        = Number(aHoy.pris_nok);
     if (bRow) SCENARIO_B_RESTART_FEE    = Number(bRow.pris_nok);
   }
 
@@ -857,34 +915,73 @@
       return;
     }
 
-    const TABLE_ROWS = [
-      ...["A","B"].map(sc => {
-        const row = state.pricingTiers.find(r => r.scenario === sc && r.tier == null);
-        const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: `Scenario ${sc}`, tier: "\u2014", pris, enhet: t("biz.onetime_setup") };
-      }),
-      ...["Lav","Medium","H\u00f8y"].map(tier => {
-        const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tier);
-        const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: "Scenario C", tier, pris, enhet: t("biz.per_month") };
-      })
-    ];
+    const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
+    const cRow = state.pricingTiers.find(r => r.scenario === "C" && r.tier == null);
+    const bPris = bRow ? Number(bRow.pris_nok) : 0;
+    const cPris = cRow ? Number(cRow.pris_nok) : 0;
 
-    grid.innerHTML = `<table class="biz-table pricing-admin-table">
-      <thead><tr>
-        <th>Scenario</th>
-        <th data-i18n="biz.tier">Tier</th>
-        <th data-i18n="biz.price">Pris</th>
-        <th data-i18n="biz.unit">Enhet</th>
-      </tr></thead>
-      <tbody>${TABLE_ROWS.map(r => `<tr>
-        <td>${escapeHtml(r.scenario)}</td>
-        <td>${escapeHtml(r.tier)}</td>
-        <td style="font-weight:600">${moneyNok(r.pris)}</td>
-        <td style="color:var(--text-tertiary);font-size:11.5px">${escapeHtml(r.enhet)}</td>
-      </tr>`).join("")}</tbody>
-    </table>
-`;
+    const tierRows = ["Lav", "Medium", "H\u00f8y"].map(tier => {
+      const row = state.pricingTiers.find(r => r.scenario === "A" && r.tier === tier);
+      const pris = row ? Number(row.pris_nok) : 0;
+      const inclKey = tier === "Lav" ? "biz.tier_incl_lav"
+        : tier === "Medium" ? "biz.tier_incl_medium" : "biz.tier_incl_hoy";
+      return `<div class="pricing-tier-row">
+        <div>
+          <div class="pricing-tier-name">${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</div>
+          <div class="pricing-tier-incl">${escapeHtml(t(inclKey))}</div>
+        </div>
+        <div class="pricing-tier-price">${moneyNok(pris)}<span style="font-size:9px;color:var(--text-tertiary);font-weight:400">/mnd</span></div>
+      </div>`;
+    }).join("");
+
+    grid.innerHTML = `<div class="pricing-grid">
+
+      <div class="pricing-panel">
+        <span class="pricing-sc-tag">Scenario A</span>
+        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_a"))}</div>
+        <div class="pricing-sc-sub" data-i18n="biz.sc_a_desc">L\u00f8pende drift og hosting. Forskudd 25 % ikke-refunderbart f\u00f8r oppstart.</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-tiers">${tierRows}</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_a_f1"))}</li>
+          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_a_f2", { rate: CONTRACT_HOURLY_RATE }))}</li>
+        </ul>
+      </div>
+
+      <div class="pricing-panel">
+        <span class="pricing-sc-tag">Scenario B</span>
+        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_b"))}</div>
+        <div class="pricing-sc-sub" data-i18n="biz.sc_b_desc">Gratis serverl\u00f8s hosting. Ingen kodetilgang for kunde.</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-price-block">
+          <div class="pricing-price">${moneyNok(bPris)}</div>
+          <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
+        </div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_b_f1"))}</li>
+          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_b_f2", { fee: SCENARIO_B_RESTART_FEE, rate: CONTRACT_HOURLY_RATE }))}</li>
+        </ul>
+      </div>
+
+      <div class="pricing-panel">
+        <span class="pricing-sc-tag">Scenario C</span>
+        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_c"))}</div>
+        <div class="pricing-sc-sub" data-i18n="biz.sc_c_desc">Full overf\u00f8ring til kundens egen Lovable-konto.</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-price-block">
+          <div class="pricing-price">${moneyNok(cPris)}</div>
+          <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
+        </div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_c_f1"))}</li>
+          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_c_f2", { rate: CONTRACT_HOURLY_RATE }))}</li>
+        </ul>
+      </div>
+
+    </div>`;
   }
 
   async function addCustomerToDb() {
@@ -1034,16 +1131,30 @@
       const stCls  = STATUS_CLASS[c.status] || "st-active";
       const stLbl  = t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv);
       const isOpen = state.panelId === c.id;
+      const isSubscription = c.businessModel === "A";
+
+      // Modell-tag: "A · Høy" for abonnement, bare bokstaven for engangs (B/C)
+      const modelTag = isSubscription
+        ? `${escapeHtml(c.businessModel)} · ${escapeHtml(t(TIER_LABEL_KEYS[c.tier] || TIER_LABEL_KEYS.Lav))}`
+        : escapeHtml(c.businessModel);
+
+      const onetimeVal = c.oneTimeFee > 0
+        ? `<span class="cust-onetime-val">${moneyNok(c.oneTimeFee)}</span>`
+        : `<span class="cust-cell-empty">—</span>`;
+      const mrrVal = isSubscription && c.price > 0
+        ? `<span class="cust-mrr-val">${moneyNok(c.price)}</span>`
+        : `<span class="cust-cell-empty">—</span>`;
 
       return `
         <tr data-id="${escapeHtml(c.id)}" class="cust-row${isOpen ? " panel-open" : ""}">
-          <td class="col-name">${escapeHtml(c.name || t("biz.unnamed_customer"))}</td>
+          <td class="col-name"><span class="cust-name-primary">${escapeHtml(c.name || t("biz.unnamed_customer"))}</span></td>
           <td class="col-pills">
             <span class="biz-status-pill ${stCls}">${escapeHtml(stLbl)}</span>
-            <span class="biz-tier-badge">${escapeHtml(c.tier)}</span>
+            <span class="biz-tier-badge">${modelTag}</span>
           </td>
-          <td class="col-price">${c.price ? moneyNok(c.price) : "—"}</td>
-          <td class="col-deposit">${c.businessModel === "C"
+          <td class="col-onetime-new">${onetimeVal}</td>
+          <td class="col-mrr-new">${mrrVal}</td>
+          <td class="col-deposit">${isSubscription
             ? `<span style="color:var(--text-tertiary)">—</span>`
             : `<button type="button" class="cust-deposit-dot ${c.depositPaid ? "dp-paid" : "dp-unpaid"}" data-paid="${c.depositPaid ? "1" : "0"}" aria-label="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}" title="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}"></button>`
           }</td>
@@ -1097,7 +1208,31 @@
     if (el.pBekreftedDato) el.pBekreftedDato.value = c.bekreftedDato || "";
     if (el.pNotes)        el.pNotes.value         = c.notes      || "";
 
+    renderPanelHeaderTags(c);
+    renderPanelEconomyVisibility(c);
     renderPanelCta(c);
+  }
+
+  // Header: status-pill + modell-badge (+ tier ved abonnement) rett under navnet
+  function renderPanelHeaderTags(c) {
+    if (!el.panelHeaderTags) return;
+    const stCls = STATUS_CLASS[c.status] || "st-active";
+    const stLbl = t(STATUS_LABEL_KEYS[c.status] || STATUS_LABEL_KEYS.Aktiv);
+    const isSubscription = c.businessModel === "A";
+    const modelLbl = escapeHtml(c.businessModel);
+    const tierLbl  = isSubscription ? escapeHtml(t(TIER_LABEL_KEYS[c.tier] || TIER_LABEL_KEYS.Lav)) : "";
+
+    el.panelHeaderTags.innerHTML =
+      `<span class="biz-status-pill ${stCls}">${escapeHtml(stLbl)}</span>` +
+      `<span class="biz-tier-badge">${modelLbl}${tierLbl ? " · " + tierLbl : ""}</span>`;
+  }
+
+  // Kun abonnement (A) viser tier-valg og MRR-blokk; B/C viser engangsblokk
+  function renderPanelEconomyVisibility(c) {
+    const isSubscription = c.businessModel === "A";
+    if (el.pTierGroup)           el.pTierGroup.hidden           = !isSubscription;
+    if (el.pEconomySubscription) el.pEconomySubscription.hidden = !isSubscription;
+    if (el.pEconomyOnetime)      el.pEconomyOnetime.hidden      = isSubscription;
   }
 
   function renderPanelCta(c) {
@@ -1154,7 +1289,7 @@
     c.bekreftedDato = el.pBekreftedDato?.value  || null;
     c.notes         = el.pNotes?.value          || "";
 
-    if (c.businessModel === "C" && Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
+    if (c.businessModel === "A" && Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
       c.price = TIER_PRICES[c.tier];
       if (el.pPrice && document.activeElement !== el.pPrice) {
         el.pPrice.value = formatMoneyInput(c.price);
@@ -1164,6 +1299,8 @@
     }
 
     if (el.panelName) el.panelName.textContent = c.name || t("biz.unnamed_customer");
+    renderPanelHeaderTags(c);
+    renderPanelEconomyVisibility(c);
     state.customers[idx] = c;
     renderMetrics();
     renderCustomers();
@@ -1293,14 +1430,6 @@
   };
 
   function getScopeTextA() {
-    return "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva.";
-  }
-
-  function getScopeTextB() {
-    return "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr inkl. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
-  }
-
-  function getScopeTextC() {
     const lavPris = TIER_PRICES.Lav;
     const medPris = TIER_PRICES.Medium;
     const hoyPris = TIER_PRICES["Høy"];
@@ -1314,6 +1443,14 @@
       "arbeid utover inkludert kvote faktureres med et overforbrukstillegg på " + CONTRACT_OVERUSE_RATE + " kr/t inkl. mva. " +
       "Overforbrukstillegget er høyere enn ordinær timesats (" + CONTRACT_HOURLY_RATE + " kr/t) fordi arbeidet skjer utenfor planlagt kapasitet og på kort varsel. " +
       "Tillegget er videre ment å synliggjøre verdien av å oppgradere abonnementet fremfor gjentatt overforbruk av inkludert kvote.";
+  }
+
+  function getScopeTextB() {
+    return "Leveransen omfatter design og oppsett av én komplett nettside eksportert til gratis serverløs hosting (Vercel/Netlify). Innenfor de første 90 dagene etter signert overlevering («avtaledato») kan endringer avtales uten ekstra oppstartsgebyr. Etter utløpt 90-dagersfrist utløses automatisk et gjenoppstartsgebyr på " + SCENARIO_B_RESTART_FEE + " kr inkl. mva per endringsforespørsel, i tillegg til ordinær timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva (minimum 1 time). Gjenoppstartsgebyret inkluderer nødvendig gjennomgang av tidligere leveranse før arbeidet gjenopptas, og forfaller ved bestilling.";
+  }
+
+  function getScopeTextC() {
+    return "Leveransen omfatter design og oppsett av én komplett nettside. Før offisiell overføring skal kunden skriftlig godkjenne at leveransen oppfyller avtalte kriterier. Etter fullført «Transfer» i Lovable.dev overtar kunden løsningen fullt ut, reklamasjonsperioden avsluttes, og alt fremtidig arbeid eller support faktureres etter gjeldende timesats på " + CONTRACT_HOURLY_RATE + " kr/t inkl. mva.";
   }
 
   function defaultScopeText(c) {
@@ -1332,10 +1469,10 @@
     return new Date().toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
   }
 
-  // ── §3 betaling — betinget: månedlig (C) vs. engangsleveranse (A/B) ────────
+  // ── §3 betaling — betinget: månedlig (A) vs. engangsleveranse (B/C) ────────
   function buildPaymentSection(c) {
     const parts = [];
-    const isMonthly = c.businessModel === "C";
+    const isMonthly = c.businessModel === "A";
 
     if (isMonthly) {
       if (c.price > 0) {
@@ -1350,7 +1487,7 @@
       const deposit = Math.round(total * 0.25 * 100) / 100;
       if (total > 0) {
         parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} inkl. mva.</p>`);
-        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+        parts.push(`<p><strong>Forskudd:</strong> 25 % av engangsbeløpet (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${c.businessModel === "C" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
       }
       if (c.businessModel === "B") {
         parts.push(`<p>Hosting leveres kostnadsfritt på serverløs infrastruktur (Vercel/Netlify). Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
@@ -1364,10 +1501,10 @@
 
   // ── §4 — betinget av businessModel ─────────────────────────────────────────
   function buildTerminationSection(c) {
-    if (c.businessModel === "C") {
+    if (c.businessModel === "A") {
       return "<p>Avtalen kan sies opp av begge parter med 1 måneds gjensidig oppsigelsestid, skriftlig. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
     }
-    if (c.businessModel === "A") {
+    if (c.businessModel === "C") {
       return "<p>Etter fullført overføring («Transfer») i Lovable.dev eier kunden løsningen fullt ut, og leverandøren har intet videre drifts- eller vedlikeholdsansvar. Reklamasjon på selve leveransen må meldes skriftlig innen 14 dager etter overlevering.</p>";
     }
     return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport eller overføring av løsningen; slik overføring faktureres etter gjeldende timesats.</p>";
