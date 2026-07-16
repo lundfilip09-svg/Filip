@@ -36,13 +36,10 @@
   background-repeat:no-repeat;background-position:right 6px center;
 }
 
-/* Deposit-alert-stripe */
-.biz-deposit-alert{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:10px 14px;margin-bottom:12px;
-  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);
-  border-radius:var(--radius-lg);font-size:12.5px;color:var(--text-secondary);
-}
+/* Depositum-prikk i kundepanelet */
+.panel-deposit-row{display:flex;align-items:center;gap:10px;margin-top:6px}
+.panel-deposit-row .cust-deposit-dot{margin:0}
+.panel-deposit-label{font-size:12.5px;color:var(--text-secondary)}
 
 .table-wrap{overflow:auto;border:1px solid var(--hairline-soft);border-radius:var(--radius-lg)}
 .biz-table{width:100%;border-collapse:collapse;min-width:900px;table-layout:fixed}
@@ -317,7 +314,7 @@
 .panel-backdrop[hidden]{display:none}
 @keyframes backdropIn{from{opacity:0}to{opacity:1}}
 .cust-panel{
-  position:fixed;top:44px;right:0;bottom:0;width:360px;
+  position:fixed;top:calc(54px + env(safe-area-inset-top));right:0;bottom:0;width:360px;
   background:var(--surface-1);border-left:1px solid var(--hairline);
   overflow-y:auto;z-index:900;padding:20px 18px 40px;
   box-shadow:-12px 0 40px rgba(0,0,0,.55);
@@ -534,7 +531,10 @@
   </div>
   <div class="form-group">
     <label class="form-label" data-i18n="biz.deposit">Depositum betalt</label>
-    <input type="checkbox" id="pDepositPaid" style="width:auto;margin-top:6px">
+    <div class="panel-deposit-row">
+      <button type="button" id="pDepositPaid" class="cust-deposit-dot dp-unpaid" data-paid="0" aria-pressed="false"></button>
+      <span id="pDepositLabel" class="panel-deposit-label" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
+    </div>
   </div>
   <div class="form-group">
     <label class="form-label" data-i18n="biz.bekreftet_dato">Bekreftet dato</label>
@@ -696,9 +696,6 @@
     costMetric:         $("#costMetric"),
     resultMetric:       $("#resultMetric"),
     lovablePlan:        $("#lovablePlan"),
-    depositAlert:       $("#depositAlert"),
-    depositAlertText:   $("#depositAlertText"),
-    depositAlertFilter: $("#depositAlertFilter"),
     custPanel:          $("#custPanel"),
     custPanelBackdrop:  $("#custPanelBackdrop"),
     panelName:          $("#panelName"),
@@ -714,9 +711,7 @@
     pOnetime:           $("#pOnetime"),
     pDepositPaid:       $("#pDepositPaid"),
     pBekreftedDato:     $("#pBekreftedDato"),
-    pPrintContract:     $("#pPrintContract"),
     pGenToken:          $("#pGenToken"),
-    pCustomScope:       $("#pCustomScope"),
     pNotes:             $("#pNotes"),
     pDeleteCustomer:    $("#pDeleteCustomer"),
     city:               $("#city"),
@@ -730,7 +725,6 @@
     notesModalOverlay:  $("#notesModalOverlay"),
     notesModalTitle:    $("#notesModalTitle"),
     customerNotes:      $("#customer-notes"),
-    customScope:        $("#custom-scope"),
     tabAccounting:      $("#tabAccounting"),
     tabLeads:           $("#tabLeads"),
     tabPricing:         $("#tabPricing"),
@@ -863,15 +857,11 @@
       return;
     }
 
-    const lovableNok   = Number(state.lovablePlan || 0) * Number(state.fx.rate || FALLBACK_FX);
-    const activeN      = Math.max(1, activeCustomers().length);
-    const lovableShare = lovableNok / activeN; // per-kunde andel av Lovable-kostnad
-
     const TABLE_ROWS = [
       ...["A","B"].map(sc => {
         const row = state.pricingTiers.find(r => r.scenario === sc && r.tier == null);
         const pris = row ? Number(row.pris_nok) : 0;
-        return { scenario: `Scenario ${sc}`, tier: "\u2014", pris, enhet: t("biz.onetime_setup"), margin: pris };
+        return { scenario: `Scenario ${sc}`, tier: "\u2014", pris, enhet: t("biz.onetime_setup") };
       }),
       ...["Lav","Medium","H\u00f8y"].map(tier => {
         const row = state.pricingTiers.find(r => r.scenario === "C" && r.tier === tier);
@@ -1030,23 +1020,6 @@
       el.resultMetric.textContent  = moneyNok(result);
       el.resultMetric.className    = `metric-val ${result >= 0 ? "success" : "danger"}`;
     }
-
-    renderDepositAlert();
-  }
-
-  function renderDepositAlert() {
-    const owed = state.customers.filter(c => c.status === "Kontrakt" && !c.depositPaid);
-    const total = owed.reduce((s, c) => s + Number(c.price || 0), 0);
-    if (!el.depositAlert) return;
-    if (owed.length === 0) {
-      el.depositAlert.hidden = true;
-      return;
-    }
-    el.depositAlert.hidden = false;
-    if (el.depositAlertText) {
-      el.depositAlertText.textContent = t("biz.deposit_outstanding") +
-        `: ${owed.length} × — ${moneyNok(total)}`;
-    }
   }
 
   // ── Render kundeoversikt (lese-modus) ─────────────────────────────────────
@@ -1120,9 +1093,8 @@
     if (el.pStartDate)    el.pStartDate.value     = c.start      || "";
     if (el.pPrice)        el.pPrice.value         = formatMoneyInput(c.price);
     if (el.pOnetime)      el.pOnetime.value       = formatMoneyInput(c.oneTimeFee);
-    if (el.pDepositPaid)  el.pDepositPaid.checked = Boolean(c.depositPaid);
+    setPanelDepositDot(Boolean(c.depositPaid));
     if (el.pBekreftedDato) el.pBekreftedDato.value = c.bekreftedDato || "";
-    if (el.pCustomScope)  el.pCustomScope.value   = c.customScope || "";
     if (el.pNotes)        el.pNotes.value         = c.notes      || "";
 
     renderPanelCta(c);
@@ -1150,6 +1122,19 @@
     });
   }
 
+  function setPanelDepositDot(paid) {
+    if (!el.pDepositPaid) return;
+    el.pDepositPaid.dataset.paid = paid ? "1" : "0";
+    el.pDepositPaid.setAttribute("aria-pressed", paid ? "true" : "false");
+    el.pDepositPaid.classList.toggle("dp-paid", paid);
+    el.pDepositPaid.classList.toggle("dp-unpaid", !paid);
+    const label = t(paid ? "biz.deposit_paid" : "biz.deposit_unpaid");
+    el.pDepositPaid.setAttribute("aria-label", label);
+    el.pDepositPaid.setAttribute("title", label);
+    const lbl = document.getElementById("pDepositLabel");
+    if (lbl) { lbl.textContent = label; lbl.setAttribute("data-i18n", paid ? "biz.deposit_paid" : "biz.deposit_unpaid"); }
+  }
+
   function readPanelFields({ defer = false, nameChanged = false } = {}) {
     const id = state.panelId;
     if (!id) return;
@@ -1165,9 +1150,8 @@
     c.status        = el.pStatus?.value         || "Lead";
     c.start         = el.pStartDate?.value      || "";
     c.oneTimeFee    = parseMoneyInput(el.pOnetime?.value);
-    c.depositPaid   = Boolean(el.pDepositPaid?.checked);
+    c.depositPaid   = el.pDepositPaid?.dataset.paid === "1";
     c.bekreftedDato = el.pBekreftedDato?.value  || null;
-    c.customScope   = el.pCustomScope?.value    || "";
     c.notes         = el.pNotes?.value          || "";
 
     if (c.businessModel === "C" && Object.prototype.hasOwnProperty.call(TIER_PRICES, c.tier)) {
@@ -1272,7 +1256,6 @@
 
     if (el.notesModalTitle) el.notesModalTitle.textContent = c.name || t("biz.unnamed_customer");
     if (el.customerNotes)   el.customerNotes.value         = c.notes || "";
-    if (el.customScope)     el.customScope.value           = c.customScope || "";
     if (el.notesModalOverlay) el.notesModalOverlay.hidden  = false;
     el.customerNotes?.focus();
   }
@@ -1289,7 +1272,6 @@
     const c = { ...state.customers[idx] };
 
     if (event.target === el.customerNotes)  c.notes       = el.customerNotes.value;
-    else if (event.target === el.customScope) c.customScope = el.customScope.value;
     else return;
 
     state.customers[idx] = c;
@@ -1297,7 +1279,7 @@
 
     const row     = el.customerRows?.querySelector(`tr[data-id="${c.id}"]`);
     const notesBtn = row?.querySelector(".notes-btn");
-    if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(c.notes || c.customScope));
+    if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(c.notes));
   }
 
   // ── Kontrakt-print ─────────────────────────────────────────────────────────
@@ -1389,132 +1371,6 @@
       return "<p>Etter fullført overføring («Transfer») i Lovable.dev eier kunden løsningen fullt ut, og leverandøren har intet videre drifts- eller vedlikeholdsansvar. Reklamasjon på selve leveransen må meldes skriftlig innen 14 dager etter overlevering.</p>";
     }
     return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport eller overføring av løsningen; slik overføring faktureres etter gjeldende timesats.</p>";
-  }
-
-  function buildEmailText(c) {
-    const firstName = (c.name || "").split(" ")[0] || "der";
-    return `Hei ${firstName},\n\nTakk for møtet! Som avtalt sender jeg over kontrakten for gjennomgang.\n\nBe deg lese gjennom og svare «Bekreftet» på denne e-posten dersom alt er i orden. Har du spørsmål er det bare å ta kontakt.\n\nMed vennlig hilsen,\nFilip Lund\nf.lund.konsulent@gmail.com`;
-  }
-
-  function buildContractHtml(c, pricingRow) {
-    const juridiskScope = (c.customScope && c.customScope.trim())
-      ? nl2br(c.customScope.trim())
-      : (pricingRow?.juridisk_scope
-          ? escapeHtml(pricingRow.juridisk_scope)
-          : escapeHtml(defaultScopeText(c)));
-
-    const startLine  = c.start
-      ? `<p><strong>Oppstartsdato:</strong> ${escapeHtml(c.start)}</p>` : "";
-    const levOrgLine = LEVERANDOR.orgnr
-      ? `Org.nr ${escapeHtml(LEVERANDOR.orgnr)}<br>` : "";
-    const overuseNote = c.businessModel === "C"
-      ? ` For Scenario C-kunder gjelder i tillegg et overforbrukstillegg på <strong>${CONTRACT_OVERUSE_RATE} kr/t inkl. mva per påbegynt time</strong> for arbeid utover inkludert kvote (dokumentert med tidslogg). Se §2 for detaljer.`
-      : "";
-
-    const versjon   = pricingRow?.versjon    || 1;
-    const gyldigFra = pricingRow?.gyldig_fra || todayNo();
-    const emailJson = JSON.stringify(buildEmailText(c));
-
-    return `<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="UTF-8">
-<title>Kontrakt – ${escapeHtml(c.name || "Kunde")}</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:Georgia,'Times New Roman',serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.55;font-size:14px}
-h1{font-size:19px;text-align:center;margin-bottom:4px;letter-spacing:.02em}
-.sub{text-align:center;color:#555;font-size:12px;margin-bottom:32px}
-h2{font-size:14px;margin-top:26px;margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:4px}
-p{margin:6px 0}
-.parties{display:flex;gap:24px;margin-bottom:8px}
-.parties div{flex:1}
-.sig{display:flex;gap:40px;margin-top:56px}
-.sig div{flex:1;border-top:1px solid #111;padding-top:6px;font-size:12px}
-.warn{background:#f4f4f4;border-left:3px solid #111;padding:10px 14px;margin-top:10px;font-size:13px}
-.footer-stamp{margin-top:36px;padding-top:10px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}
-.action-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px 0;display:flex;justify-content:center;gap:12px}
-.action-bar button{padding:8px 20px;border:1px solid #999;border-radius:4px;background:#fff;cursor:pointer;font-size:13px;font-family:inherit}
-.action-bar .btn-primary{background:#111;color:#fff;border-color:#111}
-@media print{
-  body{margin:0;padding:0 12px}
-  .action-bar{display:none}
-}
-</style>
-</head>
-<body>
-<h1>AVTALE OM LEVERANSE OG DRIFT AV NETTSIDE</h1>
-<div class="sub">Utarbeidet ${todayNo()}</div>
-
-<h2>§1 Partene</h2>
-<div class="parties">
-<div><strong>Leverandør</strong><br>${escapeHtml(AVTALEPART)}<br>v/ ${escapeHtml(LEVERANDOR.utforende)}<br>Fakturering: ${escapeHtml(LEVERANDOR.fakturautsteder)}<br>${levOrgLine}${escapeHtml(LEVERANDOR.kontakt)}</div>
-<div><strong>Kunde</strong><br>${escapeHtml(c.name || "[Kundenavn]")}<br>${escapeHtml(c.contact || "[Kontaktinfo]")}</div>
-</div>
-
-<h2>§2 Avtaleomfang</h2>
-<p>${juridiskScope}</p>
-
-<h2>§3 Pris og betalingsbetingelser</h2>
-${buildPaymentSection(c)}
-<div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${CONTRACT_HOURLY_RATE} kr inkl. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
-
-<h2>§4 Varighet og oppsigelse</h2>
-${buildTerminationSection(c)}
-
-<h2>§5 Ansvarsbegrensning</h2>
-<p>Leverandørens samlede erstatningsansvar under denne avtalen er begrenset til vederlag betalt av kunden i løpet av de siste tre (3) måneder forut for tidspunktet kravet oppstår. Leverandøren er ikke ansvarlig for indirekte tap, herunder tapt omsetning, tapte data, driftsavbrudd eller følgeskader, uansett årsak og uavhengig av om slike tap var påregnelige.</p>
-
-<h2>§6 Hosting og tilgjengelighet</h2>
-<p>Hosting leveres via tredjepart (Cloudflare Pages, Vercel og/eller Netlify). Leverandøren overvåker nettsiden og varsler kunden ved kjente avvik, men inngår ingen forpliktelse om tilgjengelighetsgaranti. Eventuelle krav som følge av utilgjengelighet reguleres av §5.</p>
-
-${startLine}
-
-<div class="sig">
-<div>Sted/dato, Leverandør</div>
-<div>Sted/dato, Kunde</div>
-</div>
-
-<div class="footer-stamp">Vilkårversjon ${versjon} · Gyldig fra ${escapeHtml(String(gyldigFra))} · Utarbeidet ${todayNo()}</div>
-
-<div class="action-bar">
-  <button class="btn-primary" onclick="window.print()">Skriv ut / lagre PDF</button>
-  <button id="copyEmailBtn" onclick="
-    navigator.clipboard.writeText(${emailJson}).then(function(){
-      var b=document.getElementById('copyEmailBtn');
-      b.textContent='Kopiert!';
-      setTimeout(function(){b.textContent='Kopier e-posttekst'},2000);
-    });
-  ">Kopier e-posttekst</button>
-</div>
-</body>
-</html>`;
-  }
-
-  async function printContract(id) {
-    const c = normalizeCustomer(state.customers.find(x => x.id === id) || {});
-
-    // Finn gjeldende prisrad for versjonsstempel og juridisk scope
-    const pricingRow = state.pricingTiers.find(r =>
-      c.businessModel !== "C"
-        ? r.scenario === c.businessModel && r.tier == null
-        : r.scenario === "C" && r.tier === c.tier
-    ) || null;
-
-    const win = window.open("", "_blank", "width=860,height=1000");
-    if (!win) { toast(t("biz.popup_blocked"), "err"); return; }
-    win.document.open();
-    win.document.write(buildContractHtml(c, pricingRow));
-    win.document.close();
-    win.onload = () => { win.focus(); win.print(); };
-
-    // Lagre versjonsnummer på kunderaden
-    const version = pricingRow?.versjon || 1;
-    const idx = state.customers.findIndex(x => x.id === id);
-    if (idx !== -1) {
-      state.customers[idx].contractVersion = version;
-      await updateCustomerInDb(id, { contract_version: version });
-    }
   }
 
   async function generateContractToken(customerId) {
@@ -1758,8 +1614,8 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
           scheduleDbUpdate(state.customers[idx], false);
           renderMetrics();
           // Sync panel if open on same customer
-          if (state.panelId === row.dataset.id && el.pDepositPaid) {
-            el.pDepositPaid.checked = newPaid;
+          if (state.panelId === row.dataset.id) {
+            setPanelDepositDot(newPaid);
           }
         }
       }
@@ -1825,16 +1681,6 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
 
     if (el.addCustomer) el.addCustomer.addEventListener("click", addCustomer);
 
-    if (el.depositAlertFilter) {
-      el.depositAlertFilter.addEventListener("click", () => {
-        // Show only Kontrakt customers with unpaid deposit
-        el.customerRows && el.customerRows.querySelectorAll("tr").forEach(tr => {
-          const id   = tr.dataset.id;
-          const c    = state.customers.find(x => x.id === id);
-          tr.hidden  = !(c && c.status === "Kontrakt" && !c.depositPaid);
-        });
-      });
-    }
     if (el.leadgenType)  el.leadgenType.addEventListener("change", syncLeadgenFields);
     syncLeadgenFields();
 
@@ -1872,8 +1718,9 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     }
 
     // Panel-knapper
-    if (el.pPrintContract) el.pPrintContract.addEventListener("click", () => {
-      if (state.panelId) printContract(state.panelId);
+    if (el.pDepositPaid) el.pDepositPaid.addEventListener("click", () => {
+      setPanelDepositDot(el.pDepositPaid.dataset.paid !== "1");
+      readPanelFields();
     });
     if (el.pGenToken) el.pGenToken.addEventListener("click", () => {
       if (state.panelId) generateContractToken(state.panelId);

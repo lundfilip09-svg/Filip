@@ -337,20 +337,53 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       </div>
 
       <div class="kontrakt-actions">
-        <button class="btn-primary" onclick="window.print()">Skriv ut / lagre PDF</button>
-        <button id="copyEmailBtn" onclick="
-          navigator.clipboard.writeText(window._emailText).then(function(){
-            var b=document.getElementById('copyEmailBtn');
-            b.textContent='Kopiert!';
-            setTimeout(function(){b.textContent='Kopier e-posttekst'},2000);
-          }).catch(function(){
-            var b=document.getElementById('copyEmailBtn');
-            b.textContent='Klikk og hold for å kopiere';
-          });
-        ">Kopier e-posttekst</button>
+        <button class="btn-primary" id="printContractBtn" type="button">Skriv ut / lagre PDF</button>
+        <button id="copyEmailBtn" type="button">Kopier e-posttekst</button>
       </div>`;
     show("kontraktView");
+    wireKontraktActions();
     return;
+  }
+
+  // Robust kopiering — clipboard API med execCommand-fallback for iOS Safari
+  function wireKontraktActions() {
+    const printBtn = document.getElementById("printContractBtn");
+    if (printBtn) printBtn.addEventListener("click", () => window.print());
+
+    const copyBtn = document.getElementById("copyEmailBtn");
+    if (!copyBtn) return;
+    copyBtn.addEventListener("click", async () => {
+      const text = window._emailText || "";
+      const done = () => {
+        copyBtn.textContent = "Kopiert!";
+        setTimeout(() => { copyBtn.textContent = "Kopier e-posttekst"; }, 2000);
+      };
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          done();
+          return;
+        }
+      } catch (_) { /* faller tilbake under */ }
+
+      // Fallback: skjult textarea + execCommand (fungerer i eldre/streng Safari)
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+      document.body.removeChild(ta);
+      copyBtn.textContent = ok ? "Kopiert!" : "Trykk og hold for å kopiere";
+      if (ok) setTimeout(() => { copyBtn.textContent = "Kopier e-posttekst"; }, 2000);
+    });
   }
 
   // Ukjent visning
