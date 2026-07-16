@@ -143,7 +143,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       return;
     }
 
-    const HOURLY = 690; // fallback; always shown as "per time"
+    const HOURLY = 790; // fallback; always shown as "per time"
 
     function featHtml(features) {
       if (!Array.isArray(features)) return "";
@@ -156,8 +156,8 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
     }
 
     function priceA(row) {
-      const fra = row?.pris_nok     ? moneyFmt(row.pris_nok)     : "10 000";
-      const til = row?.pris_til_nok ? moneyFmt(row.pris_til_nok) : "20 000";
+      const fra = row?.pris_nok     ? moneyFmt(row.pris_nok)     : "50 000";
+      const til = row?.pris_til_nok ? moneyFmt(row.pris_til_nok) : "100 000";
       return `<div class="sc-price-block">
         <div class="sc-price-row"><span class="sc-price-main range">${fra}–${til}</span></div>
         <div class="sc-price-note">Engangsleveranse · varierer med omfang</div>
@@ -175,10 +175,10 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       </div>`;
     }
 
-    function tierRowsC() {
+    function tierRowsA() {
       const order    = ["Lav","Medium","Høy"];
-      const inclText = { Lav:"Hosting · SSL · overvåkning", Medium:"Alt i Lav + 3 endr/mnd", "Høy":"Alt i Medium + 1/uke" };
-      const rows = order.map(name => tiers.find(r => r.scenario === "C" && r.tier === name)).filter(Boolean);
+      const inclText = { Lav:"Hosting · SSL · overvåkning", Medium:"Alt i Lav + 2 mikroendr/mnd", "Høy":"Alt i Medium + 1/uke" };
+      const rows = order.map(name => tiers.find(r => r.scenario === "A" && r.tier === name)).filter(Boolean);
       return `<div class="sc-tier-rows">${rows.map(r =>
         `<div class="sc-tier-row">
           <div class="sc-tier-left">
@@ -191,12 +191,12 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
     }
 
     const cards = [
-      { sc:"A", cls:"sc-a", icon:"🚀", title:"Prosjektoverføring",
-        desc:"Kunden overtar prosjektet etter godkjent leveranse. Videre arbeid faktureres per time." },
+      { sc:"A", cls:"sc-a", icon:"🛡️", title:"Full Driftsavtale",
+        desc:"Hosting og SSL via Cloudflare Pages. Leverandøren overvåker og varsler ved avvik." },
       { sc:"B", cls:"sc-b", icon:"☁️", title:"Hosting via tredjepart",
         desc:"Gratis hosting. Ingen månedskostnad. Frie endringer de første 90 dagene, deretter gjenoppstartsgebyr." },
-      { sc:"C", cls:"sc-c", icon:"🛡️", title:"Full Driftsavtale",
-        desc:"Hosting og SSL via Cloudflare Pages. Leverandøren overvåker og varsler ved avvik." }
+      { sc:"C", cls:"sc-c", icon:"🚀", title:"Full overføring",
+        desc:"Kunden overtar prosjektet etter godkjent leveranse. Videre arbeid faktureres per time." }
     ];
 
     document.getElementById("pakkerView").innerHTML = `
@@ -206,8 +206,8 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       </div>
       <div class="ph-grid">${cards.map(c => {
         const row = tiers.find(r => r.scenario === c.sc && r.tier == null);
-        const priceSection = c.sc === "A" ? priceA(row) : c.sc === "B" ? priceB(row) : tierRowsC();
-        const feats = c.sc !== "C" ? featHtml(row?.features) : "";
+        const priceSection = c.sc === "C" ? priceA(row) : c.sc === "B" ? priceB(row) : tierRowsA();
+        const feats = c.sc !== "A" ? featHtml(row?.features) : "";
         return `<div class="sc-card ${c.cls}">
           <div class="sc-glow"></div>
           <div class="sc-icon">${c.icon}</div>
@@ -215,7 +215,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
           <div class="sc-title">${esc(c.title)}</div>
           <div class="sc-desc">${esc(c.desc)}</div>
           ${priceSection}
-          ${c.sc !== "C" ? '<div class="sc-divider"></div>' : ""}
+          ${c.sc !== "A" ? '<div class="sc-divider"></div>' : ""}
           ${feats}
         </div>`;
       }).join("")}</div>
@@ -243,7 +243,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
     // Hent gjeldende prisrad (anon-lesbar)
     const { data: tiers } = await db.from("pricing_tiers").select("*");
     const pricingRow = (tiers || []).find(r =>
-      bm !== "C" ? r.scenario === bm && r.tier == null : r.scenario === "C" && r.tier === c.tier
+      bm !== "A" ? r.scenario === bm && r.tier == null : r.scenario === "A" && r.tier === c.tier
     ) || null;
 
     document.title = `Kontrakt – ${c.name || "Kunde"}`;
@@ -263,7 +263,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
     // §3 Betaling
     function paymentSection() {
-      const isMonthly = bm === "C";
+      const isMonthly = bm === "A";
       const parts = [];
       if (isMonthly) {
         if (c.price > 0) parts.push(`<p><strong>Månedbeløp:</strong> ${moneyNok(c.price)} inkl. mva, fakturert forskuddsvis den 1. i hver måned med 14 dagers betalingsfrist.</p>`);
@@ -274,7 +274,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
         const deposit = Math.round(total * 0.25 * 100) / 100;
         if (total > 0) {
           parts.push(`<p><strong>Avtalt engangsbeløp:</strong> ${moneyNok(total)} inkl. mva.</p>`);
-          parts.push(`<p><strong>Forskudd:</strong> 25 % (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${bm === "A" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
+          parts.push(`<p><strong>Forskudd:</strong> 25 % (${moneyNok(deposit)} inkl. mva) faktureres og skal være betalt før arbeidet starter. Forskuddet er ikke refunderbart dersom kunden trekker seg etter at arbeidet er påbegynt. Restbeløpet forfaller ved godkjent leveranse${bm === "C" ? ", før prosjektet overføres til kunden" : ""}, med 14 dagers betalingsfrist.</p>`);
         }
         if (bm === "B") parts.push(`<p>Hosting leveres kostnadsfritt via tredjepart. Vilkår for endringer etter 90 dager fremgår av §2.</p>`);
       }
@@ -285,13 +285,13 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
     // §4 Oppsigelse
     function terminationSection() {
-      if (bm === "C") return "<p>Avtalen kan sies opp av begge parter med 1 måneds skriftlig oppsigelsestid. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
-      if (bm === "A") return "<p>Etter fullført overføring i Lovable.dev eier kunden løsningen fullt ut. Reklamasjon må meldes skriftlig innen 14 dager etter overlevering.</p>";
+      if (bm === "A") return "<p>Avtalen kan sies opp av begge parter med 1 måneds skriftlig oppsigelsestid. Forskuddsbetalt periode refunderes ikke, men tjenesten leveres ut inneværende betalt måned.</p>";
+      if (bm === "C") return "<p>Etter fullført overføring i Lovable.dev eier kunden løsningen fullt ut. Reklamasjon må meldes skriftlig innen 14 dager etter overlevering.</p>";
       return "<p>Leverandøren drifter hostingen løpende og kostnadsfritt. Kunden kan når som helst be om eksport; slik overføring faktureres etter gjeldende timesats.</p>";
     }
 
     const startLine  = c.start_date ? `<p><strong>Oppstartsdato:</strong> ${esc(c.start_date)}</p>` : "";
-    const overuseNote = bm === "C"
+    const overuseNote = bm === "A"
       ? " For arbeid utover inkludert kvote gjelder et overforbrukstillegg på <strong>1 050 kr/t inkl. mva per påbegynt time</strong> (dokumentert med tidslogg). Se §2."
       : "";
 
@@ -315,7 +315,7 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
 
         <h2>§3 Pris og betalingsbetingelser</h2>
         ${paymentSection()}
-        <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>690 kr inkl. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
+        <div class="warn">Alt arbeid utover avtalt omfang i §2 faktureres med <strong>${HOURLY} kr inkl. mva per påbegynt time</strong>, dokumentert med tidslogg fra Toggl Track.${overuseNote} Ingen tilleggsarbeid utføres uten forutgående skriftlig bestilling.</div>
 
         <h2>§4 Varighet og oppsigelse</h2>
         ${terminationSection()}

@@ -165,13 +165,13 @@ export default async function handler(req, res) {
       ? { worst_score: worstKnee(kneeIpPrev) }
       : kneePrev ? { worst_score: worstKnee(kneePrev) } : null;
 
-    // business: forskudd-teller (A/B, ubetalt) + MRR-liste (C, aktive abonnement).
+    // business: forskudd-teller (B/C, ubetalt) + MRR-liste (A, aktive abonnement).
     const bizRows = Array.isArray(businessRows) ? businessRows : [];
     const unpaidDeposits = bizRows.filter(
-      (r) => (r.business_model === 'A' || r.business_model === 'B') && r.deposit_paid === false
+      (r) => (r.business_model === 'B' || r.business_model === 'C') && r.deposit_paid === false
     ).length;
     const subscriptions = bizRows
-      .filter((r) => r.business_model === 'C')
+      .filter((r) => r.business_model === 'A')
       .map((r) => ({ name: r.name, price: r.price, tier: r.tier }));
     const mrr = subscriptions.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
 
