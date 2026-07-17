@@ -21,6 +21,34 @@
     .wd-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
     .wd-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; font-family: var(--font-mono); }
 
+    /* ── Shell: main + sticky sidebar (speiler gym-shell) ── */
+    .wd-shell { display: grid; grid-template-columns: 1fr 268px; gap: 16px; align-items: start; }
+    .wd-main { min-width: 0; }
+    .wd-sidebar {
+      position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto;
+      scrollbar-width: none; background: var(--surface-1); border: 1px solid var(--hairline);
+      border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.32); padding: 16px;
+    }
+    .wd-sidebar::-webkit-scrollbar { display: none; }
+    @media (max-width: 900px) { .wd-shell { grid-template-columns: 1fr; } .wd-sidebar { position: static; max-height: none; } }
+
+    .wd-side-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 10px; }
+    .wd-stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--hairline-soft); font-size: 12.5px; }
+    .wd-stat-row:last-child { border-bottom: 0; }
+    .wd-stat-row .k { color: var(--text-secondary); }
+    .wd-stat-row .v { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+    .wd-side-sec { margin-top: 18px; }
+    .wd-side-sec:first-child { margin-top: 0; }
+    .wd-side-fav { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+    .wd-side-fav:hover { color: var(--text-primary); }
+    .wd-side-thumb { width: 26px; height: 26px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .wd-side-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .wd-side-empty { font-size: 11.5px; color: var(--text-tertiary); line-height: 1.5; }
+
+    /* ── Seksjonslabel over hver kategori-gruppe i grid ── */
+    .wd-sec-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin: 20px 0 9px; }
+    .wd-sec-label:first-child { margin-top: 0; }
+
     /* ── Visnings-tabs ── */
     .wd-tabs { display: inline-flex; background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 10px; padding: 3px; gap: 2px; }
     .wd-tab { border: 0; background: transparent; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; }
@@ -148,24 +176,39 @@
     </div>
   </div>
 
-  <div id="closetView">
-    <div class="wd-chips" id="catChips"></div>
-    <div class="wd-grid" id="garmentGrid"></div>
-    <div id="closetEmpty" style="display:none" class="wd-empty">
-      <div class="big">🧥</div>
-      <div class="t1" data-i18n="wd.empty_closet">Klesskapet er tomt</div>
-      <div class="t2" data-i18n="wd.empty_closet_hint">Trykk + og last opp bilder av plaggene dine. Bakgrunnen fjernes automatisk.</div>
-    </div>
-  </div>
+  <div class="wd-shell">
+    <div class="wd-main">
+      <div id="closetView">
+        <div class="wd-chips" id="catChips"></div>
+        <div id="garmentSections"></div>
+        <div id="closetEmpty" style="display:none" class="wd-empty">
+          <div class="big">🧥</div>
+          <div class="t1" data-i18n="wd.empty_closet">Klesskapet er tomt</div>
+          <div class="t2" data-i18n="wd.empty_closet_hint">Trykk + og last opp bilder av plaggene dine. Bakgrunnen fjernes automatisk.</div>
+        </div>
+      </div>
 
-  <div id="outfitsView" style="display:none">
-    <div class="wd-chips" id="seasonChips"></div>
-    <div class="wd-chips" id="occChips"></div>
-    <div class="wd-ogrid" id="outfitGrid"></div>
-    <div id="outfitsEmpty" style="display:none" class="wd-empty">
-      <div class="big">✨</div>
-      <div class="t1" data-i18n="wd.empty_outfits">Ingen antrekk enda</div>
-      <div class="t2" data-i18n="wd.empty_outfits_hint">Sett sammen plagg til antrekk og tagg dem med sesong og anledning.</div>
+      <div id="outfitsView" style="display:none">
+        <div class="wd-chips" id="seasonChips"></div>
+        <div class="wd-chips" id="occChips"></div>
+        <div class="wd-ogrid" id="outfitGrid"></div>
+        <div id="outfitsEmpty" style="display:none" class="wd-empty">
+          <div class="big">✨</div>
+          <div class="t1" data-i18n="wd.empty_outfits">Ingen antrekk enda</div>
+          <div class="t2" data-i18n="wd.empty_outfits_hint">Sett sammen plagg til antrekk og tagg dem med sesong og anledning.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wd-sidebar">
+      <div class="wd-side-sec">
+        <div class="wd-side-label" data-i18n="wd.side_overview">Oversikt</div>
+        <div id="sideStats"></div>
+      </div>
+      <div class="wd-side-sec">
+        <div class="wd-side-label" data-i18n="wd.side_favorites">Favoritt-antrekk</div>
+        <div id="sideFavs"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -263,7 +306,7 @@ const imgUrl = path => (path && urlCache[path]?.url) || '';
 const garmentById = id => garments.find(g => g.id === id);
 
 // ── Render ──────────────────────────────────────────────────────────────────
-function renderAll() { renderSub(); renderChips(); renderCloset(); renderOutfits(); }
+function renderAll() { renderSub(); renderChips(); renderCloset(); renderOutfits(); renderSidebar(); }
 
 function renderSub() {
   const act = garments.filter(g => !g.archived).length;
@@ -309,27 +352,62 @@ function garmentImgHTML(g) {
   return u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="ph">${CAT_ICON[g.category] || '👕'}</span>`;
 }
 
-function renderCloset() {
-  let list = garments.filter(g => showArchived ? true : !g.archived);
-  if (catFilter !== 'all') list = list.filter(g => g.category === catFilter);
-  list.sort((a, b) => (CAT_ORDER[a.category] - CAT_ORDER[b.category]) || a.name.localeCompare(b.name));
-  const grid = document.getElementById('garmentGrid');
-  // Stor tom-tilstand kun når skapet FAKTISK er tomt — filtertreff uten
-  // resultat får en diskret inline-melding i stedet (mindre villedende).
-  const trulyEmpty = !garments.length;
-  document.getElementById('closetEmpty').style.display = trulyEmpty ? '' : 'none';
-  if (!trulyEmpty && !list.length) {
-    grid.innerHTML = `<div class="wd-empty" style="grid-column:1/-1;padding:32px 16px"><div class="t2">${t('wd.empty_filter')}</div></div>`;
-    return;
-  }
-  grid.innerHTML = list.map(g => `
+function garmentCardHTML(g) {
+  return `
     <div class="wd-card${g.archived ? ' archived' : ''}" onclick="openDetail('${g.id}')">
       <div class="wd-card-img">${garmentImgHTML(g)}</div>
       <div class="wd-card-body">
         <div class="wd-card-name">${escHtml(g.name)}</div>
         <div class="wd-card-meta">${escHtml([catLabel(g.category), g.brand, g.color].filter(Boolean).join(' · '))}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+}
+
+function renderCloset() {
+  let list = garments.filter(g => showArchived ? true : !g.archived);
+  if (catFilter !== 'all') list = list.filter(g => g.category === catFilter);
+  const sections = document.getElementById('garmentSections');
+  // Stor tom-tilstand kun når skapet FAKTISK er tomt — filtertreff uten
+  // resultat får en diskret inline-melding i stedet (mindre villedende).
+  const trulyEmpty = !garments.length;
+  document.getElementById('closetEmpty').style.display = trulyEmpty ? '' : 'none';
+  if (!trulyEmpty && !list.length) {
+    sections.innerHTML = `<div class="wd-empty" style="padding:32px 16px"><div class="t2">${t('wd.empty_filter')}</div></div>`;
+    return;
+  }
+  // Gruppert i kategori-seksjoner (speiler gym.html sine øvelsesgrupper),
+  // slik at grid'et alltid har en synlig struktur — også når filtrert til "Alle".
+  const order = catFilter === 'all' ? CATS : [catFilter];
+  sections.innerHTML = order.map(c => {
+    const gs = list.filter(g => g.category === c).sort((a, b) => a.name.localeCompare(b.name));
+    if (!gs.length) return '';
+    return `<div class="wd-sec-label">${catLabel(c)} · ${gs.length}</div>
+      <div class="wd-grid">${gs.map(garmentCardHTML).join('')}</div>`;
+  }).join('');
+}
+
+function renderSidebar() {
+  const vis = garments.filter(g => !g.archived);
+  const totalValue = vis.reduce((s, g) => s + (Number(g.price) || 0), 0);
+  const cnt = c => vis.filter(g => g.category === c).length;
+  const mostStocked = CATS.map(c => ({ c, n: cnt(c) })).sort((a, b) => b.n - a.n)[0];
+  document.getElementById('sideStats').innerHTML = `
+    <div class="wd-stat-row"><span class="k">${t('wd.side_garments')}</span><span class="v">${vis.length}</span></div>
+    <div class="wd-stat-row"><span class="k">${t('wd.tab_outfits')}</span><span class="v">${outfits.length}</span></div>
+    ${totalValue ? `<div class="wd-stat-row"><span class="k">${t('wd.side_value')}</span><span class="v">${Math.round(totalValue)} kr</span></div>` : ''}
+    ${mostStocked && mostStocked.n ? `<div class="wd-stat-row"><span class="k">${t('wd.side_most')}</span><span class="v">${catLabel(mostStocked.c)}</span></div>` : ''}
+  `;
+  const favs = outfits.filter(o => o.favorite).slice(0, 5);
+  document.getElementById('sideFavs').innerHTML = favs.length
+    ? favs.map(o => {
+        const first = outfitGarments(o)[0];
+        const thumb = first ? garmentImgHTML(first) : '<span class="ph" style="font-size:14px">✨</span>';
+        return `<div class="wd-side-fav" onclick="openOutfit('${o.id}')">
+          <div class="wd-side-thumb">${thumb}</div>
+          <span>${escHtml(o.name)}</span>
+        </div>`;
+      }).join('')
+    : `<div class="wd-side-empty">${t('wd.side_no_favs')}</div>`;
 }
 
 function outfitGarments(o) {
@@ -373,9 +451,9 @@ async function toggleFav(id) {
   const o = outfits.find(x => x.id === id);
   if (!o) return;
   o.favorite = !o.favorite;
-  renderOutfits();                        // optimistisk — rulles tilbake ved feil
+  renderOutfits(); renderSidebar();        // optimistisk — rulles tilbake ved feil
   const { error } = await db.from('outfits').update({ favorite: o.favorite }).eq('id', id);
-  if (error) { o.favorite = !o.favorite; renderOutfits(); toast(error.message, 'err'); }
+  if (error) { o.favorite = !o.favorite; renderOutfits(); renderSidebar(); toast(error.message, 'err'); }
 }
 
 // ── "+"-knappen: kontekstavhengig ───────────────────────────────────────────
