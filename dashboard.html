@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── Hero ── */
-    .page { max-width: 1440px; gap: 24px; }
-    .nav-inner { max-width: 1100px; }
+    .page { max-width: 1280px; gap: 24px; }
+    .nav-inner { max-width: 1280px; }
     /* Topp (hero/status/graf) full bredde; nederste moduler tilbake til designbredde så de ikke strekkes */
     .dash-lower { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 1180px; margin-inline: auto; }
     .dash-hero {
@@ -62,12 +62,24 @@
     .status-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
     @media (max-width: 768px) { .status-row { grid-template-columns: 1fr; } }
 
+    /* ── I dag: prioritetsband (Gjøremål stor + Søvn/økt stablet) ── */
+    .dash-primary { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: stretch; }
+    .dash-primary-side { display: flex; flex-direction: column; gap: 14px; }
+    .card-tasks { display: flex; flex-direction: column; }
+    .card-tasks #importantTodos { flex: 1; }
+    @media (max-width: 860px) { .dash-primary { grid-template-columns: 1fr; } }
+
+    /* ── Status: Skader + Dagens fokus ── */
+    .status2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    @media (max-width: 768px) { .status2-grid { grid-template-columns: 1fr; } }
+
     /* Card borders & accents */
     .card { border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.2s, box-shadow 0.2s; }
     .card:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.28); }
     .card-sleep   { border-top-color: rgba(91,164,245,0.28) !important; border-top-width: 2px !important; }
     .card-knee    { border-top-color: rgba(255,107,107,0.22) !important; border-top-width: 2px !important; }
     .card-session { border-top-color: rgba(91,164,245,0.28) !important;  border-top-width: 2px !important; }
+    .card-tasks   { border-top-color: rgba(91,164,245,0.45) !important; border-top-width: 2px !important; }
 
     /* ══════════════════════════════════════════════════════════════
        SØVNKORT v2 — Readiness-first
@@ -510,32 +522,100 @@
     <div class="dash-date" id="dateLabel">–</div>
   </div>
 
-  <!-- ══════════════════  STATUS  ══════════════════ -->
+  <!-- ══════════════════  I DAG  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot"></div>
+    <div class="os-label-text" data-i18n="dash.today">I dag</div>
     <div class="os-label-line"></div>
   </div>
-  <div class="status-row">
+  <div class="dash-primary">
 
-    <div class="card card-sleep">
-      <div class="section-title" data-i18n="dash.sleep">Søvn</div>
-      <div id="sleepCard">
-        <div class="sk-row" style="margin-bottom:10px">
-          <span class="sk sk-block" style="width:44px;height:38px;border-radius:6px"></span>
-          <div class="sk-col" style="flex:1">
-            <span class="sk sk-block" style="width:72px;height:9px"></span>
-            <span class="sk sk-block" style="width:50px;height:14px"></span>
+    <!-- Gjøremål (primær – viktigst) -->
+    <div class="card card-tasks">
+      <div class="todos-header">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="section-title" style="margin-bottom:0" data-i18n="dash.tasks">Gjøremål</div>
+          <a href="gjoremal.html" data-i18n-title="dash.tasks" title="Gjøremål" style="text-decoration:none;color:var(--text-tertiary);font-size:13px;line-height:1">→</a>
+        </div>
+        <div class="todos-progress" id="todosProgress"></div>
+      </div>
+      <div id="importantTodos">
+        <div class="sk-row" style="margin-bottom:9px;align-items:center">
+          <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
+          <span class="sk sk-block" style="width:65%;height:12px"></span>
+        </div>
+        <div class="sk-row" style="margin-bottom:9px;align-items:center">
+          <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
+          <span class="sk sk-block" style="width:80%;height:12px"></span>
+        </div>
+        <div class="sk-row" style="align-items:center">
+          <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
+          <span class="sk sk-block" style="width:55%;height:12px"></span>
+        </div>
+      </div>
+      <div class="dash-todo-add">
+        <input id="dashTodoInput" type="text" data-i18n-placeholder="gm.add_placeholder"
+          placeholder="Legg til gjøremål…"
+          onkeydown="if(event.key==='Enter')addDashTodo()">
+        <button class="btn btn-primary btn-sm" onclick="addDashTodo()" data-i18n="add">Legg til</button>
+      </div>
+    </div>
+
+    <!-- Høyre: Søvn + Dagens økt -->
+    <div class="dash-primary-side">
+      <div class="card card-sleep">
+        <div class="section-title" data-i18n="dash.sleep">Søvn</div>
+        <div id="sleepCard">
+          <div class="sk-row" style="margin-bottom:10px">
+            <span class="sk sk-block" style="width:44px;height:38px;border-radius:6px"></span>
+            <div class="sk-col" style="flex:1">
+              <span class="sk sk-block" style="width:72px;height:9px"></span>
+              <span class="sk sk-block" style="width:50px;height:14px"></span>
+            </div>
+          </div>
+          <div class="sk-row">
+            <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
+            <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
+            <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
+            <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
           </div>
         </div>
-        <div class="sk-row">
-          <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
-          <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
-          <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
-          <span class="sk sk-block" style="width:54px;height:42px;border-radius:7px"></span>
+      </div>
+
+      <div class="card card-session">
+        <div class="section-title" data-i18n="dash.session">Dagens økt</div>
+        <div id="sessionCard">
+          <div class="sk-row" style="margin-bottom:8px">
+            <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
+          </div>
+          <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
+          <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
+          <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
         </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- Load × knesmerte (ACWR vs smerte, siste 6 uker) -->
+  <div class="card">
+    <div class="section-title" data-i18n="dash.load_pain">Belastning × knesmerte</div>
+    <div id="loadPainWrap" style="height:215px;position:relative">
+      <div class="loading" data-i18n="loading">Laster…</div>
+    </div>
+  </div>
+
+  <div class="dash-lower">
+
+  <!-- ══════════════════  STATUS  ══════════════════ -->
+  <div class="os-label">
+    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
+    <div class="os-label-text" data-i18n="dash.status">Status</div>
+    <div class="os-label-line"></div>
+  </div>
+  <div class="status2-grid">
+
+    <!-- Skader -->
     <div class="card card-knee">
       <div class="section-title" data-i18n="dash.injuries_card">Skader</div>
       <div id="injuryStatusCards">
@@ -560,54 +640,6 @@
         <span class="sk sk-block" style="width:110px;height:9px;margin-top:12px"></span>
       </div>
     </div>
-
-    <div class="card card-session">
-      <div class="section-title" data-i18n="dash.session">Dagens økt</div>
-      <div id="sessionCard">
-        <div class="sk-row" style="margin-bottom:8px">
-          <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
-        </div>
-        <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
-        <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
-        <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Load × knesmerte (ACWR vs smerte, siste 6 uker) -->
-  <div class="card">
-    <div class="section-title" data-i18n="dash.load_pain">Belastning × knesmerte</div>
-    <div id="loadPainWrap" style="height:215px;position:relative">
-      <div class="loading" data-i18n="loading">Laster…</div>
-    </div>
-  </div>
-
-  <div class="dash-lower">
-
-  <!-- ══════════════════  OVERSIKT  ══════════════════ -->
-  <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.overview">Oversikt</div>
-    <div class="os-label-line"></div>
-  </div>
-
-  <!-- Week strip -->
-  <div class="card">
-    <div class="section-title" data-i18n="dash.this_week">Denne uken</div>
-    <div class="week-strip" id="weekStrip"></div>
-    <div class="oversikt-footer">
-      <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
-    </div>
-  </div>
-
-  <!-- ══════════════════  FOKUS  ══════════════════ -->
-  <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.focus">Fokus</div>
-    <div class="os-label-line"></div>
-  </div>
-  <div class="fokus-grid">
 
     <!-- Dagens fokus -->
     <div class="card">
@@ -637,39 +669,22 @@
       </div>
     </div>
 
-    <!-- Right col -->
-    <div class="fokus-right">
-      <div class="card">
-        <div class="todos-header">
-          <div style="display:flex;align-items:center;gap:7px">
-            <div class="section-title" style="margin-bottom:0" data-i18n="dash.tasks">Gjøremål</div>
-            <a href="gjoremal.html" data-i18n-title="dash.tasks" title="Gjøremål" style="text-decoration:none;color:var(--text-tertiary);font-size:13px;line-height:1">→</a>
-          </div>
-          <div class="todos-progress" id="todosProgress"></div>
-        </div>
-        <div id="importantTodos">
-          <div class="sk-row" style="margin-bottom:9px;align-items:center">
-            <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:65%;height:12px"></span>
-          </div>
-          <div class="sk-row" style="margin-bottom:9px;align-items:center">
-            <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:80%;height:12px"></span>
-          </div>
-          <div class="sk-row" style="align-items:center">
-            <span class="sk sk-block" style="width:16px;height:16px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:55%;height:12px"></span>
-          </div>
-        </div>
-        <div class="dash-todo-add">
-          <input id="dashTodoInput" type="text" data-i18n-placeholder="gm.add_placeholder"
-            placeholder="Legg til gjøremål…"
-            onkeydown="if(event.key==='Enter')addDashTodo()">
-          <button class="btn btn-primary btn-sm" onclick="addDashTodo()" data-i18n="add">Legg til</button>
-        </div>
-      </div>
-    </div>
+  </div>
 
+  <!-- ══════════════════  OVERSIKT  ══════════════════ -->
+  <div class="os-label">
+    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
+    <div class="os-label-text" data-i18n="dash.overview">Oversikt</div>
+    <div class="os-label-line"></div>
+  </div>
+
+  <!-- Week strip -->
+  <div class="card">
+    <div class="section-title" data-i18n="dash.this_week">Denne uken</div>
+    <div class="week-strip" id="weekStrip"></div>
+    <div class="oversikt-footer">
+      <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
+    </div>
   </div>
 
   <!-- ══════════════════  KALENDER  ══════════════════ -->
