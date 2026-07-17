@@ -354,16 +354,37 @@
 .biz-tab:hover:not(.active){color:var(--text-secondary)}
 
 /* ── Prisside: kompakt B2B SaaS-referanse (8px-grid) ── */
-.pricing-head{margin-bottom:24px}
+.pricing-head{margin-bottom:16px}
 .pricing-head-title{
-  font-size:12px;font-weight:700;color:var(--text-tertiary);
-  text-transform:uppercase;letter-spacing:.06em;
+  font-size:20px;font-weight:750;color:var(--text-primary);
+  letter-spacing:-.015em;line-height:1.2;
 }
 .pricing-head-sub{
   font-size:12px;color:var(--text-tertiary);margin-top:6px;
   line-height:1.55;max-width:68ch;
 }
 .pricing-head-sub strong{color:var(--text-secondary);font-weight:600}
+
+/* Executive-summary KPI-rad — rask oversikt før man sammenligner scenarioer */
+.pricing-kpi-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;
+}
+@media(max-width:820px){.pricing-kpi-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.pricing-kpi-row{grid-template-columns:1fr}}
+.pricing-kpi{
+  border:1px solid var(--hairline-soft);border-radius:var(--radius-md);
+  padding:12px 14px;background:var(--surface-1);
+}
+.pricing-kpi-lbl{
+  font-size:10px;font-weight:600;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
+}
+.pricing-kpi-val{
+  font-size:19px;font-weight:750;font-family:var(--font-mono);
+  color:var(--text-primary);letter-spacing:-.01em;margin-top:4px;
+  line-height:1.15;white-space:nowrap;
+}
+.pricing-kpi-val small{font-size:11px;color:var(--text-tertiary);font-weight:500;margin-left:3px}
 
 .pricing-grid-ab{
   display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;
@@ -375,7 +396,7 @@
   --sc:var(--hairline-soft);
   display:flex;flex-direction:column;position:relative;
   border:1px solid var(--hairline-soft);border-top:2px solid var(--sc);
-  border-radius:var(--radius-lg);padding:24px;background:var(--surface-1);
+  border-radius:var(--radius-lg);padding:20px 24px;background:var(--surface-1);
 }
 .pricing-card.sc-a{--sc:var(--accent-blue)}
 .pricing-card.sc-b{--sc:var(--success)}
@@ -387,7 +408,7 @@
 .pricing-flag{font-size:10px;font-weight:600;color:var(--text-tertiary);white-space:nowrap}
 
 .pricing-name{font-size:13px;font-weight:650;color:var(--text-secondary)}
-.pricing-sub{font-size:11px;color:var(--text-tertiary);margin-top:4px;line-height:1.5;margin-bottom:16px}
+.pricing-sub{font-size:11px;color:var(--text-tertiary);margin-top:4px;line-height:1.5;margin-bottom:12px}
 
 .pricing-hero{margin-bottom:2px}
 .pricing-hero-value{
@@ -396,7 +417,7 @@
 }
 .pricing-hero-unit{font-size:11px;color:var(--text-tertiary);font-weight:500;margin-top:4px}
 
-.pricing-divider{height:1px;background:var(--hairline-soft);margin:16px 0}
+.pricing-divider{height:1px;background:var(--hairline-soft);margin:12px 0}
 
 .pricing-tiers{display:flex;flex-direction:column}
 .pricing-tier-row{
@@ -414,14 +435,14 @@
 .pricing-tier-price small{font-size:10px;color:var(--text-tertiary);font-weight:500;margin-left:2px}
 
 .pricing-startup{
-  margin-top:16px;padding:10px 12px;background:var(--surface-2);
+  margin-top:12px;padding:10px 12px;background:var(--surface-2);
   border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;gap:8px;
 }
 .pricing-startup-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em}
 .pricing-startup-note{font-size:10px;color:var(--text-tertiary);margin-top:2px;line-height:1.35}
 .pricing-startup-val{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--warning);white-space:nowrap;flex-shrink:0}
 
-.pricing-features{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:6px;flex:1}
+.pricing-features{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:6px;flex:1}
 .pricing-features li{font-size:11px;color:var(--text-tertiary);display:flex;gap:6px;align-items:flex-start;line-height:1.4}
 .pf-check{color:var(--success);font-weight:700;flex-shrink:0;font-size:10.5px;margin-top:1px}
 .pf-warn{color:var(--warning);flex-shrink:0;font-size:10.5px;margin-top:1px}
@@ -1244,11 +1265,13 @@
     };
     const pos = (n, fb) => (Number(n) > 0 ? Number(n) : fb);
 
-    const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
-    const cRow = state.pricingTiers.find(r => r.scenario === "C" && r.tier == null);
+    const bRow   = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
+    const cRow   = state.pricingTiers.find(r => r.scenario === "C" && r.tier == null);
+    const aLavRow = state.pricingTiers.find(r => r.scenario === "A" && r.tier === "Lav");
     const bPris   = pos(bRow?.pris_nok, FALLBACK.B);
     const cFrom   = pos(cRow?.pris_nok, FALLBACK.C_from);
     const cTo     = pos(cRow?.pris_til_nok, FALLBACK.C_to);
+    const aLavPris = pos(aLavRow?.pris_nok, FALLBACK.A.Lav);
 
     const engangsRange = `${moneyNok(FALLBACK.A_eng_from)} \u2013 ${moneyNok(FALLBACK.A_eng_to)}`;
 
@@ -1272,6 +1295,25 @@
     <div class="pricing-head">
       <div class="pricing-head-title">Prisprotokoller</div>
       <div class="pricing-head-sub">To hovedmodeller for nye kunder \u2014 <strong>A</strong> (l\u00f8pende drift) eller <strong>B</strong> (engangs). Alle avtaler starter med 25 % ikke-refunderbart forskudd via Frilans Finans.</div>
+    </div>
+
+    <div class="pricing-kpi-row">
+      <div class="pricing-kpi">
+        <div class="pricing-kpi-lbl">Abonnement fra</div>
+        <div class="pricing-kpi-val">${moneyNok(aLavPris)}<small>/mnd</small></div>
+      </div>
+      <div class="pricing-kpi">
+        <div class="pricing-kpi-lbl">Typisk engangsprosjekt</div>
+        <div class="pricing-kpi-val">${engangsRange}</div>
+      </div>
+      <div class="pricing-kpi">
+        <div class="pricing-kpi-lbl">Overforbruk / support</div>
+        <div class="pricing-kpi-val">${moneyNok(rate)}<small>/t</small></div>
+      </div>
+      <div class="pricing-kpi">
+        <div class="pricing-kpi-lbl">Forskudd</div>
+        <div class="pricing-kpi-val">25<small> %</small></div>
+      </div>
     </div>
 
     <div class="pricing-grid-ab">
