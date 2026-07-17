@@ -122,6 +122,8 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
     return Number(n).toLocaleString("nb-NO");
   }
 
+  const HOURLY = 790; // fallback; alltid vist som "per time" — delt mellom pakker- og kontrakt-visning
+
   // ── getConfig fra utils.js ────────────────────────────────────────────────
   let db;
   try {
@@ -142,8 +144,6 @@ body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,Bl
       document.getElementById("errorView").textContent = "Kunne ikke laste pakkedata.";
       return;
     }
-
-    const HOURLY = 790; // fallback; always shown as "per time"
 
     function featHtml(features) {
       if (!Array.isArray(features)) return "";
