@@ -1,11 +1,11 @@
 // widget-pakker.js — Large widget, Home Screen (firkantet på iPad).
-// Kompakt prisoversikt: én rad per pakke (produkt + scenario + pris).
+// Prisoversikt gruppert per scenario: A (løpende drift), B (engangs), C (på vent).
 // Trykk på widgeten → åpner business.html rett på «Produkter & priser»-fanen,
 // der prisene vises stort. Ingen Supabase-kall (statiske priser).
 //
 // Design: matcher widget-mrr.js og widget-forskudd.js (samme business-familie):
-//   bg #1a1a1a · padding 12/14 · slate-skala · ASCII-divider · grønn #4ade80 for
-//   løpende priser (kr/mnd), nøytral slate for engangs/på vent.
+//   bg #1a1a1a · padding 12/14 · slate-skala · stiplet divider · grønn #4ade80
+//   (løpende), amber #fbbf24 (engangs), slate #94a3b8 (på vent).
 
 const BASE = "https://filip-vita.vercel.app";
 const URL  = `${BASE}/business.html#priser`;
@@ -20,26 +20,72 @@ const C = {
   divider: "#333333",
   note:    "#555555",
   green:   "#4ade80",
+  amber:   "#fbbf24",
   slate:   "#94a3b8",
 };
 
-// ── Pakker: kort visning for widgeten (full detalj ligger på dashboardet) ──
-const PAKKER = [
-  { scenario: "A — Lav",     navn: "Full Driftsavtale",  pris: "790 kr/mnd",   lopende: true  },
-  { scenario: "A — Medium",  navn: "Full Driftsavtale",  pris: "1 690 kr/mnd", lopende: true  },
-  { scenario: "A — Høy",     navn: "Full Driftsavtale",  pris: "2 190 kr/mnd", lopende: true  },
-  { scenario: "B",           navn: "Serverløs Hosting",  pris: "Engangs",      lopende: false },
-  { scenario: "C — på vent", navn: "Prosjektoverføring", pris: "50–100k kr",   lopende: false },
+// ── Scenarier: gruppert prisoversikt for widgeten ──
+const SCENARIOS = [
+  {
+    tag:   "SCENARIO A",
+    label: "LØPENDE DRIFT",
+    color: C.green,
+    items: [
+      { navn: "Lav",    pris: "790 kr/mnd" },
+      { navn: "Medium", pris: "1 690 kr/mnd" },
+      { navn: "Høy",    pris: "2 190 kr/mnd" },
+    ],
+  },
+  {
+    tag:   "SCENARIO B",
+    label: "ENGANGS",
+    color: C.amber,
+    items: [
+      { navn: "Nettside, gratis hosting", pris: "10–50k kr" },
+    ],
+  },
+  {
+    tag:   "SCENARIO C",
+    label: "FULL OVERFØRING",
+    color: C.slate,
+    items: [
+      { navn: "Full overføring", pris: "50–100k kr" },
+    ],
+  },
 ];
 
-const NOTE = "MVA-fritt · 790 kr/t · trykk for full prisoversikt";
+const NOTE = "Priser inkl. mva · 790 kr/t · trykk for full oversikt";
 
 function addDivider(w) {
-  const d = w.addText("──────────────────────────────");
+  const d = w.addText("╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌");
   d.textColor = new Color(C.divider);
   d.font = Font.systemFont(8);
   d.lineLimit = 1;
   d.minimumScaleFactor = 0.5;
+}
+
+// Splitter "790 kr/mnd" → fet "790 kr" + dempet/mindre "/mnd".
+// Priser uten "/" (f.eks. "10–50k kr") rendres som én tekst.
+function addPrice(row, pris, color) {
+  const slash = pris.indexOf('/');
+  if (slash === -1) {
+    const t = row.addText(pris);
+    t.textColor = new Color(color);
+    t.font = Font.semiboldSystemFont(13);
+    t.lineLimit = 1;
+    return;
+  }
+  const stack = row.addStack();
+  stack.layoutHorizontally();
+  stack.centerAlignContent();
+  const main = stack.addText(pris.slice(0, slash));
+  main.textColor = new Color(color);
+  main.font = Font.semiboldSystemFont(13);
+  main.lineLimit = 1;
+  const suffix = stack.addText(pris.slice(slash));
+  suffix.textColor = new Color(C.muted);
+  suffix.font = Font.systemFont(10);
+  suffix.lineLimit = 1;
 }
 
 function buildWidget() {
@@ -56,42 +102,44 @@ function buildWidget() {
   title.textColor = new Color(C.primary);
   title.font = Font.boldSystemFont(16);
   head.addSpacer();
-  const count = head.addText(PAKKER.length + " pakker");
+  const count = head.addText(`${SCENARIOS.length} modeller`);
   count.textColor = new Color(C.faint);
   count.font = Font.systemFont(10);
 
   w.addSpacer(10);
   addDivider(w);
-  w.addSpacer(10);
 
-  PAKKER.forEach((p, i) => {
-    const accent = p.lopende ? C.green : C.slate;
+  SCENARIOS.forEach((s, si) => {
+    w.addSpacer(10);
 
-    const row = w.addStack();
-    row.layoutHorizontally();
-    row.centerAlignContent();
+    const tag = w.addText(`${s.tag} · ${s.label}`);
+    tag.textColor = new Color(s.color);
+    tag.font = Font.semiboldSystemFont(9.5);
+    tag.lineLimit = 1;
+    tag.minimumScaleFactor = 0.6;
 
-    // Venstre: produktnavn + scenario
-    const left = row.addStack();
-    left.layoutVertically();
-    left.spacing = 1;
-    const navn = left.addText(p.navn);
-    navn.textColor = new Color(C.name);
-    navn.font = Font.mediumSystemFont(13);
-    navn.lineLimit = 1;
-    const sc = left.addText(p.scenario);
-    sc.textColor = new Color(C.faint);
-    sc.font = Font.systemFont(9.5);
+    w.addSpacer(8);
 
-    row.addSpacer();
+    s.items.forEach((item, ii) => {
+      const row = w.addStack();
+      row.layoutHorizontally();
+      row.centerAlignContent();
 
-    // Høyre: pris
-    const price = row.addText(p.pris);
-    price.textColor = new Color(accent);
-    price.font = Font.semiboldSystemFont(13);
-    price.lineLimit = 1;
+      const navn = row.addText(item.navn);
+      navn.textColor = new Color(C.name);
+      navn.font = Font.mediumSystemFont(13);
+      navn.lineLimit = 1;
 
-    if (i < PAKKER.length - 1) w.addSpacer(9);
+      row.addSpacer();
+      addPrice(row, item.pris, s.color);
+
+      if (ii < s.items.length - 1) w.addSpacer(9);
+    });
+
+    if (si < SCENARIOS.length - 1) {
+      w.addSpacer(10);
+      addDivider(w);
+    }
   });
 
   w.addSpacer();
