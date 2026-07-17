@@ -2249,6 +2249,18 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
     el.tabAccounting?.addEventListener("click", () => switchTab("accounting"));
     el.tabLeads?.addEventListener("click",      () => switchTab("leads"));
     el.tabPricing?.addEventListener("click",    () => switchTab("pricing"));
+
+    // Dyplenke fra widget/lenke: #priser | #pricing | #salg | #pakker -> pris-fanen
+    const PRICE_HASHES = ["#priser", "#pricing", "#salg", "#pakker"];
+    function openPricingFromHash() {
+      if (!PRICE_HASHES.includes((location.hash || "").toLowerCase())) return;
+      switchTab("pricing");
+      if (el.pricingView) {
+        window.setTimeout(() => el.pricingView.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+      }
+    }
+    openPricingFromHash();
+    window.addEventListener("hashchange", openPricingFromHash);
   }
 
   // ── FX-rente ───────────────────────────────────────────────────────────────
