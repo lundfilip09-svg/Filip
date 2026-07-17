@@ -13,12 +13,13 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .wd-page { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; position: relative; z-index: 1; }
+    .wd-page { max-width: 1280px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; }
+    @media (max-width: 640px) { .wd-page { padding: 18px 16px 96px; } }
 
     /* ── Header ── */
-    .wd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 0 18px; flex-wrap: wrap; }
-    .wd-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-    .wd-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; font-family: var(--font-mono); }
+    .wd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 22px; flex-wrap: wrap; }
+    .wd-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
+    .wd-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; font-family: var(--font-mono); }
 
     /* ── Visnings-tabs ── */
     .wd-tabs { display: inline-flex; background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 10px; padding: 3px; gap: 2px; }
@@ -26,7 +27,7 @@
     .wd-tab.active { background: var(--surface-3); color: var(--text-primary); }
 
     /* ── Filter-chips ── */
-    .wd-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .wd-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
     .wd-chip { border: 1px solid var(--hairline); background: var(--surface-1); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
     .wd-chip:hover { background: var(--surface-2); border-color: rgba(255,255,255,0.16); }
     .wd-chip.active { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
@@ -34,10 +35,10 @@
     .wd-chip-row-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 2px; font-family: var(--font-mono); }
 
     /* ── Plagg-grid ── */
-    .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-    .wd-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
-    .wd-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
-    .wd-card-img { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; background: var(--surface-2); padding: 12px; }
+    .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 14px; }
+    .wd-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    .wd-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+    .wd-card-img { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; background: var(--surface-2); padding: 14px; }
     .wd-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .wd-card-img .ph { font-size: 34px; opacity: 0.35; }
     .wd-card-body { padding: 9px 11px 11px; }
@@ -46,7 +47,7 @@
     .wd-card.archived { opacity: 0.45; }
 
     /* ── Antrekk-kort ── */
-    .wd-ogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .wd-ogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
     .wd-ocard { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
     .wd-ocard:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
     .wd-ocard-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
@@ -63,10 +64,10 @@
     .wd-otag.season { background: rgba(91,164,245,0.10); border-color: rgba(91,164,245,0.3); color: var(--accent-blue); }
 
     /* ── Tom-tilstand ── */
-    .wd-empty { text-align: center; padding: 56px 20px; color: var(--text-tertiary); }
-    .wd-empty .big { font-size: 36px; margin-bottom: 12px; }
-    .wd-empty .t1 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-    .wd-empty .t2 { font-size: 12px; max-width: 380px; margin: 0 auto; line-height: 1.55; }
+    .wd-empty { text-align: center; padding: 88px 20px; color: var(--text-tertiary); }
+    .wd-empty .big { font-size: 44px; margin-bottom: 16px; opacity: 0.9; }
+    .wd-empty .t1 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; }
+    .wd-empty .t2 { font-size: 12.5px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
 
     /* ── Modaler ── */
     .wd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.66); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
@@ -93,10 +94,6 @@
     .wd-drop .di { font-size: 26px; margin-bottom: 8px; }
     .wd-drop .dt { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
     .wd-drop .dh { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
-    .wd-bgopt { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 4px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); }
-    .wd-bgopt input { margin-top: 2px; accent-color: var(--accent-blue); }
-    .wd-bgopt .bt { font-size: 12.5px; font-weight: 600; }
-    .wd-bgopt .bh { font-size: 10.5px; color: var(--text-tertiary); margin-top: 1px; line-height: 1.45; }
     .wd-qitem { display: flex; gap: 12px; align-items: center; padding: 10px; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); margin-top: 10px; }
     .wd-qthumb { width: 56px; height: 56px; flex-shrink: 0; background: var(--surface-3); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .wd-qthumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -188,13 +185,6 @@
       <div class="dh" data-i18n="wd.upload_hint">Fotografer på rolig bakgrunn for best resultat</div>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files);this.value=''">
-    <div class="wd-bgopt">
-      <input type="checkbox" id="autoBg" checked>
-      <div>
-        <div class="bt" data-i18n="wd.auto_bg">Fjern bakgrunn automatisk</div>
-        <div class="bh" data-i18n="wd.auto_bg_hint">AI-modell (~40 MB) lastes ned første gang og caches. Feiler den, beholdes originalbildet.</div>
-      </div>
-    </div>
     <div id="queueList"></div>
     <div class="wd-m-actions">
       <span class="spacer"></span>
@@ -522,7 +512,7 @@ async function processQueue() {
 }
 
 async function processItem(item) {
-  const autoBg = document.getElementById('autoBg').checked;
+  const autoBg = true;   // bakgrunnsfjerning alltid på (toggle fjernet)
   try {
     item.status = 'prep'; renderQueueStatus(item);
     const inCanvas = await toCanvas(item.file, 1600);
