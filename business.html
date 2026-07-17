@@ -389,14 +389,15 @@
 .pricing-sc-tag--b{color:var(--success);border-color:rgba(95,217,154,.4);background:rgba(95,217,154,.1)}
 .pricing-sc-tag--c{color:var(--text-tertiary);border-color:var(--hairline-soft)}
 
-/* Scenario C: nedtonet strip (AVVENT) */
+/* Scenario C: fullverdig kort */
 .pricing-c-strip{
-  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-  border:1px dashed var(--hairline-soft);border-radius:var(--radius-lg);
-  padding:14px 18px;background:var(--surface-1);opacity:.72;
-  transition:opacity .15s;
+  margin-top:16px;
+  border:1px solid rgba(168,120,255,.25);
+  border-radius:var(--radius-lg);
+  padding:22px 24px;
+  background:linear-gradient(180deg,var(--surface-1),rgba(168,120,255,.03));
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
 }
-.pricing-c-strip:hover{opacity:1}
 .pricing-c-left{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .pricing-c-avvent{
   font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
@@ -1371,10 +1372,10 @@
     <div class="pricing-c-strip">
       <div class="pricing-c-left">
         <span class="pricing-sc-tag pricing-sc-tag--c">Scenario C</span>
-        <span class="pricing-c-avvent">Avvent \u2014 tilbys kun p\u00e5 foresp\u00f8rsel</span>
+        <span class="pricing-c-avvent" style="color:#b992ff">Fullt tilbud</span>
       </div>
       <div class="pricing-c-mid">
-        <div class="pricing-c-name">Full overf\u00f8ring (engangs)</div>
+        <div class="pricing-c-name" style="font-size:18px;color:var(--text-primary)">Full overføring</div>
         <div class="pricing-c-desc">Kunden overtar prosjektet p\u00e5 egen Lovable-konto etter sluttbetaling. Support ${rate} kr/t etterp\u00e5.</div>
       </div>
       <div class="pricing-c-price">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
