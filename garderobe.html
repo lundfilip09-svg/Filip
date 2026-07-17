@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .wd-page { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; position: relative; z-index: 1; }
+
+    /* ── Header ── */
+    .wd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 0 18px; flex-wrap: wrap; }
+    .wd-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+    .wd-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; font-family: var(--font-mono); }
+
+    /* ── Visnings-tabs ── */
+    .wd-tabs { display: inline-flex; background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 10px; padding: 3px; gap: 2px; }
+    .wd-tab { border: 0; background: transparent; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .wd-tab.active { background: var(--surface-3); color: var(--text-primary); }
+
+    /* ── Filter-chips ── */
+    .wd-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .wd-chip { border: 1px solid var(--hairline); background: var(--surface-1); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .wd-chip:hover { background: var(--surface-2); border-color: rgba(255,255,255,0.16); }
+    .wd-chip.active { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
+    .wd-chip .n { font-family: var(--font-mono); font-size: 10px; opacity: 0.75; margin-left: 4px; }
+    .wd-chip-row-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 2px; font-family: var(--font-mono); }
+
+    /* ── Plagg-grid ── */
+    .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .wd-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+    .wd-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
+    .wd-card-img { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; background: var(--surface-2); padding: 12px; }
+    .wd-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .wd-card-img .ph { font-size: 34px; opacity: 0.35; }
+    .wd-card-body { padding: 9px 11px 11px; }
+    .wd-card-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wd-card-meta { font-size: 10.5px; color: var(--text-tertiary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wd-card.archived { opacity: 0.45; }
+
+    /* ── Antrekk-kort ── */
+    .wd-ogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .wd-ocard { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+    .wd-ocard:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
+    .wd-ocard-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+    .wd-ocard-name { font-size: 13.5px; font-weight: 650; }
+    .wd-fav { background: none; border: 0; cursor: pointer; font-size: 15px; opacity: 0.4; padding: 0 2px; color: var(--text-secondary); transition: opacity 0.12s; }
+    .wd-fav:hover { opacity: 0.8; }
+    .wd-fav.on { opacity: 1; color: var(--warning); }
+    .wd-collage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+    .wd-collage .ct { aspect-ratio: 1/1; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; padding: 6px; }
+    .wd-collage .ct img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .wd-collage .ct .ph { font-size: 18px; opacity: 0.35; }
+    .wd-otags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .wd-otag { font-size: 9.5px; font-family: var(--font-mono); padding: 2.5px 8px; border-radius: 999px; border: 1px solid var(--hairline); color: var(--text-secondary); }
+    .wd-otag.season { background: rgba(91,164,245,0.10); border-color: rgba(91,164,245,0.3); color: var(--accent-blue); }
+
+    /* ── Tom-tilstand ── */
+    .wd-empty { text-align: center; padding: 56px 20px; color: var(--text-tertiary); }
+    .wd-empty .big { font-size: 36px; margin-bottom: 12px; }
+    .wd-empty .t1 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .wd-empty .t2 { font-size: 12px; max-width: 380px; margin: 0 auto; line-height: 1.55; }
+
+    /* ── Modaler ── */
+    .wd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.66); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+    @media (min-width: 640px) { .wd-overlay { align-items: center; padding: 24px; } }
+    .wd-overlay.hidden { display: none; }
+    .wd-modal { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 16px 16px 0 0; width: 100%; max-width: 620px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+    @media (min-width: 640px) { .wd-modal { border-radius: 16px; } }
+    .wd-m-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .wd-m-title { font-size: 15px; font-weight: 700; }
+    .wd-m-close { background: var(--surface-2); border: 1px solid var(--hairline); color: var(--text-secondary); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background 0.12s, color 0.12s; }
+    .wd-m-close:hover { background: var(--surface-3); color: var(--text-primary); }
+
+    .wd-field { margin-bottom: 12px; }
+    .wd-field label { display: block; font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; font-family: var(--font-mono); }
+    .wd-field input, .wd-field select, .wd-field textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-md); color: var(--text-primary); padding: 9px 11px; font-size: 13px; font-family: inherit; }
+    .wd-field input:focus, .wd-field select:focus, .wd-field textarea:focus { outline: none; border-color: rgba(91,164,245,0.5); }
+    .wd-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .wd-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .wd-3col { grid-template-columns: 1fr 1fr; } }
+
+    /* ── Opplastingskø ── */
+    .wd-drop { border: 1.5px dashed var(--hairline); border-radius: var(--radius-lg); padding: 26px 16px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .wd-drop:hover, .wd-drop.over { border-color: rgba(91,164,245,0.5); background: rgba(91,164,245,0.05); }
+    .wd-drop .di { font-size: 26px; margin-bottom: 8px; }
+    .wd-drop .dt { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .wd-drop .dh { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+    .wd-bgopt { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 4px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); }
+    .wd-bgopt input { margin-top: 2px; accent-color: var(--accent-blue); }
+    .wd-bgopt .bt { font-size: 12.5px; font-weight: 600; }
+    .wd-bgopt .bh { font-size: 10.5px; color: var(--text-tertiary); margin-top: 1px; line-height: 1.45; }
+    .wd-qitem { display: flex; gap: 12px; align-items: center; padding: 10px; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); margin-top: 10px; }
+    .wd-qthumb { width: 56px; height: 56px; flex-shrink: 0; background: var(--surface-3); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .wd-qthumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .wd-qbody { flex: 1; min-width: 0; display: grid; gap: 6px; }
+    .wd-qbody input, .wd-qbody select { width: 100%; background: var(--surface-3); border: 1px solid var(--hairline-soft); border-radius: var(--radius-sm); color: var(--text-primary); padding: 6px 9px; font-size: 12px; font-family: inherit; }
+    .wd-qstatus { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-tertiary); }
+    .wd-qstatus.ok { color: var(--success); }
+    .wd-qstatus.err { color: var(--warning); }
+    .wd-qdel { background: none; border: 0; color: var(--text-tertiary); cursor: pointer; font-size: 14px; padding: 4px; }
+
+    /* ── Antrekksbygger: plagg-velger ── */
+    .wd-pick-cat { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin: 14px 0 7px; }
+    .wd-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+    .wd-pick { position: relative; background: var(--surface-2); border: 1.5px solid var(--hairline-soft); border-radius: var(--radius-md); aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; padding: 7px; cursor: pointer; }
+    .wd-pick img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .wd-pick .ph { font-size: 20px; opacity: 0.35; }
+    .wd-pick.sel { border-color: var(--accent-blue); background: rgba(91,164,245,0.10); }
+    .wd-pick .chk { position: absolute; top: 4px; right: 4px; width: 17px; height: 17px; border-radius: 50%; background: var(--accent-blue); color: #06070a; font-size: 10px; font-weight: 800; display: none; align-items: center; justify-content: center; }
+    .wd-pick.sel .chk { display: flex; }
+    .wd-pick-name { position: absolute; bottom: 0; left: 0; right: 0; font-size: 8.5px; padding: 2px 4px; background: rgba(0,0,0,0.55); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 0 0 6px 6px; }
+
+    /* ── Tag-velger (sesong/anledning) ── */
+    .wd-tagsel { display: flex; gap: 6px; flex-wrap: wrap; }
+    .wd-tagsel .wd-chip.active { background: rgba(91,164,245,0.16); }
+
+    /* ── Detalj-modal bilde ── */
+    .wd-dimg { background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; padding: 18px; margin-bottom: 14px; min-height: 180px; max-height: 300px; }
+    .wd-dimg img { max-width: 100%; max-height: 264px; object-fit: contain; }
+    .wd-dimg .ph { font-size: 44px; opacity: 0.3; }
+    .wd-usage { font-size: 11px; color: var(--text-tertiary); margin: 4px 0 14px; font-family: var(--font-mono); }
+
+    .wd-m-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+    .wd-m-actions .spacer { flex: 1; }
+
+    .wd-addbtn { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 50; width: 52px; height: 52px; border-radius: 50%; background: var(--accent-blue); color: #06070a; border: 0; font-size: 24px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 24px rgba(91,164,245,0.35); transition: transform 0.15s, background 0.15s; }
+    .wd-addbtn:hover { background: #71b3f7; transform: scale(1.06); }
+    .wd-addbtn:active { transform: scale(0.96); }
+  </style>
+</head>
+<body>
+<nav class="main-nav" data-nav></nav>
+
+<div class="wd-page">
+  <div class="wd-head">
+    <div>
+      <div class="wd-title" data-i18n="wd.title">Garderobe</div>
+      <div class="wd-sub" id="wdSub"></div>
+    </div>
+    <div class="wd-tabs">
+      <button class="wd-tab active" id="tabCloset" onclick="setView('closet')" data-i18n="wd.tab_closet">Klesskap</button>
+      <button class="wd-tab" id="tabOutfits" onclick="setView('outfits')" data-i18n="wd.tab_outfits">Antrekk</button>
+    </div>
+  </div>
+
+  <div id="closetView">
+    <div class="wd-chips" id="catChips"></div>
+    <div class="wd-grid" id="garmentGrid"></div>
+    <div id="closetEmpty" style="display:none" class="wd-empty">
+      <div class="big">🧥</div>
+      <div class="t1" data-i18n="wd.empty_closet">Klesskapet er tomt</div>
+      <div class="t2" data-i18n="wd.empty_closet_hint">Trykk + og last opp bilder av plaggene dine. Bakgrunnen fjernes automatisk.</div>
+    </div>
+  </div>
+
+  <div id="outfitsView" style="display:none">
+    <div class="wd-chips" id="seasonChips"></div>
+    <div class="wd-chips" id="occChips"></div>
+    <div class="wd-ogrid" id="outfitGrid"></div>
+    <div id="outfitsEmpty" style="display:none" class="wd-empty">
+      <div class="big">✨</div>
+      <div class="t1" data-i18n="wd.empty_outfits">Ingen antrekk enda</div>
+      <div class="t2" data-i18n="wd.empty_outfits_hint">Sett sammen plagg til antrekk og tagg dem med sesong og anledning.</div>
+    </div>
+  </div>
+</div>
+
+<button class="wd-addbtn" id="addBtn" onclick="openAdd()" aria-label="+">+</button>
+
+<!-- ══ Opplastings-modal ══════════════════════════════════════ -->
+<div class="wd-overlay hidden" id="uploadModal" onclick="if(event.target===this)closeUpload()">
+  <div class="wd-modal">
+    <div class="wd-m-head">
+      <div class="wd-m-title" data-i18n="wd.upload_title">Legg til plagg</div>
+      <button class="wd-m-close" onclick="closeUpload()">✕</button>
+    </div>
+    <div class="wd-drop" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="di">📷</div>
+      <div class="dt" data-i18n="wd.choose_files">Velg bilder eller ta bilde</div>
+      <div class="dh" data-i18n="wd.upload_hint">Fotografer på rolig bakgrunn for best resultat</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files);this.value=''">
+    <div class="wd-bgopt">
+      <input type="checkbox" id="autoBg" checked>
+      <div>
+        <div class="bt" data-i18n="wd.auto_bg">Fjern bakgrunn automatisk</div>
+        <div class="bh" data-i18n="wd.auto_bg_hint">AI-modell (~40 MB) lastes ned første gang og caches. Feiler den, beholdes originalbildet.</div>
+      </div>
+    </div>
+    <div id="queueList"></div>
+    <div class="wd-m-actions">
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" onclick="closeUpload()" data-i18n="cancel">Avbryt</button>
+      <button class="btn btn-primary" id="saveQueueBtn" onclick="saveQueue()" style="display:none" data-i18n="wd.save_all">Lagre alle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Plagg-detalj ══════════════════════════════════════════ -->
+<div class="wd-overlay hidden" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="wd-modal" id="detailBody"></div>
+</div>
+
+<!-- ══ Antrekksbygger ═════════════════════════════════════════ -->
+<div class="wd-overlay hidden" id="outfitModal" onclick="if(event.target===this)closeOutfit()">
+  <div class="wd-modal" id="outfitBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="utils.js"></script>
+<script>
+let db;
+
+// ── Konstanter ──────────────────────────────────────────────────────────────
+const CATS = ['top','bottom','outerwear','shoes','accessory'];
+const CAT_ORDER = { outerwear: 0, top: 1, bottom: 2, shoes: 3, accessory: 4 };
+const CAT_ICON = { top: '👕', bottom: '👖', outerwear: '🧥', shoes: '👟', accessory: '🧢' };
+const SEASONS = ['summer','autumn_spring','winter'];
+const OCCASIONS = ['everyday','school','church','training','party','dressy'];
+const catLabel = c => t('wd.cat_' + c);
+const seasonLabel = s => t('wd.season_' + s);
+const occLabel = o => t('wd.occ_' + o);
+
+// ── State ───────────────────────────────────────────────────────────────────
+let garments = [];
+let outfits = [];
+let view = 'closet';
+let catFilter = 'all';
+let seasonFilter = 'all';
+let occFilter = 'all';
+let showArchived = false;
+let urlCache = {};        // image_path -> { url, exp } (sessionStorage-backet)
+try { urlCache = JSON.parse(sessionStorage.getItem('wd_urls') || '{}'); } catch { urlCache = {}; }
+
+// ── Data ────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  const [g, o] = await Promise.all([
+    db.from('garments').select('*').order('created_at', { ascending: false }),
+    db.from('outfits').select('*, outfit_items(garment_id, position)').order('created_at', { ascending: false }),
+  ]);
+  if (g.error || o.error) { toast((g.error || o.error).message, 'err'); return; }
+  garments = g.data || [];
+  outfits = o.data || [];
+  await signUrls();
+  renderAll();
+}
+
+// Signerte URL-er for privat bucket — batch, cache i sessionStorage (23t).
+async function signUrls() {
+  const now = Date.now();
+  const need = [...new Set(garments
+    .filter(g => g.image_path && !(urlCache[g.image_path]?.exp > now + 60000))
+    .map(g => g.image_path))];
+  if (!need.length) return;
+  const { data, error } = await db.storage.from('wardrobe').createSignedUrls(need, 86400);
+  if (error) return;
+  for (const r of data || []) {
+    if (r.signedUrl) urlCache[r.path] = { url: r.signedUrl, exp: now + 23 * 3600 * 1000 };
+  }
+  try { sessionStorage.setItem('wd_urls', JSON.stringify(urlCache)); } catch {}
+}
+const imgUrl = path => (path && urlCache[path]?.url) || '';
+const garmentById = id => garments.find(g => g.id === id);
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderAll() { renderSub(); renderChips(); renderCloset(); renderOutfits(); }
+
+function renderSub() {
+  const act = garments.filter(g => !g.archived).length;
+  document.getElementById('wdSub').textContent =
+    t('wd.sub', { g: act, o: outfits.length });
+}
+
+function setView(v) {
+  view = v;
+  document.getElementById('tabCloset').classList.toggle('active', v === 'closet');
+  document.getElementById('tabOutfits').classList.toggle('active', v === 'outfits');
+  document.getElementById('closetView').style.display = v === 'closet' ? '' : 'none';
+  document.getElementById('outfitsView').style.display = v === 'outfits' ? '' : 'none';
+}
+
+function renderChips() {
+  const vis = garments.filter(g => !g.archived);
+  const cnt = c => vis.filter(g => g.category === c).length;
+  const chip = (val, label, active, fn, n) =>
+    `<button class="wd-chip${active ? ' active' : ''}" onclick="${fn}('${val}')">${label}${n != null ? `<span class="n">${n}</span>` : ''}</button>`;
+  const archived = garments.filter(g => g.archived).length;
+  document.getElementById('catChips').innerHTML =
+    chip('all', t('wd.all'), catFilter === 'all', 'setCat', vis.length) +
+    CATS.map(c => chip(c, catLabel(c), catFilter === c, 'setCat', cnt(c))).join('') +
+    (archived ? `<button class="wd-chip${showArchived ? ' active' : ''}" onclick="toggleArchived()">${t('wd.show_archived')}<span class="n">${archived}</span></button>` : '') +
+    (vis.length ? `<button class="wd-chip" onclick="copyWardrobe()">📋 ${t('wd.copy_wardrobe')}</button>` : '');
+  document.getElementById('seasonChips').innerHTML =
+    `<span class="wd-chip-row-label">${t('wd.season')}</span>` +
+    chip('all', t('wd.all'), seasonFilter === 'all', 'setSeason') +
+    SEASONS.map(s => chip(s, seasonLabel(s), seasonFilter === s, 'setSeason')).join('');
+  document.getElementById('occChips').innerHTML =
+    `<span class="wd-chip-row-label">${t('wd.occasion')}</span>` +
+    chip('all', t('wd.all'), occFilter === 'all', 'setOcc') +
+    OCCASIONS.map(o => chip(o, occLabel(o), occFilter === o, 'setOcc')).join('');
+}
+function setCat(c) { catFilter = c; renderChips(); renderCloset(); }
+function setSeason(s) { seasonFilter = s; renderChips(); renderOutfits(); }
+function setOcc(o) { occFilter = o; renderChips(); renderOutfits(); }
+function toggleArchived() { showArchived = !showArchived; renderChips(); renderCloset(); }
+
+function garmentImgHTML(g) {
+  const u = imgUrl(g.image_path);
+  return u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="ph">${CAT_ICON[g.category] || '👕'}</span>`;
+}
+
+function renderCloset() {
+  let list = garments.filter(g => showArchived ? true : !g.archived);
+  if (catFilter !== 'all') list = list.filter(g => g.category === catFilter);
+  list.sort((a, b) => (CAT_ORDER[a.category] - CAT_ORDER[b.category]) || a.name.localeCompare(b.name));
+  const grid = document.getElementById('garmentGrid');
+  // Stor tom-tilstand kun når skapet FAKTISK er tomt — filtertreff uten
+  // resultat får en diskret inline-melding i stedet (mindre villedende).
+  const trulyEmpty = !garments.length;
+  document.getElementById('closetEmpty').style.display = trulyEmpty ? '' : 'none';
+  if (!trulyEmpty && !list.length) {
+    grid.innerHTML = `<div class="wd-empty" style="grid-column:1/-1;padding:32px 16px"><div class="t2">${t('wd.empty_filter')}</div></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(g => `
+    <div class="wd-card${g.archived ? ' archived' : ''}" onclick="openDetail('${g.id}')">
+      <div class="wd-card-img">${garmentImgHTML(g)}</div>
+      <div class="wd-card-body">
+        <div class="wd-card-name">${escHtml(g.name)}</div>
+        <div class="wd-card-meta">${escHtml([catLabel(g.category), g.brand, g.color].filter(Boolean).join(' · '))}</div>
+      </div>
+    </div>`).join('');
+}
+
+function outfitGarments(o) {
+  return (o.outfit_items || [])
+    .map(it => garmentById(it.garment_id))
+    .filter(Boolean)
+    .sort((a, b) => CAT_ORDER[a.category] - CAT_ORDER[b.category]);
+}
+
+function renderOutfits() {
+  let list = [...outfits];
+  if (seasonFilter !== 'all') list = list.filter(o => (o.seasons || []).includes(seasonFilter));
+  if (occFilter !== 'all') list = list.filter(o => (o.occasions || []).includes(occFilter));
+  list.sort((a, b) => (b.favorite - a.favorite) || a.name.localeCompare(b.name));
+  const grid = document.getElementById('outfitGrid');
+  const trulyEmpty = !outfits.length;
+  document.getElementById('outfitsEmpty').style.display = trulyEmpty ? '' : 'none';
+  if (!trulyEmpty && !list.length) {
+    grid.innerHTML = `<div class="wd-empty" style="grid-column:1/-1;padding:32px 16px"><div class="t2">${t('wd.empty_filter')}</div></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(o => {
+    const gs = outfitGarments(o).slice(0, 6);
+    const tiles = gs.map(g => `<div class="ct">${garmentImgHTML(g)}</div>`).join('');
+    const tags =
+      (o.seasons || []).map(s => `<span class="wd-otag season">${escHtml(seasonLabel(s))}</span>`).join('') +
+      (o.occasions || []).map(x => `<span class="wd-otag">${escHtml(occLabel(x))}</span>`).join('');
+    return `
+    <div class="wd-ocard" onclick="openOutfit('${o.id}')">
+      <div class="wd-ocard-top">
+        <div class="wd-ocard-name">${escHtml(o.name)}</div>
+        <button class="wd-fav${o.favorite ? ' on' : ''}" onclick="event.stopPropagation();toggleFav('${o.id}')" aria-label="favoritt">${o.favorite ? '★' : '☆'}</button>
+      </div>
+      <div class="wd-collage">${tiles || `<div class="ct"><span class="ph">✨</span></div>`}</div>
+      <div class="wd-otags">${tags}</div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleFav(id) {
+  const o = outfits.find(x => x.id === id);
+  if (!o) return;
+  o.favorite = !o.favorite;
+  renderOutfits();                        // optimistisk — rulles tilbake ved feil
+  const { error } = await db.from('outfits').update({ favorite: o.favorite }).eq('id', id);
+  if (error) { o.favorite = !o.favorite; renderOutfits(); toast(error.message, 'err'); }
+}
+
+// ── "+"-knappen: kontekstavhengig ───────────────────────────────────────────
+function openAdd() { view === 'closet' ? openUpload() : openOutfit(null); }
+
+// ═════════════════════════════════════════════════════════════════════════
+// OPPLASTING: nedskalering → AI-bakgrunnsfjerning → auto-beskjæring → webp
+// ═════════════════════════════════════════════════════════════════════════
+let queue = [];
+let _qid = 0;
+let _bgrPromise = null;
+
+function openUpload() { queue = []; renderQueue(); document.getElementById('uploadModal').classList.remove('hidden'); }
+function closeUpload() {
+  queue.forEach(q => q.previewUrl && URL.revokeObjectURL(q.previewUrl));
+  queue = [];
+  document.getElementById('uploadModal').classList.add('hidden');
+}
+
+// @imgly/background-removal — kjører helt i nettleseren (WASM). Modell hentes
+// fra deres CDN første gang og caches av nettleseren.
+function loadBgr() {
+  if (!_bgrPromise) {
+    _bgrPromise = import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1/+esm')
+      .then(mod => {
+        const fn = mod.removeBackground || mod.default?.removeBackground || mod.default;
+        if (typeof fn !== 'function') throw new Error('removeBackground not found');
+        return { removeBackground: fn };
+      })
+      .catch(e => { _bgrPromise = null; throw e; });
+  }
+  return _bgrPromise;
+}
+
+function blobToImage(blob) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = e => { URL.revokeObjectURL(url); rej(e); };
+    img.src = url;
+  });
+}
+
+function canvasToBlob(canvas, type, q) {
+  return new Promise(res => canvas.toBlob(res, type, q));
+}
+
+// Nedskaler til maks `max` px (lengste side) — reduserer minnebruk kraftig
+// (viktig på iPhone) og gjør AI-modellen raskere. Returnerer canvas.
+async function toCanvas(blob, max) {
+  const img = await blobToImage(blob);
+  const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * scale);
+  c.height = Math.round(img.naturalHeight * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Auto-beskjæring: finn bounding-box av ikke-transparente piksler (alfa > 8)
+// og beskjær med litt luft. Gjør at plagget fyller kortet uansett hvor lite
+// det var i originalbildet.
+async function autoCropAlpha(blob, padFrac = 0.04) {
+  const img = await blobToImage(blob);
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, c.width, c.height);
+  let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+  for (let y = 0; y < c.height; y++) {
+    const row = y * c.width;
+    for (let x = 0; x < c.width; x++) {
+      if (data[(row + x) * 4 + 3] > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return blob;                       // helt transparent → behold
+  const pad = Math.round(Math.max(c.width, c.height) * padFrac);
+  const x0 = Math.max(0, minX - pad), y0 = Math.max(0, minY - pad);
+  const w = Math.min(c.width, maxX + pad) - x0, h = Math.min(c.height, maxY + pad) - y0;
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  out.getContext('2d').drawImage(c, x0, y0, w, h, 0, 0, w, h);
+  return await canvasToBlob(out, 'image/png');
+}
+
+// Endelig koding: maks 1200px. Prøver webp (minst); Safari kan ikke kode webp
+// → fall tilbake til png (med alfa) eller jpeg (uten).
+async function encodeFinal(blob, hasAlpha) {
+  const c = await toCanvas(blob, 1200);
+  let out = await canvasToBlob(c, 'image/webp', 0.85);
+  if (out && out.type === 'image/webp') return { blob: out, ext: 'webp' };
+  if (hasAlpha) {
+    out = await canvasToBlob(c, 'image/png');
+    return { blob: out, ext: 'png' };
+  }
+  out = await canvasToBlob(c, 'image/jpeg', 0.85);
+  return { blob: out, ext: 'jpg' };
+}
+
+function handleFiles(files) {
+  const items = [...files].filter(f => f.type.startsWith('image/'));
+  for (const f of items) {
+    const item = {
+      qid: ++_qid, file: f, status: 'wait', prog: 0, previewUrl: null,
+      blob: null, ext: null, bgFailed: false,
+      name: f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || t('wd.new_garment'),
+      category: 'top',
+    };
+    queue.push(item);
+  }
+  renderQueue();
+  processQueue();
+}
+
+let _processing = false;
+async function processQueue() {
+  if (_processing) return;
+  _processing = true;
+  // find-neste-løkke i stedet for for..of: robust mot at queue reassignes
+  // (qRemove) eller utvides (nye filer) mens prosesseringen pågår.
+  while (true) {
+    const next = queue.find(i => i.status === 'wait');
+    if (!next) break;
+    await processItem(next);
+  }
+  _processing = false;
+}
+
+async function processItem(item) {
+  const autoBg = document.getElementById('autoBg').checked;
+  try {
+    item.status = 'prep'; renderQueueStatus(item);
+    const inCanvas = await toCanvas(item.file, 1600);
+    let blob = await canvasToBlob(inCanvas, 'image/jpeg', 0.92);
+    let hasAlpha = false;
+    if (autoBg) {
+      try {
+        item.status = 'model'; renderQueueStatus(item);
+        const { removeBackground } = await loadBgr();
+        item.status = 'bg'; renderQueueStatus(item);
+        const png = await removeBackground(blob, {
+          output: { format: 'image/png', quality: 1 },
+          progress: (key, cur, total) => {
+            if (String(key).startsWith('fetch') && total) {
+              item.status = 'model';
+              item.prog = Math.round(cur / total * 100);
+              renderQueueStatus(item);
+            }
+          },
+        });
+        item.status = 'crop'; renderQueueStatus(item);
+        blob = await autoCropAlpha(png);
+        hasAlpha = true;
+      } catch (e) {
+        item.bgFailed = true;   // behold originalen — aldri blokker lagring
+      }
+    }
+    item.status = 'encode'; renderQueueStatus(item);
+    const enc = await encodeFinal(blob, hasAlpha);
+    item.blob = enc.blob; item.ext = enc.ext;
+    item.previewUrl = URL.createObjectURL(enc.blob);
+    item.status = 'ready';
+  } catch (e) {
+    item.status = 'error';
+  }
+  // Målrettet DOM-oppdatering (ikke full re-render) — bevarer fokus/tekst
+  // hvis brukeren skriver i navnefeltet på en annen rad imens.
+  const thumb = document.querySelector(`[data-qid="${item.qid}"] .wd-qthumb`);
+  if (thumb && item.previewUrl) thumb.innerHTML = `<img src="${item.previewUrl}" alt="">`;
+  renderQueueStatus(item);
+  document.getElementById('saveQueueBtn').style.display =
+    queue.some(i => i.status === 'ready') ? '' : 'none';
+}
+
+const QSTATUS = {
+  wait: () => t('wd.st_wait'), prep: () => t('wd.st_prep'),
+  model: i => t('wd.st_model', { p: i.prog || 0 }), bg: () => t('wd.st_bg'),
+  crop: () => t('wd.st_crop'), encode: () => t('wd.st_encode'),
+  ready: i => i.bgFailed ? t('wd.st_ready_orig') : t('wd.st_ready'),
+  error: () => t('wd.st_error'), saving: () => t('wd.saving'),
+};
+
+function renderQueue() {
+  const el = document.getElementById('queueList');
+  el.innerHTML = queue.map(i => `
+    <div class="wd-qitem" data-qid="${i.qid}">
+      <div class="wd-qthumb">${i.previewUrl ? `<img src="${i.previewUrl}" alt="">` : '⏳'}</div>
+      <div class="wd-qbody">
+        <input type="text" value="${escHtml(i.name)}" oninput="qField(${i.qid},'name',this.value)" placeholder="${t('wd.name')}">
+        <select onchange="qField(${i.qid},'category',this.value)">
+          ${CATS.map(c => `<option value="${c}"${i.category === c ? ' selected' : ''}>${catLabel(c)}</option>`).join('')}
+        </select>
+        <div class="wd-qstatus ${i.status === 'ready' ? 'ok' : (i.status === 'error' || i.bgFailed ? 'err' : '')}" data-qs="${i.qid}">${QSTATUS[i.status](i)}</div>
+      </div>
+      <button class="wd-qdel" onclick="qRemove(${i.qid})">✕</button>
+    </div>`).join('');
+  document.getElementById('saveQueueBtn').style.display = queue.some(i => i.status === 'ready') ? '' : 'none';
+}
+function renderQueueStatus(item) {
+  const el = document.querySelector(`[data-qs="${item.qid}"]`);
+  if (!el) return;
+  el.textContent = QSTATUS[item.status](item);
+  el.className = 'wd-qstatus ' +
+    (item.status === 'ready' ? 'ok' : (item.status === 'error' || item.bgFailed ? 'err' : ''));
+}
+function qField(qid, field, val) {
+  const i = queue.find(x => x.qid === qid);
+  if (i) i[field] = val;
+}
+function qRemove(qid) {
+  const i = queue.find(x => x.qid === qid);
+  if (i?.previewUrl) URL.revokeObjectURL(i.previewUrl);
+  queue = queue.filter(x => x.qid !== qid);
+  renderQueue();
+}
+
+async function saveQueue() {
+  const ready = queue.filter(i => i.status === 'ready');
+  if (!ready.length) return;
+  const btn = document.getElementById('saveQueueBtn');
+  btn.disabled = true;
+  let saved = 0;
+  for (const item of ready) {
+    try {
+      item.status = 'saving'; renderQueueStatus(item);
+      const path = `garments/${crypto.randomUUID()}.${item.ext}`;
+      const up = await db.storage.from('wardrobe').upload(path, item.blob, { contentType: item.blob.type });
+      if (up.error) throw up.error;
+      const ins = await db.from('garments').insert({
+        name: item.name.trim() || t('wd.new_garment'),
+        category: item.category,
+        image_path: path,
+      });
+      if (ins.error) throw ins.error;
+      saved++;
+      qRemove(item.qid);
+    } catch (e) {
+      item.status = 'error'; renderQueue();
+    }
+  }
+  btn.disabled = false;
+  if (saved) {
+    toast(t('wd.saved_n', { n: saved }));
+    if (!queue.length) closeUpload();
+    await loadAll();
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// PLAGG-DETALJ
+// ═════════════════════════════════════════════════════════════════════════
+let detailId = null;
+
+function openDetail(id) {
+  const g = garmentById(id);
+  if (!g) return;
+  detailId = id;
+  const usedIn = outfits.filter(o => (o.outfit_items || []).some(it => it.garment_id === id));
+  const usage = usedIn.length
+    ? t('wd.used_in', { n: usedIn.length }) + ': ' + usedIn.map(o => escHtml(o.name)).join(', ')
+    : t('wd.not_used');
+  document.getElementById('detailBody').innerHTML = `
+    <div class="wd-m-head">
+      <div class="wd-m-title">${escHtml(g.name)}</div>
+      <button class="wd-m-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="wd-dimg">${garmentImgHTML(g)}</div>
+    <div class="wd-usage">${usage}</div>
+    <div class="wd-field"><label>${t('wd.name')}</label><input id="dName" value="${escHtml(g.name)}"></div>
+    <div class="wd-2col">
+      <div class="wd-field"><label>${t('wd.category')}</label>
+        <select id="dCat">${CATS.map(c => `<option value="${c}"${g.category === c ? ' selected' : ''}>${catLabel(c)}</option>`).join('')}</select>
+      </div>
+      <div class="wd-field"><label>${t('wd.color')}</label><input id="dColor" value="${escHtml(g.color || '')}"></div>
+    </div>
+    <div class="wd-3col">
+      <div class="wd-field"><label>${t('wd.brand')}</label><input id="dBrand" value="${escHtml(g.brand || '')}"></div>
+      <div class="wd-field"><label>${t('wd.size')}</label><input id="dSize" value="${escHtml(g.size || '')}"></div>
+      <div class="wd-field"><label>${t('wd.price')}</label><input id="dPrice" type="number" inputmode="decimal" value="${g.price ?? ''}"></div>
+    </div>
+    <div class="wd-field"><label>${t('wd.notes')}</label><textarea id="dNotes" rows="2">${escHtml(g.notes || '')}</textarea></div>
+    <div class="wd-m-actions">
+      <button class="btn btn-danger btn-sm" onclick="deleteGarment()">${t('wd.delete')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleArchive()">${g.archived ? t('wd.unarchive') : t('wd.archive')}</button>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" onclick="closeDetail()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveDetail()">${t('save')}</button>
+    </div>`;
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeDetail() { detailId = null; document.getElementById('detailModal').classList.add('hidden'); }
+
+async function saveDetail() {
+  const g = garmentById(detailId);
+  if (!g) return;
+  const priceNum = parseFloat(document.getElementById('dPrice').value);
+  const upd = {
+    name: document.getElementById('dName').value.trim() || g.name,
+    category: document.getElementById('dCat').value,
+    color: document.getElementById('dColor').value.trim() || null,
+    brand: document.getElementById('dBrand').value.trim() || null,
+    size: document.getElementById('dSize').value.trim() || null,
+    price: Number.isFinite(priceNum) ? priceNum : null,
+    notes: document.getElementById('dNotes').value.trim() || null,
+  };
+  const { error } = await db.from('garments').update(upd).eq('id', detailId);
+  if (error) { toast(error.message, 'err'); return; }
+  Object.assign(g, upd);
+  toast(t('wd.garment_saved'));
+  closeDetail();
+  renderAll();
+}
+
+async function toggleArchive() {
+  const g = garmentById(detailId);
+  if (!g) return;
+  const { error } = await db.from('garments').update({ archived: !g.archived }).eq('id', detailId);
+  if (error) { toast(error.message, 'err'); return; }
+  g.archived = !g.archived;
+  closeDetail();
+  renderAll();
+}
+
+async function deleteGarment() {
+  const g = garmentById(detailId);
+  if (!g || !confirm(t('wd.delete_confirm_garment'))) return;
+  const { error } = await db.from('garments').delete().eq('id', detailId);
+  if (error) { toast(error.message, 'err'); return; }
+  if (g.image_path) db.storage.from('wardrobe').remove([g.image_path]).catch(() => {});
+  toast(t('wd.deleted'));
+  closeDetail();
+  await loadAll();
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// ANTREKKSBYGGER (ny + rediger i samme modal)
+// ═════════════════════════════════════════════════════════════════════════
+let obState = null; // { id|null, name, seasons:Set, occasions:Set, items:Set }
+
+function openOutfit(id) {
+  const o = id ? outfits.find(x => x.id === id) : null;
+  obState = {
+    id: o?.id || null,
+    seasons: new Set(o?.seasons || []),
+    occasions: new Set(o?.occasions || []),
+    items: new Set((o?.outfit_items || []).map(it => it.garment_id)),
+  };
+  const vis = garments.filter(g => !g.archived || obState.items.has(g.id));
+  const groups = CATS.map(c => {
+    const gs = vis.filter(g => g.category === c);
+    if (!gs.length) return '';
+    return `<div class="wd-pick-cat">${catLabel(c)}</div>
+      <div class="wd-pick-grid">${gs.map(g => `
+        <div class="wd-pick${obState.items.has(g.id) ? ' sel' : ''}" data-pick="${g.id}" onclick="obToggle('${g.id}')">
+          ${garmentImgHTML(g)}<span class="chk">✓</span>
+          <span class="wd-pick-name">${escHtml(g.name)}</span>
+        </div>`).join('')}</div>`;
+  }).join('');
+  document.getElementById('outfitBody').innerHTML = `
+    <div class="wd-m-head">
+      <div class="wd-m-title">${o ? t('wd.edit_outfit') : t('wd.new_outfit')}</div>
+      <button class="wd-m-close" onclick="closeOutfit()">✕</button>
+    </div>
+    <div class="wd-field"><label>${t('wd.outfit_name')}</label>
+      <input id="obName" value="${escHtml(o?.name || '')}" placeholder="${t('wd.outfit_name_ph')}"></div>
+    <div class="wd-field"><label>${t('wd.season')}</label>
+      <div class="wd-tagsel">${SEASONS.map(s =>
+        `<button class="wd-chip${obState.seasons.has(s) ? ' active' : ''}" data-season="${s}" onclick="obTag('seasons','${s}')">${seasonLabel(s)}</button>`).join('')}</div></div>
+    <div class="wd-field"><label>${t('wd.occasion')}</label>
+      <div class="wd-tagsel">${OCCASIONS.map(x =>
+        `<button class="wd-chip${obState.occasions.has(x) ? ' active' : ''}" data-occ="${x}" onclick="obTag('occasions','${x}')">${occLabel(x)}</button>`).join('')}</div></div>
+    <div class="wd-field"><label>${t('wd.pick_garments')}</label>${groups || `<div class="wd-usage">${t('wd.empty_closet')}</div>`}</div>
+    <div class="wd-m-actions">
+      <button class="btn btn-ghost btn-sm" onclick="copyOutfitText()">📋 ${t('wd.copy_text')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="shareOutfitImage()">🖼️ ${t('wd.share_img')}</button>
+      ${o ? `<button class="btn btn-danger btn-sm" onclick="deleteOutfit()">${t('wd.delete')}</button>` : ''}
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" onclick="closeOutfit()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveOutfit()">${t('save')}</button>
+    </div>`;
+  document.getElementById('outfitModal').classList.remove('hidden');
+}
+function closeOutfit() { obState = null; document.getElementById('outfitModal').classList.add('hidden'); }
+
+function obToggle(gid) {
+  if (obState.items.has(gid)) obState.items.delete(gid);
+  else obState.items.add(gid);
+  document.querySelector(`[data-pick="${gid}"]`)?.classList.toggle('sel', obState.items.has(gid));
+}
+function obTag(kind, val) {
+  const set = obState[kind];
+  set.has(val) ? set.delete(val) : set.add(val);
+  const sel = kind === 'seasons' ? `[data-season="${val}"]` : `[data-occ="${val}"]`;
+  document.querySelector(sel)?.classList.toggle('active', set.has(val));
+}
+
+async function saveOutfit() {
+  const name = document.getElementById('obName').value.trim();
+  if (!name) { toast(t('wd.need_name'), 'err'); return; }
+  if (!obState.items.size) { toast(t('wd.need_items'), 'err'); return; }
+  const row = {
+    name,
+    seasons: [...obState.seasons],
+    occasions: [...obState.occasions],
+  };
+  let outfitId = obState.id;
+  if (outfitId) {
+    const { error } = await db.from('outfits').update(row).eq('id', outfitId);
+    if (error) { toast(error.message, 'err'); return; }
+    // Sjekk delete-feil FØR insert — ellers smeller unique(outfit_id,garment_id)
+    const { error: de } = await db.from('outfit_items').delete().eq('outfit_id', outfitId);
+    if (de) { toast(de.message, 'err'); return; }
+  } else {
+    const { data, error } = await db.from('outfits').insert(row).select('id').single();
+    if (error) { toast(error.message, 'err'); return; }
+    outfitId = data.id;
+  }
+  const items = [...obState.items]
+    .map(gid => garmentById(gid)).filter(Boolean)
+    .sort((a, b) => CAT_ORDER[a.category] - CAT_ORDER[b.category])
+    .map((g, i) => ({ outfit_id: outfitId, garment_id: g.id, position: i }));
+  const { error: ie } = await db.from('outfit_items').insert(items);
+  if (ie) { toast(ie.message, 'err'); return; }
+  toast(t('wd.outfit_saved'));
+  closeOutfit();
+  await loadAll();
+  setView('outfits');
+}
+
+async function deleteOutfit() {
+  if (!obState?.id || !confirm(t('wd.delete_confirm_outfit'))) return;
+  const { error } = await db.from('outfits').delete().eq('id', obState.id);
+  if (error) { toast(error.message, 'err'); return; }
+  toast(t('wd.deleted'));
+  closeOutfit();
+  await loadAll();
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// EKSPORT: antrekk/garderobe som tekst (til ChatGPT o.l.) + antrekk som bilde
+// Tekstformatet speiler «kopier øvelser» i ai.html: ─-separator, [SEKSJON],
+// nummererte linjer. Sparer bildekvote i gratis-AI — tekst er alltid gratis.
+// ═════════════════════════════════════════════════════════════════════════
+async function writeClip(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (_) { return false; }
+  }
+}
+
+const SEP = '─'.repeat(40);
+
+function garmentLine(g, i) {
+  const meta = [g.brand, g.size, g.color].filter(Boolean).join(' · ');
+  const note = g.notes ? ` (${g.notes})` : '';
+  return `  ${i + 1}. ${g.name}${meta ? ' — ' + meta : ''}${note}`;
+}
+
+function tagLine(seasons, occasions) {
+  const parts = [];
+  if (seasons.length) parts.push(t('wd.season') + ': ' + seasons.map(seasonLabel).join(', '));
+  if (occasions.length) parts.push(t('wd.occasion') + ': ' + occasions.map(occLabel).join(', '));
+  return parts.join(' · ');
+}
+
+// Kopierer antrekket slik det står i byggeren NÅ (også ulagrede endringer).
+async function copyOutfitText() {
+  const name = document.getElementById('obName').value.trim() || t('wd.new_outfit');
+  const gs = [...obState.items].map(garmentById).filter(Boolean)
+    .sort((a, b) => CAT_ORDER[a.category] - CAT_ORDER[b.category]);
+  if (!gs.length) { toast(t('wd.need_items'), 'err'); return; }
+  const lines = [SEP, t('wd.txt_outfit') + ': ' + name.toUpperCase()];
+  const tl = tagLine([...obState.seasons], [...obState.occasions]);
+  if (tl) lines.push(tl);
+  lines.push(SEP);
+  for (const c of CATS) {
+    const grp = gs.filter(g => g.category === c);
+    if (!grp.length) continue;
+    lines.push('', '[' + catLabel(c).toUpperCase() + ']');
+    grp.forEach((g, i) => lines.push(garmentLine(g, i)));
+  }
+  const ok = await writeClip(lines.join('\n').trim());
+  toast(ok ? t('wd.copied') : t('wd.copy_fail'), ok ? 'ok' : 'err');
+}
+
+// Hele garderoben (aktive plagg) + alle antrekk som én tekstblokk.
+async function copyWardrobe() {
+  const vis = garments.filter(g => !g.archived);
+  const lines = [SEP, t('wd.txt_wardrobe') + ' — ' + t('wd.txt_n_garments', { n: vis.length }), SEP];
+  for (const c of CATS) {
+    const grp = vis.filter(g => g.category === c).sort((a, b) => a.name.localeCompare(b.name));
+    if (!grp.length) continue;
+    lines.push('', '[' + catLabel(c).toUpperCase() + ']');
+    grp.forEach((g, i) => lines.push(garmentLine(g, i)));
+  }
+  if (outfits.length) {
+    lines.push('', SEP, t('wd.tab_outfits').toUpperCase() + ' (' + outfits.length + ')', SEP, '');
+    outfits.forEach((o, i) => {
+      const items = outfitGarments(o).map(g => g.name).join(', ');
+      const tl = tagLine(o.seasons || [], o.occasions || []);
+      lines.push(`  ${i + 1}. ${o.name}${tl ? ' [' + tl + ']' : ''}: ${items}`);
+    });
+  }
+  const ok = await writeClip(lines.join('\n').trim());
+  toast(ok ? t('wd.copied') : t('wd.copy_fail'), ok ? 'ok' : 'err');
+}
+
+// ── Antrekk som bilde: canvas-collage → Del-ark (iOS) eller nedlasting ──────
+function loadImgCORS(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';   // Supabase Storage svarer med CORS *
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+function rrPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+}
+
+async function shareOutfitImage() {
+  try {
+    const name = document.getElementById('obName').value.trim() || t('wd.new_outfit');
+    const gs = [...obState.items].map(garmentById).filter(Boolean)
+      .sort((a, b) => CAT_ORDER[a.category] - CAT_ORDER[b.category]);
+    if (!gs.length) { toast(t('wd.need_items'), 'err'); return; }
+    const tile = 340, pad = 24, header = 104;
+    const cols = Math.min(gs.length, gs.length <= 4 ? 2 : 3);
+    const rows = Math.ceil(gs.length / cols);
+    const c = document.createElement('canvas');
+    c.width = cols * tile + (cols + 1) * pad;
+    c.height = header + rows * tile + rows * pad;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0b0b0d';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#F5F5F4';
+    ctx.font = '600 30px -apple-system, "Segoe UI", sans-serif';
+    ctx.fillText(name, pad, 50);
+    const tl = tagLine([...obState.seasons], [...obState.occasions]);
+    if (tl) {
+      ctx.fillStyle = '#A8A6A0';
+      ctx.font = '15px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillText(tl, pad, 78);
+    }
+    for (let i = 0; i < gs.length; i++) {
+      const g = gs[i];
+      const x = pad + (i % cols) * (tile + pad);
+      const y = header + Math.floor(i / cols) * (tile + pad);
+      ctx.fillStyle = '#16161a';
+      rrPath(ctx, x, y, tile, tile, 14);
+      ctx.fill();
+      let drawn = false;
+      const u = imgUrl(g.image_path);
+      if (u) {
+        try {
+          const img = await loadImgCORS(u);
+          const inset = 18, box = tile - inset * 2;
+          const s = Math.min(box / img.naturalWidth, box / img.naturalHeight);
+          const w = img.naturalWidth * s, h = img.naturalHeight * s;
+          ctx.drawImage(img, x + inset + (box - w) / 2, y + inset + (box - h) / 2, w, h);
+          drawn = true;
+        } catch (e) { /* CORS/nettverk → tekst-fallback under */ }
+      }
+      if (!drawn) {
+        ctx.fillStyle = '#75736D';
+        ctx.font = '15px -apple-system, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(g.name.slice(0, 30), x + tile / 2, y + tile / 2);
+        ctx.textAlign = 'left';
+      }
+    }
+    const blob = await canvasToBlob(c, 'image/png');
+    if (!blob) throw new Error('toBlob failed');
+    const fname = (name.replace(/[^\wæøåÆØÅ -]+/g, '').trim().replace(/ +/g, '-').toLowerCase() || 'antrekk') + '.png';
+    const file = new File([blob], fname, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: name });   // iOS/Android Del-ark
+        return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;   // brukeren avbrøt Del-arket
+        // NotAllowedError: user-gesture utløpt etter async bildelasting → last ned
+      }
+    }
+    downloadBlob(blob, fname);
+  } catch (e) {
+    toast(t('wd.img_fail'), 'err');
+  }
+}
+
+function downloadBlob(blob, fname) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// ── Tastatur: Escape lukker øverste åpne modal ──────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!document.getElementById('outfitModal').classList.contains('hidden')) closeOutfit();
+  else if (!document.getElementById('detailModal').classList.contains('hidden')) closeDetail();
+  else if (!document.getElementById('uploadModal').classList.contains('hidden')) closeUpload();
+});
+
+// ── Drag & drop på dropsonen (Mac) ──────────────────────────────────────────
+(() => {
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('over');
+    if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
+  });
+})();
+
+// ── Språkbytte: re-render alt dynamisk (inkl. åpen detalj-modal) ────────────
+onLangChange = () => {
+  applyLang();
+  renderAll();
+  if (detailId) openDetail(detailId);
+};
+
+// ── Init ────────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const cfg = await getConfig();
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+  } catch (err) {
+    document.querySelector('.wd-page').innerHTML =
+      `<div class="card" style="text-align:center;padding:40px">
+        <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${escHtml(err.message)}</div>
+      </div>`;
+    return;
+  }
+  applyLang();
+  await loadAll();
+})();
+</script>
+</body>
+</html>
