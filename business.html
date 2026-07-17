@@ -361,17 +361,25 @@
 
 .pricing-panel{
   border-radius:var(--radius-lg);border:1px solid var(--hairline-soft);
-  padding:16px 18px;background:var(--surface-1);
+  padding:22px 24px;background:var(--surface-1);
   display:flex;flex-direction:column;position:relative;
 }
 
-/* Scenario A: primærproduktet — lett fremhevet ramme + glød, ingen ekstra kompleksitet */
-.pricing-panel--featured{
-  border-color:rgba(91,164,245,.38);
-  background:linear-gradient(180deg,rgba(91,164,245,.05),var(--surface-1) 55%);
-  box-shadow:0 0 0 1px rgba(91,164,245,.08),0 8px 28px rgba(91,164,245,.07);
+/* Engangs/forskudd-blokk i hvert priskort */
+.pricing-eng-block{
+  margin-top:10px;padding:11px 13px;
+  background:var(--surface-2);border:1px solid var(--hairline-soft);
+  border-radius:var(--radius-sm);
 }
-@media(min-width:781px){.pricing-panel--featured{transform:translateY(-4px)}}
+.pricing-eng-lbl{
+  font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-tertiary);margin-bottom:3px;
+}
+.pricing-eng-val{
+  font-size:15px;font-weight:800;font-family:var(--font-mono);
+  color:var(--warning);letter-spacing:-.01em;
+}
+.pricing-eng-note{font-size:10px;color:var(--text-tertiary);margin-top:3px;line-height:1.35}
 
 .pricing-sc-tag{
   display:inline-block;font-size:9px;font-family:var(--font-mono);font-weight:700;
@@ -379,27 +387,17 @@
   border:1px solid var(--hairline-soft);border-radius:3px;
   padding:2px 7px;margin-bottom:6px;
 }
-.pricing-panel--featured .pricing-sc-tag{
-  color:var(--accent-blue);border-color:rgba(91,164,245,.4);background:rgba(91,164,245,.1);
-}
-.pricing-sc-recommended{
-  float:right;font-size:9px;font-family:var(--font-mono);font-weight:700;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--accent-blue);
-  background:rgba(91,164,245,.12);border:1px solid rgba(91,164,245,.3);
-  border-radius:20px;padding:3px 9px;margin-bottom:6px;
-}
-.pricing-sc-name{font-size:14px;font-weight:700;color:var(--text-primary)}
+.pricing-sc-name{font-size:16px;font-weight:700;color:var(--text-primary)}
 .pricing-sc-sub{
-  font-size:11.5px;color:var(--text-secondary);margin-top:3px;
-  line-height:1.45;margin-bottom:12px;
+  font-size:12px;color:var(--text-secondary);margin-top:4px;
+  line-height:1.5;margin-bottom:14px;
 }
 
 .pricing-price-block{margin-bottom:8px}
 .pricing-price{
-  font-size:26px;font-weight:800;font-family:var(--font-mono);
-  color:var(--text-primary);line-height:1.1;letter-spacing:-.01em;
+  font-size:24px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-primary);line-height:1.15;letter-spacing:-.01em;
 }
-.pricing-panel--featured .pricing-price{color:var(--accent-blue);font-size:28px}
 .pricing-price-unit,.pricing-price-note{
   font-size:11px;color:var(--text-tertiary);margin-top:4px;line-height:1.4;
 }
@@ -541,6 +539,80 @@
   vertical-align:middle;
 }
 .col-pills{white-space:nowrap}
+
+/* ── Bekreft-sletting-modal ── */
+.modal-card--confirm{max-width:420px}
+.confirm-body{
+  font-size:13px;line-height:1.5;color:var(--text-secondary);
+  margin:0 0 18px;
+}
+.confirm-body strong{color:var(--text-primary);font-weight:700}
+.confirm-actions{display:flex;justify-content:flex-end;gap:8px}
+.confirm-danger{
+  background:rgba(242,109,109,.14);color:var(--danger);
+  border-color:rgba(242,109,109,.32);
+}
+.confirm-danger:hover{background:rgba(242,109,109,.22)}
+
+/* ── Forskudd-modal ── */
+.deposit-figures{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--hairline-soft);border:1px solid var(--hairline-soft);
+  border-radius:var(--radius-md);overflow:hidden;margin-bottom:16px;
+}
+.deposit-fig{
+  background:var(--surface-2);padding:13px 14px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.deposit-fig--accent{background:rgba(232,182,87,.08)}
+.deposit-fig-lbl{
+  font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-tertiary);
+}
+.deposit-fig-val{
+  font-size:19px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-primary);letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+}
+.deposit-fig--accent .deposit-fig-val{color:var(--warning)}
+.deposit-toggle{
+  width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 0;border-radius:var(--radius-sm);border:1px solid transparent;
+  font-size:12.5px;font-weight:700;letter-spacing:.01em;cursor:pointer;
+  transition:transform .1s,background .12s;
+}
+.deposit-toggle:active{transform:scale(.98)}
+.deposit-toggle .dep-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.deposit-toggle.dp-paid{background:rgba(95,217,154,.13);color:var(--success);border-color:rgba(95,217,154,.3)}
+.deposit-toggle.dp-paid .dep-dot{background:var(--success)}
+.deposit-toggle.dp-unpaid{background:rgba(242,109,109,.13);color:var(--danger);border-color:rgba(242,109,109,.3)}
+.deposit-toggle.dp-unpaid .dep-dot{background:var(--danger)}
+
+/* Forskudd-knapp i panelet (åpner modal) */
+.panel-deposit-open{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px;border-radius:20px;cursor:pointer;
+  border:1px solid transparent;font-size:11px;font-weight:700;
+  transition:transform .1s,background .12s;
+}
+.panel-deposit-open:active{transform:scale(.97)}
+.panel-deposit-open .dep-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.panel-deposit-open.dp-paid{background:rgba(95,217,154,.13);color:var(--success)}
+.panel-deposit-open.dp-paid .dep-dot{background:var(--success)}
+.panel-deposit-open.dp-unpaid{background:rgba(242,109,109,.13);color:var(--danger)}
+.panel-deposit-open.dp-unpaid .dep-dot{background:var(--danger)}
+
+/* ── Higgsfield-knapp (motion-prompt) ── */
+.leadgen-btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.leadgen-btn-row .copy-btn{margin-top:0}
+#leadgenCopyBtn{margin-top:0}
+.btn-higgs{
+  background:linear-gradient(135deg,#7C3AED 0%,#A855F7 55%,#C084FC 100%);
+  color:#fff;border:none;font-weight:700;
+  box-shadow:0 4px 16px rgba(124,58,237,.28);
+}
+.btn-higgs:hover{filter:brightness(1.06);box-shadow:0 6px 22px rgba(124,58,237,.38)}
+.btn-higgs:active{transform:translateY(1px)}
+.btn-higgs:disabled{opacity:.7;cursor:default}
 </style>
 </head>
 <body>
@@ -721,12 +793,13 @@
         <input type="text" inputmode="decimal" id="pOnetime" class="form-control money-input">
       </div>
     </div>
+  </div>
+  <div class="panel-econ-block" id="pDepositBlock">
     <div class="panel-econ-row">
       <span class="panel-econ-lbl" data-i18n="biz.deposit">Forskudd</span>
-      <div class="panel-deposit-row">
-        <button type="button" id="pDepositPaid" class="cust-deposit-dot dp-unpaid" data-paid="0" aria-pressed="false"></button>
-        <span id="pDepositLabel" class="panel-deposit-label" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
-      </div>
+      <button type="button" id="pDepositOpen" class="panel-deposit-open dp-unpaid" data-paid="0">
+        <span class="dep-dot"></span><span id="pDepositLabel" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
+      </button>
     </div>
   </div>
   <div class="form-group">
@@ -812,7 +885,10 @@
   <div class="form-group"><label class="form-label" data-i18n="biz.contact_paste">Lim inn åpningstider og Google-anmeldelser her...</label><textarea id="salesMapsPaste" class="maps-paste" data-i18n-placeholder="biz.contact_placeholder" placeholder="Lim inn råtekst med åpningstider og de viktigste kundeanmeldelsene fra bedriftens Google-profil her..."></textarea></div>
   </div>
 
+  <div class="leadgen-btn-row">
   <button id="leadgenCopyBtn" class="btn btn-primary copy-btn" data-prompt="research" data-i18n="biz.leadgen_generate">Generer og kopier prompt</button>
+  <button id="higgsBtn" class="btn btn-higgs" type="button" hidden data-i18n="biz.higgs_generate">🎬 Generer animasjonsprompt</button>
+  </div>
 </div>
 
 </div>
@@ -846,6 +922,47 @@
 <div class="modal-hint" data-i18n="biz.autosave_hint">Lagres automatisk</div>
 </div>
 </div>
+
+<!-- ── Bekreft sletting ── -->
+<div class="modal-overlay" id="confirmModalOverlay" hidden>
+<div class="modal-card modal-card--confirm">
+<div class="modal-head">
+<div class="modal-title" id="confirmModalTitle">Slette kunde?</div>
+<button type="button" class="modal-close" id="confirmModalClose" aria-label="Lukk">✕</button>
+</div>
+<p class="confirm-body" id="confirmModalBody"></p>
+<div class="confirm-actions">
+<button type="button" class="btn btn-sm" id="confirmCancel">Avbryt</button>
+<button type="button" class="btn btn-sm confirm-danger" id="confirmOk">Slett</button>
+</div>
+</div>
+</div>
+
+<!-- ── Forskudd ── -->
+<div class="modal-overlay" id="depositModalOverlay" hidden>
+<div class="modal-card">
+<div class="modal-head">
+<div class="modal-title" id="depositModalTitle">Forskudd</div>
+<button type="button" class="modal-close" id="depositModalClose" aria-label="Lukk">✕</button>
+</div>
+<div class="deposit-figures">
+<div class="deposit-fig">
+<span class="deposit-fig-lbl" data-i18n="biz.onetime">Engangsbeløp</span>
+<span class="deposit-fig-val" id="depEngangs">—</span>
+</div>
+<div class="deposit-fig deposit-fig--accent">
+<span class="deposit-fig-lbl" data-i18n="biz.deposit_25">Forskudd (25 %)</span>
+<span class="deposit-fig-val" id="depForskudd">—</span>
+</div>
+</div>
+<button type="button" id="depToggle" class="deposit-toggle dp-unpaid" data-paid="0">
+<span class="dep-dot"></span><span id="depToggleLabel" data-i18n="biz.deposit_unpaid">Ikke betalt</span>
+</button>
+<button type="button" id="depCopyInvoice" class="btn btn-sm copy-btn" style="width:100%;justify-content:center;margin-top:12px" data-i18n="biz.deposit_copy_invoice">Kopier fakturatekst</button>
+<div class="modal-hint" data-i18n="biz.deposit_hint">Forskudd 25 % · ikke-refunderbart</div>
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -932,7 +1049,8 @@
     pStartDate:         $("#pStartDate"),
     pPrice:             $("#pPrice"),
     pOnetime:           $("#pOnetime"),
-    pDepositPaid:       $("#pDepositPaid"),
+    pDepositOpen:       $("#pDepositOpen"),
+    pDepositBlock:      $("#pDepositBlock"),
     pBekreftedDato:     $("#pBekreftedDato"),
     pGenToken:          $("#pGenToken"),
     pNotes:             $("#pNotes"),
@@ -948,6 +1066,20 @@
     notesModalOverlay:  $("#notesModalOverlay"),
     notesModalTitle:    $("#notesModalTitle"),
     customerNotes:      $("#customer-notes"),
+    confirmModalOverlay: $("#confirmModalOverlay"),
+    confirmModalTitle:  $("#confirmModalTitle"),
+    confirmModalBody:   $("#confirmModalBody"),
+    confirmModalClose:  $("#confirmModalClose"),
+    confirmCancel:      $("#confirmCancel"),
+    confirmOk:          $("#confirmOk"),
+    depositModalOverlay: $("#depositModalOverlay"),
+    depositModalClose:  $("#depositModalClose"),
+    depEngangs:         $("#depEngangs"),
+    depForskudd:        $("#depForskudd"),
+    depToggle:          $("#depToggle"),
+    depToggleLabel:     $("#depToggleLabel"),
+    depCopyInvoice:     $("#depCopyInvoice"),
+    higgsBtn:           $("#higgsBtn"),
     tabAccounting:      $("#tabAccounting"),
     tabLeads:           $("#tabLeads"),
     tabPricing:         $("#tabPricing"),
@@ -1080,14 +1212,26 @@
       return;
     }
 
+    // Trygge fallback-verdier: hvis DB gir 0/mangler rad, bruk fasiten fra spec
+    // s\u00e5 prissiden aldri viser 0,00 kr. (Fiks helst DB-en \u2014 se migration 071.)
+    const FALLBACK = {
+      A: { Lav: 790, Medium: 1690, "H\u00f8y": 2190 },
+      B: 490, C_from: 50000, C_to: 100000,
+      A_eng_from: 10000, A_eng_to: 50000
+    };
+    const pos = (n, fb) => (Number(n) > 0 ? Number(n) : fb);
+
     const bRow = state.pricingTiers.find(r => r.scenario === "B" && r.tier == null);
     const cRow = state.pricingTiers.find(r => r.scenario === "C" && r.tier == null);
-    const bPris = bRow ? Number(bRow.pris_nok) : 0;
-    const cPris = cRow ? Number(cRow.pris_nok) : 0;
+    const bPris   = pos(bRow?.pris_nok, FALLBACK.B);
+    const cFrom   = pos(cRow?.pris_nok, FALLBACK.C_from);
+    const cTo     = pos(cRow?.pris_til_nok, FALLBACK.C_to);
+
+    const engangsRange = `${moneyNok(FALLBACK.A_eng_from)} \u2013 ${moneyNok(FALLBACK.A_eng_to)}`;
 
     const tierRows = ["Lav", "Medium", "H\u00f8y"].map(tier => {
       const row = state.pricingTiers.find(r => r.scenario === "A" && r.tier === tier);
-      const pris = row ? Number(row.pris_nok) : 0;
+      const pris = pos(row?.pris_nok, FALLBACK.A[tier]);
       const inclKey = tier === "Lav" ? "biz.tier_incl_lav"
         : tier === "Medium" ? "biz.tier_incl_medium" : "biz.tier_incl_hoy";
       return `<div class="pricing-tier-row">
@@ -1095,23 +1239,27 @@
           <div class="pricing-tier-name">${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</div>
           <div class="pricing-tier-incl">${escapeHtml(t(inclKey))}</div>
         </div>
-        <div class="pricing-tier-price">${moneyNok(pris)}<span style="font-size:9px;color:var(--text-tertiary);font-weight:400">/mnd</span></div>
+        <div class="pricing-tier-price">${moneyNok(pris)}<span style="font-size:10px;color:var(--text-tertiary);font-weight:400">/mnd</span></div>
       </div>`;
     }).join("");
 
     grid.innerHTML = `<div class="pricing-grid">
 
-      <div class="pricing-panel pricing-panel--featured">
-        <span class="pricing-sc-recommended">${escapeHtml(t("biz.sc_a_recommended"))}</span>
+      <div class="pricing-panel">
         <span class="pricing-sc-tag">Scenario A</span>
         <div class="pricing-sc-name">${escapeHtml(t("biz.bm_a"))}</div>
         <div class="pricing-sc-sub" data-i18n="biz.sc_a_desc">L\u00f8pende drift og hosting. Forskudd 25 % ikke-refunderbart f\u00f8r oppstart.</div>
         <div class="pricing-divider"></div>
         <div class="pricing-tiers">${tierRows}</div>
+        <div class="pricing-eng-block">
+          <div class="pricing-eng-lbl">Engangs oppstart</div>
+          <div class="pricing-eng-val">${engangsRange}</div>
+          <div class="pricing-eng-note">+ 25 % ikke-refunderbart forskudd f\u00f8r koding</div>
+        </div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_a_f1"))}</li>
-          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_a_f2", { rate: CONTRACT_HOURLY_RATE }))}</li>
+          <li><span class="pf-check">\u2713</span> 1 m\u00e5neds gjensidig oppsigelsestid</li>
+          <li><span class="pf-warn">!</span> Overforbruk faktureres separat (${CONTRACT_HOURLY_RATE} kr/t)</li>
         </ul>
       </div>
 
@@ -1122,12 +1270,17 @@
         <div class="pricing-divider"></div>
         <div class="pricing-price-block">
           <div class="pricing-price">${moneyNok(bPris)}</div>
-          <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
+          <div class="pricing-price-unit">kr oppstart</div>
+        </div>
+        <div class="pricing-eng-block">
+          <div class="pricing-eng-lbl">Engangs prosjekt</div>
+          <div class="pricing-eng-val">${engangsRange}</div>
+          <div class="pricing-eng-note">+ 25 % ikke-refunderbart forskudd f\u00f8r koding</div>
         </div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_b_f1"))}</li>
-          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_b_f2", { fee: SCENARIO_B_RESTART_FEE, rate: CONTRACT_HOURLY_RATE }))}</li>
+          <li><span class="pf-check">\u2713</span> Endringer via byr\u00e5et, ingen kodetilgang</li>
+          <li><span class="pf-warn">!</span> Reaktiveringsgebyr ${SCENARIO_B_RESTART_FEE} kr etter 90 dager inaktivitet + ${CONTRACT_HOURLY_RATE} kr/t</li>
         </ul>
       </div>
 
@@ -1137,13 +1290,18 @@
         <div class="pricing-sc-sub" data-i18n="biz.sc_c_desc">Full overf\u00f8ring til kundens egen Lovable-konto.</div>
         <div class="pricing-divider"></div>
         <div class="pricing-price-block">
-          <div class="pricing-price">${moneyNok(cPris)}</div>
-          <div class="pricing-price-unit">${escapeHtml(t("biz.onetime_setup"))}</div>
+          <div class="pricing-price">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
+          <div class="pricing-price-unit">engangs</div>
+        </div>
+        <div class="pricing-eng-block">
+          <div class="pricing-eng-lbl">Forskudd</div>
+          <div class="pricing-eng-val">25 %</div>
+          <div class="pricing-eng-note">ikke-refunderbart f\u00f8r koding</div>
         </div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="pf-check">\u2713</span> ${escapeHtml(t("biz.sc_c_f1"))}</li>
-          <li><span class="pf-warn">!</span> ${escapeHtml(t("biz.sc_c_f2", { rate: CONTRACT_HOURLY_RATE }))}</li>
+          <li><span class="pf-check">\u2713</span> Kunden eier l\u00f8sningen fullt ut etter overf\u00f8ring</li>
+          <li><span class="pf-warn">!</span> Support etter overf\u00f8ring: ${CONTRACT_HOURLY_RATE} kr/t</li>
         </ul>
       </div>
 
@@ -1321,9 +1479,9 @@
           </td>
           <td class="col-onetime-new">${onetimeVal}</td>
           <td class="col-mrr-new">${mrrVal}</td>
-          <td class="col-deposit">${isSubscription
-            ? `<span class="cust-cell-empty">—</span>`
-            : `<button type="button" class="cust-deposit-pill ${c.depositPaid ? "dp-paid" : "dp-unpaid"}" data-paid="${c.depositPaid ? "1" : "0"}" aria-label="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}" title="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}"><span class="dep-dot"></span>${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}</button>`
+          <td class="col-deposit">${c.oneTimeFee > 0
+            ? `<button type="button" class="cust-deposit-pill ${c.depositPaid ? "dp-paid" : "dp-unpaid"}" data-paid="${c.depositPaid ? "1" : "0"}" aria-label="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}" title="${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}"><span class="dep-dot"></span>${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}</button>`
+            : `<span class="cust-cell-empty">—</span>`
           }</td>
           <td class="col-del">
             <button type="button" class="btn btn-icon delete-row" aria-label="${escapeHtml(t("biz.delete_customer"))}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -1396,9 +1554,9 @@
     const mrrCell = isSubscription && c.price > 0
       ? `<span class="panel-summary-val is-mrr">${moneyNok(c.price)}</span>`
       : `<span class="panel-summary-val is-muted">—</span>`;
-    const depositCell = isSubscription
-      ? `<span class="panel-summary-val is-muted">—</span>`
-      : `<span class="panel-summary-val ${c.depositPaid ? "is-paid" : "is-unpaid"}">${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}</span>`;
+    const depositCell = c.oneTimeFee > 0
+      ? `<span class="panel-summary-val ${c.depositPaid ? "is-paid" : "is-unpaid"}">${escapeHtml(t(c.depositPaid ? "biz.deposit_paid" : "biz.deposit_unpaid"))}</span>`
+      : `<span class="panel-summary-val is-muted">—</span>`;
 
     el.panelSummary.innerHTML = `
       <div class="panel-summary-cell">
@@ -1433,12 +1591,15 @@
       `<span class="biz-tier-badge">${modelLbl}${tierLbl ? " · " + tierLbl : ""}</span>`;
   }
 
-  // Kun abonnement (A) viser tier-valg og MRR-blokk; B/C viser engangsblokk
+  // A: tier-valg + MRR + engangs + forskudd. B/C: engangs + forskudd (ingen MRR/tier).
+  // Custom: alt synlig. Forskudd (25 %) gjelder alle scenarioer.
   function renderPanelEconomyVisibility(c) {
     const isSubscription = c.businessModel === "A";
-    if (el.pTierGroup)           el.pTierGroup.hidden           = !isSubscription;
-    if (el.pEconomySubscription) el.pEconomySubscription.hidden = !isSubscription;
-    if (el.pEconomyOnetime)      el.pEconomyOnetime.hidden      = isSubscription;
+    const isCustom       = c.businessModel === "Custom";
+    if (el.pTierGroup)           el.pTierGroup.hidden           = !(isSubscription || isCustom);
+    if (el.pEconomySubscription) el.pEconomySubscription.hidden = !(isSubscription || isCustom);
+    if (el.pEconomyOnetime)      el.pEconomyOnetime.hidden      = false; // engangs alltid tilgjengelig
+    if (el.pDepositBlock)        el.pDepositBlock.hidden        = false; // forskudd for A/B/C/Custom
   }
 
   function renderPanelCta(c) {
@@ -1464,14 +1625,12 @@
   }
 
   function setPanelDepositDot(paid) {
-    if (!el.pDepositPaid) return;
-    el.pDepositPaid.dataset.paid = paid ? "1" : "0";
-    el.pDepositPaid.setAttribute("aria-pressed", paid ? "true" : "false");
-    el.pDepositPaid.classList.toggle("dp-paid", paid);
-    el.pDepositPaid.classList.toggle("dp-unpaid", !paid);
+    if (!el.pDepositOpen) return;
+    el.pDepositOpen.dataset.paid = paid ? "1" : "0";
+    el.pDepositOpen.classList.toggle("dp-paid", paid);
+    el.pDepositOpen.classList.toggle("dp-unpaid", !paid);
     const label = t(paid ? "biz.deposit_paid" : "biz.deposit_unpaid");
-    el.pDepositPaid.setAttribute("aria-label", label);
-    el.pDepositPaid.setAttribute("title", label);
+    el.pDepositOpen.setAttribute("aria-label", label);
     const lbl = document.getElementById("pDepositLabel");
     if (lbl) { lbl.textContent = label; lbl.setAttribute("data-i18n", paid ? "biz.deposit_paid" : "biz.deposit_unpaid"); }
   }
@@ -1491,7 +1650,7 @@
     c.status        = el.pStatus?.value         || "Lead";
     c.start         = el.pStartDate?.value      || "";
     c.oneTimeFee    = parseMoneyInput(el.pOnetime?.value);
-    c.depositPaid   = el.pDepositPaid?.dataset.paid === "1";
+    c.depositPaid   = el.pDepositOpen?.dataset.paid === "1";
     c.bekreftedDato = el.pBekreftedDato?.value  || null;
     c.notes         = el.pNotes?.value          || "";
 
@@ -1565,14 +1724,8 @@
     }
   }
 
-  async function deleteCustomer(button) {
-    const row = button.closest("tr");
-    if (!row) return;
-    const id = row.dataset.id;
-    if (!id) return;
-
-    row.classList.add("row-leave");
-
+  async function performDelete(id) {
+    const row = el.customerRows?.querySelector(`tr[data-id="${id}"]`);
     let done = false;
     const finish = async () => {
       if (done) return;
@@ -1587,9 +1740,33 @@
       renderCustomers();
       populateBusinessDropdown();
     };
+    if (row) {
+      row.classList.add("row-leave");
+      row.addEventListener("animationend", finish, { once: true });
+      setTimeout(finish, 220);
+    } else {
+      finish();
+    }
+  }
 
-    row.addEventListener("animationend", finish, { once: true });
-    setTimeout(finish, 220);
+  async function requestDeleteCustomer(id) {
+    const c = state.customers.find(x => x.id === id);
+    if (!c) return;
+    const name = c.name?.trim() || t("biz.unnamed_customer");
+    const ok = await confirmAction({
+      title: t("biz.confirm_delete_title"),
+      body: t("biz.confirm_delete_body", { name: `<strong>${escapeHtml(name)}</strong>` }),
+      confirmLabel: t("biz.delete_customer")
+    });
+    if (ok) performDelete(id);
+  }
+
+  async function deleteCustomer(button) {
+    const row = button.closest("tr");
+    if (!row) return;
+    const id = row.dataset.id;
+    if (!id) return;
+    requestDeleteCustomer(id);
   }
 
   // ── Notat-modal ────────────────────────────────────────────────────────────
@@ -1624,6 +1801,80 @@
     const row     = el.customerRows?.querySelector(`tr[data-id="${c.id}"]`);
     const notesBtn = row?.querySelector(".notes-btn");
     if (notesBtn) notesBtn.classList.toggle("has-content", Boolean(c.notes));
+  }
+
+  // ── Bekreft-modal (gjenbrukbar) ────────────────────────────────────────────
+  let _confirmResolve = null;
+
+  function confirmAction({ title, body, confirmLabel } = {}) {
+    if (!el.confirmModalOverlay) return Promise.resolve(window.confirm(body || ""));
+    if (el.confirmModalTitle) el.confirmModalTitle.textContent = title || t("biz.confirm_delete_title");
+    if (el.confirmModalBody)  el.confirmModalBody.innerHTML     = body  || "";
+    if (el.confirmOk)         el.confirmOk.textContent          = confirmLabel || t("biz.delete");
+    el.confirmModalOverlay.hidden = false;
+    el.confirmCancel?.focus();
+    return new Promise(resolve => { _confirmResolve = resolve; });
+  }
+
+  function closeConfirm(result) {
+    if (el.confirmModalOverlay) el.confirmModalOverlay.hidden = true;
+    const r = _confirmResolve;
+    _confirmResolve = null;
+    if (r) r(Boolean(result));
+  }
+
+  // ── Forskudd-modal ─────────────────────────────────────────────────────────
+  let depositModalId = null;
+
+  function depositAmount(c) {
+    const base = c.oneTimeFee > 0 ? c.oneTimeFee : (c.businessModel === "A" ? c.oneTimeFee : c.price);
+    return Math.round(Number(base || 0) * 0.25 * 100) / 100;
+  }
+
+  function openDepositModal(id) {
+    const c = state.customers.find(x => x.id === id);
+    if (!c) return;
+    depositModalId = id;
+    const base = Number(c.oneTimeFee || 0);
+    if (el.depEngangs)  el.depEngangs.textContent  = base > 0 ? moneyNok(base) : "—";
+    if (el.depForskudd) el.depForskudd.textContent = base > 0 ? moneyNok(depositAmount(c)) : "—";
+    setDepositToggle(Boolean(c.depositPaid));
+    if (el.depositModalOverlay) el.depositModalOverlay.hidden = false;
+  }
+
+  function closeDepositModal() {
+    if (el.depositModalOverlay) el.depositModalOverlay.hidden = true;
+    depositModalId = null;
+  }
+
+  function setDepositToggle(paid) {
+    if (!el.depToggle) return;
+    el.depToggle.dataset.paid = paid ? "1" : "0";
+    el.depToggle.classList.toggle("dp-paid", paid);
+    el.depToggle.classList.toggle("dp-unpaid", !paid);
+    if (el.depToggleLabel) el.depToggleLabel.textContent = t(paid ? "biz.deposit_paid" : "biz.deposit_unpaid");
+  }
+
+  function applyDepositPaid(id, paid) {
+    const idx = state.customers.findIndex(c => c.id === id);
+    if (idx === -1) return;
+    state.customers[idx].depositPaid = paid;
+    scheduleDbUpdate(state.customers[idx], false);
+    renderCustomers();
+    renderMetrics();
+    if (state.panelId === id) { setPanelDepositDot(paid); renderPanelSummary(state.customers[idx]); }
+  }
+
+  function depositInvoiceText(c) {
+    const base = Number(c.oneTimeFee || 0);
+    const forskudd = depositAmount(c);
+    return "Faktura — Forskudd (25 %)\n" +
+      "Kunde: " + (c.name || "—") + "\n" +
+      "Prosjekt: Nettside (Scenario " + c.businessModel + ")\n" +
+      "Avtalt engangsbeløp: " + moneyNok(base) + " inkl. mva\n" +
+      "Forskudd 25 %: " + moneyNok(forskudd) + " inkl. mva\n" +
+      "Forfaller før arbeidet starter. Forskuddet er ikke-refunderbart dersom kunden trekker seg etter oppstart.\n" +
+      "Fakturering via " + LEVERANDOR.fakturautsteder + ".";
   }
 
   // ── Kontrakt-print ─────────────────────────────────────────────────────────
@@ -1818,6 +2069,46 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     return "";
   }
 
+  // Higgsfield/GSAP motion-prompt — bevisst nedtonet (70 %): elegant og "dyr",
+  // men ytelses-trygg, mobil-vennlig og uten partikkel-suppe. Passer Bergen-SMB.
+  function buildHiggsPrompt() {
+    const bizName   = el.lbBizName?.value.trim()  || "[BEDRIFTNAVN]";
+    const mapsPaste = el.lbMapsPaste?.value.trim() || "[DATA FRA TEKSTBOKS]";
+    return `Du er en Creative Frontend Motion Designer og ekspert på CSS-keyframes, Tailwind-animasjoner og GSAP. Jeg har allerede bygget den tekniske fullstack-strukturen for bedriften "${bizName}" i Lovable.
+
+Nå skal vi bruke din fullstack-tilgang til prosjektet og Higgsfield til å legge til et diskret, forfinet lag med bevegelse — ikke et flashy "wow-show". Målet er en side som føles rolig, profesjonell og dyr for et norsk lokalmarked med lav toleranse for hype. Analyser denne rådataen om bedriften for å forstå den visuelle merkevaren og bransjen: ${mapsPaste}.
+
+Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-komponentene som gjør følgende:
+
+1. HERO — ROLIG ENTRY: Gi overskriften og hovedknappen en myk, kort fade/slide-inn (150–400 ms, ease-out) ved lasting. Ingen store bevegelser, ingen "bounce". En svært subtil, langsom bakgrunnsgradient- eller lysbevegelse er ok HVIS den passer bransjen — men ingen partikler, ingen tunge loops som stjeler oppmerksomhet fra innholdet.
+
+2. SCROLL-DYNAMIKK: La seksjoner og bilde-plassholdere fade og gli forsiktig inn når de kommer i viewport (fade-in-on-scroll via IntersectionObserver eller GSAP ScrollTrigger). Bevegelsen skal være liten (maks ~16 px forskyvning) og rask. Sørg for at det ser bra ut på iPad og mobil.
+
+3. MIKROINTERAKSJONER: Diskrete hover/active-tilstander på knapper og kort (myk skala/skygge), som gjør siden taktil uten å bli leken.
+
+4. YTELSE OG TILGJENGELIGHET (ufravikelig): Animer KUN transform og opacity (GPU-vennlig). Respekter @media (prefers-reduced-motion: reduce) og skru av all ikke-essensiell bevegelse der. Ikke last tunge biblioteker om CSS/liten GSAP holder. Lighthouse-score og lastetid skal ikke forringes.
+
+5. BEGRENSNING: Ikke rør eller endre eksisterende funksjonalitet, ruter eller skjema-logikk som Lovable allerede har bygget. Fokuser 100 % på et visuelt uttrykk som er minimalistisk, rolig og forfinet — aldri støyende.`;
+  }
+
+  async function copyHiggsPrompt() {
+    if (!el.higgsBtn) return;
+    const orig = el.higgsBtn.textContent;
+    try {
+      await navigator.clipboard.writeText(buildHiggsPrompt());
+      el.higgsBtn.textContent = t("biz.copied");
+      el.higgsBtn.disabled = true;
+      toast(t("biz.copied_toast"));
+      window.setTimeout(() => {
+        el.higgsBtn.textContent = orig;
+        el.higgsBtn.disabled = false;
+      }, 2000);
+    } catch {
+      el.higgsBtn.textContent = t("biz.copy_failed");
+      window.setTimeout(() => { el.higgsBtn.textContent = orig; }, 2000);
+    }
+  }
+
   // ── Leadgen (steg-rail: research → bygg → pitch) ───────────────────────────
   function getLeadgenType() {
     return el.leadgenType?.dataset.value || "research";
@@ -1844,6 +2135,7 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
       active.classList.add("fields-enter");
     }
     if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
+    if (el.higgsBtn) el.higgsBtn.hidden = type !== "lovable";
   }
 
   function resetLeadgenFields(type) {
@@ -2080,30 +2372,54 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     }
 
     // Panel-knapper
-    if (el.pDepositPaid) el.pDepositPaid.addEventListener("click", () => {
-      setPanelDepositDot(el.pDepositPaid.dataset.paid !== "1");
-      readPanelFields();
+    if (el.pDepositOpen) el.pDepositOpen.addEventListener("click", () => {
+      if (state.panelId) openDepositModal(state.panelId);
     });
     if (el.pGenToken) el.pGenToken.addEventListener("click", () => {
       if (state.panelId) generateContractToken(state.panelId);
     });
-    if (el.pDeleteCustomer) el.pDeleteCustomer.addEventListener("click", async () => {
-      const id = state.panelId;
-      if (!id) return;
-      closePanel();
+    if (el.pDeleteCustomer) el.pDeleteCustomer.addEventListener("click", () => {
+      if (state.panelId) requestDeleteCustomer(state.panelId);
+    });
+
+    // Bekreft-modal
+    el.confirmOk?.addEventListener("click", () => closeConfirm(true));
+    el.confirmCancel?.addEventListener("click", () => closeConfirm(false));
+    el.confirmModalClose?.addEventListener("click", () => closeConfirm(false));
+    el.confirmModalOverlay?.addEventListener("click", e => {
+      if (e.target === el.confirmModalOverlay) closeConfirm(false);
+    });
+
+    // Forskudd-modal
+    el.depositModalClose?.addEventListener("click", closeDepositModal);
+    el.depositModalOverlay?.addEventListener("click", e => {
+      if (e.target === el.depositModalOverlay) closeDepositModal();
+    });
+    el.depToggle?.addEventListener("click", () => {
+      if (!depositModalId) return;
+      const newPaid = el.depToggle.dataset.paid !== "1";
+      setDepositToggle(newPaid);
+      applyDepositPaid(depositModalId, newPaid);
+    });
+    el.depCopyInvoice?.addEventListener("click", async () => {
+      const c = state.customers.find(x => x.id === depositModalId);
+      if (!c) return;
       try {
-        await deleteCustomerFromDb(id);
-        state.customers = state.customers.filter(c => c.id !== id);
-        renderCustomers();
-        populateBusinessDropdown();
+        await navigator.clipboard.writeText(depositInvoiceText(c));
+        toast(t("biz.copied_toast"));
       } catch {
-        toast(t("biz.sync_error"), "err");
+        toast(t("biz.copy_failed"), "err");
       }
     });
 
+    // Higgsfield motion-prompt
+    el.higgsBtn?.addEventListener("click", copyHiggsPrompt);
+
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
-        if (el.notesModalOverlay && !el.notesModalOverlay.hidden) closeNotesModal();
+        if (el.confirmModalOverlay && !el.confirmModalOverlay.hidden) closeConfirm(false);
+        else if (el.depositModalOverlay && !el.depositModalOverlay.hidden) closeDepositModal();
+        else if (el.notesModalOverlay && !el.notesModalOverlay.hidden) closeNotesModal();
         else if (el.custPanel && !el.custPanel.hidden) closePanel();
       }
     });
