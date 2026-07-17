@@ -79,7 +79,7 @@ body::after {
   border-bottom: 1px solid var(--hairline-soft);
 }
 .nav-inner {
-  max-width: 1100px; margin: 0 auto; padding: 0 14px;
+  max-width: 1280px; margin: 0 auto; padding: 0 14px;
   display: flex; align-items: stretch; gap: 8px;
   min-height: 54px; min-width: 0;
 }
@@ -234,7 +234,7 @@ body::after {
 
 /* ── Page container ───────────────────────────────────────────────────── */
 .page {
-  max-width: 1100px; margin: 0 auto;
+  max-width: 1280px; margin: 0 auto;
   padding: 28px 18px 64px;
   position: relative; z-index: 1;
   display: flex; flex-direction: column; gap: 16px;
