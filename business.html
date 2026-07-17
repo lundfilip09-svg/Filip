@@ -210,7 +210,7 @@
 .leadgen-fields .form-group:last-child{margin-bottom:0}
 .card > .form-group{margin-bottom:16px}
 
-#lovablePlan,#lovable-name-select,#sales-name-select{
+#lovablePlan,#lovable-name-select,#sales-name-select,#lbTheme{
   -webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8f9c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
@@ -918,6 +918,15 @@
 
   <div id="leadgenLovable" class="leadgen-fields" hidden>
   <div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><select id="lovable-name-select" class="form-control"></select><input type="hidden" id="lbBizName"></div>
+  <div class="form-group">
+  <label class="form-label" data-i18n="biz.theme_label">Design-tema</label>
+  <select id="lbTheme" class="form-control">
+    <option value="standard" data-i18n="biz.theme_standard">Standard/ingen preferanse</option>
+    <option value="varm" data-i18n="biz.theme_warm">Varm håndverker</option>
+    <option value="kjolig" data-i18n="biz.theme_cool">Kjølig teknisk</option>
+    <option value="premium" data-i18n="biz.theme_premium">Premium minimal</option>
+  </select>
+  </div>
   <div class="form-group"><label class="form-label" data-i18n="biz.maps_paste">Google Maps-utklipp</label><textarea id="lbMapsPaste" class="maps-paste" data-i18n-placeholder="biz.maps_placeholder" placeholder="Lim inn alt kopiert fra Google Maps…"></textarea></div>
   </div>
 
@@ -1054,7 +1063,7 @@
     panelId:     null, // UUID for currently open detail panel
     inputs: {
       city: "", industry: "",
-      lbBizName: "", lbMapsPaste: "",
+      lbBizName: "", lbMapsPaste: "", lbTheme: "standard",
       salesBizName: "", salesMapsPaste: "",
       higgsBizName: "", higgsMapsPaste: ""
     }
@@ -1102,6 +1111,7 @@
     industry:           $("#industry"),
     lbBizName:          $("#lbBizName"),
     lbMapsPaste:        $("#lbMapsPaste"),
+    lbTheme:            $("#lbTheme"),
     salesBizName:       $("#salesBizName"),
     salesMapsPaste:     $("#salesMapsPaste"),
     leadgenType:        $("#leadgenType"),
@@ -2081,9 +2091,45 @@ For hver bedrift, oppgi nøyaktig:
 Returner resultatet som en ren, oversiktlig liste på norsk.`;
   }
 
+  // ── Leadgen: design-temaer for Lovable-prompten (steg 2 "Bygg") ────────────
+  // For å legge til en ny arketype: legg til en nøkkel her (fast stilinstruks),
+  // og legg til matchende <option value="NØKKEL" data-i18n="biz.theme_X"> i
+  // #lbTheme i HTML-markeringen over. FAST_KLAUSUL trenger ikke gjentas —
+  // den limes inn automatisk for alle temaer unntatt "standard".
+  const LEADGEN_THEME_FAST_KLAUSUL =
+    "Ikke gjør endringer utover det som er spesifisert i denne meldingen. Ikke fjern, bytt eller flytt noe annet enn det som er eksplisitt nevnt.";
+
+  const LEADGEN_THEME_PROMPTS = {
+    varm: `FARGEPALETT: lys varm bakgrunn (#f5f4f2), mørk marineblå tekst (#1a2332), mørk marineblå CTA-knapper
+TYPOGRAFI: serif på store overskrifter, ren sans-serif på brødtekst
+BILDESTIL: full-bleed hero-bilde, tekst lagt oppå bildet i lys skrift
+KORT/BOKSER: border-radius 8px, subtil box-shadow
+WHITESPACE: stram, ikke enorme tomme seksjoner`,
+
+    kjolig: `FARGEPALETT: mørk grafitt bakgrunn (#12161c), lys nesten-hvit tekst (#e8ecf1), elektrisk cyan/blå aksent (#3ea6ff) kun på CTA og interaktive elementer
+TYPOGRAFI: geometrisk sans-serif på både overskrifter og brødtekst, stram letter-spacing på store overskrifter, ev. mono-font på tall/tekniske detaljer
+BILDESTIL: ingen fotografiske hero-bilder — bruk abstrakte geometriske former, grid-linjer eller subtile duotone-illustrasjoner
+KORT/BOKSER: skarpe hjørner (border-radius maks 2-4px), tynn 1px kant i stedet for skygge, tydelig grid-oppsett
+WHITESPACE: generøs og presis — luft skal signalisere struktur, ikke fylle plass`,
+
+    premium: `FARGEPALETT: varm off-white/stein bakgrunn (#f7f5f1), dyp antrasitt tekst (#151513), diskret gull/messing-aksent (#a68a54) brukt sparsomt — kun på detaljer, aldri på store flater
+TYPOGRAFI: smal, elegant serif på store overskrifter (redaksjonell følelse), lett sans-serif på brødtekst, rikelig linjehøyde
+BILDESTIL: store fullbredde redaksjonelle fotografier med mye pusterom rundt, bildene skal dominere seksjonen
+KORT/BOKSER: ingen eller nesten ingen skygge, tynne 1px delelinjer i stedet for bokser, border-radius 0-4px
+WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro nødvendig`
+  };
+
+  function buildLeadgenThemeSection() {
+    const key   = el.lbTheme?.value || "standard";
+    const block = LEADGEN_THEME_PROMPTS[key];
+    if (!block) return "";
+    return `\n\n9. VISUELL STIL — FØLG NØYAKTIG:\n${block}\n${LEADGEN_THEME_FAST_KLAUSUL}\n`;
+  }
+
   function buildLovablePrompt() {
-    const bizName   = el.lbBizName?.value.trim()   || "[BUSINESS NAME]";
-    const mapsPaste = el.lbMapsPaste?.value.trim()  || "[GOOGLE MAPS PASTE]";
+    const bizName     = el.lbBizName?.value.trim()   || "[BUSINESS NAME]";
+    const mapsPaste    = el.lbMapsPaste?.value.trim()  || "[GOOGLE MAPS PASTE]";
+    const themeSection = buildLeadgenThemeSection();
     return `You are an expert local web designer and copywriter specialized in the Norwegian small-business market. Your task is to act as a Meta-Prompt Generator. You must take the raw Google Maps data below and generate a single, highly detailed web design prompt for Lovable.dev written in Norwegian.
 
 Here is the raw data:
@@ -2116,6 +2162,7 @@ Your output must be a master-prompt for Lovable that instructs it to build a sit
 
 8. SKJEMA-BEKREFTELSE (SUKSESS-TILSTAND): Instruer Lovable til å bygge en innebygd suksess-tilstand for skjemaet (bestilling, booking eller kontakt). Når brukeren trykker på innsendingsknappen, skal skjemaet skjules og erstattes av en ren, tillitvekkende takkemelding på norsk, tilpasset handlingen (f.eks. "Takk! Din bestilling er mottatt. Du vil få en SMS-bekreftelse innen kort tid", eller "Takk! Vi har mottatt henvendelsen din og svarer så snart vi kan").
 
+${themeSection}
 Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
 
@@ -2205,6 +2252,7 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
     if (type === "lovable") {
       if (el.lbBizName)   el.lbBizName.value   = "";
       if (el.lbMapsPaste) el.lbMapsPaste.value  = "";
+      if (el.lbTheme)     el.lbTheme.value      = "standard";
       const s = $("#lovable-name-select"); if (s) s.value = "";
     } else if (type === "sales") {
       if (el.salesBizName)   el.salesBizName.value   = "";
