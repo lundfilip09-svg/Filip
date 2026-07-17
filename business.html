@@ -353,138 +353,93 @@
 .biz-tab.active{color:var(--text-primary);border-bottom-color:var(--accent-blue)}
 .biz-tab:hover:not(.active){color:var(--text-secondary)}
 
-/* ── Prisstruktur (intern admin) ── */
-.pricing-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;
+/* ── Prisside: kompakt B2B SaaS-referanse (8px-grid) ── */
+.pricing-head{margin-bottom:24px}
+.pricing-head-title{
+  font-size:12px;font-weight:700;color:var(--text-tertiary);
+  text-transform:uppercase;letter-spacing:.06em;
 }
-@media(max-width:780px){.pricing-grid{grid-template-columns:1fr;gap:10px}}
+.pricing-head-sub{
+  font-size:12px;color:var(--text-tertiary);margin-top:6px;
+  line-height:1.55;max-width:68ch;
+}
+.pricing-head-sub strong{color:var(--text-secondary);font-weight:600}
 
-/* ── Ny prisstruktur: intro + A/B primær + C nedtonet ── */
-.pricing-intro{margin-bottom:20px}
-.pricing-intro-title{
-  font-size:18px;font-weight:750;color:var(--text-primary);letter-spacing:-.02em;
-}
-.pricing-intro-sub{
-  font-size:12.5px;color:var(--text-secondary);margin-top:5px;line-height:1.55;max-width:70ch;
-}
-.pricing-intro-sub strong{color:var(--text-primary);font-weight:700}
-
-.pricing-primary-grid{
+.pricing-grid-ab{
   display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;
 }
-@media(max-width:820px){.pricing-primary-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.pricing-grid-ab{grid-template-columns:1fr}}
 
-.pricing-panel--primary{
-  box-shadow:0 8px 30px rgba(0,0,0,.18);
-}
-.pricing-head-row{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;
-}
-.pricing-sc-flag{
-  font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--text-tertiary);border:1px solid var(--hairline-soft);
-  border-radius:20px;padding:3px 9px;white-space:nowrap;
-}
-.pricing-sc-tag--a{color:var(--accent-blue);border-color:rgba(91,164,245,.4);background:rgba(91,164,245,.1)}
-.pricing-sc-tag--b{color:var(--success);border-color:rgba(95,217,154,.4);background:rgba(95,217,154,.1)}
-.pricing-sc-tag--c{color:var(--text-tertiary);border-color:var(--hairline-soft)}
-
-/* Scenario C: fullverdig kort */
-.pricing-c-strip{
-  margin-top:16px;
-  border:1px solid rgba(168,120,255,.25);
-  border-radius:var(--radius-lg);
-  padding:22px 24px;
-  background:linear-gradient(180deg,var(--surface-1),rgba(168,120,255,.03));
-  box-shadow:0 8px 30px rgba(0,0,0,.18);
-}
-.pricing-c-left{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
-.pricing-c-avvent{
-  font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--warning);
-}
-.pricing-c-mid{flex:1;min-width:180px}
-.pricing-c-name{font-size:13.5px;font-weight:700;color:var(--text-secondary)}
-.pricing-c-desc{font-size:11px;color:var(--text-tertiary);margin-top:2px;line-height:1.4}
-.pricing-c-price{
-  font-size:15px;font-weight:700;font-family:var(--font-mono);
-  color:var(--text-tertiary);white-space:nowrap;letter-spacing:-.01em;
-}
-
-.pricing-panel{
-  border-radius:var(--radius-lg);border:1px solid var(--hairline-soft);
-  padding:22px 24px;background:var(--surface-1);
+/* Ett felles kort-språk for A / B / C — identitet kun via --sc (aksent) */
+.pricing-card{
+  --sc:var(--hairline-soft);
   display:flex;flex-direction:column;position:relative;
+  border:1px solid var(--hairline-soft);border-top:2px solid var(--sc);
+  border-radius:var(--radius-lg);padding:24px;background:var(--surface-1);
 }
+.pricing-card.sc-a{--sc:var(--accent-blue)}
+.pricing-card.sc-b{--sc:var(--success)}
+.pricing-card.sc-c{--sc:#A855F7}
 
-/* Engangs/forskudd-blokk i hvert priskort */
-.pricing-eng-block{
-  margin-top:10px;padding:11px 13px;
-  background:var(--surface-2);border:1px solid var(--hairline-soft);
-  border-radius:var(--radius-sm);
-}
-.pricing-eng-lbl{
-  font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
-  color:var(--text-tertiary);margin-bottom:3px;
-}
-.pricing-eng-val{
-  font-size:15px;font-weight:800;font-family:var(--font-mono);
-  color:var(--warning);letter-spacing:-.01em;
-}
-.pricing-eng-note{font-size:10px;color:var(--text-tertiary);margin-top:3px;line-height:1.35}
+.pricing-eyebrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pricing-tag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sc)}
+.pricing-tag .tag-dot{width:6px;height:6px;border-radius:50%;background:var(--sc);flex-shrink:0}
+.pricing-flag{font-size:10px;font-weight:600;color:var(--text-tertiary);white-space:nowrap}
 
-.pricing-sc-tag{
-  display:inline-block;font-size:9px;font-family:var(--font-mono);font-weight:700;
-  text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);
-  border:1px solid var(--hairline-soft);border-radius:3px;
-  padding:2px 7px;margin-bottom:6px;
-}
-.pricing-sc-name{font-size:16px;font-weight:700;color:var(--text-primary)}
-.pricing-sc-sub{
-  font-size:12px;color:var(--text-secondary);margin-top:4px;
-  line-height:1.5;margin-bottom:14px;
-}
+.pricing-name{font-size:13px;font-weight:650;color:var(--text-secondary)}
+.pricing-sub{font-size:11px;color:var(--text-tertiary);margin-top:4px;line-height:1.5;margin-bottom:16px}
 
-.pricing-price-block{margin-bottom:8px}
-.pricing-price{
-  font-size:24px;font-weight:800;font-family:var(--font-mono);
-  color:var(--text-primary);line-height:1.15;letter-spacing:-.01em;
+.pricing-hero{margin-bottom:2px}
+.pricing-hero-value{
+  font-size:32px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-primary);letter-spacing:-.02em;line-height:1;
 }
-.pricing-price-unit,.pricing-price-note{
-  font-size:11px;color:var(--text-tertiary);margin-top:4px;line-height:1.4;
-}
+.pricing-hero-unit{font-size:11px;color:var(--text-tertiary);font-weight:500;margin-top:4px}
 
-.pricing-divider{height:1px;background:var(--hairline-soft);margin:10px 0 8px}
+.pricing-divider{height:1px;background:var(--hairline-soft);margin:16px 0}
 
-.pricing-features{
-  list-style:none;padding:0;margin:0;
-  display:flex;flex-direction:column;gap:5px;flex:1;
-}
-.pricing-features li{
-  font-size:11.5px;color:var(--text-secondary);
-  display:flex;gap:6px;align-items:flex-start;line-height:1.4;
-}
-.pf-check{color:var(--success);font-weight:700;flex-shrink:0;font-size:11px;margin-top:1px}
-.pf-warn{color:var(--warning);flex-shrink:0;font-size:11px;margin-top:1px}
-
-/* Scenario C: tier-rader */
-.pricing-tiers{display:flex;flex-direction:column;gap:5px;flex:1}
+.pricing-tiers{display:flex;flex-direction:column}
 .pricing-tier-row{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:7px 10px;
-  border:1px solid var(--hairline-soft);border-radius:var(--radius-sm);
+  padding:8px 0;border-bottom:1px solid var(--hairline-soft);
 }
-.pricing-tier-name{font-size:12.5px;font-weight:650;color:var(--text-primary)}
+.pricing-tier-row:first-child{padding-top:0}
+.pricing-tier-row:last-child{border-bottom:0;padding-bottom:0}
+.pricing-tier-name{font-size:12px;font-weight:600;color:var(--text-secondary)}
 .pricing-tier-incl{font-size:10px;color:var(--text-tertiary);margin-top:1px}
 .pricing-tier-price{
-  font-size:16px;font-weight:800;font-family:var(--font-mono);
-  color:var(--accent-blue);white-space:nowrap;letter-spacing:-.01em;
+  font-size:17px;font-weight:750;font-family:var(--font-mono);
+  color:var(--text-primary);white-space:nowrap;letter-spacing:-.01em;
+}
+.pricing-tier-price small{font-size:10px;color:var(--text-tertiary);font-weight:500;margin-left:2px}
+
+.pricing-startup{
+  margin-top:16px;padding:10px 12px;background:var(--surface-2);
+  border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.pricing-startup-lbl{font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.pricing-startup-note{font-size:10px;color:var(--text-tertiary);margin-top:2px;line-height:1.35}
+.pricing-startup-val{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--warning);white-space:nowrap;flex-shrink:0}
+
+.pricing-features{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:6px;flex:1}
+.pricing-features li{font-size:11px;color:var(--text-tertiary);display:flex;gap:6px;align-items:flex-start;line-height:1.4}
+.pf-check{color:var(--success);font-weight:700;flex-shrink:0;font-size:10.5px;margin-top:1px}
+.pf-warn{color:var(--warning);flex-shrink:0;font-size:10.5px;margin-top:1px}
+
+/* Scenario C — full bredde, samme kort-språk som A/B */
+.pricing-card--wide{flex-direction:row;align-items:center;justify-content:space-between;gap:32px}
+.pricing-card--wide .pricing-card-main{flex:1;min-width:0}
+.pricing-card--wide .pricing-sub{margin-bottom:0;max-width:56ch}
+.pricing-card--wide .pricing-card-price{flex-shrink:0;text-align:right}
+@media(max-width:640px){
+  .pricing-card--wide{flex-direction:column;align-items:flex-start;gap:16px}
+  .pricing-card--wide .pricing-card-price{text-align:left}
 }
 
 .pricing-footer{
-  font-size:11px;color:var(--text-tertiary);
+  font-size:10.5px;color:var(--text-tertiary);
   border-top:1px solid var(--hairline-soft);
-  padding-top:10px;font-family:var(--font-mono);
+  margin-top:16px;padding-top:12px;font-family:var(--font-mono);
 }
 
 /* ── Detalj-panel ── */
@@ -1307,35 +1262,35 @@
           <div class="pricing-tier-name">${escapeHtml(t(TIER_LABEL_KEYS[tier]))}</div>
           <div class="pricing-tier-incl">${escapeHtml(t(inclKey))}</div>
         </div>
-        <div class="pricing-tier-price">${moneyNok(pris)}<span style="font-size:10px;color:var(--text-tertiary);font-weight:400">/mnd</span></div>
+        <div class="pricing-tier-price">${moneyNok(pris)}<small>/mnd</small></div>
       </div>`;
     }).join("");
 
     const rate = CONTRACT_HOURLY_RATE;
 
     grid.innerHTML = `
-    <div class="pricing-intro">
-      <div class="pricing-intro-title">Prisprotokoller</div>
-      <div class="pricing-intro-sub">To hovedmodeller for nye kunder \u2014 <strong>A</strong> (l\u00f8pende drift) eller <strong>B</strong> (engangs). Alle avtaler starter med 25 % ikke-refunderbart forskudd via Frilans Finans.</div>
+    <div class="pricing-head">
+      <div class="pricing-head-title">Prisprotokoller</div>
+      <div class="pricing-head-sub">To hovedmodeller for nye kunder \u2014 <strong>A</strong> (l\u00f8pende drift) eller <strong>B</strong> (engangs). Alle avtaler starter med 25 % ikke-refunderbart forskudd via Frilans Finans.</div>
     </div>
 
-    <div class="pricing-primary-grid">
+    <div class="pricing-grid-ab">
 
-      <div class="pricing-panel pricing-panel--primary">
-        <div class="pricing-head-row">
-          <span class="pricing-sc-tag pricing-sc-tag--a">Scenario A</span>
-          <span class="pricing-sc-flag">Anbefalt for drift</span>
+      <div class="pricing-card sc-a">
+        <div class="pricing-eyebrow">
+          <span class="pricing-tag"><span class="tag-dot"></span>Scenario A</span>
+          <span class="pricing-flag">Anbefalt for drift</span>
         </div>
-        <div class="pricing-sc-name">Full driftsavtale</div>
-        <div class="pricing-sc-sub">L\u00f8pende drift, hosting og support p\u00e5 m\u00e5nedlig abonnement. Forutsigbar inntekt, tett kunderelasjon.</div>
-        <div class="pricing-divider"></div>
+        <div class="pricing-name">Full driftsavtale</div>
+        <div class="pricing-sub">L\u00f8pende drift, hosting og support p\u00e5 m\u00e5nedlig abonnement.</div>
         <div class="pricing-tiers">${tierRows}</div>
-        <div class="pricing-eng-block">
-          <div class="pricing-eng-lbl">Engangs oppstart (bygg)</div>
-          <div class="pricing-eng-val">${engangsRange}</div>
-          <div class="pricing-eng-note">+ 25 % forskudd f\u00f8r koding \u00b7 overforbruk ${rate} kr/t</div>
+        <div class="pricing-startup">
+          <div>
+            <div class="pricing-startup-lbl">Engangs oppstart</div>
+            <div class="pricing-startup-note">+ 25 % forskudd f\u00f8r koding \u00b7 overforbruk ${rate} kr/t</div>
+          </div>
+          <div class="pricing-startup-val">${engangsRange}</div>
         </div>
-        <div class="pricing-divider"></div>
         <ul class="pricing-features">
           <li><span class="pf-check">\u2713</span> Hosting, SSL og oppetid inkludert</li>
           <li><span class="pf-check">\u2713</span> 1 m\u00e5neds gjensidig oppsigelsestid</li>
@@ -1343,24 +1298,25 @@
         </ul>
       </div>
 
-      <div class="pricing-panel pricing-panel--primary">
-        <div class="pricing-head-row">
-          <span class="pricing-sc-tag pricing-sc-tag--b">Scenario B</span>
-          <span class="pricing-sc-flag">Lav terskel</span>
+      <div class="pricing-card sc-b">
+        <div class="pricing-eyebrow">
+          <span class="pricing-tag"><span class="tag-dot"></span>Scenario B</span>
+          <span class="pricing-flag">Lav terskel</span>
         </div>
-        <div class="pricing-sc-name">Engangskj\u00f8p, gratis hosting</div>
-        <div class="pricing-sc-sub">Bygd i Lovable, lastet ned til gratis serverl\u00f8s hosting. Ingen m\u00e5nedskostnad, ingen kodetilgang for kunde.</div>
+        <div class="pricing-name">Engangskj\u00f8p, gratis hosting</div>
+        <div class="pricing-sub">Bygd i Lovable, lastet ned til gratis serverl\u00f8s hosting. Ingen kodetilgang for kunde.</div>
         <div class="pricing-divider"></div>
-        <div class="pricing-price-block">
-          <div class="pricing-price">${engangsRange}</div>
-          <div class="pricing-price-unit">engangs prosjekt</div>
+        <div class="pricing-hero">
+          <div class="pricing-hero-value">${engangsRange}</div>
+          <div class="pricing-hero-unit">engangs prosjekt</div>
         </div>
-        <div class="pricing-eng-block">
-          <div class="pricing-eng-lbl">Forskudd</div>
-          <div class="pricing-eng-val">25 %</div>
-          <div class="pricing-eng-note">ikke-refunderbart f\u00f8r koding</div>
+        <div class="pricing-startup">
+          <div>
+            <div class="pricing-startup-lbl">Forskudd</div>
+            <div class="pricing-startup-note">ikke-refunderbart f\u00f8r koding</div>
+          </div>
+          <div class="pricing-startup-val">25 %</div>
         </div>
-        <div class="pricing-divider"></div>
         <ul class="pricing-features">
           <li><span class="pf-check">\u2713</span> Endringer via byr\u00e5et, ingen kodetilgang</li>
           <li><span class="pf-warn">!</span> Reaktivering ${SCENARIO_B_RESTART_FEE} kr etter 90 dager + ${rate} kr/t</li>
@@ -1369,16 +1325,19 @@
 
     </div>
 
-    <div class="pricing-c-strip">
-      <div class="pricing-c-left">
-        <span class="pricing-sc-tag pricing-sc-tag--c">Scenario C</span>
-        <span class="pricing-c-avvent" style="color:#b992ff">Fullt tilbud</span>
+    <div class="pricing-card sc-c pricing-card--wide">
+      <div class="pricing-card-main">
+        <div class="pricing-eyebrow">
+          <span class="pricing-tag"><span class="tag-dot"></span>Scenario C</span>
+          <span class="pricing-flag">Fullt tilbud</span>
+        </div>
+        <div class="pricing-name">Full overf\u00f8ring</div>
+        <div class="pricing-sub">Kunden overtar prosjektet p\u00e5 egen Lovable-konto etter sluttbetaling. Support ${rate} kr/t etterp\u00e5.</div>
       </div>
-      <div class="pricing-c-mid">
-        <div class="pricing-c-name" style="font-size:18px;color:var(--text-primary)">Full overføring</div>
-        <div class="pricing-c-desc">Kunden overtar prosjektet p\u00e5 egen Lovable-konto etter sluttbetaling. Support ${rate} kr/t etterp\u00e5.</div>
+      <div class="pricing-card-price">
+        <div class="pricing-hero-value">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
+        <div class="pricing-hero-unit">engangs overf\u00f8ring</div>
       </div>
-      <div class="pricing-c-price">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
     </div>`;
   }
 
