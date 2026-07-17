@@ -276,16 +276,36 @@ let urlCache = {};        // image_path -> { url, exp } (sessionStorage-backet)
 try { urlCache = JSON.parse(sessionStorage.getItem('wd_urls') || '{}'); } catch { urlCache = {}; }
 
 // ── Data ────────────────────────────────────────────────────────────────────
-async function loadAll() {
+async function loadAll(_retried) {
   const [g, o] = await Promise.all([
     db.from('garments').select('*').order('created_at', { ascending: false }),
     db.from('outfits').select('*, outfit_items(garment_id, position)').order('created_at', { ascending: false }),
   ]);
-  if (g.error || o.error) { toast((g.error || o.error).message, 'err'); return; }
+  if (g.error || o.error) {
+    // Forbigående mobilnett-feil ("TypeError: Load failed" i Safari) → prøv én gang til
+    // før vi viser feilkort, i stedet for å la siden bli stille blank.
+    if (!_retried) { await new Promise(r => setTimeout(r, 900)); return loadAll(true); }
+    showLoadError((g.error || o.error).message);
+    return;
+  }
   garments = g.data || [];
   outfits = o.data || [];
   await signUrls();
   renderAll();
+}
+
+function showLoadError(msg) {
+  toast(t('wd.load_error'), 'err');
+  document.getElementById('garmentSections').innerHTML =
+    `<div class="wd-empty" style="padding:48px 16px">
+      <div class="big">📡</div>
+      <div class="t1">${t('wd.load_error')}</div>
+      <div class="t2" style="margin-bottom:16px">${escHtml(msg || '')}</div>
+      <button class="wd-tab active" style="border-radius:10px" onclick="loadAll()">${t('wd.retry')}</button>
+    </div>`;
+  document.getElementById('closetEmpty').style.display = 'none';
+  document.getElementById('sideStats').innerHTML = '';
+  document.getElementById('sideFavs').innerHTML = `<div class="wd-side-empty">${t('wd.load_error')}</div>`;
 }
 
 // Signerte URL-er for privat bucket — batch, cache i sessionStorage (23t).
