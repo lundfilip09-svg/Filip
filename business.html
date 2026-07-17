@@ -359,6 +359,57 @@
 }
 @media(max-width:780px){.pricing-grid{grid-template-columns:1fr;gap:10px}}
 
+/* ── Ny prisstruktur: intro + A/B primær + C nedtonet ── */
+.pricing-intro{margin-bottom:20px}
+.pricing-intro-title{
+  font-size:18px;font-weight:750;color:var(--text-primary);letter-spacing:-.02em;
+}
+.pricing-intro-sub{
+  font-size:12.5px;color:var(--text-secondary);margin-top:5px;line-height:1.55;max-width:70ch;
+}
+.pricing-intro-sub strong{color:var(--text-primary);font-weight:700}
+
+.pricing-primary-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;
+}
+@media(max-width:820px){.pricing-primary-grid{grid-template-columns:1fr}}
+
+.pricing-panel--primary{
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+.pricing-head-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;
+}
+.pricing-sc-flag{
+  font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-tertiary);border:1px solid var(--hairline-soft);
+  border-radius:20px;padding:3px 9px;white-space:nowrap;
+}
+.pricing-sc-tag--a{color:var(--accent-blue);border-color:rgba(91,164,245,.4);background:rgba(91,164,245,.1)}
+.pricing-sc-tag--b{color:var(--success);border-color:rgba(95,217,154,.4);background:rgba(95,217,154,.1)}
+.pricing-sc-tag--c{color:var(--text-tertiary);border-color:var(--hairline-soft)}
+
+/* Scenario C: nedtonet strip (AVVENT) */
+.pricing-c-strip{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  border:1px dashed var(--hairline-soft);border-radius:var(--radius-lg);
+  padding:14px 18px;background:var(--surface-1);opacity:.72;
+  transition:opacity .15s;
+}
+.pricing-c-strip:hover{opacity:1}
+.pricing-c-left{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.pricing-c-avvent{
+  font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--warning);
+}
+.pricing-c-mid{flex:1;min-width:180px}
+.pricing-c-name{font-size:13.5px;font-weight:700;color:var(--text-secondary)}
+.pricing-c-desc{font-size:11px;color:var(--text-tertiary);margin-top:2px;line-height:1.4}
+.pricing-c-price{
+  font-size:15px;font-weight:700;font-family:var(--font-mono);
+  color:var(--text-tertiary);white-space:nowrap;letter-spacing:-.01em;
+}
+
 .pricing-panel{
   border-radius:var(--radius-lg);border:1px solid var(--hairline-soft);
   padding:22px 24px;background:var(--surface-1);
@@ -613,6 +664,11 @@
 .btn-higgs:hover{filter:brightness(1.06);box-shadow:0 6px 22px rgba(124,58,237,.38)}
 .btn-higgs:active{transform:translateY(1px)}
 .btn-higgs:disabled{opacity:.7;cursor:default}
+
+/* Steg 4 (Animasjon) — lilla aksent i steg-railen */
+.biz-step--higgs.active::after{background:#A855F7}
+.biz-step--higgs.active .biz-step-num{background:#A855F7;color:#fff}
+.biz-step--higgs.active .biz-step-name{color:#C084FC}
 </style>
 </head>
 <body>
@@ -859,6 +915,14 @@
       <span class="biz-step-desc" data-i18n="biz.step_sales_desc">Skriv kontakttekst og prisstrategi for salg</span>
     </span>
   </button>
+  <span class="biz-step-arrow" aria-hidden="true">→</span>
+  <button type="button" class="biz-step biz-step--higgs" data-value="higgs">
+    <span class="biz-step-num">4</span>
+    <span class="biz-step-copy">
+      <span class="biz-step-name" data-i18n="biz.step_higgs_name">Animasjon</span>
+      <span class="biz-step-desc" data-i18n="biz.step_higgs_desc">Generer Higgsfield-motion-prompt for wow-effekt</span>
+    </span>
+  </button>
 </div>
 
 <div class="biz-leadgen-workspace">
@@ -885,9 +949,13 @@
   <div class="form-group"><label class="form-label" data-i18n="biz.contact_paste">Lim inn åpningstider og Google-anmeldelser her...</label><textarea id="salesMapsPaste" class="maps-paste" data-i18n-placeholder="biz.contact_placeholder" placeholder="Lim inn råtekst med åpningstider og de viktigste kundeanmeldelsene fra bedriftens Google-profil her..."></textarea></div>
   </div>
 
+  <div id="leadgenHiggs" class="leadgen-fields" hidden>
+  <div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><select id="higgs-name-select" class="form-control"></select><input type="hidden" id="higgsBizName"></div>
+  <div class="form-group"><label class="form-label" data-i18n="biz.higgs_paste">Merkevare / bransje-kontekst (valgfritt)</label><textarea id="higgsMapsPaste" class="maps-paste" data-i18n-placeholder="biz.higgs_placeholder" placeholder="Lim inn kort om bedriftens stil, bransje og ønsket uttrykk…"></textarea></div>
+  </div>
+
   <div class="leadgen-btn-row">
   <button id="leadgenCopyBtn" class="btn btn-primary copy-btn" data-prompt="research" data-i18n="biz.leadgen_generate">Generer og kopier prompt</button>
-  <button id="higgsBtn" class="btn btn-higgs" type="button" hidden data-i18n="biz.higgs_generate">🎬 Generer animasjonsprompt</button>
   </div>
 </div>
 
@@ -899,11 +967,8 @@
 ═══════════════════════════════════════════════════════════ -->
 <div id="pricingView" hidden>
 <div class="card">
-<div class="biz-section-head">
-  <div class="section-title" data-i18n="biz.pricing_tab">Produkter &amp; priser</div>
-</div>
 <div id="salesGrid"></div>
-<div id="salesFooterNote" class="pricing-footer" data-i18n="biz.sales_price_note">Alle priser inkl. mva. · Timesats 690 kr/t</div>
+<div id="salesFooterNote" class="pricing-footer" data-i18n="biz.sales_price_note">Alle priser inkl. mva. · Timesats 790 kr/t · Forskudd 25 % via Frilans Finans</div>
 </div>
 </div><!-- /pricingView -->
 
@@ -1013,7 +1078,8 @@
     inputs: {
       city: "", industry: "",
       lbBizName: "", lbMapsPaste: "",
-      salesBizName: "", salesMapsPaste: ""
+      salesBizName: "", salesMapsPaste: "",
+      higgsBizName: "", higgsMapsPaste: ""
     }
   };
 
@@ -1079,7 +1145,8 @@
     depToggle:          $("#depToggle"),
     depToggleLabel:     $("#depToggleLabel"),
     depCopyInvoice:     $("#depCopyInvoice"),
-    higgsBtn:           $("#higgsBtn"),
+    higgsBizName:       $("#higgsBizName"),
+    higgsMapsPaste:     $("#higgsMapsPaste"),
     tabAccounting:      $("#tabAccounting"),
     tabLeads:           $("#tabLeads"),
     tabPricing:         $("#tabPricing"),
@@ -1243,55 +1310,49 @@
       </div>`;
     }).join("");
 
-    grid.innerHTML = `<div class="pricing-grid">
+    const rate = CONTRACT_HOURLY_RATE;
 
-      <div class="pricing-panel">
-        <span class="pricing-sc-tag">Scenario A</span>
-        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_a"))}</div>
-        <div class="pricing-sc-sub" data-i18n="biz.sc_a_desc">L\u00f8pende drift og hosting. Forskudd 25 % ikke-refunderbart f\u00f8r oppstart.</div>
+    grid.innerHTML = `
+    <div class="pricing-intro">
+      <div class="pricing-intro-title">Prisprotokoller</div>
+      <div class="pricing-intro-sub">To hovedmodeller for nye kunder \u2014 <strong>A</strong> (l\u00f8pende drift) eller <strong>B</strong> (engangs). Alle avtaler starter med 25 % ikke-refunderbart forskudd via Frilans Finans.</div>
+    </div>
+
+    <div class="pricing-primary-grid">
+
+      <div class="pricing-panel pricing-panel--primary">
+        <div class="pricing-head-row">
+          <span class="pricing-sc-tag pricing-sc-tag--a">Scenario A</span>
+          <span class="pricing-sc-flag">Anbefalt for drift</span>
+        </div>
+        <div class="pricing-sc-name">Full driftsavtale</div>
+        <div class="pricing-sc-sub">L\u00f8pende drift, hosting og support p\u00e5 m\u00e5nedlig abonnement. Forutsigbar inntekt, tett kunderelasjon.</div>
         <div class="pricing-divider"></div>
         <div class="pricing-tiers">${tierRows}</div>
         <div class="pricing-eng-block">
-          <div class="pricing-eng-lbl">Engangs oppstart</div>
+          <div class="pricing-eng-lbl">Engangs oppstart (bygg)</div>
           <div class="pricing-eng-val">${engangsRange}</div>
-          <div class="pricing-eng-note">+ 25 % ikke-refunderbart forskudd f\u00f8r koding</div>
+          <div class="pricing-eng-note">+ 25 % forskudd f\u00f8r koding \u00b7 overforbruk ${rate} kr/t</div>
         </div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
+          <li><span class="pf-check">\u2713</span> Hosting, SSL og oppetid inkludert</li>
           <li><span class="pf-check">\u2713</span> 1 m\u00e5neds gjensidig oppsigelsestid</li>
-          <li><span class="pf-warn">!</span> Overforbruk faktureres separat (${CONTRACT_HOURLY_RATE} kr/t)</li>
+          <li><span class="pf-warn">!</span> Overforbruk dokumenteres med Toggl Track</li>
         </ul>
       </div>
 
-      <div class="pricing-panel">
-        <span class="pricing-sc-tag">Scenario B</span>
-        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_b"))}</div>
-        <div class="pricing-sc-sub" data-i18n="biz.sc_b_desc">Gratis serverl\u00f8s hosting. Ingen kodetilgang for kunde.</div>
+      <div class="pricing-panel pricing-panel--primary">
+        <div class="pricing-head-row">
+          <span class="pricing-sc-tag pricing-sc-tag--b">Scenario B</span>
+          <span class="pricing-sc-flag">Lav terskel</span>
+        </div>
+        <div class="pricing-sc-name">Engangskj\u00f8p, gratis hosting</div>
+        <div class="pricing-sc-sub">Bygd i Lovable, lastet ned til gratis serverl\u00f8s hosting. Ingen m\u00e5nedskostnad, ingen kodetilgang for kunde.</div>
         <div class="pricing-divider"></div>
         <div class="pricing-price-block">
-          <div class="pricing-price">${moneyNok(bPris)}</div>
-          <div class="pricing-price-unit">kr oppstart</div>
-        </div>
-        <div class="pricing-eng-block">
-          <div class="pricing-eng-lbl">Engangs prosjekt</div>
-          <div class="pricing-eng-val">${engangsRange}</div>
-          <div class="pricing-eng-note">+ 25 % ikke-refunderbart forskudd f\u00f8r koding</div>
-        </div>
-        <div class="pricing-divider"></div>
-        <ul class="pricing-features">
-          <li><span class="pf-check">\u2713</span> Endringer via byr\u00e5et, ingen kodetilgang</li>
-          <li><span class="pf-warn">!</span> Reaktiveringsgebyr ${SCENARIO_B_RESTART_FEE} kr etter 90 dager inaktivitet + ${CONTRACT_HOURLY_RATE} kr/t</li>
-        </ul>
-      </div>
-
-      <div class="pricing-panel">
-        <span class="pricing-sc-tag">Scenario C</span>
-        <div class="pricing-sc-name">${escapeHtml(t("biz.bm_c"))}</div>
-        <div class="pricing-sc-sub" data-i18n="biz.sc_c_desc">Full overf\u00f8ring til kundens egen Lovable-konto.</div>
-        <div class="pricing-divider"></div>
-        <div class="pricing-price-block">
-          <div class="pricing-price">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
-          <div class="pricing-price-unit">engangs</div>
+          <div class="pricing-price">${engangsRange}</div>
+          <div class="pricing-price-unit">engangs prosjekt</div>
         </div>
         <div class="pricing-eng-block">
           <div class="pricing-eng-lbl">Forskudd</div>
@@ -1300,11 +1361,23 @@
         </div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="pf-check">\u2713</span> Kunden eier l\u00f8sningen fullt ut etter overf\u00f8ring</li>
-          <li><span class="pf-warn">!</span> Support etter overf\u00f8ring: ${CONTRACT_HOURLY_RATE} kr/t</li>
+          <li><span class="pf-check">\u2713</span> Endringer via byr\u00e5et, ingen kodetilgang</li>
+          <li><span class="pf-warn">!</span> Reaktivering ${SCENARIO_B_RESTART_FEE} kr etter 90 dager + ${rate} kr/t</li>
         </ul>
       </div>
 
+    </div>
+
+    <div class="pricing-c-strip">
+      <div class="pricing-c-left">
+        <span class="pricing-sc-tag pricing-sc-tag--c">Scenario C</span>
+        <span class="pricing-c-avvent">Avvent \u2014 tilbys kun p\u00e5 foresp\u00f8rsel</span>
+      </div>
+      <div class="pricing-c-mid">
+        <div class="pricing-c-name">Full overf\u00f8ring (engangs)</div>
+        <div class="pricing-c-desc">Kunden overtar prosjektet p\u00e5 egen Lovable-konto etter sluttbetaling. Support ${rate} kr/t etterp\u00e5.</div>
+      </div>
+      <div class="pricing-c-price">${moneyNok(cFrom)} \u2013 ${moneyNok(cTo)}</div>
     </div>`;
   }
 
@@ -1348,7 +1421,7 @@
       _dbTimers[id] = setTimeout(() => {
         delete _dbTimers[id];
         updateCustomerInDb(id, customerToDbFields(customer));
-      }, 400);
+      }, 250);
     }
   }
 
@@ -1702,7 +1775,7 @@
       state.customers.map(c => (c.name || "").trim()).filter(Boolean)
     )];
 
-    [$("#lovable-name-select"), $("#sales-name-select")].forEach(sel => {
+    [$("#lovable-name-select"), $("#sales-name-select"), $("#higgs-name-select")].forEach(sel => {
       if (!sel) return;
       const prev = sel.value;
       sel.innerHTML = `<option value="">${escapeHtml(t("biz.select_customer"))}</option>`
@@ -2066,14 +2139,15 @@ Del 3: Strategisk kontakttekst (Skriv én kort Instagram-DM og én e-post som pi
     if (kind === "research") return buildResearchPrompt();
     if (kind === "lovable")  return buildLovablePrompt();
     if (kind === "sales")    return buildSalesPrompt();
+    if (kind === "higgs")    return buildHiggsPrompt();
     return "";
   }
 
   // Higgsfield/GSAP motion-prompt — bevisst nedtonet (70 %): elegant og "dyr",
   // men ytelses-trygg, mobil-vennlig og uten partikkel-suppe. Passer Bergen-SMB.
   function buildHiggsPrompt() {
-    const bizName   = el.lbBizName?.value.trim()  || "[BEDRIFTNAVN]";
-    const mapsPaste = el.lbMapsPaste?.value.trim() || "[DATA FRA TEKSTBOKS]";
+    const bizName   = el.higgsBizName?.value.trim()  || "[BEDRIFTNAVN]";
+    const mapsPaste = el.higgsMapsPaste?.value.trim() || "[DATA FRA TEKSTBOKS]";
     return `Du er en Creative Frontend Motion Designer og ekspert på CSS-keyframes, Tailwind-animasjoner og GSAP. Jeg har allerede bygget den tekniske fullstack-strukturen for bedriften "${bizName}" i Lovable.
 
 Nå skal vi bruke din fullstack-tilgang til prosjektet og Higgsfield til å legge til et diskret, forfinet lag med bevegelse — ikke et flashy "wow-show". Målet er en side som føles rolig, profesjonell og dyr for et norsk lokalmarked med lav toleranse for hype. Analyser denne rådataen om bedriften for å forstå den visuelle merkevaren og bransjen: ${mapsPaste}.
@@ -2091,25 +2165,7 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
 5. BEGRENSNING: Ikke rør eller endre eksisterende funksjonalitet, ruter eller skjema-logikk som Lovable allerede har bygget. Fokuser 100 % på et visuelt uttrykk som er minimalistisk, rolig og forfinet — aldri støyende.`;
   }
 
-  async function copyHiggsPrompt() {
-    if (!el.higgsBtn) return;
-    const orig = el.higgsBtn.textContent;
-    try {
-      await navigator.clipboard.writeText(buildHiggsPrompt());
-      el.higgsBtn.textContent = t("biz.copied");
-      el.higgsBtn.disabled = true;
-      toast(t("biz.copied_toast"));
-      window.setTimeout(() => {
-        el.higgsBtn.textContent = orig;
-        el.higgsBtn.disabled = false;
-      }, 2000);
-    } catch {
-      el.higgsBtn.textContent = t("biz.copy_failed");
-      window.setTimeout(() => { el.higgsBtn.textContent = orig; }, 2000);
-    }
-  }
-
-  // ── Leadgen (steg-rail: research → bygg → pitch) ───────────────────────────
+  // ── Leadgen (steg-rail: research → bygg → pitch → animasjon) ───────────────
   function getLeadgenType() {
     return el.leadgenType?.dataset.value || "research";
   }
@@ -2126,7 +2182,7 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
   function syncLeadgenFields() {
     const type = getLeadgenType();
     document.querySelectorAll(".leadgen-fields").forEach(sec => { sec.hidden = true; });
-    const map = { research: "leadgenResearch", lovable: "leadgenLovable", sales: "leadgenSales" };
+    const map = { research: "leadgenResearch", lovable: "leadgenLovable", sales: "leadgenSales", higgs: "leadgenHiggs" };
     const active = document.getElementById(map[type]);
     if (active) {
       active.hidden = false;
@@ -2134,8 +2190,13 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
       void active.offsetWidth;
       active.classList.add("fields-enter");
     }
-    if (el.leadgenCopyBtn) el.leadgenCopyBtn.dataset.prompt = type;
-    if (el.higgsBtn) el.higgsBtn.hidden = type !== "lovable";
+    if (el.leadgenCopyBtn) {
+      el.leadgenCopyBtn.dataset.prompt = type;
+      const isHiggs = type === "higgs";
+      el.leadgenCopyBtn.classList.toggle("btn-higgs", isHiggs);
+      el.leadgenCopyBtn.classList.toggle("btn-primary", !isHiggs);
+      el.leadgenCopyBtn.textContent = isHiggs ? t("biz.higgs_generate") : t("biz.leadgen_generate");
+    }
   }
 
   function resetLeadgenFields(type) {
@@ -2147,6 +2208,10 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
       if (el.salesBizName)   el.salesBizName.value   = "";
       if (el.salesMapsPaste) el.salesMapsPaste.value  = "";
       const s = $("#sales-name-select"); if (s) s.value = "";
+    } else if (type === "higgs") {
+      if (el.higgsBizName)   el.higgsBizName.value   = "";
+      if (el.higgsMapsPaste) el.higgsMapsPaste.value  = "";
+      const s = $("#higgs-name-select"); if (s) s.value = "";
     } else if (type === "research") {
       if (el.city)     el.city.value     = "";
       if (el.industry) el.industry.value = "";
@@ -2347,6 +2412,12 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
     });
     document.addEventListener("focusout", event => {
       if (event.target.classList?.contains("money-input")) endMoneyEdit(event.target);
+      // Når et panel-felt mister fokus: skriv til DB umiddelbart (ikke vent på debounce).
+      // Sikrer at f.eks. Kontakt lagres selv om siden refreshes rett etter.
+      if (el.custPanel && el.custPanel.contains(event.target)) {
+        readPanelFields();          // immediate save (defer=false)
+        flushPendingDbUpdates();    // tøm ev. ventende debounce også
+      }
     });
 
     const lovableSelect = $("#lovable-name-select");
@@ -2366,6 +2437,17 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
         if (el.salesBizName) {
           el.salesBizName.value = salesSelect.value;
           state.inputs.salesBizName = salesSelect.value;
+          saveLocalState();
+        }
+      });
+    }
+
+    const higgsSelect = $("#higgs-name-select");
+    if (higgsSelect) {
+      higgsSelect.addEventListener("change", () => {
+        if (el.higgsBizName) {
+          el.higgsBizName.value = higgsSelect.value;
+          state.inputs.higgsBizName = higgsSelect.value;
           saveLocalState();
         }
       });
@@ -2411,9 +2493,6 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
         toast(t("biz.copy_failed"), "err");
       }
     });
-
-    // Higgsfield motion-prompt
-    el.higgsBtn?.addEventListener("click", copyHiggsPrompt);
 
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
