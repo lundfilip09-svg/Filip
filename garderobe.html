@@ -37,8 +37,8 @@
     .wd-stat-row:last-child { border-bottom: 0; }
     .wd-stat-row .k { color: var(--text-secondary); }
     .wd-stat-row .v { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
-    .wd-side-sec { margin-top: 18px; }
-    .wd-side-sec:first-child { margin-top: 0; }
+    .wd-side-sec { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline-soft); }
+    .wd-side-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
     .wd-side-fav { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
     .wd-side-fav:hover { color: var(--text-primary); }
     .wd-side-thumb { width: 26px; height: 26px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
@@ -92,10 +92,17 @@
     .wd-otag.season { background: rgba(91,164,245,0.10); border-color: rgba(91,164,245,0.3); color: var(--accent-blue); }
 
     /* ── Tom-tilstand ── */
-    .wd-empty { text-align: center; padding: 88px 20px; color: var(--text-tertiary); }
-    .wd-empty .big { font-size: 44px; margin-bottom: 16px; opacity: 0.9; }
-    .wd-empty .t1 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; }
-    .wd-empty .t2 { font-size: 12.5px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+    .wd-empty { text-align: center; padding: 64px 20px 56px; color: var(--text-tertiary); }
+    .wd-empty-icon { width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 22px; background: rgba(91,164,245,0.035); border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
+    .wd-empty-icon svg { width: 38px; height: 38px; stroke: var(--accent-blue); opacity: 0.85; }
+    .wd-empty .t1 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.01em; }
+    .wd-empty .t2 { font-size: 13px; max-width: 340px; margin: 0 auto; line-height: 1.6; }
+    .wd-empty .btn { margin-top: 20px; }
+    .wd-suggest { max-width: 320px; margin: 26px auto 0; padding-top: 20px; border-top: 1px solid var(--hairline-soft); text-align: left; }
+    .wd-suggest-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 8px; }
+    .wd-suggest-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 12.5px; color: var(--text-secondary); transition: background 0.12s, color 0.12s; }
+    .wd-suggest-item:hover { background: var(--surface-2); color: var(--text-primary); }
+    .wd-suggest-item .plus { color: var(--accent-blue); font-family: var(--font-mono); font-weight: 700; }
 
     /* ── Modaler ── */
     .wd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.66); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
@@ -182,9 +189,15 @@
         <div class="wd-chips" id="catChips"></div>
         <div id="garmentSections"></div>
         <div id="closetEmpty" style="display:none" class="wd-empty">
-          <div class="big">🧥</div>
-          <div class="t1" data-i18n="wd.empty_closet">Klesskapet er tomt</div>
-          <div class="t2" data-i18n="wd.empty_closet_hint">Trykk + og last opp bilder av plaggene dine. Bakgrunnen fjernes automatisk.</div>
+          <div class="wd-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a1.8 1.8 0 1 1 1.8 1.8"/><path d="M12 5.8V8"/><path d="M12 8 3.5 14.5a1.8 1.8 0 0 0 1.1 3.2h14.8a1.8 1.8 0 0 0 1.1-3.2L12 8Z"/></svg></div>
+          <div class="t1" data-i18n="wd.empty_closet">Bygg din digitale garderobe</div>
+          <div class="t2" data-i18n="wd.empty_closet_hint">Last opp klær én gang. Lag antrekk på sekunder.</div>
+          <button class="btn btn-primary" onclick="openUpload()" data-i18n="wd.empty_cta">Last opp første plagg</button>
+          <div class="wd-suggest">
+            <div class="wd-suggest-label" data-i18n="wd.suggestions">Forslag</div>
+            <div class="wd-suggest-item" onclick="openUpload()"><span class="plus">+</span><span data-i18n="wd.suggest_upload">Last opp plagg</span></div>
+            <div class="wd-suggest-item" onclick="openOutfit(null)"><span class="plus">+</span><span data-i18n="wd.suggest_outfit">Bygg antrekk</span></div>
+          </div>
         </div>
       </div>
 
@@ -193,9 +206,10 @@
         <div class="wd-chips" id="occChips"></div>
         <div class="wd-ogrid" id="outfitGrid"></div>
         <div id="outfitsEmpty" style="display:none" class="wd-empty">
-          <div class="big">✨</div>
+          <div class="wd-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a1.8 1.8 0 1 1 1.8 1.8"/><path d="M12 5.8V8"/><path d="M12 8 3.5 14.5a1.8 1.8 0 0 0 1.1 3.2h14.8a1.8 1.8 0 0 0 1.1-3.2L12 8Z"/></svg></div>
           <div class="t1" data-i18n="wd.empty_outfits">Ingen antrekk enda</div>
           <div class="t2" data-i18n="wd.empty_outfits_hint">Sett sammen plagg til antrekk og tagg dem med sesong og anledning.</div>
+          <button class="btn btn-primary" onclick="openOutfit(null)" data-i18n="wd.empty_outfits_cta">Bygg ditt første antrekk</button>
         </div>
       </div>
     </div>
@@ -206,6 +220,14 @@
         <div id="sideStats"></div>
       </div>
       <div class="wd-side-sec">
+        <div class="wd-side-label" data-i18n="wd.side_most">Mest av</div>
+        <div id="sideMost"></div>
+      </div>
+      <div class="wd-side-sec">
+        <div class="wd-side-label" data-i18n="wd.side_activity">Siste aktivitet</div>
+        <div id="sideActivity"></div>
+      </div>
+      <div class="wd-side-sec" id="sideFavSec" style="display:none">
         <div class="wd-side-label" data-i18n="wd.side_favorites">Favoritt-antrekk</div>
         <div id="sideFavs"></div>
       </div>
@@ -406,28 +428,52 @@ function renderCloset() {
   }).join('');
 }
 
+function relTime(iso) {
+  const secs = (Date.now() - new Date(iso).getTime()) / 1000;
+  const rtf = new Intl.RelativeTimeFormat(fmtLocale(), { numeric: 'auto' });
+  if (secs < 3600) return rtf.format(-Math.round(secs / 60), 'minute');
+  if (secs < 86400) return rtf.format(-Math.round(secs / 3600), 'hour');
+  return rtf.format(-Math.round(secs / 86400), 'day');
+}
+
 function renderSidebar() {
   const vis = garments.filter(g => !g.archived);
   const totalValue = vis.reduce((s, g) => s + (Number(g.price) || 0), 0);
   const cnt = c => vis.filter(g => g.category === c).length;
   const mostStocked = CATS.map(c => ({ c, n: cnt(c) })).sort((a, b) => b.n - a.n)[0];
+  const favCount = outfits.filter(o => o.favorite).length;
+
   document.getElementById('sideStats').innerHTML = `
     <div class="wd-stat-row"><span class="k">${t('wd.side_garments')}</span><span class="v">${vis.length}</span></div>
     <div class="wd-stat-row"><span class="k">${t('wd.tab_outfits')}</span><span class="v">${outfits.length}</span></div>
+    <div class="wd-stat-row"><span class="k">${t('wd.side_fav_count')}</span><span class="v">${favCount}</span></div>
     ${totalValue ? `<div class="wd-stat-row"><span class="k">${t('wd.side_value')}</span><span class="v">${Math.round(totalValue)} kr</span></div>` : ''}
-    ${mostStocked && mostStocked.n ? `<div class="wd-stat-row"><span class="k">${t('wd.side_most')}</span><span class="v">${catLabel(mostStocked.c)}</span></div>` : ''}
   `;
+
+  document.getElementById('sideMost').innerHTML = (mostStocked && mostStocked.n)
+    ? `<div class="wd-stat-row"><span class="k">${catLabel(mostStocked.c)}</span><span class="v">${mostStocked.n}</span></div>`
+    : `<div class="wd-side-empty">${t('wd.side_most_empty')}</div>`;
+
+  const recent = [...garments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3);
+  document.getElementById('sideActivity').innerHTML = recent.length
+    ? recent.map(g => `
+        <div class="wd-side-fav" onclick="openDetail('${g.id}')">
+          <div class="wd-side-thumb">${garmentImgHTML(g)}</div>
+          <span>${escHtml(g.name)}</span>
+          <span style="margin-left:auto;color:var(--text-tertiary);font-size:10.5px;font-family:var(--font-mono)">${relTime(g.created_at)}</span>
+        </div>`).join('')
+    : `<div class="wd-side-empty">${t('wd.side_no_activity')}</div>`;
+
   const favs = outfits.filter(o => o.favorite).slice(0, 5);
-  document.getElementById('sideFavs').innerHTML = favs.length
-    ? favs.map(o => {
-        const first = outfitGarments(o)[0];
-        const thumb = first ? garmentImgHTML(first) : '<span class="ph" style="font-size:14px">✨</span>';
-        return `<div class="wd-side-fav" onclick="openOutfit('${o.id}')">
-          <div class="wd-side-thumb">${thumb}</div>
-          <span>${escHtml(o.name)}</span>
-        </div>`;
-      }).join('')
-    : `<div class="wd-side-empty">${t('wd.side_no_favs')}</div>`;
+  document.getElementById('sideFavSec').style.display = favs.length ? '' : 'none';
+  document.getElementById('sideFavs').innerHTML = favs.map(o => {
+    const first = outfitGarments(o)[0];
+    const thumb = first ? garmentImgHTML(first) : '<span class="ph" style="font-size:14px">✨</span>';
+    return `<div class="wd-side-fav" onclick="openOutfit('${o.id}')">
+      <div class="wd-side-thumb">${thumb}</div>
+      <span>${escHtml(o.name)}</span>
+    </div>`;
+  }).join('');
 }
 
 function outfitGarments(o) {
