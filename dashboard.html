@@ -20,23 +20,12 @@
     .dash-lower { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 1180px; margin-inline: auto; }
     .dash-hero {
       display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
-      padding-bottom: 4px;
+      padding-bottom: 10px;
     }
     .dash-title {
       font-size: 26px; font-weight: 700; letter-spacing: -0.03em;
       background: linear-gradient(135deg, #fff 0%, #c8c5be 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      margin-bottom: 5px;
-    }
-    .dash-tagline {
-      font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--text-tertiary);
-    }
-    .dash-tagline .tg-sep { color: rgba(255,255,255,0.25); padding: 0 4px; }
-    .dash-date {
-      font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary);
-      letter-spacing: 0.06em; text-align: right; flex-shrink: 0; padding-bottom: 2px;
-      white-space: nowrap;
     }
 
     /* ── OS Section label ── */
@@ -63,18 +52,32 @@
     @media (max-width: 768px) { .status-row { grid-template-columns: 1fr; } }
 
     /* ── I dag: prioritetsband (Gjøremål stor + Søvn/økt stablet) ── */
-    /* start (ikke stretch): gjøremål-kortet skal ha sin egen høyde, ikke
-       strekkes til å matche Søvn+Kalender-kolonnen. Tom liste = lavt kort. */
     .dash-primary { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: start; }
     .dash-primary-side { display: flex; flex-direction: column; gap: 14px; }
+
+    /* Skader + kalender side ved side, alltid lik høyde (stretch) */
+    .side-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+    .side-pair > .card { display: flex; flex-direction: column; min-width: 0; }
+    .side-pair #injuryStatusCards, .side-pair .cal-grid { flex: 1; min-height: 0; }
+
+    /* Gjøremål-kortet følger høyden på søvnkortet: listen scroller internt
+       i stedet for at kortet vokser med antall gjøremål. Høyden settes i JS
+       (syncTodoHeight) fra søvnkortets faktiske høyde. */
     .card-tasks { display: flex; flex-direction: column; }
-    /* Lang liste scroller internt i stedet for å dytte sida nedover */
-    .card-tasks #importantTodos { max-height: 260px; overflow-y: auto; }
+    .card-tasks #importantTodos {
+      flex: 1; min-height: 90px; overflow-y: auto;
+      max-height: var(--todo-max, 260px);
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent;
+    }
     .card-tasks #importantTodos::-webkit-scrollbar { width: 5px; }
     .card-tasks #importantTodos::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.1); border-radius: 3px;
+      background: rgba(255,255,255,0.14); border-radius: 3px;
     }
-    @media (max-width: 860px) { .dash-primary { grid-template-columns: 1fr; } }
+    @media (max-width: 860px) {
+      .dash-primary { grid-template-columns: 1fr; }
+      .card-tasks #importantTodos { max-height: 280px; }
+    }
+    @media (max-width: 620px) { .side-pair { grid-template-columns: 1fr; } }
 
     /* ── Status: Skader + Dagens fokus ── */
     /* Skader står alene her nå (Dagens fokus fjernet) → full bredde */
@@ -524,17 +527,9 @@
   <div class="dash-hero">
     <div>
       <div class="dash-title">Filip's Dashboard</div>
-      <div class="dash-tagline">Sprint <span class="tg-sep">·</span> Rehab <span class="tg-sep">·</span> Performance</div>
     </div>
-    <div class="dash-date" id="dateLabel">–</div>
   </div>
 
-  <!-- ══════════════════  I DAG  ══════════════════ -->
-  <div class="os-label">
-    <div class="os-label-dot"></div>
-    <div class="os-label-text" data-i18n="dash.today">I dag</div>
-    <div class="os-label-line"></div>
-  </div>
   <div class="dash-primary">
 
     <!-- Gjøremål (primær – viktigst) -->
@@ -589,7 +584,34 @@
         </div>
       </div>
 
-      <!-- Kalender (byttet plass med Dagens økt) -->
+      <!-- Skader — samme rad som kalenderen, lik høyde via .side-pair -->
+      <div class="side-pair">
+      <div class="card card-knee">
+        <div class="section-title" data-i18n="dash.injuries_card">Skader</div>
+        <div id="injuryStatusCards">
+          <div class="sk-row" style="justify-content:space-between">
+            <div class="sk-col" style="align-items:center;flex:1">
+              <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
+              <span class="sk sk-block" style="width:36px;height:9px"></span>
+            </div>
+            <div class="sk-col" style="align-items:center;flex:1">
+              <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
+              <span class="sk sk-block" style="width:36px;height:9px"></span>
+            </div>
+            <div class="sk-col" style="align-items:center;flex:1">
+              <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
+              <span class="sk sk-block" style="width:36px;height:9px"></span>
+            </div>
+            <div class="sk-col" style="align-items:center;flex:1">
+              <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
+              <span class="sk sk-block" style="width:42px;height:9px"></span>
+            </div>
+          </div>
+          <span class="sk sk-block" style="width:110px;height:9px;margin-top:12px"></span>
+        </div>
+      </div>
+
+      <!-- Kalender -->
       <div class="card">
         <div class="cal-grid">
           <div>
@@ -629,6 +651,7 @@
           </div>
         </div>
       </div>
+      </div><!-- /side-pair -->
     </div>
 
   </div>
@@ -643,40 +666,22 @@
 
   <div class="dash-lower">
 
-  <!-- ══════════════════  STATUS  ══════════════════ -->
+  <!-- ══════════════════  DAGENS ØKT  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.status">Status</div>
+    <div class="os-label-text" data-i18n="dash.session">Dagens økt</div>
     <div class="os-label-line"></div>
   </div>
-  <div class="status2-grid">
 
-    <!-- Skader -->
-    <div class="card card-knee">
-      <div class="section-title" data-i18n="dash.injuries_card">Skader</div>
-      <div id="injuryStatusCards">
-        <div class="sk-row" style="justify-content:space-between">
-          <div class="sk-col" style="align-items:center;flex:1">
-            <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
-            <span class="sk sk-block" style="width:36px;height:9px"></span>
-          </div>
-          <div class="sk-col" style="align-items:center;flex:1">
-            <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
-            <span class="sk sk-block" style="width:36px;height:9px"></span>
-          </div>
-          <div class="sk-col" style="align-items:center;flex:1">
-            <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
-            <span class="sk sk-block" style="width:36px;height:9px"></span>
-          </div>
-          <div class="sk-col" style="align-items:center;flex:1">
-            <span class="sk sk-block" style="width:28px;height:28px;border-radius:5px"></span>
-            <span class="sk sk-block" style="width:42px;height:9px"></span>
-          </div>
-        </div>
-        <span class="sk sk-block" style="width:110px;height:9px;margin-top:12px"></span>
+  <div class="card card-session">
+    <div id="sessionCard">
+      <div class="sk-row" style="margin-bottom:8px">
+        <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
       </div>
+      <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
+      <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
+      <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
     </div>
-
   </div>
 
   <!-- ══════════════════  OVERSIKT  ══════════════════ -->
@@ -692,27 +697,6 @@
     <div class="week-strip" id="weekStrip"></div>
     <div class="oversikt-footer">
       <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
-    </div>
-  </div>
-
-  <!-- ══════════════════  DAGENS ØKT  ══════════════════ -->
-  <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.session">Dagens økt</div>
-    <div class="os-label-line"></div>
-  </div>
-
-  <div class="cal-section-grid">
-    <!-- Dagens økt (byttet plass med kalenderkortet) -->
-    <div class="card card-session">
-      <div id="sessionCard">
-        <div class="sk-row" style="margin-bottom:8px">
-          <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
-        </div>
-        <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
-        <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
-        <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
-      </div>
     </div>
   </div>
 
@@ -774,11 +758,6 @@ async function loadWeekPlan() {
   rebuildWeekPlanLabels();
 }
 
-// Date label
-const _now = new Date();
-document.getElementById('dateLabel').textContent =
-  _now.toLocaleDateString(fmtLocale(), { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-
 // ── Auto-clean todos ───────────────────────────────────────────────────────
 async function autoCleanTodos() {
   const key = 'ac_' + today();
@@ -811,6 +790,24 @@ async function loadSleep() {
   _sleepHistoryCache = (hist || []).reverse(); // oldest → newest
   return renderSleepCard(_sleepRowCache);
 }
+
+// ── Gjøremål-høyde = søvnkortets høyde ──────────────────────────────────────
+// Gjøremålskortet skal ikke vokse med antall gjøremål; lista scroller internt.
+// Høyden låses til søvnkortet, som står ved siden av, så de to kolonnene
+// flukter. Kun på desktop (>860px) — under det stables kortene og CSS-en
+// bruker sin egen max-height.
+function syncTodoHeight() {
+  const sleep = document.querySelector('.card-sleep');
+  const tasks = document.querySelector('.card-tasks');
+  const list  = document.getElementById('importantTodos');
+  if (!sleep || !tasks || !list) return;
+  if (window.innerWidth <= 860) { tasks.style.removeProperty('--todo-max'); return; }
+  // Tilgjengelig plass = søvnkortets høyde minus alt annet i gjøremålskortet
+  const chrome = tasks.offsetHeight - list.offsetHeight;
+  const target = Math.max(120, sleep.offsetHeight - chrome);
+  tasks.style.setProperty('--todo-max', target + 'px');
+}
+window.addEventListener('resize', () => { clearTimeout(window._sthT); window._sthT = setTimeout(syncTodoHeight, 120); });
 
 // Rendrer søvnkortet fra cachet rad — kalles direkte ved språkbytte (ingen DB-kall)
 function renderSleepCard(d) {
@@ -1027,6 +1024,7 @@ function renderSleepCard(d) {
 
   countUpAll(el);
   _renderSleepSparkline();
+  requestAnimationFrame(syncTodoHeight);
   return d;
 }
 
@@ -2038,6 +2036,7 @@ function renderDashTodos() {
     const active = counts.today + counts.overdue;
     progressEl.textContent = active ? t('dash.active_tasks', { n: active }) : '';
   }
+  requestAnimationFrame(syncTodoHeight);
 }
 
 async function completeTodo(id, cbEl) {

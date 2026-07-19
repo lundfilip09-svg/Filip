@@ -25,7 +25,9 @@
     /* ── 2-kolonne grid ─────────────────────────────────────── */
     .tp-layout {
       display: grid;
-      grid-template-columns: 1fr 272px;
+      /* Sidepanelet holder klinisk viktig info (skader/rehab) og ble klemt så
+         "Hamstring Høyre" brakk over to linjer. Bredere aside = færre linjebrekk. */
+      grid-template-columns: minmax(0,1fr) 330px;
       gap: 18px;
       align-items: start;
     }
@@ -127,22 +129,25 @@
 
     /* ── Dag-editor (under ukestrip) ─────────────────────────── */
     .tp-detail-wrap {
-      padding: 20px 18px 22px 21px;
+      /* Jevn vertikal rytme: 16px topp/bunn, samme luft over og under innhold. */
+      padding: 16px 18px 16px 21px;
       border-left: 2px solid rgba(91,164,245,0.25);
       margin: 0 18px 0 17px;
     }
     .detail-header {
       display: flex; align-items: flex-start;
-      justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+      justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap;
     }
     .detail-day-meta {
       font-size: 10.5px; color: var(--text-tertiary);
       letter-spacing: 0.04em; margin-bottom: 5px; font-weight: 500;
       text-transform: uppercase;
     }
+    /* Tittelen gjentar samme ord som dropdownen rett under. Større + tyngre
+       gir tydelig hierarki i stedet for å se ut som en duplikat-bug. */
     .detail-day-title {
-      font-size: 18px; font-weight: 700; color: var(--text-primary);
-      letter-spacing: -0.02em;
+      font-size: 21px; font-weight: 750; color: var(--text-primary);
+      letter-spacing: -0.025em; line-height: 1.15;
     }
     .detail-day-title.is-empty { color: var(--text-tertiary); font-weight: 500; font-size: 15px; }
     .detail-logged-badge {
@@ -153,13 +158,16 @@
       margin-top: 2px;
     }
     .detail-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .detail-field { margin-bottom: 12px; }
+    .detail-field { margin-bottom: 14px; }
+    .detail-field:last-child { margin-bottom: 0; }
     .detail-field-notes { grid-column: 1 / -1; }
     .detail-field-label {
       font-size: 10.5px; color: var(--text-tertiary);
       letter-spacing: 0.01em; margin-bottom: 7px; font-weight: 500;
     }
     .detail-input { width: 100%; box-sizing: border-box; }
+    /* Notatfeltet hadde ~90px død luft under seg — lavere default-høyde */
+    .detail-field-notes textarea.detail-input { min-height: 72px; resize: vertical; }
     .detail-actions { display: flex; gap: 10px; margin-top: 14px; }
 
     /* ── Custom session dropdown ──────────────────────────────── */
@@ -225,6 +233,8 @@
     .tp-aside .kd-stat { border-radius: 10px; padding: 11px 12px; }
     .tp-aside .kd-stat-val { font-size: 19px; }
     .tp-aside .tr-name { width: 82px; font-size: 12px; }
+    /* Skade-navn skal stå på én linje i det bredere sidepanelet */
+    .tp-aside .he-inj-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── Responsive ──────────────────────────────────────────── */
     @media (max-width: 1100px) {
@@ -408,12 +418,18 @@
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     }
     /* B3 — kne-dashboard */
-    .kd-spark { display: flex; align-items: flex-end; gap: 3px; height: 38px; margin-bottom: 12px; }
+    /* Sparkline: baseline-spor bak barene så tomme dager leser som "ingen smerte",
+       ikke som en render-feil. Nullbarer får full bredde, lav opacity. */
+    .kd-spark {
+      display: flex; align-items: flex-end; gap: 3px; height: 38px; margin-bottom: 14px;
+      padding-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
     .kd-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; transition: height 0.2s; }
     .kd-bar.lo  { background: var(--accent-blue); }
     .kd-bar.mid { background: var(--warning); }
     .kd-bar.hi  { background: #FF6B6B; }
-    .kd-bar.none { background: rgba(255,255,255,0.06); }
+    /* Smertefri dag: hel, rolig bar — ikke en 3px stubbe med hull rundt */
+    .kd-bar.none { background: rgba(255,255,255,0.05); border-radius: 2px; }
     .kd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .kd-stat { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px 13px; }
     .kd-stat-val { font-size: 21px; font-weight: 750; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
@@ -424,9 +440,12 @@
     .tr-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .tr-row:last-child { border-bottom: none; }
     .tr-name { font-size: 11px; color: var(--text-secondary); width: 78px; flex-shrink: 0; }
-    .tr-spark { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 22px; }
+    .tr-spark {
+      flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 22px;
+      padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
     .tr-bar { flex: 1; min-height: 2px; border-radius: 1px; background: rgba(255,255,255,0.18); }
-    .tr-dir { font-size: 11px; font-family: var(--font-mono); font-weight: 700; width: 46px; text-align: right; flex-shrink: 0; }
+    .tr-dir { font-size: 11px; font-family: var(--font-mono); font-weight: 700; width: 54px; text-align: right; flex-shrink: 0; }
     .tr-dir.good { color: #6BE3A4; } .tr-dir.bad { color: #FF6B6B; } .tr-dir.flat { color: var(--text-tertiary); }
     .tr-dir.nodata { color: var(--text-tertiary); font-weight: 400; font-size: 9px; }
     .stat-block {
@@ -649,9 +668,17 @@
     .sess-inj-name { font-size: 11px; font-weight: 700; color: var(--inj); letter-spacing: 0.01em; }
     .sess-inj-ph { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
     .sess-inj-ph b { font-weight: 700; margin-left: 3px; }
+    .sess-inj-ph b.pain-none { color: var(--text-tertiary); font-weight: 600; }
     .sess-inj-ph b.pain-low  { color: #6BE3A4; }
     .sess-inj-ph b.pain-mid  { color: var(--warning); }
     .sess-inj-ph b.pain-high { color: #FF6B6B; }
+    /* Smertefri økt: dempet chip — null smerte skal ikke rope */
+    .sess-inj.is-clear {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+    }
+    .sess-inj.is-clear .sess-inj-name { color: var(--text-secondary); font-weight: 600; }
+    .sess-inj.is-clear .sess-inj-ph   { color: var(--text-tertiary); }
 
     .sess-detail-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
     .sess-detail-lbl, .sess-edit-lbl, .act-field-label {
@@ -2230,9 +2257,14 @@ let _injuryPainAll  = [];  // injury_pain rows siste 30 dager (alle datoer — f
 
 function painColorClass(score) {
   if (score === null || score === undefined) return '';
+  if (score === 0) return 'pain-none';   // 0 = smertefritt → visuelt rolig, ikke alarm
   if (score <= 3) return 'pain-low';
   if (score <= 6) return 'pain-mid';
   return 'pain-high';
+}
+// True når skaden er helt smertefri for økta (alle registrerte faser = 0)
+function _injAllZero(phases) {
+  return phases.length > 0 && phases.every(p => p.v === 0);
 }
 
 function bodyPartName(inj) {
@@ -2458,7 +2490,9 @@ function _trendDir(vals, goodIsDown) {
   const rising = delta > 0;
   // goodIsDown: lavere = bedre (kne, belastning). Ellers (søvn) høyere = bedre.
   const isGood = goodIsDown ? !rising : rising;
-  return { type: isGood ? 'good' : 'bad', txt: (rising ? '↑ ' + t('tp.tr_up') : '↓ ' + t('tp.tr_down')) };
+  // Vis faktisk endring i prosent — en pil uten tall sier ikke "ned fra hva".
+  const pct = Math.min(999, Math.round(rel * 100));
+  return { type: isGood ? 'good' : 'bad', txt: (rising ? '↑' : '↓') + ' ' + pct + '%' };
 }
 function _sparkBars(vals, maxRef) {
   return vals.map(x => {
@@ -2473,27 +2507,6 @@ function renderTrends() {
   const dayMs = 86400000;
   const isoDays = [];
   for (let i = 13; i >= 0; i--) isoDays.push(new Date(today.getTime() - i * dayMs).toISOString().slice(0, 10));
-
-  // kneeByDate for knee_pain fallback
-  const kneeByDate = {};
-  _allKnee.forEach(k => { const m = _maxPain(k); if (kneeByDate[k.date] == null || m > kneeByDate[k.date]) kneeByDate[k.date] = m; });
-
-  // Per-skade smerterader fra injury_pain + knee fallback
-  const injuryRows = _severeInjuries.map(inj => {
-    const byDate = {};
-    for (const row of _injuryPainAll) {
-      if (row.injury_id !== inj.id) continue;
-      const m = _maxPain(row);
-      if (byDate[row.date] == null || m > byDate[row.date]) byDate[row.date] = m;
-    }
-    if (_isKneeInj(inj)) {
-      for (const [d, v] of Object.entries(kneeByDate)) { if (byDate[d] == null) byDate[d] = v; }
-    }
-    return { name: bodyPartName(inj), vals: isoDays.map(d => ({ date: d, v: byDate[d] ?? null })), goodIsDown: true, maxRef: 10 };
-  });
-  const kneeFallback = !_severeInjuries.length
-    ? [{ name: t('tp.tr_knee'), vals: isoDays.map(d => ({ date: d, v: kneeByDate[d] ?? null })), goodIsDown: true, maxRef: 10 }]
-    : [];
 
   // Søvn: sleep_score per dag
   const sleepByDate = {};
@@ -2510,9 +2523,10 @@ function renderTrends() {
   _sprintData.forEach(s => { if (!_sprintSeen[s.date]) { _sprintSeen[s.date] = 1; addLoad(s.date, s.rpe, loadMultiplier('sprint', s.type)); } });
   const loadVals = isoDays.map(d => ({ date: d, v: loadByDate[d] != null ? loadByDate[d] : null }));
 
+  // Skade-rader vises IKKE her: injury_pain har rad kun på dager med logget smerte,
+  // så sparklinen blir nesten bare null-hull og pilen regnes på 4–5 punkter.
+  // Skadestatus dekkes av «dager siden smerte» i Skader & rehab-kortet over.
   const rows = [
-    ...injuryRows,
-    ...kneeFallback,
     { name: t('tp.tr_sleep'), vals: sleepVals, goodIsDown: false, maxRef: 100 },
     { name: t('tp.tr_load'),  vals: loadVals,  goodIsDown: true,  maxRef: Math.max(10, ...loadVals.map(x => x.v || 0)) },
   ];
@@ -2683,7 +2697,8 @@ function buildPainSummaryForDate(date, legacyKneeRow, sessionType) {
     ].filter(p => p.v != null) : [];
     if (!phases.length && !missingDayAfter) return;
     const col = INJ_COLORS[idx % INJ_COLORS.length];
-    lines.push(`<span class="sess-inj${missingDayAfter ? ' sess-inj-warn' : ''}" style="--inj:${col}"><span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
+    const clear = _injAllZero(phases);
+    lines.push(`<span class="sess-inj${clear ? ' is-clear' : ''}${missingDayAfter ? ' sess-inj-warn' : ''}" style="--inj:${col}"><span class="sess-inj-name">${escHtml(bodyPartName(inj))}</span>${
       phases.map(p => `<span class="sess-inj-ph">${p.l}<b class="${painColorClass(p.v)}">${p.v}</b></span>`).join('')
     }${missingDayAfter ? `<span class="sess-inj-ph" style="opacity:0.6;font-style:italic">${t('knee.dayafter_short')} ?</span>` : ''}</span>`);
   });
