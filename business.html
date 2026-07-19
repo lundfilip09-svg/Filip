@@ -220,6 +220,44 @@
 
 #leadgenCopyBtn{margin-top:16px}
 
+/* ── Leads steg 2: template-kort ── */
+.tpl-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:10px;margin-top:8px;
+}
+.tpl-card{
+  display:flex;flex-direction:column;gap:6px;padding:8px;text-align:left;
+  background:var(--bg-elevated,rgba(255,255,255,.03));
+  border:1px solid var(--border,rgba(255,255,255,.09));
+  border-radius:10px;cursor:pointer;color:inherit;font:inherit;
+  transition:border-color .15s,background .15s;
+}
+.tpl-card:hover{border-color:rgba(255,255,255,.22)}
+.tpl-card.is-selected{
+  border-color:var(--accent,#3ea6ff);
+  background:color-mix(in srgb,var(--accent,#3ea6ff) 8%,transparent);
+}
+.tpl-card-thumb{
+  position:relative;display:block;aspect-ratio:16/10;overflow:hidden;
+  border-radius:6px;background:rgba(255,255,255,.04);
+}
+.tpl-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.tpl-card-noimg{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:var(--text-secondary);opacity:.5;
+}
+.tpl-card-badge{
+  position:absolute;left:6px;bottom:6px;padding:2px 6px;border-radius:4px;
+  font-size:10px;line-height:1.4;background:rgba(0,0,0,.66);color:#f0c674;
+}
+.tpl-card-name{font-size:13px;font-weight:600}
+.tpl-card-desc{font-size:11.5px;color:var(--text-secondary);line-height:1.45}
+.tpl-open-link{
+  display:inline-block;margin-top:10px;font-size:12px;
+  color:var(--accent,#3ea6ff);text-decoration:none;
+}
+.tpl-open-link:hover{text-decoration:underline}
+
 /* ── Leads: salgsmotor-oppsett (steg-rail + arbeidsflate) ── */
 .biz-leadgen-card{padding:20px 22px}
 .biz-leadgen-head{margin-bottom:20px}
@@ -919,6 +957,11 @@
   <div id="leadgenLovable" class="leadgen-fields" hidden>
   <div class="form-group"><label class="form-label" data-i18n="biz.name">Bedriftnavn</label><select id="lovable-name-select" class="form-control"></select><input type="hidden" id="lbBizName"></div>
   <div class="form-group">
+  <label class="form-label" data-i18n="biz.tpl_label">Template</label>
+  <div id="lbTemplateGrid" class="tpl-grid"></div>
+  <a id="lbTemplateOpen" class="tpl-open-link" target="_blank" rel="noopener" hidden></a>
+  </div>
+  <div class="form-group">
   <label class="form-label" data-i18n="biz.theme_label">Design-tema</label>
   <select id="lbTheme" class="form-control">
     <option value="standard" data-i18n="biz.theme_standard">Standard/ingen preferanse</option>
@@ -1063,7 +1106,7 @@
     panelId:     null, // UUID for currently open detail panel
     inputs: {
       city: "", industry: "",
-      lbBizName: "", lbMapsPaste: "", lbTheme: "standard",
+      lbBizName: "", lbMapsPaste: "", lbTheme: "standard", lbTemplate: "ingen",
       salesBizName: "", salesMapsPaste: "",
       higgsBizName: "", higgsMapsPaste: ""
     }
@@ -1112,6 +1155,8 @@
     lbBizName:          $("#lbBizName"),
     lbMapsPaste:        $("#lbMapsPaste"),
     lbTheme:            $("#lbTheme"),
+    lbTemplateGrid:     $("#lbTemplateGrid"),
+    lbTemplateOpen:     $("#lbTemplateOpen"),
     salesBizName:       $("#salesBizName"),
     salesMapsPaste:     $("#salesMapsPaste"),
     leadgenType:        $("#leadgenType"),
@@ -1775,6 +1820,9 @@
 
   function saveInputsToState() {
     Object.keys(state.inputs).forEach(id => {
+      // lbTemplate styres av kort-knapper, ikke et input-felt — hopp over,
+      // ellers nulles valget ved hvert tastetrykk i arbeidsflaten.
+      if (id === "lbTemplate") return;
       const node = $(`#${cssId(id)}`);
       if (node) state.inputs[id] = node.value || "";
     });
@@ -2126,10 +2174,111 @@ WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro n
     return `\n\n9. VISUELL STIL — FØLG NØYAKTIG:\n${block}\n${LEADGEN_THEME_FAST_KLAUSUL}\n`;
   }
 
+  // ── Leadgen: template-katalog (steg 2 "Bygg") ──────────────────────────────
+  // Hver template = ett ferdig skjelett-prosjekt i Lovable som remixes per kunde.
+  // Dashboardet lagrer KUN metadata — selve koden bor i Lovable.
+  //
+  // For å legge til en ny template: legg til ett objekt i arrayet under. Ingenting
+  // annet må endres — kortene og prompt-seksjonen genereres automatisk.
+  //   id            unik nøkkel (lagres i state.inputs.lbTemplate)
+  //   labelKey      i18n-nøkkel for navnet (må finnes i BEGGE språk i utils.js)
+  //   descKey       i18n-nøkkel for hjelpeteksten (må finnes i BEGGE språk)
+  //   projectId     Lovable-prosjekt-ID for MAL-prosjektet (null = ikke bygget)
+  //   screenshotUrl bilde til kortet (Lovable gir denne per prosjekt; null = ikon)
+  //   defaultTheme  forhåndsvelger #lbTheme, kan overstyres av bruker
+  //   sections      rekkefølge + layout-intensjon, én linje per seksjon
+  const LEADGEN_TEMPLATES = [
+    {
+      id: "ingen",
+      labelKey: "biz.tpl_none",
+      descKey: "biz.tpl_none_desc",
+      projectId: null,
+      screenshotUrl: null,
+      defaultTheme: null,
+      sections: []
+    },
+    {
+      id: "handverker_visuell",
+      labelKey: "biz.tpl_handverker",
+      descKey: "biz.tpl_handverker_desc",
+      projectId: null, // ← fyll inn MAL-prosjektets ID etter remix av Taule
+      screenshotUrl: null,
+      defaultTheme: "varm",
+      sections: [
+        { name: "Hero",        layout: "Full-bleed prosjektbilde, overskrift + kort undertekst oppå, én CTA" },
+        { name: "Tjenester",   layout: "3–4 bildekort i grid, kort tekst per kort" },
+        { name: "Prosess",     layout: "Nummererte steg horisontalt, ingen bilder" },
+        { name: "Om oss",      layout: "3 kort med bilde og kort tekst" },
+        { name: "Før/etter",   layout: "Bildepar-sammenligning" },
+        { name: "Anmeldelser", layout: "Sitatkort, navn + sted" },
+        { name: "Kontakt",     layout: "Skjema høyre, kontaktinfo og arbeidsområde venstre" }
+      ]
+    }
+  ];
+
+  const getLeadgenTemplate = (id) =>
+    LEADGEN_TEMPLATES.find(tpl => tpl.id === id) || LEADGEN_TEMPLATES[0];
+
+  function buildLeadgenTemplateSection() {
+    const tpl = getLeadgenTemplate(state.inputs.lbTemplate);
+    if (!tpl.sections.length) return "";
+    const list = tpl.sections
+      .map((s, i) => `${i + 1}. ${s.name} — ${s.layout}`)
+      .join("\n");
+    return `\n\n10. SIDESTRUKTUR — BEHOLD REKKEFØLGE OG LAYOUT-INTENSJON:\n${list}\n` +
+           `Bygg nøyaktig disse seksjonene i denne rekkefølgen. Ikke legg til eller fjern seksjoner.\n` +
+           `${LEADGEN_THEME_FAST_KLAUSUL}\n`;
+  }
+
+  // ── Template-kort: render + valg ───────────────────────────────────────────
+  function renderTemplateCards() {
+    const wrap = el.lbTemplateGrid;
+    if (!wrap) return;
+    const active = state.inputs.lbTemplate || "ingen";
+    wrap.innerHTML = LEADGEN_TEMPLATES.map(tpl => {
+      const sel   = tpl.id === active ? " is-selected" : "";
+      const thumb = tpl.screenshotUrl
+        ? `<img src="${tpl.screenshotUrl}" alt="" loading="lazy">`
+        : `<div class="tpl-card-noimg">${tpl.sections.length ? "◧" : "○"}</div>`;
+      const badge = (tpl.sections.length && !tpl.projectId)
+        ? `<span class="tpl-card-badge">${t("biz.tpl_not_built")}</span>` : "";
+      return `<button type="button" class="tpl-card${sel}" data-tpl="${tpl.id}">
+        <span class="tpl-card-thumb">${thumb}${badge}</span>
+        <span class="tpl-card-name">${t(tpl.labelKey)}</span>
+        <span class="tpl-card-desc">${t(tpl.descKey)}</span>
+      </button>`;
+    }).join("");
+
+    const tpl  = getLeadgenTemplate(active);
+    const link = el.lbTemplateOpen;
+    if (link) {
+      if (tpl.projectId) {
+        link.href = `https://lovable.dev/projects/${tpl.projectId}`;
+        link.hidden = false;
+        link.textContent = t("biz.tpl_open");
+      } else {
+        link.hidden = true;
+      }
+    }
+  }
+
+  function selectTemplate(id) {
+    const tpl = getLeadgenTemplate(id);
+    state.inputs.lbTemplate = tpl.id;
+    // Templaten forhåndsvelger tema, men brukeren kan alltid overstyre etterpå.
+    if (tpl.defaultTheme && el.lbTheme) {
+      el.lbTheme.value = tpl.defaultTheme;
+      state.inputs.lbTheme = tpl.defaultTheme;
+    }
+    saveLocalState();
+    renderTemplateCards();
+  }
+
   function buildLovablePrompt() {
     const bizName     = el.lbBizName?.value.trim()   || "[BUSINESS NAME]";
     const mapsPaste    = el.lbMapsPaste?.value.trim()  || "[GOOGLE MAPS PASTE]";
     const themeSection = buildLeadgenThemeSection();
+    const tplSection   = buildLeadgenTemplateSection();
     return `You are an expert local web designer and copywriter specialized in the Norwegian small-business market. Your task is to act as a Meta-Prompt Generator. You must take the raw Google Maps data below and generate a single, highly detailed web design prompt for Lovable.dev written in Norwegian.
 
 Here is the raw data:
@@ -2162,7 +2311,7 @@ Your output must be a master-prompt for Lovable that instructs it to build a sit
 
 8. SKJEMA-BEKREFTELSE (SUKSESS-TILSTAND): Instruer Lovable til å bygge en innebygd suksess-tilstand for skjemaet (bestilling, booking eller kontakt). Når brukeren trykker på innsendingsknappen, skal skjemaet skjules og erstattes av en ren, tillitvekkende takkemelding på norsk, tilpasset handlingen (f.eks. "Takk! Din bestilling er mottatt. Du vil få en SMS-bekreftelse innen kort tid", eller "Takk! Vi har mottatt henvendelsen din og svarer så snart vi kan").
 
-${themeSection}
+${themeSection}${tplSection}
 Output ONLY the final Norwegian Lovable prompt inside a code block, ready for the user to copy directly into Lovable.dev.`;
   }
 
@@ -2465,6 +2614,12 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
     });
     setLeadgenType(getLeadgenType());
 
+    if (el.lbTemplateGrid) el.lbTemplateGrid.addEventListener("click", event => {
+      const card = event.target.closest(".tpl-card");
+      if (card?.dataset.tpl) selectTemplate(card.dataset.tpl);
+    });
+    renderTemplateCards();
+
     document.addEventListener("input",  handleDocumentInput);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click",  handleDocumentClick);
@@ -2578,7 +2733,7 @@ Skriv og lever de spesifikke CSS-animasjonene eller oppdaterte React/Tailwind-ko
     populateBusinessDropdown();
 
     applyLang();
-    onLangChange = () => { renderCustomers(); renderMetrics(); renderSalesCards(); };
+    onLangChange = () => { renderCustomers(); renderMetrics(); renderSalesCards(); renderTemplateCards(); };
   }
 
   init();
