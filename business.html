@@ -2183,10 +2183,14 @@ WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro n
   //   id            unik nøkkel (lagres i state.inputs.lbTemplate)
   //   labelKey      i18n-nøkkel for navnet (må finnes i BEGGE språk i utils.js)
   //   descKey       i18n-nøkkel for hjelpeteksten (må finnes i BEGGE språk)
-  //   projectId     Lovable-prosjekt-ID for MAL-prosjektet (null = ikke bygget)
+  //   projectId     Lovable-prosjekt-ID å remixe fra (null = ingen mal ennå)
   //   screenshotUrl bilde til kortet (Lovable gir denne per prosjekt; null = ikon)
   //   defaultTheme  forhåndsvelger #lbTheme, kan overstyres av bruker
   //   sections      rekkefølge + layout-intensjon, én linje per seksjon
+  //   dirty         true = malen er en ekte kundeside, ikke strippet. Da legger
+  //                 generatoren inn en ekstra instruks om at ALT innhold fra
+  //                 utgangspunktet må erstattes. Sett til false når du har
+  //                 bygget en ren mal — instruksen forsvinner automatisk.
   const LEADGEN_TEMPLATES = [
     {
       id: "ingen",
@@ -2201,8 +2205,11 @@ WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro n
       id: "handverker_visuell",
       labelKey: "biz.tpl_handverker",
       descKey: "biz.tpl_handverker_desc",
-      projectId: null, // ← fyll inn MAL-prosjektets ID etter remix av Taule
-      screenshotUrl: null,
+      // Peker foreløpig på Taule-prosjektet selv (ekte kundeside → dirty: true).
+      // Bygger du en ren, strippet mal senere: bytt ID her og sett dirty: false.
+      projectId: "cc450eda-e985-4189-9c7f-b51e0139f572",
+      screenshotUrl: "https://screenshot2.lovable.dev/a9fb9387-5071-4f47-899b-c558298d50d2/id-preview-48d63d98--cc450eda-e985-4189-9c7f-b51e0139f572.lovable.app-1784327752526.png",
+      dirty: true,
       defaultTheme: "varm",
       sections: [
         { name: "Hero",        layout: "Full-bleed prosjektbilde, overskrift + kort undertekst oppå, én CTA" },
@@ -2225,9 +2232,27 @@ WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro n
     const list = tpl.sections
       .map((s, i) => `${i + 1}. ${s.name} — ${s.layout}`)
       .join("\n");
+
+    // Malen er en ekte kundeside som remixes. Mellomleddet (Claude/ChatGPT) må
+    // instruere Lovable om å erstatte ALT arvet innhold — ellers lekker forrige
+    // kundes navn, bilder og tekst inn i den nye siden.
+    const dirtyWarning = tpl.dirty ? `
+VIKTIG — UTGANGSPUNKTET ER EN EKSISTERENDE KUNDESIDE:
+Denne malen remixes fra en ferdig nettside bygget for en ANNEN bedrift. Alt
+innhold som følger med er dermed feil for denne kunden. Den ferdige Lovable-
+prompten du skriver MÅ derfor eksplisitt instruere Lovable om å:
+- Erstatte firmanavn, logo og all tekst overalt, inkludert header, footer,
+  alt-tekster, meta-tittel og knappetekster
+- Erstatte alle bilder med grå plassholdere som peker til lokale stier
+- Erstatte telefonnummer, e-post, adresse og arbeidsområde
+- Fjerne alle eksisterende kundeanmeldelser (behold seksjonen, tom)
+Gå gjennom hver seksjon og sjekk at ingenting fra den opprinnelige bedriften
+står igjen. Behold KUN layout, struktur og komponenter.
+` : "";
+
     return `\n\n10. SIDESTRUKTUR — BEHOLD REKKEFØLGE OG LAYOUT-INTENSJON:\n${list}\n` +
            `Bygg nøyaktig disse seksjonene i denne rekkefølgen. Ikke legg til eller fjern seksjoner.\n` +
-           `${LEADGEN_THEME_FAST_KLAUSUL}\n`;
+           `${dirtyWarning}${LEADGEN_THEME_FAST_KLAUSUL}\n`;
   }
 
   // ── Template-kort: render + valg ───────────────────────────────────────────
@@ -2240,8 +2265,10 @@ WHITESPACE: ekstremt raust — færre elementer per seksjon enn man skulle tro n
       const thumb = tpl.screenshotUrl
         ? `<img src="${tpl.screenshotUrl}" alt="" loading="lazy">`
         : `<div class="tpl-card-noimg">${tpl.sections.length ? "◧" : "○"}</div>`;
-      const badge = (tpl.sections.length && !tpl.projectId)
-        ? `<span class="tpl-card-badge">${t("biz.tpl_not_built")}</span>` : "";
+      const badge = !tpl.sections.length ? ""
+        : !tpl.projectId ? `<span class="tpl-card-badge">${t("biz.tpl_not_built")}</span>`
+        : tpl.dirty      ? `<span class="tpl-card-badge">${t("biz.tpl_dirty")}</span>`
+        : "";
       return `<button type="button" class="tpl-card${sel}" data-tpl="${tpl.id}">
         <span class="tpl-card-thumb">${thumb}${badge}</span>
         <span class="tpl-card-name">${t(tpl.labelKey)}</span>
