@@ -117,8 +117,10 @@ export default async function handler(req, res) {
       if (!eventId) return res.status(400).json({ error: 'eventId required' });
       const patch = {};
       if (summary !== undefined) patch.summary = summary;
-      if (start) patch.start = start;
-      if (end)   patch.end   = end;
+      // PATCH merger felter: uten eksplisitt null blir det gamle date/dateTime
+      // stående, så bytte mellom heldags og klokkeslett feiler stille.
+      if (start) patch.start = { date: null, dateTime: null, timeZone: null, ...start };
+      if (end)   patch.end   = { date: null, dateTime: null, timeZone: null, ...end };
       const updated = await googleWrite('PATCH', token, GOOGLE_CALENDAR_ID, eventId, patch);
       return res.status(200).json({ event: updated });
     }
