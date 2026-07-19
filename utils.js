@@ -611,6 +611,7 @@ const TRANSLATIONS = {
     'ai.subtitle': 'Personlig assistent · {model} · Søvn · Sprint · Rehab',
     'ai.sub_pre': 'Personlig assistent', 'ai.sub_post': 'Søvn · Sprint · Rehab',
     'ai.clear': 'Tøm samtale', 'ai.cleared': 'Samtale tømt',
+    'ai.tools_toggle': 'Kopier data', 'ai.prompts_toggle': 'Forslag',
     'ai.copy_report': 'Kopier AI-helserapport', 'ai.report_building': 'Bygger rapport…',
     'ai.report_copied': 'AI-helserapport kopiert til utklippstavlen', 'ai.report_copy_fail': 'Kunne ikke kopiere — prøv igjen',
     // Diagnose-melding (kort skadestatus til trener/fysio, deterministisk)
@@ -1531,6 +1532,7 @@ const TRANSLATIONS = {
     'ai.subtitle': 'Personal assistant · {model} · Sleep · Sprint · Rehab',
     'ai.sub_pre': 'Personal assistant', 'ai.sub_post': 'Sleep · Sprint · Rehab',
     'ai.clear': 'Clear chat', 'ai.cleared': 'Chat cleared',
+    'ai.tools_toggle': 'Copy data', 'ai.prompts_toggle': 'Suggestions',
     'ai.copy_report': 'Copy AI Health Report', 'ai.report_building': 'Building report…',
     'ai.report_copied': 'AI health report copied to clipboard', 'ai.report_copy_fail': 'Could not copy — try again',
     // Diagnosis message (short injury status for coach/physio, deterministic)
@@ -2335,6 +2337,46 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ── Rydd varsler når du åpner siden de kom fra ──────────────────────────────
+// Varsler vist av service workeren (hviletimer, push) blir liggende i
+// Notification Center til de swipes bort manuelt — ingenting lukket dem før,
+// bortsett fra notificationclick (som bare fyrer hvis du trykker selve
+// varselet). Her lukkes de når den relevante siden faktisk blir synlig.
+//
+// Tag-konvensjon fra sw.js: 'rest-timer' (hviletimer, gym), 'dash-push'
+// (generisk push), 'sched-<id>' (planlagte varsler fra api/push?action=fire).
+// null i mappa under = lukk ALLE varsler på den siden.
+const _NOTIF_TAGS_BY_PAGE = {
+  'gym.html':       ['rest-timer'],
+  'gjoremal.html':  ['sched-', 'dash-push'],
+  'dashboard.html': null,   // dashbordet er "hjem" → rydd alt
+};
+
+async function clearPageNotifications() {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg || typeof reg.getNotifications !== 'function') return;
+    const page    = location.pathname.split('/').pop() || 'dashboard.html';
+    const wanted  = Object.prototype.hasOwnProperty.call(_NOTIF_TAGS_BY_PAGE, page)
+      ? _NOTIF_TAGS_BY_PAGE[page]
+      : [];                       // ukjent side → ikke rør noe
+    if (wanted && wanted.length === 0) return;
+    const notes = await reg.getNotifications();
+    for (const n of notes) {
+      // wanted === null → lukk alt. Ellers: prefiks-match mot tag.
+      if (!wanted || wanted.some(p => (n.tag || '').startsWith(p))) n.close();
+    }
+  } catch (e) { /* varselrydding skal aldri velte sida */ }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') clearPageNotifications();
+});
+window.addEventListener('pageshow', clearPageNotifications);
+clearPageNotifications();
 
 function toggleLang() {
   _lang = _lang === 'no' ? 'en' : 'no';

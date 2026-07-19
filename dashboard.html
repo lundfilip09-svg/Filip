@@ -63,15 +63,22 @@
     @media (max-width: 768px) { .status-row { grid-template-columns: 1fr; } }
 
     /* ── I dag: prioritetsband (Gjøremål stor + Søvn/økt stablet) ── */
-    .dash-primary { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: stretch; }
+    /* start (ikke stretch): gjøremål-kortet skal ha sin egen høyde, ikke
+       strekkes til å matche Søvn+Kalender-kolonnen. Tom liste = lavt kort. */
+    .dash-primary { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: start; }
     .dash-primary-side { display: flex; flex-direction: column; gap: 14px; }
     .card-tasks { display: flex; flex-direction: column; }
-    .card-tasks #importantTodos { flex: 1; }
+    /* Lang liste scroller internt i stedet for å dytte sida nedover */
+    .card-tasks #importantTodos { max-height: 260px; overflow-y: auto; }
+    .card-tasks #importantTodos::-webkit-scrollbar { width: 5px; }
+    .card-tasks #importantTodos::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.1); border-radius: 3px;
+    }
     @media (max-width: 860px) { .dash-primary { grid-template-columns: 1fr; } }
 
     /* ── Status: Skader + Dagens fokus ── */
-    .status2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-    @media (max-width: 768px) { .status2-grid { grid-template-columns: 1fr; } }
+    /* Skader står alene her nå (Dagens fokus fjernet) → full bredde */
+    .status2-grid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
 
     /* Card borders & accents */
     .card { border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.2s, box-shadow 0.2s; }
@@ -413,8 +420,8 @@
     .next-evt-when { font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); }
 
     /* ── Calendar ── */
-    .cal-section-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: start; }
-    @media (max-width: 768px) { .cal-section-grid { grid-template-columns: 1fr; } }
+    /* Kalenderen står alene her nå (Neste hendelse fjernet) → full bredde */
+    .cal-section-grid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
     .cal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
     @media (max-width: 640px) { .cal-grid { grid-template-columns: 1fr; } }
     .cal-col-title {
@@ -582,15 +589,44 @@
         </div>
       </div>
 
-      <div class="card card-session">
-        <div class="section-title" data-i18n="dash.session">Dagens økt</div>
-        <div id="sessionCard">
-          <div class="sk-row" style="margin-bottom:8px">
-            <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
+      <!-- Kalender (byttet plass med Dagens økt) -->
+      <div class="card">
+        <div class="cal-grid">
+          <div>
+            <p class="cal-col-title" data-i18n="kal.today">I dag</p>
+            <div id="cal-today">
+              <div class="sk-row" style="margin-bottom:8px;align-items:center">
+                <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+                <span class="sk sk-block" style="width:32px;height:10px"></span>
+                <span class="sk sk-block" style="width:55%;height:10px"></span>
+              </div>
+              <div class="sk-row" style="align-items:center">
+                <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+                <span class="sk sk-block" style="width:32px;height:10px"></span>
+                <span class="sk sk-block" style="width:45%;height:10px"></span>
+              </div>
+            </div>
           </div>
-          <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
-          <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
-          <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
+          <div>
+            <p class="cal-col-title" data-i18n="dash.upcoming">Kommende</p>
+            <div id="cal-upcoming">
+              <div class="sk-row" style="margin-bottom:8px;align-items:center">
+                <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+                <span class="sk sk-block" style="width:44px;height:10px"></span>
+                <span class="sk sk-block" style="width:60%;height:10px"></span>
+              </div>
+              <div class="sk-row" style="margin-bottom:8px;align-items:center">
+                <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+                <span class="sk sk-block" style="width:44px;height:10px"></span>
+                <span class="sk sk-block" style="width:50%;height:10px"></span>
+              </div>
+              <div class="sk-row" style="align-items:center">
+                <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
+                <span class="sk sk-block" style="width:44px;height:10px"></span>
+                <span class="sk sk-block" style="width:55%;height:10px"></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -641,34 +677,6 @@
       </div>
     </div>
 
-    <!-- Dagens fokus -->
-    <div class="card">
-      <div class="section-title" data-i18n="dash.daily_focus">Dagens fokus</div>
-      <div id="dailyFokus">
-        <div class="sk-row" style="margin-bottom:8px">
-          <span class="sk sk-block" style="width:28px;height:28px;border-radius:6px;flex-shrink:0"></span>
-          <div class="sk-col" style="flex:1;justify-content:center">
-            <span class="sk sk-block" style="width:70%;height:11px"></span>
-            <span class="sk sk-block" style="width:50%;height:9px"></span>
-          </div>
-        </div>
-        <div class="sk-row" style="margin-bottom:8px">
-          <span class="sk sk-block" style="width:28px;height:28px;border-radius:6px;flex-shrink:0"></span>
-          <div class="sk-col" style="flex:1;justify-content:center">
-            <span class="sk sk-block" style="width:60%;height:11px"></span>
-            <span class="sk sk-block" style="width:40%;height:9px"></span>
-          </div>
-        </div>
-        <div class="sk-row">
-          <span class="sk sk-block" style="width:28px;height:28px;border-radius:6px;flex-shrink:0"></span>
-          <div class="sk-col" style="flex:1;justify-content:center">
-            <span class="sk sk-block" style="width:75%;height:11px"></span>
-            <span class="sk sk-block" style="width:45%;height:9px"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <!-- ══════════════════  OVERSIKT  ══════════════════ -->
@@ -687,65 +695,23 @@
     </div>
   </div>
 
-  <!-- ══════════════════  KALENDER  ══════════════════ -->
+  <!-- ══════════════════  DAGENS ØKT  ══════════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.calendar">Kalender</div>
+    <div class="os-label-text" data-i18n="dash.session">Dagens økt</div>
     <div class="os-label-line"></div>
   </div>
 
   <div class="cal-section-grid">
-    <!-- Calendar -->
-    <div class="card">
-    <div class="cal-grid">
-      <div>
-        <p class="cal-col-title" data-i18n="kal.today">I dag</p>
-        <div id="cal-today">
-          <div class="sk-row" style="margin-bottom:8px;align-items:center">
-            <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:32px;height:10px"></span>
-            <span class="sk sk-block" style="width:55%;height:10px"></span>
-          </div>
-          <div class="sk-row" style="align-items:center">
-            <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:32px;height:10px"></span>
-            <span class="sk sk-block" style="width:45%;height:10px"></span>
-          </div>
+    <!-- Dagens økt (byttet plass med kalenderkortet) -->
+    <div class="card card-session">
+      <div id="sessionCard">
+        <div class="sk-row" style="margin-bottom:8px">
+          <span class="sk sk-block" style="width:58px;height:20px;border-radius:20px"></span>
         </div>
-      </div>
-      <div>
-        <p class="cal-col-title" data-i18n="dash.upcoming">Kommende</p>
-        <div id="cal-upcoming">
-          <div class="sk-row" style="margin-bottom:8px;align-items:center">
-            <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:44px;height:10px"></span>
-            <span class="sk sk-block" style="width:60%;height:10px"></span>
-          </div>
-          <div class="sk-row" style="margin-bottom:8px;align-items:center">
-            <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:44px;height:10px"></span>
-            <span class="sk sk-block" style="width:50%;height:10px"></span>
-          </div>
-          <div class="sk-row" style="align-items:center">
-            <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>
-            <span class="sk sk-block" style="width:44px;height:10px"></span>
-            <span class="sk sk-block" style="width:55%;height:10px"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-    <!-- Next event (integrated with calendar) -->
-    <div class="card" id="nextEventCard">
-      <div class="section-title" data-i18n="dash.next_event">Neste hendelse</div>
-      <div id="nextEvent">
-        <div class="next-evt">
-          <span class="sk sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px"></span>
-          <div style="flex:1;display:flex;flex-direction:column;gap:5px">
-            <span class="sk sk-block" style="width:70%;height:12px"></span>
-            <span class="sk sk-block" style="width:45%;height:9px"></span>
-          </div>
-        </div>
+        <span class="sk sk-block" style="width:80%;height:18px;margin-bottom:8px"></span>
+        <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
+        <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
       </div>
     </div>
   </div>
@@ -1979,15 +1945,18 @@ window.addEventListener('online',  updateOfflineBanner);
 window.addEventListener('offline', updateOfflineBanner);
 updateOfflineBanner();
 
+// Fokus-KORTET er fjernet fra dashbordet, men lista lever videre: «I dag»-fanen
+// i gjøremål faller tilbake på actionable fokus-punkter når den er tom
+// (se renderDashTodos → _buildFokusList). Derfor beholdes _lastFokusData.
 function renderDailyFokus(data) {
   if (!data) return;
   _lastFokusData = data;
-  const el    = document.getElementById('dailyFokus');
-  const items = _buildFokusList(data);
-  if (!items.length) {
-    el.innerHTML = `<div class="empty" style="padding:2px 0">${t('dash.all_ok')}</div>`;
-  } else {
-    el.innerHTML = `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`;
+  const el = document.getElementById('dailyFokus');
+  if (el) {
+    const items = _buildFokusList(data);
+    el.innerHTML = items.length
+      ? `<div class="fokus-panel">${items.map(_renderFokusItem).join('')}</div>`
+      : `<div class="empty" style="padding:2px 0">${t('dash.all_ok')}</div>`;
   }
   // Oppdater «I dag»-fanen så den kan falle tilbake på fokus-forslag når den er tom
   if (typeof renderDashTodos === 'function') renderDashTodos();

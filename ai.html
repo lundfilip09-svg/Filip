@@ -510,6 +510,45 @@
       .ai-act-btn { font-size: 11px; }
       .ai-subtitle { white-space: normal; }
       /* iOS-zoom-fiks ligger nå globalt i styles.css (input/textarea/select 16px) */
+
+      /* ── Mobil: la chatten få plassen ────────────────────────────────
+         Før lå 5 «Kopier …»-knapper + 5 quick-prompts alltid utfoldet over
+         chatten, så man måtte scrolle forbi ~10 knapper for å se meldinger.
+         Begge gruppene ligger nå bak hver sin <details>-toggle. */
+      .ai-tools-m { width: 100%; }
+      .ai-tools-m > summary {
+        list-style: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 9px 13px; border-radius: 10px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--line-2);
+        font-size: 11px; font-family: var(--font-mono);
+        text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--text-tertiary);
+      }
+      .ai-tools-m > summary::-webkit-details-marker { display: none; }
+      .ai-tools-m > summary::after { content: '▾'; transition: transform 0.18s; }
+      .ai-tools-m[open] > summary::after { transform: rotate(180deg); }
+      .ai-tools-m > summary:active { background: rgba(255,255,255,0.07); }
+      .ai-tools-m .ai-act-group,
+      .ai-tools-m .quick-prompts { margin-top: 8px; }
+
+      /* Chatten skal fylle skjermen, med input synlig uten scrolling */
+      .chat-card {
+        min-height: calc(100svh - 210px);
+        display: flex; flex-direction: column;
+      }
+      .chat-history { flex: 1; min-height: 200px; }
+      .quick-prompts { border-bottom: none; padding: 0; }
+      .qp-btn { font-size: 11.5px; padding: 7px 11px; }
+      .qp-details { flex-shrink: 0; padding: var(--sp-3) var(--sp-4) 0; }
+    }
+
+    /* Toggles finnes bare på mobil — skjul dem på desktop, der begge
+       gruppene skal vises rett ut som før. */
+    @media (min-width: 769px) {
+      .ai-tools-m > summary { display: none; }
+      .ai-tools-m { display: contents; }
     }
   </style>
 </head>
@@ -527,26 +566,32 @@
       </div>
     </div>
     <div class="ai-actions">
-      <div class="ai-act-group">
-        <button class="ai-act-btn" id="copyReportBtn" onclick="openReportModal()" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
-        <button class="ai-act-btn" id="copyDiagBtn" onclick="openDiagModal()" data-i18n="ai.copy_diag">Kopier diagnose</button>
-        <button class="ai-act-btn" id="copySleepBtn" onclick="openSleepModal()" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
-        <button class="ai-act-btn" id="copyWsBtn" onclick="openWsCopyModal()" data-i18n="ai.copy_ws">Kopier ukesoppsummering</button>
-        <button class="ai-act-btn" id="copyGymBtn" onclick="openGymCopyModal()" data-i18n="ai.copy_gym">Kopier øvelser</button>
-      </div>
+      <details class="ai-tools-m">
+        <summary data-i18n="ai.tools_toggle">Kopier data</summary>
+        <div class="ai-act-group">
+          <button class="ai-act-btn" id="copyReportBtn" onclick="openReportModal()" data-i18n="ai.copy_report">Kopier AI-helserapport</button>
+          <button class="ai-act-btn" id="copyDiagBtn" onclick="openDiagModal()" data-i18n="ai.copy_diag">Kopier diagnose</button>
+          <button class="ai-act-btn" id="copySleepBtn" onclick="openSleepModal()" data-i18n="ai.copy_sleep">Kopier søvnanalyse</button>
+          <button class="ai-act-btn" id="copyWsBtn" onclick="openWsCopyModal()" data-i18n="ai.copy_ws">Kopier ukesoppsummering</button>
+          <button class="ai-act-btn" id="copyGymBtn" onclick="openGymCopyModal()" data-i18n="ai.copy_gym">Kopier øvelser</button>
+        </div>
+      </details>
       <button class="ai-act-btn ai-act-clear" onclick="clearChat()" data-i18n="ai.clear">Tøm samtale</button>
     </div>
   </div>
 
   <div class="ai-layout">
   <div class="chat-card">
-    <div class="quick-prompts" id="quickPrompts">
-      <button class="qp-btn" onclick="quickPrompt(t('ai.quick1_prompt'))" data-i18n="ai.quick1">Ukens form</button>
-      <button class="qp-btn" onclick="quickPrompt(t('ai.quick2_prompt'))" data-i18n="ai.quick2">Knesmerte-analyse</button>
-      <button class="qp-btn" onclick="quickPrompt(t('ai.quick3_prompt'))" data-i18n="ai.quick3">Neste økt</button>
-      <button class="qp-btn" onclick="quickPrompt(t('ai.quick4_prompt'))" data-i18n="ai.quick4">Søvn vs kne</button>
-      <button class="qp-btn" onclick="quickPrompt(t('ai.quick5_prompt'))" data-i18n="ai.quick5">HRV-status</button>
-    </div>
+    <details class="ai-tools-m qp-details">
+      <summary data-i18n="ai.prompts_toggle">Forslag</summary>
+      <div class="quick-prompts" id="quickPrompts">
+        <button class="qp-btn" onclick="quickPrompt(t('ai.quick1_prompt'))" data-i18n="ai.quick1">Ukens form</button>
+        <button class="qp-btn" onclick="quickPrompt(t('ai.quick2_prompt'))" data-i18n="ai.quick2">Knesmerte-analyse</button>
+        <button class="qp-btn" onclick="quickPrompt(t('ai.quick3_prompt'))" data-i18n="ai.quick3">Neste økt</button>
+        <button class="qp-btn" onclick="quickPrompt(t('ai.quick4_prompt'))" data-i18n="ai.quick4">Søvn vs kne</button>
+        <button class="qp-btn" onclick="quickPrompt(t('ai.quick5_prompt'))" data-i18n="ai.quick5">HRV-status</button>
+      </div>
+    </details>
 
     <div class="chat-history" id="chatHistory">
       <div class="chat-empty" id="chatEmpty">
