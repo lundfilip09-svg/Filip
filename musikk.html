@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#050506">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .mu-page { max-width: 1280px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; }
+    @media (max-width: 640px) { .mu-page { padding: 18px 16px 96px; } }
+
+    .mu-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 22px; flex-wrap: wrap; }
+    .mu-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
+    .mu-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; font-family: var(--font-mono); }
+
+    /* ── Filter-chips ── */
+    .mu-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .mu-chip-row-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 2px; font-family: var(--font-mono); }
+    .mu-chip { border: 1px solid var(--hairline); background: var(--surface-1); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .mu-chip:hover { background: var(--surface-2); border-color: rgba(255,255,255,0.16); }
+    .mu-chip.active { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
+
+    /* ── Sang-grid ── */
+    .mu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 18px; }
+    .mu-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 16px; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    .mu-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+    .mu-card-title { font-size: 14px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mu-card-artist { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mu-card-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 12px; }
+    .mu-card-key { font-size: 10.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 8px; }
+
+    /* ── Tom-tilstand ── */
+    .mu-empty { text-align: center; padding: 64px 20px 56px; color: var(--text-tertiary); }
+    .mu-empty-icon { width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 22px; background: rgba(91,164,245,0.035); border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
+    .mu-empty-icon svg { width: 38px; height: 38px; stroke: var(--accent-blue); opacity: 0.85; }
+    .mu-empty .t1 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.01em; }
+    .mu-empty .t2 { font-size: 13px; max-width: 340px; margin: 0 auto; line-height: 1.6; }
+    .mu-empty .btn { margin-top: 20px; }
+
+    /* ── Modal (delt mønster) ── */
+    .mu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.66); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+    @media (min-width: 640px) { .mu-overlay { align-items: center; padding: 24px; } }
+    .mu-overlay.hidden { display: none; }
+    .mu-modal { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+    @media (min-width: 640px) { .mu-modal { border-radius: 16px; } }
+    .mu-m-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .mu-m-title { font-size: 15px; font-weight: 700; }
+    .mu-m-close { background: var(--surface-2); border: 1px solid var(--hairline); color: var(--text-secondary); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background 0.12s, color 0.12s; }
+    .mu-m-close:hover { background: var(--surface-3); color: var(--text-primary); }
+
+    .mu-field { margin-bottom: 12px; }
+    .mu-field label { display: block; font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; font-family: var(--font-mono); }
+    .mu-field input, .mu-field select, .mu-field textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-md); color: var(--text-primary); padding: 9px 11px; font-size: 13px; font-family: inherit; box-sizing: border-box; }
+    .mu-field input:focus, .mu-field select:focus, .mu-field textarea:focus { outline: none; border-color: rgba(91,164,245,0.5); }
+    .mu-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mu-instr-row { display: flex; gap: 8px; }
+    .mu-instr-btn { flex: 1; border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text-secondary); padding: 9px 11px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; font-family: inherit; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+    .mu-instr-btn.on { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
+
+    .mu-embed { position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface-2); border: 1px solid var(--hairline-soft); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 14px; }
+    .mu-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+    .mu-m-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+    .mu-m-actions .spacer { flex: 1; }
+
+    .mu-addbtn { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 50; width: 52px; height: 52px; border-radius: 50%; background: var(--accent-blue); color: #06070a; border: 0; font-size: 24px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 24px rgba(91,164,245,0.35); transition: transform 0.15s, background 0.15s; }
+    .mu-addbtn:hover { background: #71b3f7; transform: scale(1.06); }
+    .mu-addbtn:active { transform: scale(0.96); }
+  </style>
+</head>
+<body>
+<nav class="main-nav" data-nav></nav>
+
+<div class="mu-page">
+  <div class="mu-head">
+    <div>
+      <div class="mu-title" data-i18n="music.title">Musikk</div>
+      <div class="mu-sub" id="muSub"></div>
+    </div>
+  </div>
+
+  <div class="mu-chips" id="instrChips"></div>
+  <div class="mu-chips" id="techChips"></div>
+
+  <div class="mu-grid" id="songGrid"></div>
+  <div id="songsEmpty" style="display:none" class="mu-empty">
+    <div class="mu-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+    <div class="t1" data-i18n="music.empty">Ingen sanger enda</div>
+    <div class="t2" data-i18n="music.empty_hint">Legg til den første sangen i repertoaret ditt.</div>
+    <button class="btn btn-primary" onclick="openForm(null)" data-i18n="music.add">Legg til sang</button>
+  </div>
+</div>
+
+<button class="mu-addbtn" id="addBtn" onclick="openForm(null)" aria-label="+">+</button>
+
+<!-- ══ Detalj / rediger ══════════════════════════════════════ -->
+<div class="mu-overlay hidden" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="mu-modal" id="detailBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="utils.js"></script>
+<script>
+let db;
+
+const INSTRUMENTS = ['piano', 'gitar'];
+const TECHNIQUES = ['akkord', 'fingerspill'];
+const instrLabel = i => t('music.instrument_' + i);
+const techLabel = tech => tech ? t('music.technique_' + tech) : t('music.technique_none');
+
+let songs = [];
+let instrFilter = 'all';
+let techFilter = 'all';
+let editId = null;
+
+async function loadAll(_retried) {
+  const { data, error } = await db.from('songs').select('*').order('title', { ascending: true });
+  if (error) {
+    if (!_retried) { await new Promise(r => setTimeout(r, 900)); return loadAll(true); }
+    showLoadError(error.message);
+    return;
+  }
+  songs = data || [];
+  renderAll();
+}
+
+function showLoadError(msg) {
+  toast(t('music.load_error'), 'err');
+  document.getElementById('songGrid').innerHTML =
+    `<div class="mu-empty" style="grid-column:1/-1;padding:48px 16px">
+      <div class="t1">${t('music.load_error')}</div>
+      <div class="t2" style="margin-bottom:16px">${escHtml(msg || '')}</div>
+      <button class="btn btn-primary" onclick="loadAll()">${t('music.retry')}</button>
+    </div>`;
+  document.getElementById('songsEmpty').style.display = 'none';
+}
+
+onLangChange = () => {
+  applyLang();
+  renderAll();
+  if (editId && !document.getElementById('detailModal').classList.contains('hidden')) renderForm(songById(editId));
+};
+
+function renderAll() { renderSub(); renderChips(); renderGrid(); }
+
+function renderSub() {
+  document.getElementById('muSub').textContent = songs.length ? `${songs.length}` : '';
+}
+
+function renderChips() {
+  const chip = (val, label, active, fn) =>
+    `<button class="mu-chip${active ? ' active' : ''}" onclick="${fn}('${val}')">${label}</button>`;
+  document.getElementById('instrChips').innerHTML =
+    `<span class="mu-chip-row-label">${t('music.filter_instrument')}</span>` +
+    chip('all', t('music.all'), instrFilter === 'all', 'setInstr') +
+    INSTRUMENTS.map(i => chip(i, instrLabel(i), instrFilter === i, 'setInstr')).join('');
+  document.getElementById('techChips').innerHTML =
+    `<span class="mu-chip-row-label">${t('music.filter_technique')}</span>` +
+    chip('all', t('music.all'), techFilter === 'all', 'setTech') +
+    TECHNIQUES.map(x => chip(x, techLabel(x), techFilter === x, 'setTech')).join('');
+}
+function setInstr(v) { instrFilter = v; renderChips(); renderGrid(); }
+function setTech(v) { techFilter = v; renderChips(); renderGrid(); }
+
+function songCardHTML(s) {
+  const instrBadges = (s.instruments || []).map(i =>
+    `<span class="badge badge-blue">${instrLabel(i)}</span>`).join('');
+  const techBadge = s.technique ? `<span class="badge badge-grey">${techLabel(s.technique)}</span>` : '';
+  return `
+    <div class="mu-card" onclick="openDetail('${s.id}')">
+      <div class="mu-card-title">${escHtml(s.title)}</div>
+      ${s.artist ? `<div class="mu-card-artist">${escHtml(s.artist)}</div>` : ''}
+      <div class="mu-card-badges">${instrBadges}${techBadge}</div>
+      ${s.song_key ? `<div class="mu-card-key">${escHtml(s.song_key)}${s.capo != null ? ` · capo ${s.capo}` : ''}</div>` : ''}
+    </div>`;
+}
+
+function renderGrid() {
+  let list = [...songs];
+  if (instrFilter !== 'all') list = list.filter(s => (s.instruments || []).includes(instrFilter));
+  if (techFilter !== 'all') list = list.filter(s => s.technique === techFilter);
+  const grid = document.getElementById('songGrid');
+  const trulyEmpty = !songs.length;
+  document.getElementById('songsEmpty').style.display = trulyEmpty ? '' : 'none';
+  if (!trulyEmpty && !list.length) {
+    grid.innerHTML = `<div class="mu-empty" style="grid-column:1/-1;padding:32px 16px"><div class="t2">${t('music.no_songs_filter')}</div></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(songCardHTML).join('');
+}
+
+// ── YouTube-embed ────────────────────────────────────────────────────────────
+function youtubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : null;
+}
+
+// ── Detalj / rediger (samme modal, alltid redigerbar) ───────────────────────
+function songById(id) { return songs.find(s => s.id === id); }
+
+function openDetail(id) {
+  editId = id;
+  const s = songById(id);
+  renderForm(s);
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function openForm(id) {
+  editId = id;
+  renderForm(id ? songById(id) : null);
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeDetail() { editId = null; document.getElementById('detailModal').classList.add('hidden'); }
+
+function renderForm(s) {
+  const instruments = new Set(s?.instruments || []);
+  const yid = s?.video_url ? youtubeId(s.video_url) : null;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="mu-m-head">
+      <div class="mu-m-title">${s ? t('music.edit_song') : t('music.new_song')}</div>
+      <button class="mu-m-close" onclick="closeDetail()">✕</button>
+    </div>
+    ${yid ? `<div class="mu-embed"><iframe src="https://www.youtube.com/embed/${yid}" title="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` : ''}
+    <div class="mu-field"><label>${t('music.field_title')}</label><input id="fTitle" value="${escHtml(s?.title || '')}"></div>
+    <div class="mu-field"><label>${t('music.field_artist')}</label><input id="fArtist" value="${escHtml(s?.artist || '')}"></div>
+    <div class="mu-field"><label>${t('music.field_instruments')}</label>
+      <div class="mu-instr-row">
+        ${INSTRUMENTS.map(i => `<button type="button" class="mu-instr-btn${instruments.has(i) ? ' on' : ''}" data-instr="${i}" onclick="this.classList.toggle('on')">${instrLabel(i)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="mu-2col">
+      <div class="mu-field"><label>${t('music.field_technique')}</label>
+        <select id="fTechnique">
+          <option value="">${t('music.technique_none')}</option>
+          ${TECHNIQUES.map(x => `<option value="${x}"${s?.technique === x ? ' selected' : ''}>${techLabel(x)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="mu-field"><label>${t('music.field_key')}</label><input id="fKey" value="${escHtml(s?.song_key || '')}"></div>
+    </div>
+    <div class="mu-field"><label>${t('music.field_capo')}</label><input id="fCapo" type="number" inputmode="numeric" value="${s?.capo ?? ''}"></div>
+    <div class="mu-field"><label>${t('music.field_video')}</label><input id="fVideo" value="${escHtml(s?.video_url || '')}" placeholder="https://youtube.com/..."></div>
+    <div class="mu-field"><label>${t('music.field_chords')}</label><input id="fChords" value="${escHtml(s?.chords_url || '')}" placeholder="https://lovsang.no/..."></div>
+    <div class="mu-field"><label>${t('music.field_notes')}</label><textarea id="fNotes" rows="2">${escHtml(s?.notes || '')}</textarea></div>
+    <div class="mu-m-actions">
+      ${s ? `<button class="btn btn-danger btn-sm" onclick="deleteSong()">${t('delete')}</button>` : ''}
+      ${s?.chords_url ? `<a class="btn btn-ghost btn-sm" href="${escHtml(s.chords_url)}" target="_blank" rel="noopener">${t('music.open_chords')}</a>` : ''}
+      ${s?.video_url ? `<a class="btn btn-ghost btn-sm" href="${escHtml(s.video_url)}" target="_blank" rel="noopener">${t('music.open_video')}</a>` : ''}
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" onclick="closeDetail()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveSong()">${t('save')}</button>
+    </div>`;
+}
+
+async function saveSong() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { toast(t('music.title_required'), 'err'); return; }
+  const instruments = [...document.querySelectorAll('.mu-instr-btn.on')].map(b => b.dataset.instr);
+  const capoVal = parseInt(document.getElementById('fCapo').value, 10);
+  const payload = {
+    title,
+    artist: document.getElementById('fArtist').value.trim() || null,
+    instruments,
+    technique: document.getElementById('fTechnique').value || null,
+    song_key: document.getElementById('fKey').value.trim() || null,
+    capo: Number.isFinite(capoVal) ? capoVal : null,
+    video_url: document.getElementById('fVideo').value.trim() || null,
+    chords_url: document.getElementById('fChords').value.trim() || null,
+    notes: document.getElementById('fNotes').value.trim() || null,
+  };
+  const { error } = editId
+    ? await db.from('songs').update(payload).eq('id', editId)
+    : await db.from('songs').insert(payload);
+  if (error) { toast(error.message, 'err'); return; }
+  toast(t('music.saved'));
+  closeDetail();
+  await loadAll();
+}
+
+async function deleteSong() {
+  if (!editId || !confirm(t('music.delete_confirm'))) return;
+  const { error } = await db.from('songs').delete().eq('id', editId);
+  if (error) { toast(error.message, 'err'); return; }
+  toast(t('music.deleted'));
+  closeDetail();
+  await loadAll();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const cfg = await getConfig();
+    db = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+  } catch (err) {
+    document.querySelector('.mu-page').innerHTML =
+      `<div class="card" style="text-align:center;padding:40px">
+        <div style="color:var(--danger);font-family:var(--font-mono);font-size:13px">${escHtml(err.message)}</div>
+      </div>`;
+    return;
+  }
+  applyLang();
+  await loadAll();
+})();
+</script>
+</body>
+</html>

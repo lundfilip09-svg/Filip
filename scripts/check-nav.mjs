@@ -16,9 +16,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = [
   'ai.html', 'dashboard.html', 'gym.html', 'sprint.html',
   'sovn.html', 'gjoremal.html', 'kalender.html', 'treningsplan.html',
-  'investments.html', 'business.html',
+  'investments.html', 'business.html', 'musikk.html',
 ];
-const NAV_PAGES = ['ai', 'dashboard', 'gym', 'sprint', 'sovn', 'gjoremal', 'kalender', 'treningsplan', 'investments', 'business'];
+const NAV_PAGES = ['ai', 'dashboard', 'gym', 'sprint', 'sovn', 'gjoremal', 'kalender', 'treningsplan', 'investments', 'business', 'musikk'];
 
 let failed = false;
 const err = (m) => { console.error('FAIL ' + m); failed = true; };
@@ -46,4 +46,4 @@ for (const frag of ['function injectNav', 'id="diaryLink"', 'id="langBtn"', 'id=
   if (!utils.includes(frag)) err(`utils.js: nav-templaten mangler «${frag}»`);
 
 if (failed) process.exit(1);
-console.log('nav OK — én kilde i utils.js, placeholder i alle 10 sider');
+console.log(`nav OK — én kilde i utils.js, placeholder i alle ${FILES.length} sider`);
