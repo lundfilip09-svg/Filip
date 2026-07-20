@@ -99,8 +99,21 @@ for i in $(seq 1 "$DAYS"); do
   if echo "$resp" | grep -q '"ok": *true'; then
     consec_fail=0
     if echo "$resp" | grep -q '"stress_curve"'; then
-      pts=$(echo "$resp" | grep -o '\[[0-9]\{10\}, *[0-9]\{1,3\}\]' | wc -l | tr -d ' ')
-      echo "OK  (~${pts} stresspunkter)"
+      # Tell punkter i stress_curve. MÅ gjøres uavhengig av linjeskift:
+      # syncen svarer med json.dumps(indent=2), som legger hvert tall i paret
+      # på sin egen linje. Et grep-mønster som forventer "[ts, lvl]" på ÉN
+      # linje matcher aldri og rapporterer 0 selv når kurven er full.
+      # python3 finnes på enhver Mac; faller tilbake til "?" hvis parsing feiler.
+      pts=$(printf '%s' "$resp" | python3 -c '
+import json,sys
+try:
+    d = json.load(sys.stdin)
+    n = sum(len(r.get("stress_curve") or []) for r in d.get("saved") or [])
+    print(n)
+except Exception:
+    print("?")
+' 2>/dev/null || echo "?")
+      echo "OK  (${pts} stresspunkter)"
       ok=$((ok+1))
     else
       echo "OK, men ingen stressdata (klokka av / ikke båret?)"
