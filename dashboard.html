@@ -322,16 +322,13 @@
     .sc2-alert-text strong { color: var(--text-primary); font-weight: 600; }
 
     /* ── Rest day block ── */
-    .sc2-rest-wrap { display: flex; flex-direction: column; gap: 10px; }
-    .sc2-rest-row {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 7px 10px; border-radius: 8px;
-      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    /* Ukestripa inne i Dagens økt-kortet — skilles med en tynn linje */
+    .dash-week-inline {
+      margin-top: 18px; padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
     }
-    .sc2-rest-icon { font-size: 13px; line-height: 1.4; flex-shrink: 0; }
-    .sc2-rest-body { flex: 1; }
-    .sc2-rest-title { font-size: 11.5px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
-    .sc2-rest-sub   { font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.03em; }
+    .dash-week-inline .oversikt-footer { margin-top: 12px; }
+
     .sc2-next-focus {
       font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em;
       text-transform: uppercase; color: var(--text-tertiary);
@@ -688,7 +685,7 @@
 
   <div class="dash-lower">
 
-  <!-- ══════════════════  DAGENS ØKT  ══════════════════ -->
+  <!-- ══════════════  DAGENS ØKT + DENNE UKEN (slått sammen)  ══════════════ -->
   <div class="os-label">
     <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
     <div class="os-label-text" data-i18n="dash.session">Dagens økt</div>
@@ -704,21 +701,15 @@
       <span class="sk sk-block" style="width:55%;height:11px;margin-bottom:14px"></span>
       <span class="sk sk-block" style="width:110px;height:34px;border-radius:8px"></span>
     </div>
-  </div>
 
-  <!-- ══════════════════  OVERSIKT  ══════════════════ -->
-  <div class="os-label">
-    <div class="os-label-dot" style="background:rgba(91,164,245,0.65);box-shadow:0 0 7px rgba(91,164,245,0.35)"></div>
-    <div class="os-label-text" data-i18n="dash.overview">Oversikt</div>
-    <div class="os-label-line"></div>
-  </div>
-
-  <!-- Week strip -->
-  <div class="card">
-    <div class="section-title" data-i18n="dash.this_week">Denne uken</div>
-    <div class="week-strip" id="weekStrip"></div>
-    <div class="oversikt-footer">
-      <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
+    <!-- Ukestripa: SØSKEN av #sessionCard, ikke barn — loadSession()
+         overskriver #sessionCard.innerHTML og ville ellers slettet stripa. -->
+    <div class="dash-week-inline">
+      <div class="section-title" data-i18n="dash.this_week">Denne uken</div>
+      <div class="week-strip" id="weekStrip"></div>
+      <div class="oversikt-footer">
+        <a href="treningsplan.html" class="link-ghost"><span data-i18n="dash.full_overview">Full treningsoversikt →</span></a>
+      </div>
     </div>
   </div>
 
@@ -1569,30 +1560,7 @@ function loadSession() {
       <div class="session-name-big" style="color:var(--text-secondary)">${t('dash.recovery_day')}</div>
       <div class="session-meta-sm" style="margin-bottom:10px">${t('dash.no_session')}</div>
 
-      <div class="sc2-rest-wrap">
-        <div class="sc2-rest-row">
-          <div class="sc2-rest-icon">🦵</div>
-          <div class="sc2-rest-body">
-            <div class="sc2-rest-title">${t('dash.rest_mobility')}</div>
-            <div class="sc2-rest-sub">${t('dash.rest_mobility_sub')}</div>
-          </div>
-        </div>
-        <div class="sc2-rest-row">
-          <div class="sc2-rest-icon">🚶</div>
-          <div class="sc2-rest-body">
-            <div class="sc2-rest-title">${t('dash.rest_walk')}</div>
-            <div class="sc2-rest-sub">${t('dash.rest_walk_sub')}</div>
-          </div>
-        </div>
-        <div class="sc2-rest-row">
-          <div class="sc2-rest-icon">🌙</div>
-          <div class="sc2-rest-body">
-            <div class="sc2-rest-title">${t('dash.rest_sleep_goal')}</div>
-            <div class="sc2-rest-sub">${t('dash.rest_sleep_sub')}</div>
-          </div>
-        </div>
-        ${!tmrwIsRest ? `<div class="sc2-next-focus">${tmrwTxt || t('dash.training_day')}</div>` : ''}
-      </div>`;
+      ${!tmrwIsRest ? `<div class="sc2-next-focus">${t('dash.tomorrow')}: ${escHtml(tmrwTxt) || t('dash.training_day')}</div>` : ''}`;
     return { isRest: true };
   }
 
