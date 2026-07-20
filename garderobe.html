@@ -133,6 +133,24 @@
     .wd-field label { display: block; font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; font-family: var(--font-mono); }
     .wd-field input, .wd-field select, .wd-field textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-md); color: var(--text-primary); padding: 9px 11px; font-size: 13px; font-family: inherit; }
     .wd-field input:focus, .wd-field select:focus, .wd-field textarea:focus { outline: none; border-color: rgba(91,164,245,0.5); }
+    /* ── Farge: prøve + pipette + palett ── */
+    .wd-color-row { display: flex; gap: 8px; align-items: center; }
+    .wd-color-row input { flex: 1; }
+    .wd-swatch { width: 30px; height: 30px; flex-shrink: 0; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%, transparent 75%, var(--surface-3) 75%), linear-gradient(45deg, var(--surface-3) 25%, transparent 25%, transparent 75%, var(--surface-3) 75%); background-size: 10px 10px; background-position: 0 0, 5px 5px; }
+    .wd-pick-hint { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); margin-top: 5px; min-height: 13px; }
+    .wd-palette { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+    .wd-pal { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--hairline); cursor: pointer; padding: 0; transition: transform 0.1s; }
+    .wd-pal:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.4); }
+    /* Krysshår mens pipetten er aktiv — signaliserer at bildet er klikkbart. */
+    .wd-dimg.picking { outline: 1.5px solid var(--accent-blue); outline-offset: -1px; }
+    .wd-dimg.picking img { cursor: crosshair; }
+
+    /* ── Størrelsesknapper ── */
+    .wd-sizes { display: flex; gap: 4px; flex-wrap: wrap; }
+    .wd-size { border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text-secondary); font-size: 11.5px; font-family: inherit; padding: 6px 9px; border-radius: var(--radius-sm); cursor: pointer; min-width: 32px; transition: background 0.12s, border-color 0.12s; }
+    .wd-size:hover { background: var(--surface-3); }
+    .wd-size.on { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); font-weight: 600; }
+
     .wd-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .wd-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     @media (max-width: 480px) { .wd-3col { grid-template-columns: 1fr 1fr; } }
@@ -306,6 +324,92 @@ const CAT_ORDER = { outerwear: 0, top: 1, bottom: 2, shoes: 3, accessory: 4 };
 const CAT_ICON = { top: '👕', bottom: '👖', outerwear: '🧥', shoes: '👟', accessory: '🧢' };
 const SEASONS = ['summer','autumn_spring','winter'];
 const OCCASIONS = ['everyday','school','church','training','party','dressy'];
+
+// Underkategorier per hovedkategori. Kuratert for Filips faktiske garderobe
+// (sprint + skole + kirke), ikke en generisk nettbutikkmeny — «piggsko» finnes,
+// «frakk»/«badetøy» gjør ikke. Lagres som nøkkel-suffiks i garments.subcategory.
+const SUBCATS = {
+  top:       ['tshirt','polo','shirt','sweater','hoodie','tank','trainingtop'],
+  bottom:    ['jeans','chinos','joggers','shorts','trainingshorts','tights'],
+  outerwear: ['jacket','windbreaker','raincoat','winterjacket','blazer'],
+  shoes:     ['sneakers','running','spikes','formal','sandals'],
+  accessory: ['cap','beanie','belt','socks','scarf','bag','jewelry'],
+};
+const subLabel = s => s ? t('wd.sub_' + s) : '';
+
+// Størrelse er kontekstavhengig: sko måles i EU-tall, jeans i livvidde
+// (tommer), alt annet i bokstavstørrelser. Feil enhet er verre enn ingen —
+// «sko: L» er meningsløst for en trener som skal låne deg utstyr.
+const SIZES_LETTER = ['XS','S','M','L','XL','XXL'];
+const SIZES_EU     = ['38','39','40','41','42','43','44','45','46','47'];
+const SIZES_WAIST  = ['28','29','30','31','32','33','34','36'];
+function sizeOptions(cat, sub) {
+  if (cat === 'shoes') return { list: SIZES_EU, label: t('wd.size_eu') };
+  if (sub === 'jeans' || sub === 'chinos') return { list: SIZES_WAIST, label: t('wd.size_waist') };
+  return { list: SIZES_LETTER, label: t('wd.size') };
+}
+
+// Merker: bredt utvalg, søkbart via <datalist>. Fritekst er fortsatt lov —
+// listen er et forslag, ikke en tvangstrøye (nye merker dukker stadig opp).
+const BRANDS = [
+  'Nike','Nike SB','Nike ACG','Adidas','Adidas Originals','Puma','Reebok','ASICS','New Balance',
+  'Under Armour','Hoka','Saucony','Brooks','On Running','Salomon','Mizuno','Converse','Vans',
+  'Jordan','Champion','Fila','Kappa','Umbro','Lacoste','Ellesse','Sergio Tacchini',
+  'Norrøna','Helly Hansen','Bergans','Devold','Kari Traa','Johaug','Swix','Dæhlie','Stormberg',
+  'Bik Bok','Cubus','Dressmann','Carlings','Volt','Match','Lindex','Kappahl','Gina Tricot',
+  'Samsøe Samsøe','Wood Wood','Norse Projects','NN07','Mads Nørgaard','Les Deux','Elvine',
+  'Holzweiler','Livid Jeans','Anerkjendt','Solid','Only & Sons','Jack & Jones','Selected Homme',
+  'H&M','Zara','Uniqlo','Weekday','Monki','Pull & Bear','Bershka','Stradivarius','COS',
+  'Arket','& Other Stories','Mango','Massimo Dutti','Primark','Urban Outfitters',
+  'Levi\'s','Wrangler','Lee','Diesel','G-Star RAW','Nudie Jeans','Dr. Denim','Cheap Monday',
+  'Tommy Hilfiger','Calvin Klein','Ralph Lauren','Polo Ralph Lauren','U.S. Polo Assn.',
+  'Hugo Boss','Armani','Emporio Armani','Gant','Tiger of Sweden','J.Lindeberg','Peak Performance',
+  'The North Face','Patagonia','Columbia','Jack Wolfskin','Arc\'teryx','Fjällräven','Didriksons',
+  'Carhartt','Carhartt WIP','Dickies','Timberland','Wrangler Workwear',
+  'Stüssy','Supreme','Palace','Obey','Thrasher','Santa Cruz','Element','Quiksilver','Billabong',
+  'Rip Curl','Volcom','DC Shoes','Etnies','Nike Skateboarding',
+  'Represent','Gymshark','Alphalete','Ryderwear','Better Bodies','ICIW','NEBBIA','Bodybuilding',
+  'Lululemon','Sweaty Betty','Castore','Hummel','Errea','Joma','Macron','Craft','Newline',
+  'Ecco','Vagabond','Bianco','Clarks','Dr. Martens','Birkenstock','Crocs','Skechers','Merrell',
+  'Ray-Ban','Oakley','Casio','Garmin','Polar','Suunto','Fossil','Daniel Wellington','Cluse',
+  'Eastpak','Herschel','Fjällräven Kånken','JanSport','Osprey','Deuter','Thule',
+  'Zalando','Bootcut','Ukjent',
+];
+
+// Kuratert klesfarge-palett. Brukes både som manuelt valg (plagg uten bilde)
+// og som ordbok for å gi pipettens hex et LESBART navn — «Marineblå» sier mer
+// til en AI eller en trener enn «#1f2d4a».
+const COLORS = [
+  ['black','#111111'], ['white','#f5f5f2'], ['grey','#808080'], ['lightgrey','#c9c9c9'],
+  ['navy','#1f2d4a'], ['blue','#2f6fbd'], ['lightblue','#8fc0e8'],
+  ['red','#c0362c'], ['burgundy','#6b1f2e'], ['pink','#e8a0b8'],
+  ['green','#3f7d4f'], ['olive','#6b6b3a'], ['beige','#d8c9ab'],
+  ['brown','#6b4a2f'], ['cream','#efe4cd'], ['yellow','#e3c53f'],
+  ['orange','#d97b2b'], ['purple','#6b4a8f'],
+];
+const colorLabel = key => t('wd.c_' + key);
+
+const hexToRgb = h => {
+  const n = parseInt(h.replace('#',''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const rgbToHex = (r,g,b) =>
+  '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+
+// Nærmeste palettfarge i vektet RGB. Vektene (2,4,3) approksimerer hvordan
+// øyet oppfatter forskjeller — grønt teller mest — så «nesten svart marineblå»
+// havner på navy og ikke på black.
+function nearestColorName(hex) {
+  const [r,g,b] = hexToRgb(hex);
+  let best = null, bestD = Infinity;
+  for (const [key, ph] of COLORS) {
+    const [pr,pg,pb] = hexToRgb(ph);
+    const d = 2*(r-pr)**2 + 4*(g-pg)**2 + 3*(b-pb)**2;
+    if (d < bestD) { bestD = d; best = key; }
+  }
+  return best;
+}
+
 const catLabel = c => t('wd.cat_' + c);
 const seasonLabel = s => t('wd.season_' + s);
 const occLabel = o => t('wd.occ_' + o);
@@ -424,7 +528,7 @@ function garmentCardHTML(g) {
       <div class="wd-card-img">${garmentImgHTML(g)}</div>
       <div class="wd-card-body">
         <div class="wd-card-name">${escHtml(g.name)}</div>
-        <div class="wd-card-meta">${escHtml([catLabel(g.category), g.brand, g.color].filter(Boolean).join(' · '))}</div>
+        <div class="wd-card-meta">${escHtml([subLabel(g.subcategory) || catLabel(g.category), g.brand, g.color].filter(Boolean).join(' · '))}</div>
       </div>
     </div>`;
 }
@@ -821,18 +925,37 @@ function openDetail(id) {
       <div class="wd-m-title">${escHtml(g.name)}</div>
       <button class="wd-m-close" onclick="closeDetail()">✕</button>
     </div>
-    <div class="wd-dimg">${garmentImgHTML(g)}</div>
+    <div class="wd-dimg" id="dImgWrap">${garmentImgHTML(g)}</div>
     <div class="wd-usage">${usage}</div>
     <div class="wd-field"><label>${t('wd.name')}</label><input id="dName" value="${escHtml(g.name)}"></div>
     <div class="wd-2col">
       <div class="wd-field"><label>${t('wd.category')}</label>
-        <select id="dCat">${CATS.map(c => `<option value="${c}"${g.category === c ? ' selected' : ''}>${catLabel(c)}</option>`).join('')}</select>
+        <select id="dCat" onchange="onCatChange(this.value)">${CATS.map(c => `<option value="${c}"${g.category === c ? ' selected' : ''}>${catLabel(c)}</option>`).join('')}</select>
       </div>
-      <div class="wd-field"><label>${t('wd.color')}</label><input id="dColor" value="${escHtml(g.color || '')}"></div>
+      <div class="wd-field"><label>${t('wd.subcategory')}</label>
+        <select id="dSub" onchange="onSubChange()">${subOptionsHTML(g.category, g.subcategory)}</select>
+      </div>
+    </div>
+    <div class="wd-field">
+      <label>${t('wd.color')}</label>
+      <div class="wd-color-row">
+        <span class="wd-swatch" id="dSwatch" style="background:${escHtml(g.color_hex || 'transparent')}"></span>
+        <input id="dColor" value="${escHtml(g.color || '')}" placeholder="${t('wd.color')}">
+        <button type="button" class="btn btn-ghost btn-sm" id="dPickBtn" onclick="startPick()">🎨</button>
+      </div>
+      <div class="wd-pick-hint" id="dPickHint"></div>
+      <div class="wd-palette" id="dPalette">${COLORS.map(([k,h]) =>
+        `<button type="button" class="wd-pal" title="${escHtml(colorLabel(k))}" style="background:${h}" onclick="setColor('${h}','${k}')"></button>`).join('')}</div>
     </div>
     <div class="wd-3col">
-      <div class="wd-field"><label>${t('wd.brand')}</label><input id="dBrand" value="${escHtml(g.brand || '')}"></div>
-      <div class="wd-field"><label>${t('wd.size')}</label><input id="dSize" value="${escHtml(g.size || '')}"></div>
+      <div class="wd-field"><label>${t('wd.brand')}</label>
+        <input id="dBrand" list="brandList" value="${escHtml(g.brand || '')}" autocomplete="off">
+        <datalist id="brandList">${BRANDS.map(b => `<option value="${escHtml(b)}"></option>`).join('')}</datalist>
+      </div>
+      <div class="wd-field"><label id="dSizeLabel">${t('wd.size')}</label>
+        <div class="wd-sizes" id="dSizes"></div>
+        <input type="hidden" id="dSize" value="${escHtml(g.size || '')}">
+      </div>
       <div class="wd-field"><label>${t('wd.price')}</label><input id="dPrice" type="number" inputmode="decimal" value="${g.price ?? ''}"></div>
     </div>
     <div class="wd-field"><label>${t('wd.notes')}</label><textarea id="dNotes" rows="2">${escHtml(g.notes || '')}</textarea></div>
@@ -844,17 +967,153 @@ function openDetail(id) {
       <button class="btn btn-primary" onclick="saveDetail()">${t('save')}</button>
     </div>`;
   document.getElementById('detailModal').classList.remove('hidden');
+  renderSizes();
 }
-function closeDetail() { detailId = null; document.getElementById('detailModal').classList.add('hidden'); }
+function closeDetail() {
+  cancelPick();
+  detailId = null;
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+// ── Type / størrelse ────────────────────────────────────────────────────────
+function subOptionsHTML(cat, cur) {
+  return `<option value="">${t('wd.sub_none')}</option>` +
+    (SUBCATS[cat] || []).map(s =>
+      `<option value="${s}"${cur === s ? ' selected' : ''}>${subLabel(s)}</option>`).join('');
+}
+
+// Bytte av hovedkategori tømmer typen — «piké» under «sko» gir ingen mening.
+function onCatChange(cat) {
+  document.getElementById('dSub').innerHTML = subOptionsHTML(cat, null);
+  renderSizes();
+}
+function onSubChange() { renderSizes(); }
+
+// Størrelsesknapper. Skifter enhet med kategori/type; ugyldig gammel verdi
+// (f.eks. «L» på et par sko) faller bort i stedet for å vises som aktiv.
+function renderSizes() {
+  const cat = document.getElementById('dCat').value;
+  const sub = document.getElementById('dSub').value;
+  const { list, label } = sizeOptions(cat, sub);
+  const cur = document.getElementById('dSize').value;
+  document.getElementById('dSizeLabel').textContent = label;
+  document.getElementById('dSizes').innerHTML = list.map(s =>
+    `<button type="button" class="wd-size${s === cur ? ' on' : ''}" onclick="setSize('${s}')">${s}</button>`).join('');
+}
+function setSize(s) {
+  const el = document.getElementById('dSize');
+  el.value = el.value === s ? '' : s;   // klikk på aktiv = fjern
+  renderSizes();
+}
+
+function setColor(hex, key) {
+  document.getElementById('dSwatch').style.background = hex;
+  document.getElementById('dColor').value = key ? colorLabel(key) : hex;
+  document.getElementById('dColor').dataset.hex = hex;
+}
+
+// ── Fargepipette ────────────────────────────────────────────────────────────
+// Bildet ligger på en signert Supabase-URL (annen origin) → <img> i DOM kan
+// ikke leses med getImageData. Vi laster det derfor på nytt med
+// crossOrigin='anonymous' (Supabase Storage svarer med CORS *) inn i et
+// off-screen canvas, og sampler derfra. Samme triks som shareOutfitImage().
+let _pick = null;   // { canvas, ctx, img, wrap, onMove, onClick }
+
+async function startPick() {
+  const g = garmentById(detailId);
+  const hint = document.getElementById('dPickHint');
+  const url = g && imgUrl(g.image_path);
+  if (!url) { hint.textContent = t('wd.pick_no_img'); return; }
+  if (_pick) { cancelPick(); return; }
+  try {
+    const img = await loadImgCORS(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    ctx.getImageData(0, 0, 1, 1);            // trigger CORS-feil tidlig, ikke ved klikk
+    const wrap = document.getElementById('dImgWrap');
+    const domImg = wrap.querySelector('img');
+    if (!domImg) { hint.textContent = t('wd.pick_no_img'); return; }
+    wrap.classList.add('picking');
+    hint.textContent = t('wd.picking');
+    document.getElementById('dPickBtn').textContent = '✕';
+
+    // Skjermkoordinat → pikselkoordinat. object-fit:contain gir letterboxing,
+    // så vi må regne ut hvor bildet FAKTISK ligger inni <img>-boksen.
+    const toPixel = ev => {
+      const r = domImg.getBoundingClientRect();
+      const s = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight);
+      const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+      const x = (ev.clientX - (r.left + (r.width - dw) / 2)) / s;
+      const y = (ev.clientY - (r.top + (r.height - dh) / 2)) / s;
+      if (x < 0 || y < 0 || x >= img.naturalWidth || y >= img.naturalHeight) return null;
+      return [Math.floor(x), Math.floor(y)];
+    };
+
+    // 9×9-snitt i stedet for én piksel: folder og skygger gjør enkeltpiksler
+    // upålitelige. Transparente piksler (bakgrunnsfjerning) hoppes over.
+    const sample = (px, py) => {
+      const R = 4;
+      const x0 = Math.max(0, px - R), y0 = Math.max(0, py - R);
+      const w = Math.min(canvas.width, px + R + 1) - x0;
+      const h = Math.min(canvas.height, py + R + 1) - y0;
+      const { data } = ctx.getImageData(x0, y0, w, h);
+      let r = 0, gg = 0, b = 0, n = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue;
+        r += data[i]; gg += data[i + 1]; b += data[i + 2]; n++;
+      }
+      return n ? rgbToHex(r / n, gg / n, b / n) : null;
+    };
+
+    const onMove = ev => {
+      const p = toPixel(ev);
+      const hex = p && sample(p[0], p[1]);
+      if (hex) document.getElementById('dSwatch').style.background = hex;
+    };
+    const onClick = ev => {
+      const p = toPixel(ev);
+      const hex = p && sample(p[0], p[1]);
+      if (!hex) return;
+      setColor(hex, nearestColorName(hex));
+      cancelPick();
+    };
+    domImg.addEventListener('mousemove', onMove);
+    domImg.addEventListener('click', onClick);
+    _pick = { wrap, domImg, onMove, onClick };
+  } catch (e) {
+    hint.textContent = t('wd.pick_failed');
+  }
+}
+
+function cancelPick() {
+  if (!_pick) return;
+  _pick.domImg.removeEventListener('mousemove', _pick.onMove);
+  _pick.domImg.removeEventListener('click', _pick.onClick);
+  _pick.wrap.classList.remove('picking');
+  const hint = document.getElementById('dPickHint');
+  const btn = document.getElementById('dPickBtn');
+  if (hint) hint.textContent = '';
+  if (btn) btn.textContent = '🎨';
+  // Prøvefargen fra hover skal ikke bli hengende igjen hvis brukeren avbryter.
+  const g = garmentById(detailId);
+  const sw = document.getElementById('dSwatch');
+  if (sw) sw.style.background = document.getElementById('dColor')?.dataset.hex || g?.color_hex || 'transparent';
+  _pick = null;
+}
 
 async function saveDetail() {
   const g = garmentById(detailId);
   if (!g) return;
   const priceNum = parseFloat(document.getElementById('dPrice').value);
+  const colorEl = document.getElementById('dColor');
   const upd = {
     name: document.getElementById('dName').value.trim() || g.name,
     category: document.getElementById('dCat').value,
-    color: document.getElementById('dColor').value.trim() || null,
+    subcategory: document.getElementById('dSub').value || null,
+    color: colorEl.value.trim() || null,
+    color_hex: colorEl.dataset.hex || g.color_hex || null,
     brand: document.getElementById('dBrand').value.trim() || null,
     size: document.getElementById('dSize').value.trim() || null,
     price: Number.isFinite(priceNum) ? priceNum : null,
@@ -1013,7 +1272,10 @@ async function writeClip(text) {
 const SEP = '─'.repeat(40);
 
 function garmentLine(g, i) {
-  const meta = [g.brand, g.size, g.color].filter(Boolean).join(' · ');
+  // Type + hex tas med: en AI eller trener får langt mer ut av
+  // «Piké — Lacoste · M · Marineblå (#1f2d4a)» enn av bare navnet.
+  const col = g.color && g.color_hex ? `${g.color} (${g.color_hex})` : (g.color || '');
+  const meta = [subLabel(g.subcategory), g.brand, g.size, col].filter(Boolean).join(' · ');
   const note = g.notes ? ` (${g.notes})` : '';
   return `  ${i + 1}. ${g.name}${meta ? ' — ' + meta : ''}${note}`;
 }
