@@ -15,7 +15,7 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .wd-page { max-width: 1280px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; }
+    .wd-page { max-width: 1100px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; }
     @media (max-width: 640px) { .wd-page { padding: 18px 16px 96px; } }
 
     /* ── Header ── */
@@ -33,6 +33,10 @@
     }
     .wd-sidebar::-webkit-scrollbar { display: none; }
     @media (max-width: 900px) { .wd-shell { grid-template-columns: 1fr; } .wd-sidebar { position: static; max-height: none; } }
+    /* Tomt skap → sidebaren har ingenting å vise (bare "Ingen data"-linjer).
+       Skjul den og la hovedområdet gå full bredde. Settes av renderSidebar(). */
+    .wd-shell.wd-solo { grid-template-columns: 1fr; }
+    .wd-shell.wd-solo .wd-sidebar { display: none; }
 
     .wd-side-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 10px; }
     .wd-stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--hairline-soft); font-size: 12.5px; }
@@ -94,13 +98,14 @@
     .wd-otag.season { background: rgba(91,164,245,0.10); border-color: rgba(91,164,245,0.3); color: var(--accent-blue); }
 
     /* ── Tom-tilstand ── */
-    .wd-empty { text-align: center; padding: 64px 20px 56px; color: var(--text-tertiary); }
-    .wd-empty-icon { width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 22px; background: rgba(91,164,245,0.035); border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
-    .wd-empty-icon svg { width: 38px; height: 38px; stroke: var(--accent-blue); opacity: 0.85; }
+    /* Venstrejustert og bredde-begrenset — se samme mønster i musikk.html. */
+    .wd-empty { text-align: left; max-width: 480px; padding: 40px 0 48px; color: var(--text-tertiary); }
+    .wd-empty-icon { width: 64px; height: 64px; margin: 0 0 18px; border-radius: 18px; background: rgba(91,164,245,0.035); border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
+    .wd-empty-icon svg { width: 30px; height: 30px; stroke: var(--accent-blue); opacity: 0.85; }
     .wd-empty .t1 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.01em; }
-    .wd-empty .t2 { font-size: 13px; max-width: 340px; margin: 0 auto; line-height: 1.6; }
+    .wd-empty .t2 { font-size: 13px; margin: 0; line-height: 1.6; }
     .wd-empty .btn { margin-top: 20px; }
-    .wd-suggest { max-width: 320px; margin: 26px auto 0; padding-top: 20px; border-top: 1px solid var(--hairline-soft); text-align: left; }
+    .wd-suggest { max-width: 320px; margin: 26px 0 0; padding-top: 20px; border-top: 1px solid var(--hairline-soft); text-align: left; }
     .wd-suggest-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); margin-bottom: 8px; }
     .wd-suggest-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 12.5px; color: var(--text-secondary); transition: background 0.12s, color 0.12s; }
     .wd-suggest-item:hover { background: var(--surface-2); color: var(--text-primary); }
@@ -440,6 +445,10 @@ function relTime(iso) {
 
 function renderSidebar() {
   const vis = garments.filter(g => !g.archived);
+  // Helt tomt skap OG ingen antrekk → sidebaren viser bare nuller og
+  // "Ingen data". Skjul den så tom-tilstanden får full bredde.
+  document.querySelector('.wd-shell')
+    .classList.toggle('wd-solo', !garments.length && !outfits.length);
   const totalValue = vis.reduce((s, g) => s + (Number(g.price) || 0), 0);
   const cnt = c => vis.filter(g => g.category === c).length;
   const mostStocked = CATS.map(c => ({ c, n: cnt(c) })).sort((a, b) => b.n - a.n)[0];
