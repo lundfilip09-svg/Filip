@@ -51,6 +51,17 @@ consec_fail=0
 # sier hva som er galt. Uten dette bruker scriptet 4 minutter på å feile 30
 # ganger på rad med en rå Postgres-traceback — som er nøyaktig det som skjedde
 # første gang: deploy skjedde før migrasjon 075 var kjørt.
+# is_schema_error <respons> → 0 hvis responsen er en ekte "kolonnen mangler"-feil.
+#
+# MÅ kalles først etter at "ok": true er utelukket, og MÅ aldri matche på
+# feltnavnet stress_curve. Første versjon gjorde nettopp det — og siden en
+# VELLYKKET henting returnerer "stress_curve": [[...]] som data, slo detektoren
+# ut på suksess og påsto at migrasjonen manglet. Migrasjonen var kjørt hele
+# tiden. Match kun på Postgres/PostgREST sine faktiske feilkoder.
+is_schema_error() {
+  echo "$1" | grep -qi 'PGRST204\|42703\|schema cache\|does not exist\|Could not find the .* column'
+}
+
 schema_hint() {
   cat >&2 <<'MSG'
 
@@ -70,7 +81,7 @@ MSG
 # i stedet for etter 30 kall. Dagen telles ikke med — løkka henter den uansett.
 printf 'Preflight (%s)  ' "$(date_n_days_ago 1)"
 pre=$(curl -sS --max-time 120 "${DOMAIN}/api/garmin-sync?date=$(date_n_days_ago 1)&force=1${KEY_PARAM}" 2>&1)
-if echo "$pre" | grep -qi "stress_curve\|PGRST204\|42703\|schema cache"; then
+if ! echo "$pre" | grep -q '"ok": *true' && is_schema_error "$pre"; then
   echo "FEIL (skjema)"
   schema_hint
   exit 2
@@ -107,7 +118,7 @@ for i in $(seq 1 "$DAYS"); do
     consec_fail=$((consec_fail+1))
 
     # Manglende kolonne: feiler likt for hver eneste dag. Stopp umiddelbart.
-    if echo "$resp" | grep -qi "stress_curve\|PGRST204\|42703\|schema cache"; then
+    if is_schema_error "$resp"; then
       echo "FEIL (skjema)"
       schema_hint
       exit 2
