@@ -20,6 +20,7 @@ import json
 import os
 import datetime
 import urllib.request
+import urllib.error
 import traceback
 
 DESKTOP_UA = (
@@ -254,8 +255,20 @@ def save_to_supabase(row):
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        return resp.status
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        # urlopen kaster på 4xx/5xx og forkaster responskroppen — som er der
+        # PostgREST faktisk forklarer hva som er galt ("column X does not
+        # exist", PGRST204, ...). Uten dette bobler kun "HTTP Error 400: Bad
+        # Request" opp, og en manglende migrasjon ser identisk ut som en
+        # ugyldig verdi. Les kroppen og ta den med i feilmeldingen.
+        try:
+            detail = e.read().decode("utf-8", "replace")[:500]
+        except Exception:
+            detail = "(kunne ikke lese responskropp)"
+        raise RuntimeError(f"Supabase {e.code}: {detail}") from None
 
 
 def already_has_sleep(date_str):

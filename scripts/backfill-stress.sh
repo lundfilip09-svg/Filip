@@ -45,6 +45,45 @@ echo "Pause mellom kall: ${PAUSE}s → estimert $(( DAYS * PAUSE / 60 )) min $((
 echo
 
 ok=0; fail=0; nostress=0
+consec_fail=0
+
+# Kjenner igjen "kolonnen finnes ikke"-feilen og stopper med en beskjed som
+# sier hva som er galt. Uten dette bruker scriptet 4 minutter på å feile 30
+# ganger på rad med en rå Postgres-traceback — som er nøyaktig det som skjedde
+# første gang: deploy skjedde før migrasjon 075 var kjørt.
+schema_hint() {
+  cat >&2 <<'MSG'
+
+  ── STOPP: databasen mangler stress_curve-kolonnen ──────────────────────
+  Migrasjon 075 er ikke kjørt ennå. Kjør denne i Supabase SQL Editor:
+
+      ALTER TABLE public.health_data ADD COLUMN IF NOT EXISTS stress_curve jsonb;
+
+  Kjør så dette scriptet på nytt. force=1 gjør det trygt å gjenta dagene
+  som allerede gikk gjennom.
+  ────────────────────────────────────────────────────────────────────────
+MSG
+}
+
+# ── Preflight ──────────────────────────────────────────────────────────────
+# Henter i går ÉN gang før løkka. Er skjemaet feil, oppdages det på sekund 1
+# i stedet for etter 30 kall. Dagen telles ikke med — løkka henter den uansett.
+printf 'Preflight (%s)  ' "$(date_n_days_ago 1)"
+pre=$(curl -sS --max-time 120 "${DOMAIN}/api/garmin-sync?date=$(date_n_days_ago 1)&force=1${KEY_PARAM}" 2>&1)
+if echo "$pre" | grep -qi "stress_curve\|PGRST204\|42703\|schema cache"; then
+  echo "FEIL (skjema)"
+  schema_hint
+  exit 2
+fi
+if ! echo "$pre" | grep -q '"ok": *true'; then
+  echo "FEIL"
+  echo "$pre" | head -c 400 | sed 's/^/      /'
+  echo >&2
+  echo "  Preflight feilet — avbryter før backfillen starter." >&2
+  exit 3
+fi
+echo "OK"
+echo
 
 # Start på i går (dag 1) — i dag er ufullstendig og hentes uansett 07:45.
 for i in $(seq 1 "$DAYS"); do
@@ -54,6 +93,7 @@ for i in $(seq 1 "$DAYS"); do
   resp=$(curl -sS --max-time 120 "${DOMAIN}/api/garmin-sync?date=${d}&force=1${KEY_PARAM}" 2>&1)
 
   if echo "$resp" | grep -q '"ok": *true'; then
+    consec_fail=0
     if echo "$resp" | grep -q '"stress_curve"'; then
       pts=$(echo "$resp" | grep -o '\[[0-9]\{10\}, *[0-9]\{1,3\}\]' | wc -l | tr -d ' ')
       echo "OK  (~${pts} stresspunkter)"
@@ -63,10 +103,28 @@ for i in $(seq 1 "$DAYS"); do
       nostress=$((nostress+1))
     fi
   else
+    fail=$((fail+1))
+    consec_fail=$((consec_fail+1))
+
+    # Manglende kolonne: feiler likt for hver eneste dag. Stopp umiddelbart.
+    if echo "$resp" | grep -qi "stress_curve\|PGRST204\|42703\|schema cache"; then
+      echo "FEIL (skjema)"
+      schema_hint
+      exit 2
+    fi
+
     echo "FEIL"
     echo "$resp" | head -c 300 | sed 's/^/      /'
     echo
-    fail=$((fail+1))
+
+    # Generisk sikring: 5 på rad betyr noe systemisk (nede, utlogget,
+    # rate-limited), ikke en enkelt dårlig dag. Ikke bruk 4 min på å bekrefte.
+    if [ "$consec_fail" -ge 5 ]; then
+      echo >&2
+      echo "  ── STOPP: 5 feil på rad. Noe systemisk er galt (Vercel nede," >&2
+      echo "     Garmin-utlogging eller rate limit). Sjekk feilen over." >&2
+      exit 3
+    fi
   fi
 
   [ "$i" -lt "$DAYS" ] && sleep "$PAUSE"
