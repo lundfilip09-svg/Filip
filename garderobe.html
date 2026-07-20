@@ -19,7 +19,11 @@
     @media (max-width: 640px) { .wd-page { padding: 18px 16px 96px; } }
 
     /* ── Header ── */
-    .wd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 22px; flex-wrap: wrap; }
+    .wd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 16px; flex-wrap: wrap; }
+    /* Kortavstand i hovedkolonnen — matcher .page sin gap i styles.css. */
+    .wd-main > div > .card { margin-bottom: 16px; }
+    .wd-main > div > .card:last-child { margin-bottom: 0; }
+    .wd-filter-card { padding: 14px 16px; }
     .wd-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
     .wd-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; font-family: var(--font-mono); }
 
@@ -61,16 +65,19 @@
     .wd-tab.active { background: var(--surface-3); color: var(--text-primary); }
 
     /* ── Filter-chips ── */
-    .wd-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
-    .wd-chip { border: 1px solid var(--hairline); background: var(--surface-1); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
-    .wd-chip:hover { background: var(--surface-2); border-color: rgba(255,255,255,0.16); }
+    .wd-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+    .wd-filter-card .wd-chips + .wd-chips { margin-top: 10px; }
+    .wd-chip { border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .wd-chip:hover { background: var(--surface-3); border-color: rgba(255,255,255,0.16); }
     .wd-chip.active { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
     .wd-chip .n { font-family: var(--font-mono); font-size: 10px; opacity: 0.75; margin-left: 4px; }
     .wd-chip-row-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 2px; font-family: var(--font-mono); }
 
     /* ── Plagg-grid ── */
     .wd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 14px; }
-    .wd-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    /* surface-2: plagg-/antrekk-kort ligger nå inni et .card og må skille seg
+       fra kortflaten under (surface-1 er samme farge som --card-bg). */
+    .wd-card { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
     .wd-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
     .wd-card-img { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; background: var(--surface-2); padding: 14px; }
     .wd-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -82,7 +89,7 @@
 
     /* ── Antrekk-kort ── */
     .wd-ogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .wd-ocard { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+    .wd-ocard { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
     .wd-ocard:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
     .wd-ocard-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
     .wd-ocard-name { font-size: 13.5px; font-weight: 650; }
@@ -193,7 +200,11 @@
   <div class="wd-shell">
     <div class="wd-main">
       <div id="closetView">
-        <div class="wd-chips" id="catChips"></div>
+        <div class="card wd-filter-card">
+          <div class="wd-chips" id="catChips"></div>
+        </div>
+        <div class="card wd-body-card">
+        <div class="section-title" data-i18n="wd.tab_closet">Klesskap</div>
         <div id="garmentSections"></div>
         <div id="closetEmpty" style="display:none" class="wd-empty">
           <div class="wd-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a1.8 1.8 0 1 1 1.8 1.8"/><path d="M12 5.8V8"/><path d="M12 8 3.5 14.5a1.8 1.8 0 0 0 1.1 3.2h14.8a1.8 1.8 0 0 0 1.1-3.2L12 8Z"/></svg></div>
@@ -206,17 +217,23 @@
             <div class="wd-suggest-item" onclick="openOutfit(null)"><span class="plus">+</span><span data-i18n="wd.suggest_outfit">Bygg antrekk</span></div>
           </div>
         </div>
+        </div>
       </div>
 
       <div id="outfitsView" style="display:none">
-        <div class="wd-chips" id="seasonChips"></div>
-        <div class="wd-chips" id="occChips"></div>
+        <div class="card wd-filter-card">
+          <div class="wd-chips" id="seasonChips"></div>
+          <div class="wd-chips" id="occChips"></div>
+        </div>
+        <div class="card wd-body-card">
+        <div class="section-title" data-i18n="wd.tab_outfits">Antrekk</div>
         <div class="wd-ogrid" id="outfitGrid"></div>
         <div id="outfitsEmpty" style="display:none" class="wd-empty">
           <div class="wd-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a1.8 1.8 0 1 1 1.8 1.8"/><path d="M12 5.8V8"/><path d="M12 8 3.5 14.5a1.8 1.8 0 0 0 1.1 3.2h14.8a1.8 1.8 0 0 0 1.1-3.2L12 8Z"/></svg></div>
           <div class="t1" data-i18n="wd.empty_outfits">Ingen antrekk enda</div>
           <div class="t2" data-i18n="wd.empty_outfits_hint">Sett sammen plagg til antrekk og tagg dem med sesong og anledning.</div>
           <button class="btn btn-primary" onclick="openOutfit(null)" data-i18n="wd.empty_outfits_cta">Bygg ditt første antrekk</button>
+        </div>
         </div>
       </div>
     </div>

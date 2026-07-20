@@ -932,6 +932,7 @@ const TRANSLATIONS = {
     'wd.empty_filter': 'Ingen treff med dette filteret',
     // Musikk
     'music.title': 'Musikk', 'music.sub': 'Repertoar piano & gitar',
+    'music.repertoire': 'Repertoar', 'music.filters': 'Filtre',
     'music.add': 'Legg til sang', 'music.new_song': 'Ny sang', 'music.edit_song': 'Rediger sang',
     'music.filter_instrument': 'Instrument', 'music.filter_technique': 'Teknikk',
     'music.all': 'Alle',
@@ -1879,6 +1880,7 @@ const TRANSLATIONS = {
     'wd.empty_filter': 'No matches for this filter',
     // Music
     'music.title': 'Music', 'music.sub': 'Piano & guitar repertoire',
+    'music.repertoire': 'Repertoire', 'music.filters': 'Filters',
     'music.add': 'Add song', 'music.new_song': 'New song', 'music.edit_song': 'Edit song',
     'music.filter_instrument': 'Instrument', 'music.filter_technique': 'Technique',
     'music.all': 'All',

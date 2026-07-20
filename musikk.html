@@ -15,23 +15,28 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .mu-page { max-width: 1100px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; }
+    .mu-page { max-width: 1100px; margin: 0 auto; padding: 24px 24px 96px; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 16px; }
+    .mu-filter-card { padding: 14px 16px; }
     @media (max-width: 640px) { .mu-page { padding: 18px 16px 96px; } }
 
-    .mu-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 22px; flex-wrap: wrap; }
+    .mu-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 0; flex-wrap: wrap; }
     .mu-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
     .mu-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; font-family: var(--font-mono); }
 
     /* ── Filter-chips ── */
-    .mu-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    /* Filter-kort — samler begge chip-radene i ett kort, som resten av appen. */
+    .mu-filters { display: flex; flex-direction: column; gap: 10px; }
+    .mu-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; align-items: center; }
     .mu-chip-row-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 2px; font-family: var(--font-mono); }
-    .mu-chip { border: 1px solid var(--hairline); background: var(--surface-1); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
-    .mu-chip:hover { background: var(--surface-2); border-color: rgba(255,255,255,0.16); }
+    .mu-chip { border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text-secondary); font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .mu-chip:hover { background: var(--surface-3); border-color: rgba(255,255,255,0.16); }
     .mu-chip.active { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); }
 
     /* ── Sang-grid ── */
-    .mu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 18px; }
-    .mu-card { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 16px; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    .mu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0; }
+    /* Sangkort ligger nå INNI et .card, så de bruker surface-2 for å skille seg
+       fra kortflaten under (surface-1 ville forsvunnet i bakgrunnen). */
+    .mu-card { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: var(--radius-lg); padding: 16px; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
     .mu-card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
     .mu-card-title { font-size: 14px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mu-card-artist { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -90,15 +95,22 @@
     </div>
   </div>
 
-  <div class="mu-chips" id="instrChips"></div>
-  <div class="mu-chips" id="techChips"></div>
+  <div class="card mu-filter-card">
+    <div class="mu-filters">
+      <div class="mu-chips" id="instrChips"></div>
+      <div class="mu-chips" id="techChips"></div>
+    </div>
+  </div>
 
-  <div class="mu-grid" id="songGrid"></div>
-  <div id="songsEmpty" style="display:none" class="mu-empty">
-    <div class="mu-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-    <div class="t1" data-i18n="music.empty">Ingen sanger enda</div>
-    <div class="t2" data-i18n="music.empty_hint">Legg til den første sangen i repertoaret ditt.</div>
-    <button class="btn btn-primary" onclick="openForm(null)" data-i18n="music.add">Legg til sang</button>
+  <div class="card mu-body-card">
+    <div class="section-title" data-i18n="music.repertoire">Repertoar</div>
+    <div class="mu-grid" id="songGrid"></div>
+    <div id="songsEmpty" style="display:none" class="mu-empty">
+      <div class="mu-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div class="t1" data-i18n="music.empty">Ingen sanger enda</div>
+      <div class="t2" data-i18n="music.empty_hint">Legg til den første sangen i repertoaret ditt.</div>
+      <button class="btn btn-primary" onclick="openForm(null)" data-i18n="music.add">Legg til sang</button>
+    </div>
   </div>
 </div>
 

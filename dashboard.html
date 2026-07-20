@@ -1407,7 +1407,6 @@ function renderLoadPain() {
   // 3/10 = taket i vanlige tendinopati-protokoller. Over dette skal du reagere,
   // ikke vente til det er blitt ille. Endre her ved behov.
   const PAIN_LIMIT = 3;
-  const RISK_LIMIT = 1.5;   // ACWR-terskel: over dette har belastningen økt for fort
 
   const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => {
@@ -1435,15 +1434,15 @@ function renderLoadPain() {
     };
   });
 
-  // Skriver «1,5 risiko» / «3 smerte» rett på de stiplede grenselinjene, slik at
-  // betydningen står der du ser — i stedet for i en legende under grafen.
+  // Skriver «3 smerte» rett på den stiplede grenselinja, slik at betydningen
+  // står der du ser — i stedet for i en legende under grafen.
+  // (Risikolinja på ACWR 1,5 er fjernet — kun smertegrensa markeres nå.)
   const inlineLimitLabels = {
     id: 'inlineLimitLabels',
     afterDatasetsDraw(chart) {
       const { ctx, chartArea } = chart;
       if (!chartArea) return;
       const marks = [
-        { scaleId: 'yA', v: RISK_LIMIT, txt: t('dash.risk_tag'),  col: 'rgba(255,107,107,0.9)' },
         { scaleId: 'yP', v: PAIN_LIMIT, txt: t('dash.pain_tag'),  col: 'rgba(255,159,67,0.95)' },
       ];
       ctx.save();
@@ -1478,13 +1477,6 @@ function renderLoadPain() {
           parsing: false,
           yAxisID: 'yA', borderColor: '#5BA4F5', backgroundColor: 'rgba(91,164,245,0.08)',
           borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true, fill: true,
-        },
-        {
-          label: t('dash.risk_line'),
-          data: dates.map((_, i) => ({ x: i, y: RISK_LIMIT })),
-          parsing: false,
-          yAxisID: 'yA', borderColor: 'rgba(255,107,107,0.45)', borderWidth: 1,
-          borderDash: [5, 4], pointRadius: 0, fill: false, _noTooltip: true,
         },
         {
           label: t('dash.pain_limit', { n: PAIN_LIMIT }),
