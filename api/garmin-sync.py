@@ -178,6 +178,22 @@ def fetch_for_date(garmin, save_date):
             if avg is not None and avg >= 0:
                 result["stress_avg"] = avg
 
+            # Stress-kurven ligger i SAMME respons — [timestamp_ms, nivå].
+            # Garmin bruker negative nivåer som sentinel: -1 = klokka målte
+            # ikke (av/ladet), -2 = for lite data til å beregne. De skal IKKE
+            # bli 0 i grafen (0 betyr "helt rolig"), så de droppes helt og
+            # etterlater et hull Chart.js hopper over med spanGaps.
+            stress_curve = []
+            for p in stress.get("stressValuesArray") or []:
+                if not isinstance(p, list) or len(p) < 2:
+                    continue
+                ts, lvl = p[0], p[1]
+                if isinstance(ts, (int, float)) and isinstance(lvl, (int, float)) and 0 <= lvl <= 100:
+                    stress_curve.append([int(ts // 1000), int(lvl)])
+            if stress_curve:
+                stress_curve.sort(key=lambda x: x[0])
+                result["stress_curve"] = stress_curve
+
         # Fallback: grov serie fra reports/daily hvis dailyStress mangler kurve.
         if not curve:
             bb_list = garmin.get_body_battery(stats_date)
@@ -339,7 +355,8 @@ class handler(BaseHTTPRequestHandler):
                 # Upserten merger kun feltene som faktisk finnes i payloaden, så en
                 # delvis henting nuller aldri ut eksisterende kolonner.
                 if (public.get("sleep_hours") or public.get("sleep_score")
-                        or public.get("body_battery_curve") or public.get("steps")):
+                        or public.get("body_battery_curve") or public.get("stress_curve")
+                        or public.get("steps")):
                     save_to_supabase(row)
                     saved.append(public)
                 else:

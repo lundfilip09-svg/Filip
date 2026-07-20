@@ -22,6 +22,41 @@
   --radius-lg:      12px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* ── Graf-palett ────────────────────────────────────────────────────────
+     ÉN kilde til grafarger. Chart.js hardkodet tidligere sine egne hex-verdier
+     rundt om i sovn.html, så grafene driftet fra resten av UI-et. Les alltid
+     herfra via chartColors() i utils.js — aldri skriv en hex direkte i en
+     Chart-config.
+
+     Semantikk (viktig — ikke bland):
+       data-*  = KATEGORI. Hvilken type måling. Har ingen god/dårlig-verdi.
+       state-* = TILSTAND. Kun når noe faktisk er bra/advarsel/kritisk.
+     Fargelegg aldri et kontinuerlig tall med state-farger per punkt; da leser
+     øyet tre klasser der det finnes én skala. La høyden bære verdien. */
+
+  /* Kategorifarger — søvnstadier, målinger */
+  --data-deep:    #6E6BBF;   /* dyp søvn — dypest lilla, det viktigste */
+  --data-rem:     #5B8DEF;   /* REM */
+  --data-light:   #46506B;   /* lett søvn — dempet, skal IKKE dominere */
+  --data-awake:   #2A2E39;   /* våken — nesten bakgrunn, kun en skygge på toppen */
+  --data-battery: #4FD1C5;   /* body battery — teal, egen identitet */
+  --data-stress:  #E8865A;   /* stress — varm, motsatt av teal. Høy = dårlig */
+  --data-hrv:     #5BA4F5;
+  --data-score:   #5B8DEF;
+
+  /* Tilstandsfarger — kun ekte terskler */
+  --state-good:   #5BA4F5;
+  --state-mid:    #8C8A84;
+  --state-warn:   #E8B657;
+  --state-bad:    #F26D6D;
+
+  /* Grafkrom — akser, rutenett, tooltip */
+  --chart-grid:     rgba(255,255,255,0.045);
+  --chart-tick:     #6B6964;
+  --chart-axis-lbl: rgba(255,255,255,0.22);
+  --chart-tip-bg:   rgba(10,10,13,0.97);
+  --chart-goal:     rgba(255,255,255,0.20);
 }
 
 /* ── View Transitions (sidebytte) ─────────────────────────────────────────

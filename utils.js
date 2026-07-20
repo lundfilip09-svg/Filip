@@ -62,6 +62,7 @@ const TRANSLATIONS = {
     'dash.pain_label': 'Smerte (0–10)',
     'dash.risk_line': 'Risikogrense 1.5',
     'dash.pain_limit': 'Smertegrense {n}',
+    'dash.risk_tag': 'risiko', 'dash.pain_tag': 'smerte',
     'dash.load_pain_empty': 'For lite data til ACWR ennå',
     'dash.sleep_dur_lbl': 'Søvnlengde', 'dash.trend_7d': 'Trend (7 dager)',
     'dash.no_imp_todos': 'Ingen viktige gjøremål',
@@ -370,11 +371,15 @@ const TRANSLATIONS = {
     'sovn.ready_rest': 'Vurder hvile i dag',
     'sovn.ready_high_desc': 'Søvn, HRV og hvilepuls er over din normal',
     'sovn.bb_label': 'Body battery',
-    'sovn.bb_curve': 'Body battery gjennom dagen',
-    'sovn.bb_curve_empty': 'Ingen body battery-data for denne dagen',
+    'sovn.bb_curve': 'Body battery & stress gjennom dagen',
+    'sovn.bb_curve_empty': 'Ingen body battery- eller stressdata for denne dagen',
     'sovn.bb_peak': 'Topp',
     'sovn.bb_low': 'Bunn',
     'sovn.bb_axis': 'nivå',
+    'sovn.stress_label': 'Stress',
+    'sovn.stress_axis': 'stress',
+    'sovn.stress_avg_lbl': 'Stressnitt',
+    'sovn.score_target': 'Mål 70',
     'sovn.ready_good_desc': 'God restitusjon over natten',
     'sovn.ready_moderate_desc': 'Vurder å holde intensiteten nede',
     'sovn.ready_rest_desc': 'Søvnkvalitet under normalen',
@@ -1004,6 +1009,7 @@ const TRANSLATIONS = {
     'dash.pain_label': 'Pain (0–10)',
     'dash.risk_line': 'Risk threshold 1.5',
     'dash.pain_limit': 'Pain threshold {n}',
+    'dash.risk_tag': 'risk', 'dash.pain_tag': 'pain',
     'dash.load_pain_empty': 'Not enough data for ACWR yet',
     'dash.sleep_dur_lbl': 'Sleep duration', 'dash.trend_7d': 'Trend (7 days)',
     'dash.no_imp_todos': 'No important tasks',
@@ -1312,8 +1318,12 @@ const TRANSLATIONS = {
     'sovn.ready_rest': 'Consider rest today',
     'sovn.ready_high_desc': 'Sleep, HRV and resting HR are above your normal',
     'sovn.bb_label': 'Body battery',
-    'sovn.bb_curve': 'Body Battery through the day',
-    'sovn.bb_curve_empty': 'No body battery data for this day',
+    'sovn.bb_curve': 'Body Battery & stress through the day',
+    'sovn.bb_curve_empty': 'No body battery or stress data for this day',
+    'sovn.stress_label': 'Stress',
+    'sovn.stress_axis': 'stress',
+    'sovn.stress_avg_lbl': 'Avg stress',
+    'sovn.score_target': 'Target 70',
     'sovn.bb_peak': 'Peak',
     'sovn.bb_low': 'Low',
     'sovn.bb_axis': 'level',
@@ -2910,6 +2920,63 @@ function staggerIn(els) {
     el.style.setProperty('--anim-i', Math.min(i, 4));
     el.classList.add('anim-in');
   });
+}
+
+/* ── Graf-farger ────────────────────────────────────────────────────────────
+   Chart.js kan ikke lese CSS-variabler selv — den trenger konkrete verdier på
+   canvas. chartColors() henter dem fra :root én gang og cacher, så det finnes
+   nøyaktig én kilde til grafarger (styles.css → --data-* / --state-*).
+
+   Bruk C.deep, ikke '#6E6BBF'. Skriver du en hex direkte i en Chart-config,
+   drifter grafen fra resten av UI-et neste gang paletten endres.
+
+   alpha(hex, 0.7) gir rgba — Chart.js sin fill trenger gjennomsiktighet, og
+   hex+'BF'-trikset feiler stille på farger oppgitt som rgb() eller navn. */
+let _chartColorCache = null;
+function chartColors() {
+  if (_chartColorCache) return _chartColorCache;
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+  _chartColorCache = {
+    deep:    v('--data-deep',    '#6E6BBF'),
+    rem:     v('--data-rem',     '#5B8DEF'),
+    light:   v('--data-light',   '#46506B'),
+    awake:   v('--data-awake',   '#2A2E39'),
+    battery: v('--data-battery', '#4FD1C5'),
+    stress:  v('--data-stress',  '#E8865A'),
+    hrv:     v('--data-hrv',     '#5BA4F5'),
+    score:   v('--data-score',   '#5B8DEF'),
+    good:    v('--state-good',   '#5BA4F5'),
+    mid:     v('--state-mid',    '#8C8A84'),
+    warn:    v('--state-warn',   '#E8B657'),
+    bad:     v('--state-bad',    '#F26D6D'),
+    grid:    v('--chart-grid',     'rgba(255,255,255,0.045)'),
+    tick:    v('--chart-tick',     '#6B6964'),
+    axisLbl: v('--chart-axis-lbl', 'rgba(255,255,255,0.22)'),
+    tipBg:   v('--chart-tip-bg',   'rgba(10,10,13,0.97)'),
+    goal:    v('--chart-goal',     'rgba(255,255,255,0.20)'),
+  };
+  return _chartColorCache;
+}
+
+/* alpha('#5B8DEF', 0.4) → 'rgba(91,141,239,0.4)'. Tåler #rgb, #rrggbb og
+   rgb(...)-strenger; ukjent format returneres uendret framfor å kaste. */
+function alpha(color, a) {
+  if (!color) return color;
+  const c = String(color).trim();
+  let r, g, b;
+  if (c[0] === '#') {
+    const h = c.slice(1);
+    if (h.length === 3)      { r = parseInt(h[0]+h[0],16); g = parseInt(h[1]+h[1],16); b = parseInt(h[2]+h[2],16); }
+    else if (h.length >= 6)  { r = parseInt(h.slice(0,2),16); g = parseInt(h.slice(2,4),16); b = parseInt(h.slice(4,6),16); }
+    else return c;
+  } else {
+    const m = c.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i);
+    if (!m) return c;
+    [, r, g, b] = m.map(Number);
+  }
+  if ([r, g, b].some(n => !Number.isFinite(n))) return c;
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 /* fadeInChart(canvasEl): kall etter at Chart.js har rendret. */

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Backfill stress_curve for de siste N dagene.
+#
+# Hvorfor et shell-script og ikke ny serverkode: /api/garmin-sync tar allerede
+# ?date=YYYY-MM-DD&force=1 og henter én dag. Å loope over datoer her gir null
+# ny kode i api/ — og dermed null ny angrepsflate og ingenting nytt å vedlikeholde.
+#
+# force=1 er nødvendig: uten den hopper syncen over dager som allerede har
+# søvndata, og det er nettopp de dagene som mangler stress.
+#
+# Bruk:
+#   ./scripts/backfill-stress.sh              # siste 30 dager
+#   ./scripts/backfill-stress.sh 14           # siste 14 dager
+#   SYNC_KEY=xxx ./scripts/backfill-stress.sh # hvis SYNC_KEY er satt i Vercel
+#
+# Rate limits: Garmin logger inn på nytt per kall og tåler dette dårlig hvis du
+# maser. 8 sekunders pause mellom hver dag er bevisst konservativt — 30 dager
+# tar ca. 5–6 minutter. Ikke senk den for å spare tid; blir du utestengt av
+# Garmin må du vente timer, og da stopper også den daglige 07:45-syncen.
+
+set -uo pipefail
+
+DOMAIN="${DOMAIN:-https://filip-vita.vercel.app}"
+DAYS="${1:-30}"
+PAUSE="${PAUSE:-8}"
+KEY_PARAM=""
+[ -n "${SYNC_KEY:-}" ] && KEY_PARAM="&key=${SYNC_KEY}"
+
+if ! [[ "$DAYS" =~ ^[0-9]+$ ]] || [ "$DAYS" -lt 1 ] || [ "$DAYS" -gt 90 ]; then
+  echo "Ugyldig antall dager: $DAYS (må være 1–90)" >&2
+  exit 1
+fi
+
+# macOS (BSD date) og Linux (GNU date) har ulik syntaks for datoaritmetikk.
+date_n_days_ago() {
+  if date -v-1d +%F >/dev/null 2>&1; then
+    date -v-"$1"d +%F          # BSD / macOS
+  else
+    date -d "$1 days ago" +%F  # GNU / Linux
+  fi
+}
+
+echo "Backfiller stress for siste $DAYS dager mot $DOMAIN"
+echo "Pause mellom kall: ${PAUSE}s → estimert $(( DAYS * PAUSE / 60 )) min $(( DAYS * PAUSE % 60 ))s"
+echo
+
+ok=0; fail=0; nostress=0
+
+# Start på i går (dag 1) — i dag er ufullstendig og hentes uansett 07:45.
+for i in $(seq 1 "$DAYS"); do
+  d=$(date_n_days_ago "$i")
+  printf '%s  ' "$d"
+
+  resp=$(curl -sS --max-time 120 "${DOMAIN}/api/garmin-sync?date=${d}&force=1${KEY_PARAM}" 2>&1)
+
+  if echo "$resp" | grep -q '"ok": *true'; then
+    if echo "$resp" | grep -q '"stress_curve"'; then
+      pts=$(echo "$resp" | grep -o '\[[0-9]\{10\}, *[0-9]\{1,3\}\]' | wc -l | tr -d ' ')
+      echo "OK  (~${pts} stresspunkter)"
+      ok=$((ok+1))
+    else
+      echo "OK, men ingen stressdata (klokka av / ikke båret?)"
+      nostress=$((nostress+1))
+    fi
+  else
+    echo "FEIL"
+    echo "$resp" | head -c 300 | sed 's/^/      /'
+    echo
+    fail=$((fail+1))
+  fi
+
+  [ "$i" -lt "$DAYS" ] && sleep "$PAUSE"
+done
+
+echo
+echo "Ferdig: $ok med stress, $nostress uten stressdata, $fail feilet."
+[ "$fail" -gt 0 ] && echo "Kjør scriptet på nytt for de feilede dagene — force=1 gjør det trygt å gjenta."
+exit 0

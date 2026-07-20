@@ -244,7 +244,7 @@
   <div class="chart-card" id="bbCurveCard">
     <div class="chart-header">
       <div class="card-lbl" data-i18n="sovn.bb_curve">Body battery gjennom dagen</div>
-      <div id="bbCurveStats" style="display:flex;gap:14px;font-family:var(--font-mono);font-size:10.5px"></div>
+      <div id="bbCurveStats" style="display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px"></div>
     </div>
     <div class="chart-wrap">
       <canvas id="bbCurveChart" class="chart-fade"></canvas>
@@ -373,6 +373,30 @@ function getArchInsight(d) {
 // 28-dagers baseline (25 %), body battery (20 %) og RHR mot baseline (15 %).
 // Komponenter som mangler omfordeles. 100 % krever at restitusjonsmarkørene
 // faktisk er over din normal — høy søvnscore alene holder ikke.
+/* hrvLevel(v, baseline) → 'good' | 'mid' | 'warn' | 'danger'
+   ENESTE kilde til HRV-vurdering på denne siden. Både KPI-kortet
+   (analyzeMetrics) og beredskapskortet (renderReadiness) MÅ kalle denne —
+   ikke skriv nye terskler inline noe sted, da oppstår motsigelsen på nytt.
+
+   Med baseline: relativt til ditt eget 30-dagers snitt. En sprinter på 70kg
+   med normal HRV rundt 55 har en dårlig natt på 48, mens en med normal på 42
+   har en god natt på 48. Absolutte grenser kan ikke skille de to.
+   Uten baseline (< noen dagers historikk): absolutte fallback-grenser. */
+function hrvLevel(v, baseline) {
+  if (!v) return 'none';
+  if (baseline) {
+    const r = v / baseline;
+    if (r >= 1.00) return 'good';
+    if (r >= 0.90) return 'mid';
+    if (r >= 0.80) return 'warn';
+    return 'danger';
+  }
+  if (v >= 60) return 'good';
+  if (v >= 50) return 'mid';
+  if (v >= 40) return 'warn';
+  return 'danger';
+}
+
 function getReadinessBaselines(excludeDate) {
   const hist = (chartData || []).filter(r => r.date !== excludeDate);
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -498,13 +522,23 @@ function analyzeMetrics(d) {
   const results = [];
 
   // HRV
+  // MÅ bruke samme terskler som beredskapskortet (renderReadiness). Før hadde
+  // de to hver sin logikk: her absolutte grenser (50ms → "Bra"), der relativt
+  // til 30-dagers baseline (ratio < 0.95 → "Lav"). Resultatet var at samme
+  // 50ms kunne stå som BRA i KPI-kortet og Lav i beredskapskortet, 40px unna
+  // hverandre på samme skjerm. Baseline vinner når den finnes — din egen
+  // normal sier mer enn en generisk grense — med absolutte grenser som
+  // fallback de første dagene før det finnes historikk.
   if (d?.hrv) {
     const v = d.hrv;
-    if (v >= 60)      results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'good',   badge: t('sovn.hrv_optimal'),  advice: t('sovn.hrv_advice_optimal') });
-    else if (v >= 50) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'mid',    badge: t('sovn.hrv_good'),     advice: t('sovn.hrv_advice_good') });
-    else if (v >= 40) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'warn',   badge: t('sovn.hrv_low'),      advice: t('sovn.hrv_advice_low') });
-    else if (v >= 30) results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_critical'), advice: t('sovn.hrv_advice_critical') });
-    else              results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:'danger', badge: t('sovn.hrv_alarm'),    advice: t('sovn.hrv_advice_alarm') });
+    const lvl = hrvLevel(v, getReadinessBaselines(d?.date).hrv);
+    const meta = {
+      good:   { badge: t('sovn.hrv_optimal'),  advice: t('sovn.hrv_advice_optimal') },
+      mid:    { badge: t('sovn.hrv_good'),     advice: t('sovn.hrv_advice_good') },
+      warn:   { badge: t('sovn.hrv_low'),      advice: t('sovn.hrv_advice_low') },
+      danger: { badge: t('sovn.hrv_critical'), advice: t('sovn.hrv_advice_critical') },
+    }[lvl];
+    results.push({ key:'hrv', val:`${v}ms`, label:'HRV', level:lvl, badge:meta.badge, advice:meta.advice });
   }
 
   // Sleep hours
@@ -661,11 +695,12 @@ function renderReadiness(d) {
   }
   const base = getReadinessBaselines(d?.date);
   if (d?.hrv) {
-    // Relativt til egen baseline når den finnes, ellers absolutte terskler
-    const ratio = base.hrv ? d.hrv / base.hrv : null;
-    const good  = ratio != null ? ratio >= 0.95 : d.hrv >= 50;
-    const low   = ratio != null ? ratio >= 0.85 : d.hrv >= 35;
-    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: good ? t('sovn.hrv_good') : low ? t('sovn.hrv_low') : t('sovn.hrv_critical'), color: good ? statusOf('good').c : low ? statusOf('warn').c : statusOf('danger').c });
+    // Samme hrvLevel() som KPI-kortet — se kommentaren der. Hadde denne sin
+    // egen ratio-logikk før, og de to var uenige om samme tall.
+    const lvl = hrvLevel(d.hrv, base.hrv);
+    const label = { good: t('sovn.hrv_optimal'), mid: t('sovn.hrv_good'),
+                    warn: t('sovn.hrv_low'), danger: t('sovn.hrv_critical') }[lvl];
+    indicators.push({ label:'HRV', val:`${d.hrv}ms`, status: label, color: statusOf(lvl).c });
   }
   if (d?.body_battery != null) {
     const bb = d.body_battery;
@@ -695,52 +730,104 @@ function renderBbCurve(d) {
   const statsEl  = document.getElementById('bbCurveStats');
   if (bbCurveInstance) { bbCurveInstance.destroy(); bbCurveInstance = null; }
 
-  let curve = d?.body_battery_curve;
-  if (typeof curve === 'string') { try { curve = JSON.parse(curve); } catch { curve = null; } }
+  const C = chartColors();
+  const parseCurve = raw => {
+    let c = raw;
+    if (typeof c === 'string') { try { c = JSON.parse(c); } catch { c = null; } }
+    if (!Array.isArray(c)) return [];
+    // [epoch_sek_GMT, nivå] → {x: time-på-døgnet (lokal), y: nivå}
+    return c
+      .filter(p => Array.isArray(p) && p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+      .map(([sec, lvl]) => {
+        const dt = new Date(sec * 1000);
+        return { x: dt.getHours() + dt.getMinutes() / 60, y: lvl };
+      })
+      .sort((a, b) => a.x - b.x);
+  };
 
-  if (!Array.isArray(curve) || curve.length < 2) {
-    statsEl.innerHTML = '';
-    const ctx = document.getElementById('bbCurveChart').getContext('2d');
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const pts       = parseCurve(d?.body_battery_curve);
+  const stressPts = parseCurve(d?.stress_curve);
+
+  // Body battery er hovedserien. Har vi bare stress (klokka målte stress men
+  // ikke BB) er kortet fortsatt verdt å vise.
+  if (pts.length < 2 && stressPts.length < 2) {
+    const ctx0 = document.getElementById('bbCurveChart').getContext('2d');
+    ctx0.clearRect(0, 0, ctx0.canvas.width, ctx0.canvas.height);
     statsEl.innerHTML = `<span style="color:var(--text-tertiary)">${t('sovn.bb_curve_empty')}</span>`;
     return;
   }
 
-  // [epoch_sek_GMT, nivå] → punkt {x: time-på-døgnet (lokal), y: nivå}
-  const pts = curve.map(([sec, lvl]) => {
-    const dt = new Date(sec * 1000);
-    return { x: dt.getHours() + dt.getMinutes() / 60, y: lvl };
-  }).sort((a, b) => a.x - b.x);
-
-  const levels = pts.map(p => p.y);
-  const peak = Math.max(...levels), low = Math.min(...levels);
-  const col = v => v >= 75 ? statusOf('good').hex : v >= 50 ? statusOf('warn').hex : statusOf('danger').hex;
-  statsEl.innerHTML =
-    `<span style="color:${col(peak)}">${t('sovn.bb_peak')} ${peak}</span>` +
-    `<span style="color:${col(low)}">${t('sovn.bb_low')} ${low}</span>`;
+  // Topp/bunn på body battery + stressnitt. Statusfarge KUN her — det er
+  // faktiske terskler på ett tall, ikke fargelegging av en kurve.
+  const stats = [];
+  if (pts.length) {
+    const levels = pts.map(p => p.y);
+    const peak = Math.max(...levels), low = Math.min(...levels);
+    const col = v => v >= 75 ? statusOf('good').hex : v >= 50 ? statusOf('warn').hex : statusOf('danger').hex;
+    stats.push(`<span style="color:${col(peak)}">${t('sovn.bb_peak')} ${peak}</span>`);
+    stats.push(`<span style="color:${col(low)}">${t('sovn.bb_low')} ${low}</span>`);
+  }
+  if (stressPts.length) {
+    const sv = stressPts.map(p => p.y);
+    const avg = Math.round(sv.reduce((a, b) => a + b, 0) / sv.length);
+    // Garmin-soner: <26 hvile, 26–50 lavt, 51–75 middels, >75 høyt.
+    const sCol = v => v <= 25 ? statusOf('good').hex : v <= 50 ? statusOf('mid').hex
+                    : v <= 75 ? statusOf('warn').hex : statusOf('danger').hex;
+    stats.push(`<span style="color:${sCol(avg)}">${t('sovn.stress_avg_lbl')} ${avg}</span>`);
+  }
+  statsEl.innerHTML = stats.join('');
 
   const ctx = document.getElementById('bbCurveChart').getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, 240);
-  grad.addColorStop(0, 'rgba(126,135,148,0.16)');
-  grad.addColorStop(1, 'rgba(126,135,148,0.005)');
+
+  const bbGrad = ctx.createLinearGradient(0, 0, 0, 240);
+  bbGrad.addColorStop(0, alpha(C.battery, 0.20));
+  bbGrad.addColorStop(1, alpha(C.battery, 0.005));
+
+  const datasets = [];
+  if (pts.length) {
+    datasets.push({
+      label: t('sovn.bb_label'), data: pts, parsing: false, yAxisID: 'y',
+      borderColor: C.battery, borderWidth: 1.9,
+      backgroundColor: bbGrad, fill: true,
+      tension: 0.35, pointRadius: 0, pointHoverRadius: 4,
+      pointHoverBackgroundColor: C.battery, pointHoverBorderColor: 'transparent',
+      order: 2,
+    });
+  }
+  if (stressPts.length) {
+    // Stress ligger som ufylt linje OVER body battery-flaten. Ingen fill:
+    // to fylte flater på samme akse gir mudder, og stress skal leses som
+    // "hvor kom belastningen", ikke som volum. spanGaps hopper over hullene
+    // der Garmin ikke målte (sentinel-verdiene filtreres bort i syncen).
+    datasets.push({
+      label: t('sovn.stress_label'), data: stressPts, parsing: false, yAxisID: 'yStress',
+      borderColor: alpha(C.stress, 0.85), borderWidth: 1.5,
+      backgroundColor: 'transparent', fill: false,
+      tension: 0.35, pointRadius: 0, pointHoverRadius: 4,
+      pointHoverBackgroundColor: C.stress, pointHoverBorderColor: 'transparent',
+      spanGaps: true, order: 1,
+    });
+  }
+
+  const hasBoth = pts.length > 0 && stressPts.length > 0;
 
   bbCurveInstance = new Chart(ctx, {
     type: 'line',
-    data: { datasets: [{
-      data: pts, parsing: false,
-      borderColor: '#7E8794', borderWidth: 1.75,
-      backgroundColor: grad, fill: true,
-      tension: 0.35, pointRadius: 0, pointHoverRadius: 4,
-      pointHoverBackgroundColor: '#5BA4F5', pointHoverBorderColor: 'transparent',
-    }] },
+    data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: { duration: 380 },
       interaction: { intersect: false, mode: 'index' },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: hasBoth, position: 'top', align: 'end',
+          labels: {
+            color: C.tick, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+            pointStyle: 'rectRounded', font: { family: 'ui-monospace', size: 9 },
+          },
+        },
         tooltip: {
-          backgroundColor: 'rgba(10,10,13,0.97)', titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
+          backgroundColor: C.tipBg, titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
           borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10, cornerRadius: 8,
           callbacks: {
             title: items => {
@@ -748,24 +835,34 @@ function renderBbCurve(d) {
               const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
               return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
             },
-            label: ctx => `Body battery: ${ctx.parsed.y}`,
+            label: c => `${c.dataset.label}: ${Math.round(c.parsed.y)}`,
           },
         },
       },
       scales: {
         x: {
           type: 'linear', min: 0, max: 24,
-          grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+          grid: { color: C.grid, drawBorder: false },
           ticks: {
-            color: '#6B6964', font: { family: 'ui-monospace', size: 9 },
+            color: C.tick, font: { family: 'ui-monospace', size: 9 },
             stepSize: 3, callback: v => `${String(v).padStart(2,'0')}:00`,
           },
         },
         y: {
-          min: 0, max: 100,
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-          ticks: { color: '#6B6964', font: { family: 'ui-monospace', size: 9 }, stepSize: 25 },
-          title: { display: true, text: t('sovn.bb_axis'), color: 'rgba(255,255,255,0.18)', font: { size: 9 } },
+          min: 0, max: 100, position: 'left',
+          grid: { color: C.grid, drawBorder: false },
+          ticks: { color: C.tick, font: { family: 'ui-monospace', size: 9 }, stepSize: 25 },
+          title: { display: true, text: t('sovn.bb_axis'), color: C.axisLbl, font: { size: 9 } },
+        },
+        // Egen akse for stress. Samme 0–100-skala, men eksplisitt merket:
+        // body battery høy = bra, stress høy = dårlig. Deler de aksen uten
+        // merking, leser man to motsatte betydninger som samme retning.
+        yStress: {
+          min: 0, max: 100, position: 'right',
+          display: stressPts.length > 0,
+          grid: { drawOnChartArea: false, drawBorder: false },
+          ticks: { color: alpha(C.stress, 0.65), font: { family: 'ui-monospace', size: 9 }, stepSize: 25 },
+          title: { display: true, text: t('sovn.stress_axis'), color: alpha(C.stress, 0.5), font: { size: 9 } },
         },
       },
     },
@@ -830,15 +927,19 @@ async function refreshTodayBb() {
 function updateChartLegend(metric) {
   const el = document.getElementById('chartLegend');
   const legends = {
+    // Legendprikkene MÅ lese samme variabler som datasettene, ellers viser
+    // legenden én farge og stolpen en annen etter neste palettendring.
     sleep: `
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#6E6BBF"></div>${t('sovn.leg_deep')}</div>
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#5B8DEF"></div>${t('sovn.leg_rem')}</div>
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#8CA0BD"></div>${t('sovn.leg_light')}</div>
-      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:rgba(255,255,255,0.3)"></div>${t('sovn.awake')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-deep)"></div>${t('sovn.leg_deep')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-rem)"></div>${t('sovn.leg_rem')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-light)"></div>${t('sovn.leg_light')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-awake);outline:1px solid rgba(255,255,255,0.14);outline-offset:-1px"></div>${t('sovn.awake')}</div>
       <div class="chart-leg-item"><div class="chart-leg-line"></div>${t('sovn.goal_8h')}</div>`,
-    hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--text-secondary);border-radius:50%"></div>${t('sovn.leg_hrv')}</div>`,
-    rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--text-secondary);border-radius:50%"></div>${t('sovn.leg_rhr')}</div>`,
-    score: `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--accent-blue)"></div>${t('sovn.leg_score')}</div>`,
+    hrv:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-hrv);border-radius:50%"></div>${t('sovn.leg_hrv')}</div>`,
+    rhr:   `<div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-hrv);border-radius:50%"></div>${t('sovn.leg_rhr')}</div>`,
+    score: `
+      <div class="chart-leg-item"><div class="chart-leg-dot" style="background:var(--data-score)"></div>${t('sovn.leg_score')}</div>
+      <div class="chart-leg-item"><div class="chart-leg-line"></div>${t('sovn.score_target')}</div>`,
   };
   el.innerHTML = legends[metric] || '';
 }
@@ -861,6 +962,7 @@ function renderChart(metric, days) {
   const old = wrap.querySelector('.chart-overlay');
   if (old) old.remove();
 
+  const C = chartColors();
   let datasets, isLine = false, yMax, yLabel;
 
   if (metric === 'sleep') {
@@ -873,36 +975,53 @@ function renderChart(metric, days) {
       return null;
     });
     const awakeV = dates.map(ds => { const e=find(ds); return e?.awake_minutes ? minToH(e.awake_minutes) : null; });
+    // Vekting: dyp + REM er det du faktisk bryr deg om som utøver, så de får
+    // full metning. Lett søvn og våken var før to nesten like gråtoner som
+    // utgjorde toppen ~45% av hver stolpe — altså dominerte grafen visuelt med
+    // de to minst interessante kategoriene. Nå dempes de ned mot bakgrunnen.
     datasets = [
-      { label:t('sovn.leg_deep'),  data:deepV,  backgroundColor:'rgba(110,107,191,0.78)', borderColor:'#6E6BBF', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.leg_rem'),   data:remV,   backgroundColor:'rgba(91,141,239,0.78)',  borderColor:'#5B8DEF', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.leg_light'), data:lightV, backgroundColor:'rgba(140,160,189,0.55)', borderColor:'#8CA0BD', borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
-      { label:t('sovn.awake'),     data:awakeV, backgroundColor:'rgba(255,255,255,0.16)', borderColor:'rgba(255,255,255,0.28)', borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
-      { label:t('sovn.goal_8h'), data:Array(days).fill(8), type:'line', borderColor:'rgba(255,255,255,0.18)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
+      { label:t('sovn.leg_deep'),  data:deepV,  backgroundColor:alpha(C.deep,0.92),  borderColor:C.deep,  borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_rem'),   data:remV,   backgroundColor:alpha(C.rem,0.88),   borderColor:C.rem,   borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.leg_light'), data:lightV, backgroundColor:alpha(C.light,0.55), borderColor:alpha(C.light,0.8), borderWidth:1, stack:'s', borderRadius:{topLeft:0,topRight:0} },
+      { label:t('sovn.awake'),     data:awakeV, backgroundColor:alpha(C.awake,0.7),  borderColor:alpha(C.awake,0.95), borderWidth:1, stack:'s', borderRadius:{topLeft:4,topRight:4} },
+      { label:t('sovn.goal_8h'), data:Array(days).fill(8), type:'line', borderColor:C.goal, borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, stack:undefined },
     ];
     yMax = 12; yLabel = t('sovn.hours');
 
   } else if (metric === 'hrv') {
     const vals = dates.map(ds => { const e=find(ds); return e?.hrv || null; });
+    // Linja har én farge; punktene beholder statusfarge fordi HRV FAKTISK har
+    // meningsfulle terskler per natt (i motsetning til søvnscore-stolpene).
     const dotCol = v => !v ? 'transparent' : v >= 60 ? statusOf('good').hex : v >= 50 ? statusOf('mid').hex : v >= 40 ? statusOf('warn').hex : statusOf('danger').hex;
-    datasets = [{ label:'HRV', data:vals, borderColor:'#7E8794', backgroundColor:'rgba(126,135,148,0.08)', borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
+    datasets = [{ label:'HRV', data:vals, borderColor:C.hrv, backgroundColor:alpha(C.hrv,0.09), borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
     isLine = true; yLabel = 'ms';
 
   } else if (metric === 'rhr') {
     const vals = dates.map(ds => { const e=find(ds); return e?.rhr || null; });
     const dotCol = v => !v ? 'transparent' : v <= 45 ? statusOf('good').hex : v <= 55 ? statusOf('mid').hex : v <= 65 ? statusOf('warn').hex : statusOf('danger').hex;
-    datasets = [{ label:t('sovn.rhr'), data:vals, borderColor:'#7E8794', backgroundColor:'rgba(126,135,148,0.08)', borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
+    datasets = [{ label:t('sovn.rhr'), data:vals, borderColor:C.hrv, backgroundColor:alpha(C.hrv,0.09), borderWidth:1.75, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:vals.map(dotCol), pointHoverRadius:5, pointBorderColor:'transparent' }];
     isLine = true; yLabel = 'bpm';
 
   } else if (metric === 'score') {
     const vals = dates.map(ds => { const e=find(ds); return e?.sleep_score || null; });
-    const col = v => !v ? null : v >= 85 ? statusOf('good').hex : v >= 70 ? statusOf('mid').hex : v >= 55 ? statusOf('warn').hex : statusOf('danger').hex;
+    // ÉN farge for alle stolpene. Før var dette blå/rød/grå etter terskler,
+    // som fikk øyet til å lese tre kategorier der det finnes én kontinuerlig
+    // 0–100-skala — to netter på 91 og 86 så ut til å høre til hver sin klasse.
+    // Høyden bærer verdien. Dårlige netter markeres med dempet opasitet, ikke
+    // med rød: en natt på 51 er lav, ikke en feiltilstand.
     datasets = [{
       label:t('sovn.score_lbl'), data:vals,
-      backgroundColor: vals.map(v => col(v) ? col(v)+'BF' : 'transparent'),
-      borderColor:      vals.map(v => col(v) || 'transparent'),
-      borderWidth:1, borderRadius:4,
+      backgroundColor: vals.map(v => !v ? 'transparent' : alpha(C.score, v < 55 ? 0.42 : 0.85)),
+      borderColor:     vals.map(v => !v ? 'transparent' : alpha(C.score, v < 55 ? 0.55 : 1)),
+      borderWidth:1, borderRadius:4, order:2,
     }];
+    // Terskellinje på 70 = "god natt". Gir stolpene en referanse å leses mot,
+    // som er det fargekodingen egentlig forsøkte å gjøre.
+    // order:1 tegner linja OVER stolpene (Chart.js tegner høy order først).
+    datasets.push({
+      label: t('sovn.score_target'), data: Array(days).fill(70), type:'line',
+      borderColor: C.goal, borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false, order:1,
+    });
     yMax = 100; yLabel = t('sovn.score_sub');
   }
 
@@ -926,7 +1045,7 @@ function renderChart(metric, days) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor:'rgba(10,10,13,0.97)', titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
+          backgroundColor:C.tipBg, titleColor:'#FAFAFA', bodyColor:'#B8B6B0',
           borderColor:'rgba(255,255,255,0.08)', borderWidth:1, padding:10, cornerRadius:8,
           filter: item => item.parsed.y > 0,
           callbacks: {
@@ -943,15 +1062,15 @@ function renderChart(metric, days) {
       scales: {
         x: {
           stacked: metric === 'sleep',
-          grid: { color:'rgba(255,255,255,0.04)', drawBorder:false },
-          ticks: { color:(c)=>dates[c.index]===viewDate?'#FAFAFA':'#6B6964', font:{family:'ui-monospace',size:9}, maxRotation:45, maxTicksLimit:days <= 14 ? 14 : 16 },
+          grid: { color:C.grid, drawBorder:false },
+          ticks: { color:(c)=>dates[c.index]===viewDate?'#FAFAFA':C.tick, font:{family:'ui-monospace',size:9}, maxRotation:45, maxTicksLimit:days <= 14 ? 14 : 16 },
         },
         y: {
           stacked: metric === 'sleep',
           min: 0, ...(yMax ? { max:yMax } : {}),
-          grid: { color:'rgba(255,255,255,0.05)', drawBorder:false },
-          ticks: { color:'#6B6964', font:{family:'ui-monospace',size:9} },
-          title: { display:true, text:yLabel, color:'rgba(255,255,255,0.18)', font:{size:9} },
+          grid: { color:C.grid, drawBorder:false },
+          ticks: { color:C.tick, font:{family:'ui-monospace',size:9} },
+          title: { display:true, text:yLabel, color:C.axisLbl, font:{size:9} },
         },
       },
     },
