@@ -14,13 +14,14 @@
 //
 // Bump VERSION ved endringer her — gamle cacher ryddes i activate.
 
-const VERSION = 'dash-v8';
+const VERSION = 'dash-v9';
 const SHELL = [
   '/', '/dashboard.html', '/gym.html', '/sprint.html', '/sovn.html',
   '/gjoremal.html', '/kalender.html', '/treningsplan.html', '/ai.html',
   '/investments.html', '/business.html', '/garderobe.html', '/login.html', '/treningsdagbok.html',
   '/styles.css', '/utils.js', '/manifest.json',
-  '/favicon.png', '/icon-192.png', '/icon-512.png',
+  '/favicon.png', '/favicon.svg', '/favicon-16.png', '/favicon-32.png',
+  '/favicon-180.png', '/favicon-192.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
 ];
 
