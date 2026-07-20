@@ -138,6 +138,10 @@
     .wd-color-row input { flex: 1; }
     .wd-swatch { width: 30px; height: 30px; flex-shrink: 0; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%, transparent 75%, var(--surface-3) 75%), linear-gradient(45deg, var(--surface-3) 25%, transparent 25%, transparent 75%, var(--surface-3) 75%); background-size: 10px 10px; background-position: 0 0, 5px 5px; }
     .wd-pick-hint { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); margin-top: 5px; min-height: 13px; }
+    .wd-hex { max-width: 104px; flex: 0 0 auto !important; font-family: var(--font-mono) !important; font-size: 12px !important; text-transform: lowercase; }
+    /* «Lagret ✓» — toner inn ved autolagring, ut igjen etter ~1,6 s. */
+    .wd-saved { font-size: 11px; font-family: var(--font-mono); color: var(--success); opacity: 0; transition: opacity 0.2s; align-self: center; margin-right: 4px; }
+    .wd-saved.on { opacity: 1; }
     .wd-palette { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
     .wd-pal { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--hairline); cursor: pointer; padding: 0; transition: transform 0.1s; }
     .wd-pal:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.4); }
@@ -329,8 +333,8 @@ const OCCASIONS = ['everyday','school','church','training','party','dressy'];
 // (sprint + skole + kirke), ikke en generisk nettbutikkmeny — «piggsko» finnes,
 // «frakk»/«badetøy» gjør ikke. Lagres som nøkkel-suffiks i garments.subcategory.
 const SUBCATS = {
-  top:       ['tshirt','polo','shirt','sweater','hoodie','tank','trainingtop'],
-  bottom:    ['jeans','chinos','joggers','shorts','trainingshorts','tights'],
+  top:       ['tshirt','polo','shirt','sweater','hoodie','pyjamas'],
+  bottom:    ['jeans','chinos','joggers','shorts','trainingshorts','pyjamas'],
   outerwear: ['jacket','windbreaker','raincoat','winterjacket','blazer'],
   shoes:     ['sneakers','running','spikes','formal','sandals'],
   accessory: ['cap','beanie','belt','socks','scarf','bag','jewelry'],
@@ -380,12 +384,17 @@ const BRANDS = [
 // og som ordbok for å gi pipettens hex et LESBART navn — «Marineblå» sier mer
 // til en AI eller en trener enn «#1f2d4a».
 const COLORS = [
-  ['black','#111111'], ['white','#f5f5f2'], ['grey','#808080'], ['lightgrey','#c9c9c9'],
-  ['navy','#1f2d4a'], ['blue','#2f6fbd'], ['lightblue','#8fc0e8'],
-  ['red','#c0362c'], ['burgundy','#6b1f2e'], ['pink','#e8a0b8'],
-  ['green','#3f7d4f'], ['olive','#6b6b3a'], ['beige','#d8c9ab'],
-  ['brown','#6b4a2f'], ['cream','#efe4cd'], ['yellow','#e3c53f'],
-  ['orange','#d97b2b'], ['purple','#6b4a8f'],
+  ['black','#111111'], ['charcoal','#36393d'], ['grey','#808080'], ['lightgrey','#c9c9c9'],
+  ['white','#f5f5f2'], ['offwhite','#e8e4dc'], ['cream','#efe4cd'],
+  ['navy','#1f2d4a'], ['greyblue','#5b7089'], ['denim','#4a6785'], ['blue','#2f6fbd'],
+  ['lightblue','#8fc0e8'], ['skyblue','#b8d4ea'], ['teal','#2f7d7d'], ['petrol','#2a4f5c'],
+  ['green','#3f7d4f'], ['olive','#6b6b3a'], ['sage','#9aa88a'], ['mint','#a8d4bc'],
+  ['forest','#2d4a35'],
+  ['red','#c0362c'], ['burgundy','#6b1f2e'], ['rust','#a35636'], ['coral','#e08872'],
+  ['pink','#e8a0b8'], ['dustyrose','#c08e8e'], ['purple','#6b4a8f'], ['lilac','#b8a0d4'],
+  ['beige','#d8c9ab'], ['sand','#cbb894'], ['camel','#b08d5f'], ['brown','#6b4a2f'],
+  ['darkbrown','#43301f'], ['khaki','#8f8560'],
+  ['yellow','#e3c53f'], ['mustard','#c9a227'], ['orange','#d97b2b'],
 ];
 const colorLabel = key => t('wd.c_' + key);
 
@@ -941,6 +950,8 @@ function openDetail(id) {
       <div class="wd-color-row">
         <span class="wd-swatch" id="dSwatch" style="background:${escHtml(g.color_hex || 'transparent')}"></span>
         <input id="dColor" value="${escHtml(g.color || '')}" placeholder="${t('wd.color')}">
+        <input id="dHex" class="wd-hex" value="${escHtml(g.color_hex || '')}" placeholder="#1f2d4a"
+               spellcheck="false" autocomplete="off" oninput="onHexInput(this.value)">
         <button type="button" class="btn btn-ghost btn-sm" id="dPickBtn" onclick="startPick()">🎨</button>
       </div>
       <div class="wd-pick-hint" id="dPickHint"></div>
@@ -963,16 +974,24 @@ function openDetail(id) {
       <button class="btn btn-danger btn-sm" onclick="deleteGarment()">${t('wd.delete')}</button>
       <button class="btn btn-ghost btn-sm" onclick="toggleArchive()">${g.archived ? t('wd.unarchive') : t('wd.archive')}</button>
       <span class="spacer"></span>
-      <button class="btn btn-ghost" onclick="closeDetail()">${t('cancel')}</button>
-      <button class="btn btn-primary" onclick="saveDetail()">${t('save')}</button>
+      <span class="wd-saved" id="dSaved"></span>
+      <button class="btn btn-ghost" onclick="closeDetail()">${t('wd.close')}</button>
     </div>`;
   document.getElementById('detailModal').classList.remove('hidden');
   renderSizes();
+  // Autolagring: tekstfelt debounces, nedtrekk lagrer umiddelbart.
+  ['dName','dColor','dBrand','dPrice','dNotes'].forEach(id =>
+    document.getElementById(id).addEventListener('input', queueSave));
+  ['dCat','dSub'].forEach(id =>
+    document.getElementById(id).addEventListener('change', queueSave));
 }
-function closeDetail() {
+
+async function closeDetail() {
   cancelPick();
+  await flushSave();          // ventende endring må lagres før modalen lukkes
   detailId = null;
   document.getElementById('detailModal').classList.add('hidden');
+  renderAll();
 }
 
 // ── Type / størrelse ────────────────────────────────────────────────────────
@@ -1004,12 +1023,59 @@ function setSize(s) {
   const el = document.getElementById('dSize');
   el.value = el.value === s ? '' : s;   // klikk på aktiv = fjern
   renderSizes();
+  queueSave();
 }
 
 function setColor(hex, key) {
   document.getElementById('dSwatch').style.background = hex;
-  document.getElementById('dColor').value = key ? colorLabel(key) : hex;
-  document.getElementById('dColor').dataset.hex = hex;
+  const c = document.getElementById('dColor');
+  c.value = key ? colorLabel(key) : hex;
+  c.dataset.hex = hex;
+  const h = document.getElementById('dHex');
+  if (h) h.value = hex;
+  queueSave();
+}
+
+// Hex skrevet for hånd. Godtar #abc, abc, #aabbcc og aabbcc — 3-sifret
+// utvides (#abc → #aabbcc). Ugyldig input lagres ikke, men får heller ikke
+// slette det som allerede står; brukeren er som regel bare midt i å skrive.
+function onHexInput(raw) {
+  const s = raw.trim().replace(/^#/, '');
+  const hint = document.getElementById('dPickHint');
+  if (!s) { hint.textContent = ''; return; }
+  let hex = null;
+  if (/^[0-9a-f]{6}$/i.test(s)) hex = '#' + s.toLowerCase();
+  else if (/^[0-9a-f]{3}$/i.test(s)) hex = '#' + s.toLowerCase().split('').map(c => c + c).join('');
+  if (!hex) { hint.textContent = t('wd.hex_invalid'); return; }
+  hint.textContent = '';
+  document.getElementById('dSwatch').style.background = hex;
+  const c = document.getElementById('dColor');
+  c.dataset.hex = hex;
+  // Tomt navnefelt → fyll inn nærmeste palettnavn, så eksporten blir lesbar.
+  if (!c.value.trim()) c.value = colorLabel(nearestColorName(hex));
+  queueSave();
+}
+
+// ── Autolagring ─────────────────────────────────────────────────────────────
+// Debounce 600ms: lagrer når du slutter å skrive, ikke per tastetrykk.
+// Ingen Avbryt-knapp lenger, så feltene MÅ aldri lagre halvskrevet søppel —
+// derfor faller tomt navn tilbake til det gamle navnet (som saveDetail alltid har gjort).
+let _saveTimer = null;
+function queueSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => saveDetail(true), 600);
+}
+function flushSave() {
+  if (!_saveTimer) return;
+  clearTimeout(_saveTimer); _saveTimer = null;
+  return saveDetail(true);
+}
+function markSaved() {
+  const el = document.getElementById('dSaved');
+  if (!el) return;
+  el.textContent = t('wd.autosaved');
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 1600);
 }
 
 // ── Fargepipette ────────────────────────────────────────────────────────────
@@ -1103,9 +1169,10 @@ function cancelPick() {
   _pick = null;
 }
 
-async function saveDetail() {
+// auto=true → ingen toast, ingen lukking av modalen (autolagring underveis).
+async function saveDetail(auto) {
   const g = garmentById(detailId);
-  if (!g) return;
+  if (!g || !document.getElementById('dName')) return;
   const priceNum = parseFloat(document.getElementById('dPrice').value);
   const colorEl = document.getElementById('dColor');
   const upd = {
@@ -1122,6 +1189,13 @@ async function saveDetail() {
   const { error } = await db.from('garments').update(upd).eq('id', detailId);
   if (error) { toast(error.message, 'err'); return; }
   Object.assign(g, upd);
+  if (auto) {
+    markSaved();
+    // Kort + sidebar oppdateres, men IKKE modalen — den ville mistet fokus
+    // og markørposisjon midt i skrivingen.
+    renderSub(); renderChips(); renderCloset(); renderSidebar();
+    return;
+  }
   toast(t('wd.garment_saved'));
   closeDetail();
   renderAll();
@@ -1140,6 +1214,8 @@ async function toggleArchive() {
 async function deleteGarment() {
   const g = garmentById(detailId);
   if (!g || !confirm(t('wd.delete_confirm_garment'))) return;
+  // Ventende autolagring må forkastes — ellers skriver den til en slettet rad.
+  clearTimeout(_saveTimer); _saveTimer = null;
   const { error } = await db.from('garments').delete().eq('id', detailId);
   if (error) { toast(error.message, 'err'); return; }
   if (g.image_path) db.storage.from('wardrobe').remove([g.image_path]).catch(() => {});
