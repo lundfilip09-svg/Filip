@@ -18,7 +18,11 @@
 # tar ca. 5–6 minutter. Ikke senk den for å spare tid; blir du utestengt av
 # Garmin må du vente timer, og da stopper også den daglige 07:45-syncen.
 
-set -uo pipefail
+# Ingen -e: scriptet SKAL fortsette gjennom dager som feiler.
+# Ingen pipefail: hver eneste sjekk her er `echo "$x" | grep -q ...`, og med
+# pipefail endres exit-koden til pipen på måter som gjør betingelsene
+# vanskeligere å resonnere om enn de er verdt i et script som dette.
+set -u
 
 DOMAIN="${DOMAIN:-https://filip-vita.vercel.app}"
 DAYS="${1:-30}"
@@ -76,25 +80,14 @@ schema_hint() {
 MSG
 }
 
-# ── Preflight ──────────────────────────────────────────────────────────────
-# Henter i går ÉN gang før løkka. Er skjemaet feil, oppdages det på sekund 1
-# i stedet for etter 30 kall. Dagen telles ikke med — løkka henter den uansett.
-printf 'Preflight (%s)  ' "$(date_n_days_ago 1)"
-pre=$(curl -sS --max-time 120 "${DOMAIN}/api/garmin-sync?date=$(date_n_days_ago 1)&force=1${KEY_PARAM}" 2>&1)
-if ! echo "$pre" | grep -q '"ok": *true' && is_schema_error "$pre"; then
-  echo "FEIL (skjema)"
-  schema_hint
-  exit 2
-fi
-if ! echo "$pre" | grep -q '"ok": *true'; then
-  echo "FEIL"
-  echo "$pre" | head -c 400 | sed 's/^/      /'
-  echo >&2
-  echo "  Preflight feilet — avbryter før backfillen starter." >&2
-  exit 3
-fi
-echo "OK"
-echo
+# Ingen preflight-sjekk her, med vilje.
+#
+# Den fantes i en tidligere versjon og blokkerte fire kjøringer på rad mot en
+# API som svarte HTTP 200 med "ok": true. Den fanget aldri en ekte feil.
+# Løkka under har 5-på-rad-sikringen, som dekker nøyaktig samme scenario
+# (manglende kolonne feiler likt hver dag) uten å kunne stoppe en backfill som
+# faktisk virker. En vakthund som gir falske positiver er verre enn ingen
+# vakthund: den koster tillit hver gang den bjeffer på riktig svar.
 
 # Start på i går (dag 1) — i dag er ufullstendig og hentes uansett 07:45.
 for i in $(seq 1 "$DAYS"); do
