@@ -1404,8 +1404,10 @@ function renderLoadPain() {
   const labels = dates.map(ds => fmtDate(ds));
 
   // Smertegrense: smerte >= denne = «spike» → fremhevet stort punkt m/hvit ring.
-  // Default 5 (tendon-rehab «akseptabel smerte»-regel). Endre her ved behov.
-  const PAIN_LIMIT = 5;
+  // 3/10 = taket i vanlige tendinopati-protokoller. Over dette skal du reagere,
+  // ikke vente til det er blitt ille. Endre her ved behov.
+  const PAIN_LIMIT = 3;
+  const RISK_LIMIT = 1.5;   // ACWR-terskel: over dette har belastningen økt for fort
 
   const PAIN_COLORS = ['#FF6B6B', '#FFB347', '#9B59B6', '#3498DB', '#E91E63'];
   const painDatasets = (injuryPainSeries || []).map(({ inj, painByDate }, idx) => {
@@ -1433,8 +1435,40 @@ function renderLoadPain() {
     };
   });
 
+  // Skriver «1,5 risiko» / «3 smerte» rett på de stiplede grenselinjene, slik at
+  // betydningen står der du ser — i stedet for i en legende under grafen.
+  const inlineLimitLabels = {
+    id: 'inlineLimitLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const marks = [
+        { scaleId: 'yA', v: RISK_LIMIT, txt: t('dash.risk_tag'),  col: 'rgba(255,107,107,0.9)' },
+        { scaleId: 'yP', v: PAIN_LIMIT, txt: t('dash.pain_tag'),  col: 'rgba(255,159,67,0.95)' },
+      ];
+      ctx.save();
+      ctx.font = '600 10px ui-monospace, monospace';
+      ctx.textBaseline = 'bottom';
+      for (const m of marks) {
+        const sc = chart.scales[m.scaleId];
+        if (!sc) continue;
+        const y = sc.getPixelForValue(m.v);
+        if (y < chartArea.top || y > chartArea.bottom) continue;
+        const label = m.v.toLocaleString(fmtLocale()) + ' ' + m.txt;
+        const w = ctx.measureText(label).width;
+        const x = chartArea.right - w - 5;
+        ctx.fillStyle = 'rgba(5,5,6,0.85)';
+        ctx.fillRect(x - 4, y - 13, w + 8, 13);
+        ctx.fillStyle = m.col;
+        ctx.fillText(label, x, y - 2);
+      }
+      ctx.restore();
+    },
+  };
+
   _loadPainChart = new Chart(document.getElementById('loadPainChart'), {
     type: 'line',
+    plugins: [inlineLimitLabels],
     data: {
       labels,
       datasets: [
@@ -1447,7 +1481,7 @@ function renderLoadPain() {
         },
         {
           label: t('dash.risk_line'),
-          data: dates.map((_, i) => ({ x: i, y: 1.5 })),
+          data: dates.map((_, i) => ({ x: i, y: RISK_LIMIT })),
           parsing: false,
           yAxisID: 'yA', borderColor: 'rgba(255,107,107,0.45)', borderWidth: 1,
           borderDash: [5, 4], pointRadius: 0, fill: false, _noTooltip: true,
@@ -1471,10 +1505,9 @@ function renderLoadPain() {
       interaction: { mode: 'index', intersect: false, axis: 'x' },
       hover: { mode: 'index', intersect: false, axis: 'x' },
       plugins: {
-        legend: {
-          display: true, position: 'bottom',
-          labels: { color: '#C8C6C0', font: { family: 'ui-monospace', size: 11 }, boxWidth: 16, boxHeight: 3, padding: 12 },
-        },
+        // Legenden tok tre linjer på telefon — mer plass enn selve grafen.
+        // Grensene merkes i stedet direkte på linjene (se inlineLimitLabels).
+        legend: { display: false },
         tooltip: {
           backgroundColor: 'rgba(10,10,13,0.97)', titleColor: '#FAFAFA', bodyColor: '#B8B6B0',
           borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10, cornerRadius: 8,
