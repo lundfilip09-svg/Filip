@@ -151,11 +151,21 @@
 
     /* ── Størrelsesknapper ── */
     .wd-sizes { display: flex; gap: 4px; flex-wrap: wrap; }
+    .wd-size-dim { display: flex; gap: 4px; flex-wrap: wrap; }
+    .wd-size-sublabel { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-mono); margin: 8px 0 5px; }
     .wd-size { border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text-secondary); font-size: 11.5px; font-family: inherit; padding: 6px 9px; border-radius: var(--radius-sm); cursor: pointer; min-width: 32px; transition: background 0.12s, border-color 0.12s; }
     .wd-size:hover { background: var(--surface-3); }
     .wd-size.on { background: rgba(91,164,245,0.14); border-color: rgba(91,164,245,0.45); color: var(--accent-blue); font-weight: 600; }
 
     .wd-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .wd-brand-field { position: relative; }
+    .wd-brand-list { display: none; position: absolute; z-index: 20; top: 100%; left: 0; right: 0; margin-top: 4px;
+      background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45); max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .wd-brand-list.open { display: block; }
+    .wd-brand-opt { display: block; width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+      color: var(--text-secondary); font-size: 13px; font-family: inherit; padding: 10px 12px; }
+    .wd-brand-opt:hover, .wd-brand-opt:active { background: var(--surface-2); color: var(--text-primary); }
     .wd-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     @media (max-width: 480px) { .wd-3col { grid-template-columns: 1fr 1fr; } }
 
@@ -327,16 +337,18 @@ const CATS = ['top','bottom','outerwear','shoes','accessory'];
 const CAT_ORDER = { outerwear: 0, top: 1, bottom: 2, shoes: 3, accessory: 4 };
 const CAT_ICON = { top: '👕', bottom: '👖', outerwear: '🧥', shoes: '👟', accessory: '🧢' };
 const SEASONS = ['summer','autumn_spring','winter'];
-const OCCASIONS = ['everyday','school','church','training','party','dressy'];
+const OCCASIONS = ['everyday','school','church','party','dressy'];
 
 // Underkategorier per hovedkategori. Kuratert for Filips faktiske garderobe
 // (sprint + skole + kirke), ikke en generisk nettbutikkmeny — «piggsko» finnes,
 // «frakk»/«badetøy» gjør ikke. Lagres som nøkkel-suffiks i garments.subcategory.
+// Kun hverdagsklær — treningsklær (treningsshorts, tights, piggsko o.l.) er
+// bevisst utelatt; Filip putter ikke treningstøy i garderoben.
 const SUBCATS = {
   top:       ['tshirt','polo','shirt','sweater','hoodie','pyjamas'],
-  bottom:    ['jeans','chinos','joggers','shorts','trainingshorts','pyjamas'],
+  bottom:    ['jeans','chinos','joggers','shorts','pyjamas'],
   outerwear: ['jacket','windbreaker','raincoat','winterjacket','blazer'],
-  shoes:     ['sneakers','running','spikes','formal','sandals'],
+  shoes:     ['sneakers','formal','sandals'],
   accessory: ['cap','beanie','belt','socks','scarf','bag','jewelry'],
 };
 const subLabel = s => s ? t('wd.sub_' + s) : '';
@@ -347,9 +359,13 @@ const subLabel = s => s ? t('wd.sub_' + s) : '';
 const SIZES_LETTER = ['XS','S','M','L','XL','XXL'];
 const SIZES_EU     = ['38','39','40','41','42','43','44','45','46','47'];
 const SIZES_WAIST  = ['28','29','30','31','32','33','34','36'];
+const SIZES_LENGTH = ['28','30','32','34','36'];
 function sizeOptions(cat, sub) {
   if (cat === 'shoes') return { list: SIZES_EU, label: t('wd.size_eu') };
-  if (sub === 'jeans' || sub === 'chinos') return { list: SIZES_WAIST, label: t('wd.size_waist') };
+  // Jeans/chinos måles i livvidde × benlengde (tommer), f.eks. «32 x 32».
+  if (sub === 'jeans' || sub === 'chinos')
+    return { list: SIZES_WAIST, label: t('wd.size_waist'),
+             lenList: SIZES_LENGTH, lenLabel: t('wd.size_length') };
   return { list: SIZES_LETTER, label: t('wd.size') };
 }
 
@@ -365,6 +381,10 @@ const BRANDS = [
   'Holzweiler','Livid Jeans','Anerkjendt','Solid','Only & Sons','Jack & Jones','Selected Homme',
   'H&M','Zara','Uniqlo','Weekday','Monki','Pull & Bear','Bershka','Stradivarius','COS',
   'Arket','& Other Stories','Mango','Massimo Dutti','Primark','Urban Outfitters',
+  'SMOG','New Yorker','Fishbone','Amisu','C&A','Takko','Tom Tailor','s.Oliver','Esprit',
+  'Jack & Jones Originals','Produkt','Blend','Solid','!Solid','Shine Original','Redefined Rebel',
+  'Lyle & Scott','Fred Perry','Ben Sherman','Superdry','Jack Wills','Hollister','Abercrombie & Fitch',
+  'American Eagle','Gap','Old Navy','Banana Republic','Express','J.Crew','Everlane',
   'Levi\'s','Wrangler','Lee','Diesel','G-Star RAW','Nudie Jeans','Dr. Denim','Cheap Monday',
   'Tommy Hilfiger','Calvin Klein','Ralph Lauren','Polo Ralph Lauren','U.S. Polo Assn.',
   'Hugo Boss','Armani','Emporio Armani','Gant','Tiger of Sweden','J.Lindeberg','Peak Performance',
@@ -372,6 +392,9 @@ const BRANDS = [
   'Carhartt','Carhartt WIP','Dickies','Timberland','Wrangler Workwear',
   'Stüssy','Supreme','Palace','Obey','Thrasher','Santa Cruz','Element','Quiksilver','Billabong',
   'Rip Curl','Volcom','DC Shoes','Etnies','Nike Skateboarding',
+  'Trapstar','Corteiz','Broken Planet','Sik Silk','Bershka Man','Weekday Denim','Dr. Denim',
+  'Pegador','Karl Kani','Ecko Unltd','Rocawear','FUBU','Sean John','Kangol',
+  'BoohooMAN','ASOS Design','PRETTYLITTLETHING','River Island','Topman','Burton',
   'Represent','Gymshark','Alphalete','Ryderwear','Better Bodies','ICIW','NEBBIA','Bodybuilding',
   'Lululemon','Sweaty Betty','Castore','Hummel','Errea','Joma','Macron','Craft','Newline',
   'Ecco','Vagabond','Bianco','Clarks','Dr. Martens','Birkenstock','Crocs','Skechers','Merrell',
@@ -721,6 +744,66 @@ async function toCanvas(blob, max) {
   return c;
 }
 
+// Kant-opprydding etter bakgrunnsfjerning.
+// Problemet: modellen gir myke alfa-kanter, og de halvgjennomsiktige pikslene
+// beholder RGB fra den GAMLE bakgrunnen (grått/hvitt bord). Når bildet vises
+// på mørk bakgrunn blir det en lys «halo»/frynsete outline rundt plagget.
+// Fiks i to steg:
+//  1) Alfa-kurve: skyv lav alfa mot 0 og høy alfa mot 255 (fjerner de mest
+//     forurensede pikslene og skarper kanten), men behold en mykt overgang
+//     i midtsjiktet så kanten ikke blir hakkete/aliasa.
+//  2) Un-premultiply mot kant: for delvis transparente piksler, erstatt RGB
+//     med fargen fra nærmeste helt ugjennomsiktige nabo. Da blir kantfargen
+//     plaggets egen farge i stedet for bakgrunnens.
+async function cleanEdges(blob, loCut = 40, hiCut = 205) {
+  const img = await blobToImage(blob);
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const d = imgData.data;
+
+  // Steg 1 — alfa-kurve (smoothstep mellom loCut og hiCut)
+  const alpha = new Uint8ClampedArray(w * h);
+  for (let p = 0; p < w * h; p++) {
+    const a = d[p * 4 + 3];
+    let na;
+    if (a <= loCut) na = 0;
+    else if (a >= hiCut) na = 255;
+    else {
+      const tt = (a - loCut) / (hiCut - loCut);
+      na = Math.round(tt * tt * (3 - 2 * tt) * 255);   // smoothstep
+    }
+    alpha[p] = na;
+  }
+
+  // Steg 2 — farge-lekkasje: hent RGB fra nærmeste solide nabo (radius 2)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const p = y * w + x;
+      const a = alpha[p];
+      if (a === 0 || a === 255) continue;              // kun kantpiksler
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        const yy = y + dy; if (yy < 0 || yy >= h) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          const xx = x + dx; if (xx < 0 || xx >= w) continue;
+          const q = yy * w + xx;
+          if (alpha[q] < 250) continue;                // kun solide naboer
+          r += d[q * 4]; g += d[q * 4 + 1]; b += d[q * 4 + 2]; n++;
+        }
+      }
+      if (n) { d[p * 4] = r / n; d[p * 4 + 1] = g / n; d[p * 4 + 2] = b / n; }
+    }
+  }
+
+  for (let p = 0; p < w * h; p++) d[p * 4 + 3] = alpha[p];
+  ctx.putImageData(imgData, 0, 0);
+  return await canvasToBlob(c, 'image/png');
+}
+
 // Auto-beskjæring: finn bounding-box av ikke-transparente piksler (alfa > 8)
 // og beskjær med litt luft. Gjør at plagget fyller kortet uansett hvor lite
 // det var i originalbildet.
@@ -757,7 +840,9 @@ async function autoCropAlpha(blob, padFrac = 0.04) {
 // → fall tilbake til png (med alfa) eller jpeg (uten).
 async function encodeFinal(blob, hasAlpha) {
   const c = await toCanvas(blob, 1200);
-  let out = await canvasToBlob(c, 'image/webp', 0.85);
+  // Med alfa: høyere webp-kvalitet. Lossy webp på 0.85 lagde synlige
+  // kant-artefakter (blokkete/frynsete outline) nettopp i alfa-overgangen.
+  let out = await canvasToBlob(c, 'image/webp', hasAlpha ? 0.95 : 0.85);
   if (out && out.type === 'image/webp') return { blob: out, ext: 'webp' };
   if (hasAlpha) {
     out = await canvasToBlob(c, 'image/png');
@@ -819,7 +904,8 @@ async function processItem(item) {
           },
         });
         item.status = 'crop'; renderQueueStatus(item);
-        blob = await autoCropAlpha(png);
+        blob = await cleanEdges(png);       // fjern halo/frynsete kant
+        blob = await autoCropAlpha(blob);
         hasAlpha = true;
       } catch (e) {
         item.bgFailed = true;   // behold originalen — aldri blokker lagring
@@ -959,9 +1045,13 @@ function openDetail(id) {
         `<button type="button" class="wd-pal" title="${escHtml(colorLabel(k))}" style="background:${h}" onclick="setColor('${h}','${k}')"></button>`).join('')}</div>
     </div>
     <div class="wd-3col">
-      <div class="wd-field"><label>${t('wd.brand')}</label>
-        <input id="dBrand" list="brandList" value="${escHtml(g.brand || '')}" autocomplete="off">
-        <datalist id="brandList">${BRANDS.map(b => `<option value="${escHtml(b)}"></option>`).join('')}</datalist>
+      <div class="wd-field wd-brand-field">
+        <label>${t('wd.brand')}</label>
+        <input id="dBrand" value="${escHtml(g.brand || '')}" autocomplete="off"
+               spellcheck="false" placeholder="${t('wd.brand_ph')}"
+               oninput="brandSuggest(this.value)" onfocus="brandSuggest(this.value)"
+               onblur="setTimeout(() => document.getElementById('dBrandList').classList.remove('open'), 150)">
+        <div class="wd-brand-list" id="dBrandList"></div>
       </div>
       <div class="wd-field"><label id="dSizeLabel">${t('wd.size')}</label>
         <div class="wd-sizes" id="dSizes"></div>
@@ -1010,18 +1100,70 @@ function onSubChange() { renderSizes(); }
 
 // Størrelsesknapper. Skifter enhet med kategori/type; ugyldig gammel verdi
 // (f.eks. «L» på et par sko) faller bort i stedet for å vises som aktiv.
+// Merke-forslag: <datalist> åpner ikke pålitelig på iOS Safari, så vi bygger
+// en egen filtrerbar liste. Fritekst er fortsatt lov — dette er kun forslag.
+function brandSuggest(q) {
+  const box = document.getElementById('dBrandList');
+  if (!box) return;
+  const s = (q || '').trim().toLowerCase();
+  // Vis maks 8 treff; tomt søk viser de første få merkene som en start.
+  const hits = (s
+    ? BRANDS.filter(b => b.toLowerCase().includes(s))
+    : BRANDS).slice(0, 8);
+  // Skjul hvis eneste treff er en eksakt match (brukeren er ferdig)
+  if (!hits.length || (hits.length === 1 && hits[0].toLowerCase() === s)) {
+    box.classList.remove('open'); box.innerHTML = ''; return;
+  }
+  box.innerHTML = hits.map(b =>
+    `<button type="button" class="wd-brand-opt" onmousedown="event.preventDefault()" onclick="pickBrand('${b.replace(/'/g,"\\'")}')">${escHtml(b)}</button>`).join('');
+  box.classList.add('open');
+}
+function pickBrand(b) {
+  const inp = document.getElementById('dBrand');
+  inp.value = b;
+  document.getElementById('dBrandList').classList.remove('open');
+  queueSave();
+}
+
+// Parse «32 x 32» → { waist:'32', length:'32' }. Tåler gammelt format uten
+// lengde («32») og bokstavstørrelser.
+function parseSize(v) {
+  const m = String(v || '').match(/^\s*([^\sx×]+)\s*[x×]\s*([^\sx×]+)\s*$/i);
+  return m ? { waist: m[1], length: m[2] } : { waist: v || '', length: '' };
+}
 function renderSizes() {
   const cat = document.getElementById('dCat').value;
   const sub = document.getElementById('dSub').value;
-  const { list, label } = sizeOptions(cat, sub);
-  const cur = document.getElementById('dSize').value;
-  document.getElementById('dSizeLabel').textContent = label;
-  document.getElementById('dSizes').innerHTML = list.map(s =>
+  const opt = sizeOptions(cat, sub);
+  const raw = document.getElementById('dSize').value;
+  document.getElementById('dSizeLabel').textContent = opt.label;
+
+  if (opt.lenList) {
+    // To dimensjoner: livvidde-rad + benlengde-rad
+    const { waist, length } = parseSize(raw);
+    const row = (arr, cur, dim) => arr.map(s =>
+      `<button type="button" class="wd-size${s === cur ? ' on' : ''}" onclick="setSize2('${dim}','${s}')">${s}</button>`).join('');
+    document.getElementById('dSizes').innerHTML =
+      `<div class="wd-size-dim">${row(opt.list, waist, 'waist')}</div>` +
+      `<div class="wd-size-sublabel">${opt.lenLabel}</div>` +
+      `<div class="wd-size-dim">${row(opt.lenList, length, 'length')}</div>`;
+    return;
+  }
+  const cur = parseSize(raw).waist;   // fall tilbake til enkeltverdi
+  document.getElementById('dSizes').innerHTML = opt.list.map(s =>
     `<button type="button" class="wd-size${s === cur ? ' on' : ''}" onclick="setSize('${s}')">${s}</button>`).join('');
 }
 function setSize(s) {
   const el = document.getElementById('dSize');
   el.value = el.value === s ? '' : s;   // klikk på aktiv = fjern
+  renderSizes();
+  queueSave();
+}
+function setSize2(dim, s) {
+  const el = document.getElementById('dSize');
+  const cur = parseSize(el.value);
+  cur[dim] = cur[dim] === s ? '' : s;   // klikk på aktiv = fjern
+  el.value = (cur.waist || cur.length) ? `${cur.waist} x ${cur.length}`.trim() : '';
   renderSizes();
   queueSave();
 }
